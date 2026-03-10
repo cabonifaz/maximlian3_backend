@@ -1,0 +1,6 @@
+@SafetyReport.WebApi_HostAddress = http://localhost:5124
+
+GET {{SafetyReport.WebApi_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###
