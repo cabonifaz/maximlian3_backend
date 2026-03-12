@@ -37,7 +37,7 @@ namespace SafetyReport.WebApi.Controllers
             return Ok(respuesta);
         }
 
-        [HttpPost("listar")]
+        [HttpGet("listar")]
         public async Task<IActionResult> Listar([FromBody] FiltroUsuario request)
         {
             var respuesta = await _usuarioHandler.ListarUsuariosAsync(
@@ -48,13 +48,12 @@ namespace SafetyReport.WebApi.Controllers
             return Ok(respuesta);
         }
 
-        // 🔹 obtener usuario logueado
-        [HttpPost("obtener")]
-        public async Task<IActionResult> Obtener()
+        [HttpGet("obtener")]
+        public async Task<IActionResult> Obtener([FromBody] int IdUsuario)
         {
             var respuesta = await _usuarioHandler.ObtenerUsuarioAsync(
                 UsuarioLogueado,
-                UsuarioLogueado.IdUsuario
+                IdUsuario
             );
 
             return Ok(respuesta);

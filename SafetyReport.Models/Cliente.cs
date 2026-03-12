@@ -1,0 +1,98 @@
+﻿using System.Collections.Generic;
+
+namespace SafetyReport.Models
+{
+    public class ClienteContactoRequest
+    {
+        public string Nombres { get; set; }
+        public int IdTipoContacto { get; set; }
+        public int AreaTrabajo { get; set; }
+        public string Telefono { get; set; }
+        public string Email { get; set; }
+    }
+
+    public class Cliente
+    {
+        public int IdTipoPersona { get; set; }
+        public string Nombre { get; set; }
+        public string NombreCorto { get; set; }
+        public int IdPais { get; set; }
+        public int IdRegistroTributario { get; set; }
+        public string NumRegistroTributario { get; set; }
+        public string Correo { get; set; }
+        public string WebSite { get; set; }
+        public string Telefono { get; set; }
+        public string Fax { get; set; }
+        public string Direccion { get; set; }
+        public string Recomendacion { get; set; }
+        public int IdEmpresaAtencion { get; set; }
+        public int IdIdioma { get; set; }
+        public string LogoClienteUrl { get; set; }
+        public bool ImprimeLogoSafety { get; set; }
+        public int IdFormatoDocumento { get; set; }
+        public int IdMoneda { get; set; }
+        public int IdIdiomaFacturacion { get; set; }
+        public bool AplicaPenalidad { get; set; }
+        public int IdPlantilla { get; set; }
+        public List<ClienteContactoRequest> Contactos { get; set; } = new();
+    }
+
+    public class EditarCliente
+    {
+        public int IdCliente { get; set; }
+        public Cliente InfoCliente { get; set; }
+    }
+
+    public class ClienteCreado
+    {
+        public int IdCliente { get; set; }
+    }
+
+    public class ClienteContactoConsulta
+    {
+        public int IdClienteContacto { get; set; }
+        public string Nombres { get; set; }
+        public int IdTipoContacto { get; set; }
+        public int AreaTrabajo { get; set; }
+        public string Telefono { get; set; }
+        public string Email { get; set; }
+    }
+
+    public class ClienteConsulta
+    {
+        public int IdCliente { get; set; }
+        public int IdEmpresa { get; set; }
+        public int IdTipoPersona { get; set; }
+        public string Nombre { get; set; }
+        public string NombreCorto { get; set; }
+        public int IdPais { get; set; }
+        public int IdRegistroTributario { get; set; }
+        public string NumRegistroTributario { get; set; }
+        public string Correo { get; set; }
+        public string WebSite { get; set; }
+        public string Telefono { get; set; }
+        public string Fax { get; set; }
+        public string Direccion { get; set; }
+        public string Recomendacion { get; set; }
+        public int IdEmpresaAtencion { get; set; }
+        public int IdIdioma { get; set; }
+        public string LogoClienteUrl { get; set; }
+        public bool ImprimeLogoSafety { get; set; }
+        public int IdFormatoDocumento { get; set; }
+        public int IdMoneda { get; set; }
+        public int IdIdiomaFacturacion { get; set; }
+        public bool AplicaPenalidad { get; set; }
+        public int IdPlantilla { get; set; }
+        public List<ClienteContactoConsulta> ContactosJson { get; set; } = new();
+    }
+
+    public class FiltroCliente
+    {
+        public string Filtro { get; set; }
+    }
+
+    public class ClienteIdRequest
+    {
+        public int IdCliente { get; set; }
+    }
+}
