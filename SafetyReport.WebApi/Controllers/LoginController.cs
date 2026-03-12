@@ -1,24 +1,39 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
 using SafetyReport.Handlers;
-using SafetyReport.Models;
 
 namespace SafetyReport.WebApi.Controllers
 {
     [ApiController]
     [Route("api/[controller]")]
-    public class AuthController : ControllerBase
+    public class LoginController : ControllerBase
     {
         private readonly LoginHandler _loginHandler;
 
-        public AuthController(LoginHandler loginHandler)
+        public LoginController(LoginHandler loginHandler)
         {
             _loginHandler = loginHandler;
         }
 
+        [AllowAnonymous]
         [HttpPost("login")]
-        public async Task<IActionResult> Login([FromBody] CognitoLoginRequest request)
+        public async Task<IActionResult> Login()
         {
-            var respuesta = await _loginHandler.AutenticarAsync(request);
+            var authHeader = Request.Headers.Authorization.ToString();
+
+            if (string.IsNullOrWhiteSpace(authHeader) || !authHeader.StartsWith("Bearer "))
+            {
+                return Ok(new
+                {
+                    IdTipoMensaje = 1,
+                    Mensaje = "No se envió un token Bearer válido.",
+                    Result = new object[] { }
+                });
+            }
+
+            var token = authHeader["Bearer ".Length..].Trim();
+
+            var respuesta = await _loginHandler.AutenticarAsync(token);
 
             return Ok(respuesta);
         }

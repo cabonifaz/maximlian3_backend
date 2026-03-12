@@ -14,9 +14,10 @@ namespace SafetyReport.DAO
             _dbConfig = dbConfig;
         }
 
-        public async Task<Respuesta> AutenticarAsync(CognitoLoginRequest request)
+        public async Task<Respuesta> AutenticarAsync(UsuarioGeneral usuarioActual)
         {
             var respuesta = new Respuesta();
+
             try
             {
                 using SqlConnection cn = new SqlConnection(_dbConfig.ConnectionString);
@@ -24,9 +25,9 @@ namespace SafetyReport.DAO
 
                 cmd.CommandType = CommandType.StoredProcedure;
 
-                cmd.Parameters.Add("@intIdUsuario", SqlDbType.Int).Value = int.Parse(request.IdUsuario);
-                cmd.Parameters.Add("@vchUsername", SqlDbType.VarChar, 32).Value = request.Username;
-                cmd.Parameters.Add("@intIdEmpresa", SqlDbType.Int).Value = int.Parse(request.IdEmpresa);
+                cmd.Parameters.Add("@intIdUsuario", SqlDbType.Int).Value = usuarioActual.IdUsuario;
+                cmd.Parameters.Add("@vchUsername", SqlDbType.VarChar, 32).Value = usuarioActual.Username;
+                cmd.Parameters.Add("@intIdEmpresa", SqlDbType.Int).Value = usuarioActual.IdEmpresa;
 
                 await cn.OpenAsync();
 
@@ -34,44 +35,33 @@ namespace SafetyReport.DAO
 
                 if (await dr.ReadAsync())
                 {
-                    respuesta.IdTipoMensaje = dr["IdTipoMensaje"] != DBNull.Value ? Convert.ToInt32(dr["IdTipoMensaje"]) : 0;
+                    respuesta.IdTipoMensaje = dr["IdTipoMensaje"] != DBNull.Value
+                        ? Convert.ToInt32(dr["IdTipoMensaje"])
+                        : 0;
+
                     respuesta.Mensaje = dr["Mensaje"]?.ToString();
 
                     var resultJson = dr["Result"]?.ToString();
 
-                    if (!string.IsNullOrWhiteSpace(resultJson))
-                    {
-                        respuesta.Result = JsonSerializer.Deserialize<List<UsuarioLoginResponse>>(resultJson)
-                                           ?? new List<UsuarioLoginResponse>();
-                    }
-                    else
-                    {
-                        respuesta.Result = new List<UsuarioLoginResponse>();
-                    }
+                    respuesta.Result = !string.IsNullOrWhiteSpace(resultJson)
+                        ? JsonSerializer.Deserialize<List<UsuarioLoginResponse>>(resultJson) ?? new List<UsuarioLoginResponse>()
+                        : new List<UsuarioLoginResponse>();
                 }
-            } catch (Exception ex)
-            {
-                respuesta.IdTipoMensaje = 1; // Error
-                respuesta.Mensaje = $"Error al autenticar: {ex.Message}";
-                respuesta.Result = null;
+                else
+                {
+                    respuesta.IdTipoMensaje = 1;
+                    respuesta.Mensaje = "No se obtuvo respuesta del procedimiento.";
+                    respuesta.Result = new List<UsuarioLoginResponse>();
+                }
             }
-
+            catch (Exception ex)
+            {
+                respuesta.IdTipoMensaje = 1;
+                respuesta.Mensaje = $"Error al autenticar: {ex.Message}";
+                respuesta.Result = new List<UsuarioLoginResponse>();
+            }
 
             return respuesta;
-        }
-    }
-
-    public static class SqlDataReaderExtensions
-    {
-        public static bool HasColumn(this SqlDataReader reader, string columnName)
-        {
-            for (int i = 0; i < reader.FieldCount; i++)
-            {
-                if (reader.GetName(i).Equals(columnName, StringComparison.OrdinalIgnoreCase))
-                    return true;
-            }
-
-            return false;
         }
     }
 }

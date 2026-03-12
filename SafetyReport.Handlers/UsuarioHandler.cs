@@ -19,11 +19,11 @@ namespace SafetyReport.Handlers
             _config = config;
         }
 
-        public async Task<Respuesta> CrearUsuarioAsync(CrearUsuario request)
+        public async Task<Respuesta> CrearUsuarioAsync(UsuarioGeneral usuarioLogueado, Usuario request)
         {
             try
             {
-                var respuesta = await _dao.CrearUsuarioAsync(request);
+                var respuesta = await _dao.CrearUsuarioAsync(usuarioLogueado, request);
 
                 if (respuesta.IdTipoMensaje != 2)
                     return respuesta;
@@ -56,7 +56,7 @@ namespace SafetyReport.Handlers
                     {
                         new AttributeType { Name = "email", Value = request.Email },
                         new AttributeType { Name = "email_verified", Value = "true" },
-                        new AttributeType { Name = "custom:id_empresa", Value = request.UsuarioLogueado.IdEmpresa.ToString() },
+                        new AttributeType { Name = "custom:id_empresa", Value = usuarioLogueado.IdEmpresa.ToString() },
                         new AttributeType { Name = "custom:id_usuario", Value = creado.IdUsuario.ToString() }
                     }
                 };
@@ -91,6 +91,74 @@ namespace SafetyReport.Handlers
                     IdTipoMensaje = 1,
                     Mensaje = ex.Message,
                     Result = new List<UsuarioCreado>()
+                };
+            }
+        }
+
+        public async Task<Respuesta> EditarUsuarioAsync(UsuarioGeneral usuarioLogueado, EditarUsuario request)
+        {
+            try
+            {
+                return await _dao.EditarUsuarioAsync(usuarioLogueado, request);
+            }
+            catch (Exception ex)
+            {
+                return new Respuesta
+                {
+                    IdTipoMensaje = 1,
+                    Mensaje = ex.Message,
+                    Result = new List<UsuarioCreado>()
+                };
+            }
+        }
+
+        public async Task<Respuesta> EliminarUsuarioAsync(UsuarioGeneral usuarioLogueado, EliminarUsuario request)
+        {
+            try
+            {
+                return await _dao.EliminarUsuarioAsync(usuarioLogueado, request.IdUsuarioEliminar);
+            }
+            catch (Exception ex)
+            {
+                return new Respuesta
+                {
+                    IdTipoMensaje = 1,
+                    Mensaje = ex.Message,
+                    Result = new List<EliminarUsuario>()
+                };
+            }
+        }
+
+        public async Task<Respuesta> ListarUsuariosAsync(UsuarioGeneral usuarioLogueado, string? filtro)
+        {
+            try
+            {
+                return await _dao.ListarUsuariosAsync(usuarioLogueado, filtro);
+            }
+            catch (Exception ex)
+            {
+                return new Respuesta
+                {
+                    IdTipoMensaje = 1,
+                    Mensaje = ex.Message,
+                    Result = new List<UsuarioConsulta>()
+                };
+            }
+        }
+
+        public async Task<Respuesta> ObtenerUsuarioAsync(UsuarioGeneral usuarioLogueado, int idUsuarioConsulta)
+        {
+            try
+            {
+                return await _dao.ObtenerUsuarioAsync(usuarioLogueado, idUsuarioConsulta);
+            }
+            catch (Exception ex)
+            {
+                return new Respuesta
+                {
+                    IdTipoMensaje = 1,
+                    Mensaje = ex.Message,
+                    Result = new List<UsuarioConsulta>()
                 };
             }
         }

@@ -9,6 +9,7 @@ namespace SafetyReport.Models
         public int IdRol { get; set; }
         public string Rol { get; set; }
     }
+
     public class UsuarioGeneral
     {
         public int IdUsuario { get; set; }
@@ -17,9 +18,8 @@ namespace SafetyReport.Models
         public int IdRol { get; set; }
     }
 
-    public class CrearUsuario
+    public class Usuario
     {
-        public UsuarioGeneral UsuarioLogueado { get; set; }
         public string Nombres { get; set; }
         public string ApellidoPaterno { get; set; }
         public string ApellidoMaterno { get; set; }
@@ -28,10 +28,28 @@ namespace SafetyReport.Models
         public List<int> Roles { get; set; }
     }
 
+    public class EditarUsuario
+    {
+        public int IdUsuario { get; set; }
+        public Usuario InfoUsuario { get; set; }
+    }
+
     public class UsuarioCreado
     {
         public int IdUsuario { get; set; }
         public string Username { get; set; }
+    }
+
+    public class UsuarioConsulta
+    {
+        public int IdUsuario { get; set; }
+        public int IdEmpresa { get; set; }
+        public string Nombres { get; set; }
+        public string ApellidoPaterno { get; set; }
+        public string ApellidoMaterno { get; set; }
+        public string Email { get; set; }
+        public string Username { get; set; }
+        public List<Roles> Roles { get; set; } = new();
     }
 
     public class UsuarioLoginResponse
@@ -43,6 +61,14 @@ namespace SafetyReport.Models
         public string Username { get; set; }
         public List<Roles> Roles { get; set; } = new();
     }
+
+    public class EliminarUsuario
+    {
+        public int IdUsuarioEliminar { get; set; }
+    }
+
+    public class FiltroUsuario
+    {
+        public string? Filtro { get; set; }
+    }
 }
-
-
