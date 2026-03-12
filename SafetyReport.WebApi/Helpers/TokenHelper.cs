@@ -5,7 +5,7 @@ namespace SafetyReport.WebApi.Helpers
 {
     public static class TokenHelper
     {
-        public static UsuarioGeneral GetUsuario(ClaimsPrincipal user)
+        public static UsuarioGeneral GetUsuario(ClaimsPrincipal user, string idRolHeader)
         {
             var idUsuarioClaim =
                 user.FindFirst("custom:id_usuario")?.Value ??
@@ -25,7 +25,7 @@ namespace SafetyReport.WebApi.Helpers
                 IdUsuario = int.TryParse(idUsuarioClaim, out var idUsuario) ? idUsuario : 0,
                 IdEmpresa = int.TryParse(idEmpresaClaim, out var idEmpresa) ? idEmpresa : 0,
                 Username = usernameClaim ?? string.Empty,
-                IdRol = 0
+                IdRol = int.TryParse(idRolHeader, out var idRol)? idRol : 0
             };
         }
     }

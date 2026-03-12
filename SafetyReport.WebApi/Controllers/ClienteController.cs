@@ -32,7 +32,7 @@ namespace SafetyReport.WebApi.Controllers
         }
 
         [HttpGet("obtener/{idCliente:int}")]
-        public async Task<IActionResult> Obtener([FromRoute] int idCliente)
+        public async Task<IActionResult> Obtener([FromBody] int idCliente)
         {
             var respuesta = await _clienteHandler.ObtenerClienteAsync(UsuarioLogueado, idCliente);
             return Ok(respuesta);

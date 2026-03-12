@@ -7,6 +7,6 @@ namespace SafetyReport.WebApi.Controllers
     [ApiController]
     public class BaseController : ControllerBase
     {
-        protected UsuarioGeneral UsuarioLogueado => TokenHelper.GetUsuario(User);
+        protected UsuarioGeneral UsuarioLogueado => TokenHelper.GetUsuario(User, Request.Headers["idRol"].FirstOrDefault());
     }
 }
