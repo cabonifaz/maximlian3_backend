@@ -49,7 +49,6 @@ namespace SafetyReport.Handlers
                 {
                     UserPoolId = userPoolId,
                     Username = creado.Username,
-                    TemporaryPassword = request.Password,
                     MessageAction = MessageActionType.SUPPRESS,
                     DesiredDeliveryMediums = new List<string>(),
                     UserAttributes = new List<AttributeType>
@@ -67,7 +66,6 @@ namespace SafetyReport.Handlers
                 {
                     UserPoolId = userPoolId,
                     Username = creado.Username,
-                    Password = request.Password,
                     Permanent = true
                 });
 
