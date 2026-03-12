@@ -21,7 +21,9 @@ namespace SafetyReport.Handlers
         {
             var region = _configuration["AWS:Region"];
             var userPoolId = _configuration["Cognito:UserPoolId"];
-            var clientId = _configuration["Cognito:ClientId"];
+            var clientIdFrontend = _configuration["Cognito:ClientIdFrontend"];
+            var clientIdBackend = _configuration["Cognito:ClientIdBackend"];
+            var validClientIds = new[] { clientIdFrontend, clientIdBackend };
 
             var issuer = $"https://cognito-idp.{region}.amazonaws.com/{userPoolId}";
             var metadataAddress = $"{issuer}/.well-known/openid-configuration";
@@ -59,8 +61,8 @@ namespace SafetyReport.Handlers
             if (!string.Equals(tokenUse, "id", StringComparison.OrdinalIgnoreCase))
                 return null;
 
-            if (!string.Equals(aud, clientId, StringComparison.Ordinal) &&
-                !string.Equals(clientIdClaim, clientId, StringComparison.Ordinal))
+            if (!validClientIds.Contains(aud, StringComparer.Ordinal) &&
+                !validClientIds.Contains(clientIdClaim, StringComparer.Ordinal))
                 return null;
 
             var idUsuarioClaim =
