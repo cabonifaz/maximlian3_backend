@@ -16,7 +16,7 @@ namespace SafetyReport.WebApi.Controllers
         }
 
         [AllowAnonymous]
-        [HttpPost("login")]
+        [HttpGet("validator")]
         public async Task<IActionResult> Login()
         {
             var authHeader = Request.Headers.Authorization.ToString();
