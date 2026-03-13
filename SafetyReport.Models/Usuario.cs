@@ -43,15 +43,17 @@ namespace SafetyReport.Models
 
     public class UsuarioConsulta
     {
-        public int IdUsuario { get; set; }
         public int IdEmpresa { get; set; }
         public string Nombres { get; set; }
         public string ApellidoPaterno { get; set; }
         public string ApellidoMaterno { get; set; }
         public string Email { get; set; }
         public string Username { get; set; }
-        public List<Roles> Roles { get; set; } = new();
+        public List<int> Roles { get; set; } = new();
+        public List<int> Idiomas { get; set; } = new();
     }
+
+
 
     public class UsuarioListaResult
     {
