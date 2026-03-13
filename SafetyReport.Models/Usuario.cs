@@ -8,6 +8,7 @@ namespace SafetyReport.Models
     {
         public int IdRol { get; set; }
         public string Rol { get; set; }
+        public string Descripcion { get; set; }
     }
 
     public class UsuarioGeneral
