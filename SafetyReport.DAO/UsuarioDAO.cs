@@ -117,14 +117,13 @@ namespace SafetyReport.DAO
                 cmd.CommandType = CommandType.StoredProcedure;
 
                 cmd.Parameters.Add("@intIdUsuario", SqlDbType.Int).Value = usuarioLogueado.IdUsuario;
-                cmd.Parameters.Add("@vchUsername", SqlDbType.VarChar, 32).Value = usuarioLogueado.Username;
+                cmd.Parameters.Add("@vchUsernameMOD", SqlDbType.VarChar, 32).Value = usuarioLogueado.Username;
                 cmd.Parameters.Add("@intIdEmpresa", SqlDbType.Int).Value = usuarioLogueado.IdEmpresa;
                 cmd.Parameters.Add("@intIdRol", SqlDbType.Int).Value = usuarioLogueado.IdRol;
                 cmd.Parameters.Add("@intIdUsuarioEditar", SqlDbType.Int).Value = request.IdUsuario;
                 cmd.Parameters.Add("@vchNombres", SqlDbType.VarChar, 50).Value = request.InfoUsuario.Nombres;
                 cmd.Parameters.Add("@vchApellidoPaterno", SqlDbType.VarChar, 50).Value = request.InfoUsuario.ApellidoPaterno;
                 cmd.Parameters.Add("@vchApellidoMaterno", SqlDbType.VarChar, 50).Value = (object?)request.InfoUsuario.ApellidoMaterno ?? DBNull.Value;
-                cmd.Parameters.Add("@vchEmail", SqlDbType.VarChar, 100).Value = request.InfoUsuario.Email;
 
                 var table = ConstruirTabla_LISTA_GENERAL_NUM(request.InfoUsuario.Roles);
                 var tvp = cmd.Parameters.AddWithValue("@lstRoles", table);
