@@ -89,7 +89,7 @@ namespace SafetyReport.DAO
                 tvp.TypeName = "LISTA_GENERAL_NUM";
 
                 var table2 = ConstruirTabla_LISTA_GENERAL_NUM(request.Idiomas);
-                var tvp2 = cmd.Parameters.AddWithValue("@lstRoles", table);
+                var tvp2 = cmd.Parameters.AddWithValue("@lstIdiomas", table);
                 tvp2.SqlDbType = SqlDbType.Structured;
                 tvp2.TypeName = "LISTA_GENERAL_NUM";
 
