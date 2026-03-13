@@ -82,6 +82,7 @@ namespace SafetyReport.DAO
                 cmd.Parameters.Add("@vchApellidoPaterno", SqlDbType.VarChar, 50).Value = request.ApellidoPaterno;
                 cmd.Parameters.Add("@vchApellidoMaterno", SqlDbType.VarChar, 50).Value = (object?)request.ApellidoMaterno ?? DBNull.Value;
                 cmd.Parameters.Add("@vchEmail", SqlDbType.VarChar, 100).Value = request.Email;
+                cmd.Parameters.Add("@vchUsernameCreado", SqlDbType.VarChar, 32).Value = request.Username;
 
                 var table = ConstruirTabla_LISTA_GENERAL_NUM(request.Roles);
                 var tvp = cmd.Parameters.AddWithValue("@lstRoles", table);
