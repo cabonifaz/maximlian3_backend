@@ -65,8 +65,8 @@ builder.Services.AddAuthentication(options =>
     {
         ValidateIssuer = true,
         ValidIssuer = cognitoIssuer,
-        // Access Tokens de Cognito no incluyen el claim "aud", solo "client_id"
-        // La validación de client_id se hace manualmente en OnTokenValidated
+        // ID Tokens de Cognito incluyen el claim "aud" con el client_id
+        // La validación del aud se hace manualmente en OnTokenValidated
         ValidateAudience = false,
         ValidateLifetime = true,
         ValidateIssuerSigningKey = true
@@ -84,17 +84,17 @@ builder.Services.AddAuthentication(options =>
             Console.WriteLine("TOKEN VALIDADO POR FIRMA/ISSUER/LIFETIME");
 
             var tokenUse = context.Principal?.FindFirst("token_use")?.Value;
-            var clientIdClaim = context.Principal?.FindFirst("client_id")?.Value;
+            var audClaim = context.Principal?.FindFirst("aud")?.Value;
 
-            if (!string.Equals(tokenUse, "access", StringComparison.OrdinalIgnoreCase))
+            if (!string.Equals(tokenUse, "id", StringComparison.OrdinalIgnoreCase))
             {
-                context.Fail("Solo se aceptan access tokens.");
+                context.Fail("Solo se aceptan id tokens.");
                 return Task.CompletedTask;
             }
 
-            if (!validClientIds.Contains(clientIdClaim, StringComparer.Ordinal))
+            if (!validClientIds.Contains(audClaim, StringComparer.Ordinal))
             {
-                context.Fail($"El client_id del token ({clientIdClaim}) no está autorizado.");
+                context.Fail($"El aud del token ({audClaim}) no está autorizado.");
                 return Task.CompletedTask;
             }
 
@@ -121,6 +121,10 @@ builder.Services.AddScoped<LoginDAO>();
 builder.Services.AddScoped<LoginHandler>();
 builder.Services.AddScoped<UsuarioDAO>();
 builder.Services.AddScoped<UsuarioHandler>();
+builder.Services.AddScoped<MasterTableDAO>();
+builder.Services.AddScoped<MasterTableHandler>();
+builder.Services.AddScoped<ClienteDAO>();
+builder.Services.AddScoped<ClienteHandler>();
 builder.Services.AddScoped<CognitoTokenValidator>();
 
 var app = builder.Build();
