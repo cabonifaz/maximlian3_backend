@@ -18,6 +18,7 @@ namespace SafetyReport.DAO
         {
             var table = new DataTable();
             table.Columns.Add("ID", typeof(int));
+            table.Columns.Add("CODIGO", typeof(string));
             table.Columns.Add("NOMBRES", typeof(string));
             table.Columns.Add("IDTIPOCONTACTO", typeof(int));
             table.Columns.Add("AREATRABAJO", typeof(int));
@@ -32,6 +33,7 @@ namespace SafetyReport.DAO
                 {
                     table.Rows.Add(
                         i++,
+                        contacto.Codigo,
                         contacto.Nombres ?? string.Empty,
                         contacto.IdTipoContacto,
                         contacto.AreaTrabajo,

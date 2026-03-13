@@ -2,6 +2,7 @@
 {
     public class ClienteContactoRequest
     {
+        public string Codigo { get; set; }
         public string Nombres { get; set; }
         public int IdTipoContacto { get; set; }
         public int AreaTrabajo { get; set; }
