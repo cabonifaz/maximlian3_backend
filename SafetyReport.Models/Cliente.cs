@@ -1,6 +1,4 @@
-﻿using System.Collections.Generic;
-
-namespace SafetyReport.Models
+﻿namespace SafetyReport.Models
 {
     public class ClienteContactoRequest
     {
@@ -48,6 +46,11 @@ namespace SafetyReport.Models
         public int IdCliente { get; set; }
     }
 
+    public class ClienteEliminado
+    {
+        public int IdCliente { get; set; }
+    }
+
     public class ClienteContactoConsulta
     {
         public int IdClienteContacto { get; set; }
@@ -88,7 +91,7 @@ namespace SafetyReport.Models
 
     public class FiltroCliente
     {
-        public string Filtro { get; set; }
+        public string? Filtro { get; set; }
     }
 
     public class ClienteIdRequest

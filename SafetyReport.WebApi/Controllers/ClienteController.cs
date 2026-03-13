@@ -44,5 +44,12 @@ namespace SafetyReport.WebApi.Controllers
             var respuesta = await _clienteHandler.ListarClientesAsync(UsuarioLogueado, filtro);
             return Ok(respuesta);
         }
+
+        [HttpPost("eliminar")]
+        public async Task<IActionResult> Eliminar([FromBody] ClienteIdRequest request)
+        {
+            var respuesta = await _clienteHandler.EliminarClienteAsync(UsuarioLogueado, request);
+            return Ok(respuesta);
+        }
     }
 }

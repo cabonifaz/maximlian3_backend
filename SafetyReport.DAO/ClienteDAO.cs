@@ -245,5 +245,34 @@ namespace SafetyReport.DAO
                 };
             }
         }
+
+        public async Task<Respuesta> EliminarClienteAsync(UsuarioGeneral usuarioLogueado, int idCliente)
+        {
+            try
+            {
+                using SqlConnection cn = new SqlConnection(_dbConfig.ConnectionString);
+                using SqlCommand cmd = new SqlCommand("Cliente_DEL", cn);
+
+                cmd.CommandType = CommandType.StoredProcedure;
+
+                cmd.Parameters.Add("@intIdUsuario", SqlDbType.Int).Value = usuarioLogueado.IdUsuario;
+                cmd.Parameters.Add("@vchUsername", SqlDbType.VarChar, 32).Value = usuarioLogueado.Username;
+                cmd.Parameters.Add("@intIdEmpresa", SqlDbType.Int).Value = usuarioLogueado.IdEmpresa;
+                cmd.Parameters.Add("@intIdRol", SqlDbType.Int).Value = usuarioLogueado.IdRol;
+                cmd.Parameters.Add("@IdCliente", SqlDbType.Int).Value = idCliente;
+
+                await cn.OpenAsync();
+                return await LeerRespuestaAsync<ClienteEliminado>(cmd);
+            }
+            catch (Exception ex)
+            {
+                return new Respuesta
+                {
+                    IdTipoMensaje = 1,
+                    Mensaje = ex.Message,
+                    Result = new List<ClienteEliminado>()
+                };
+            }
+        }
     }
 }
