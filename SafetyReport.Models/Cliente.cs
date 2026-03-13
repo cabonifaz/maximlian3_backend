@@ -91,9 +91,19 @@
 
     public class ClienteListaResult
     {
-        public List<ClienteConsulta> lstClientes { get; set; } = new();
+        public List<ClienteListaConsulta> lstClientes { get; set; } = new();
         public int TotalRegistros { get; set; }
         public int TotalPaginas { get; set; }
+    }
+
+    public class ClienteListaConsulta
+    {
+        public int IdCliente { get; set; }
+        public string Nombre { get; set; }
+        public string Pais { get; set; }
+        public string TipoPersona { get; set; }
+        public string Correo { get; set; }
+        public string Telefono { get; set; }
     }
 
     public class FiltroCliente
