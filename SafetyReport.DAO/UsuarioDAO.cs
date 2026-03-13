@@ -57,7 +57,7 @@ namespace SafetyReport.DAO
             }
             else
             {
-                respuesta.IdTipoMensaje = 1;
+                respuesta.IdTipoMensaje = 3;
                 respuesta.Mensaje = "No se obtuvo respuesta del procedimiento.";
                 respuesta.Result = new List<T>();
             }

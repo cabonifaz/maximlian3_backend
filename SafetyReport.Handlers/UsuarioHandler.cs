@@ -49,8 +49,7 @@ namespace SafetyReport.Handlers
                 {
                     UserPoolId = userPoolId,
                     Username = creado.Username,
-                    MessageAction = MessageActionType.SUPPRESS,
-                    DesiredDeliveryMediums = new List<string>(),
+                    DesiredDeliveryMediums = new List<string> { "EMAIL" },
                     UserAttributes = new List<AttributeType>
                     {
                         new AttributeType { Name = "email", Value = request.Email },
@@ -61,13 +60,6 @@ namespace SafetyReport.Handlers
                 };
 
                 var cognitoResp = await client.AdminCreateUserAsync(createRequest);
-
-                await client.AdminSetUserPasswordAsync(new AdminSetUserPasswordRequest
-                {
-                    UserPoolId = userPoolId,
-                    Username = creado.Username,
-                    Permanent = true
-                });
 
                 var sub = cognitoResp.User.Attributes?
                     .FirstOrDefault(x => x.Name == "sub")?.Value;
@@ -86,7 +78,7 @@ namespace SafetyReport.Handlers
             {
                 return new Respuesta
                 {
-                    IdTipoMensaje = 1,
+                    IdTipoMensaje = 3,
                     Mensaje = ex.Message,
                     Result = new List<UsuarioCreado>()
                 };
