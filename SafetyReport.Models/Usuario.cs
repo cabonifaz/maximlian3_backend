@@ -26,6 +26,7 @@ namespace SafetyReport.Models
         public string ApellidoMaterno { get; set; }
         public string Email { get; set; }
         public List<int> Roles { get; set; }
+        public List<int> Idiomas { get; set; }
     }
 
     public class EditarUsuario
@@ -52,6 +53,24 @@ namespace SafetyReport.Models
         public List<Roles> Roles { get; set; } = new();
     }
 
+    public class UsuarioListaResult
+    {
+        public List<UsuarioListaConsulta> lstUsuarios { get; set; } = new();
+        public int TotalRegistros { get; set; }
+    }
+
+    public class UsuarioListaConsulta
+    {
+        public int IdUsuario { get; set; }
+        public int IdEmpresa { get; set; }
+        public string Nombres { get; set; }
+        public string ApellidoPaterno { get; set; }
+        public string ApellidoMaterno { get; set; }
+        public string Email { get; set; }
+        public string Username { get; set; }
+        
+    }
+
     public class UsuarioLoginResponse
     {
         public int IdUsuario { get; set; }
@@ -69,6 +88,7 @@ namespace SafetyReport.Models
 
     public class FiltroUsuario
     {
+        public int numPag { get; set; }
         public string? Filtro { get; set; }
     }
 }

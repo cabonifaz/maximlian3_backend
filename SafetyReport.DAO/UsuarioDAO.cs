@@ -14,7 +14,7 @@ namespace SafetyReport.DAO
             _dbConfig = dbConfig;
         }
 
-        private static DataTable ConstruirTablaRoles(List<int>? roles)
+        private static DataTable ConstruirTabla_LISTA_GENERAL_NUM(List<int>? roles)
         {
             var table = new DataTable();
             table.Columns.Add("ID", typeof(int));
@@ -83,10 +83,15 @@ namespace SafetyReport.DAO
                 cmd.Parameters.Add("@vchApellidoMaterno", SqlDbType.VarChar, 50).Value = (object?)request.ApellidoMaterno ?? DBNull.Value;
                 cmd.Parameters.Add("@vchEmail", SqlDbType.VarChar, 100).Value = request.Email;
 
-                var table = ConstruirTablaRoles(request.Roles);
+                var table = ConstruirTabla_LISTA_GENERAL_NUM(request.Roles);
                 var tvp = cmd.Parameters.AddWithValue("@lstRoles", table);
                 tvp.SqlDbType = SqlDbType.Structured;
                 tvp.TypeName = "LISTA_GENERAL_NUM";
+
+                var table2 = ConstruirTabla_LISTA_GENERAL_NUM(request.Idiomas);
+                var tvp2 = cmd.Parameters.AddWithValue("@lstRoles", table);
+                tvp2.SqlDbType = SqlDbType.Structured;
+                tvp2.TypeName = "LISTA_GENERAL_NUM";
 
                 await cn.OpenAsync();
                 return await LeerRespuestaAsync<UsuarioCreado>(cmd);
@@ -121,7 +126,7 @@ namespace SafetyReport.DAO
                 cmd.Parameters.Add("@vchApellidoMaterno", SqlDbType.VarChar, 50).Value = (object?)request.InfoUsuario.ApellidoMaterno ?? DBNull.Value;
                 cmd.Parameters.Add("@vchEmail", SqlDbType.VarChar, 100).Value = request.InfoUsuario.Email;
 
-                var table = ConstruirTablaRoles(request.InfoUsuario.Roles);
+                var table = ConstruirTabla_LISTA_GENERAL_NUM(request.InfoUsuario.Roles);
                 var tvp = cmd.Parameters.AddWithValue("@lstRoles", table);
                 tvp.SqlDbType = SqlDbType.Structured;
                 tvp.TypeName = "LISTA_GENERAL_NUM";
@@ -169,7 +174,7 @@ namespace SafetyReport.DAO
             }
         }
 
-        public async Task<Respuesta> ListarUsuariosAsync(UsuarioGeneral usuarioActual, string? filtro)
+        public async Task<Respuesta> ListarUsuariosAsync(UsuarioGeneral usuarioActual, string? filtro, int? numPag)
         {
             try
             {
@@ -183,17 +188,43 @@ namespace SafetyReport.DAO
                 cmd.Parameters.Add("@intIdEmpresa", SqlDbType.Int).Value = usuarioActual.IdEmpresa;
                 cmd.Parameters.Add("@intIdRol", SqlDbType.Int).Value = usuarioActual.IdRol;
                 cmd.Parameters.Add("@vchFiltro", SqlDbType.VarChar, 255).Value = (object?)filtro ?? DBNull.Value;
+                cmd.Parameters.Add("@numPag", SqlDbType.Int).Value = numPag;
 
                 await cn.OpenAsync();
-                return await LeerRespuestaAsync<UsuarioConsulta>(cmd);
+
+                var respuesta = new Respuesta();
+                using var dr = await cmd.ExecuteReaderAsync();
+
+                if (await dr.ReadAsync())
+                {
+                    respuesta.IdTipoMensaje = dr["IdTipoMensaje"] != DBNull.Value
+                        ? Convert.ToInt32(dr["IdTipoMensaje"]) : 0;
+                    respuesta.Mensaje = dr["Mensaje"]?.ToString() ?? string.Empty;
+
+                    var json = dr["Result"]?.ToString();
+                    respuesta.Result = !string.IsNullOrWhiteSpace(json)
+                        ? JsonSerializer.Deserialize<UsuarioListaResult>(json, new JsonSerializerOptions
+                        {
+                            PropertyNameCaseInsensitive = true
+                        }) ?? new UsuarioListaResult()
+                        : new UsuarioListaResult();
+                }
+                else
+                {
+                    respuesta.IdTipoMensaje = 1;
+                    respuesta.Mensaje = "No se obtuvo respuesta del procedimiento.";
+                    respuesta.Result = new UsuarioListaResult();
+                }
+
+                return respuesta;
             }
             catch (Exception ex)
             {
                 return new Respuesta
                 {
-                    IdTipoMensaje = 1,
+                    IdTipoMensaje = 3,
                     Mensaje = ex.Message,
-                    Result = new List<UsuarioConsulta>()
+                    Result = new UsuarioListaResult()
                 };
             }
         }
