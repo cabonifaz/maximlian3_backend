@@ -17,28 +17,28 @@ namespace SafetyReport.WebApi.Controllers
         }
 
         [HttpPost("crear")]
-        public async Task<IActionResult> Crear([FromBody] Usuario request)
+        public async Task<IActionResult> Crear([FromQuery] Usuario request)
         {
             var respuesta = await _usuarioHandler.CrearUsuarioAsync(UsuarioLogueado, request);
             return Ok(respuesta);
         }
 
         [HttpPost("editar")]
-        public async Task<IActionResult> Editar([FromBody] EditarUsuario request)
+        public async Task<IActionResult> Editar([FromQuery] EditarUsuario request)
         {
             var respuesta = await _usuarioHandler.EditarUsuarioAsync(UsuarioLogueado, request);
             return Ok(respuesta);
         }
 
         [HttpPost("eliminar")]
-        public async Task<IActionResult> Eliminar([FromBody] EliminarUsuario request)
+        public async Task<IActionResult> Eliminar([FromQuery] EliminarUsuario request)
         {
             var respuesta = await _usuarioHandler.EliminarUsuarioAsync(UsuarioLogueado, request);
             return Ok(respuesta);
         }
 
         [HttpGet("listar")]
-        public async Task<IActionResult> Listar([FromBody] FiltroUsuario request)
+        public async Task<IActionResult> Listar([FromQuery] FiltroUsuario request)
         {
             var respuesta = await _usuarioHandler.ListarUsuariosAsync(
                 UsuarioLogueado,
@@ -49,7 +49,7 @@ namespace SafetyReport.WebApi.Controllers
         }
 
         [HttpGet("obtener")]
-        public async Task<IActionResult> Obtener([FromBody] int IdUsuario)
+        public async Task<IActionResult> Obtener([FromQuery] int IdUsuario)
         {
             var respuesta = await _usuarioHandler.ObtenerUsuarioAsync(
                 UsuarioLogueado,

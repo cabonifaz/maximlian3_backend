@@ -18,21 +18,21 @@ namespace SafetyReport.WebApi.Controllers
         }
 
         [HttpPost("crear")]
-        public async Task<IActionResult> Crear([FromBody] Cliente request)
+        public async Task<IActionResult> Crear([FromQuery] Cliente request)
         {
             var respuesta = await _clienteHandler.CrearClienteAsync(UsuarioLogueado, request);
             return Ok(respuesta);
         }
 
         [HttpPost("editar")]
-        public async Task<IActionResult> Editar([FromBody] EditarCliente request)
+        public async Task<IActionResult> Editar([FromQuery] EditarCliente request)
         {
             var respuesta = await _clienteHandler.EditarClienteAsync(UsuarioLogueado, request);
             return Ok(respuesta);
         }
 
         [HttpGet("obtener/{idCliente:int}")]
-        public async Task<IActionResult> Obtener([FromBody] int idCliente)
+        public async Task<IActionResult> Obtener([FromQuery] int idCliente)
         {
             var respuesta = await _clienteHandler.ObtenerClienteAsync(UsuarioLogueado, idCliente);
             return Ok(respuesta);
@@ -46,7 +46,7 @@ namespace SafetyReport.WebApi.Controllers
         }
 
         [HttpPost("eliminar")]
-        public async Task<IActionResult> Eliminar([FromBody] ClienteIdRequest request)
+        public async Task<IActionResult> Eliminar([FromQuery] ClienteIdRequest request)
         {
             var respuesta = await _clienteHandler.EliminarClienteAsync(UsuarioLogueado, request);
             return Ok(respuesta);

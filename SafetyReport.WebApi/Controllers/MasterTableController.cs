@@ -16,36 +16,36 @@ namespace SafetyReport.WebApi.Controllers
             _masterTableHandler = masterTableHandler;
         }
 
-        [HttpPost("listar")]
-        public async Task<IActionResult> Listar([FromBody] FiltroMasterTableRequest request)
+        [HttpGet("listar")]
+        public async Task<IActionResult> Listar([FromQuery] FiltroMasterTableRequest request)
         {
             var respuesta = await _masterTableHandler.ListarAsync(UsuarioLogueado, request?.IdMaster);
             return Ok(respuesta);
         }
 
-        [HttpPost("listar-inventario")]
-        public async Task<IActionResult> ListarInventario([FromBody] object? request)
+        [HttpGet("listar-inventario")]
+        public async Task<IActionResult> ListarInventario([FromQuery] object? request)
         {
             var respuesta = await _masterTableHandler.ListarInventarioAsync(UsuarioLogueado);
             return Ok(respuesta);
         }
 
         [HttpPost("crear")]
-        public async Task<IActionResult> Crear([FromBody] MasterTableRequest request)
+        public async Task<IActionResult> Crear([FromQuery] MasterTableRequest request)
         {
             var respuesta = await _masterTableHandler.CrearAsync(UsuarioLogueado, request);
             return Ok(respuesta);
         }
 
         [HttpPost("editar")]
-        public async Task<IActionResult> Editar([FromBody] EditarMasterTableRequest request)
+        public async Task<IActionResult> Editar([FromQuery] EditarMasterTableRequest request)
         {
             var respuesta = await _masterTableHandler.EditarAsync(UsuarioLogueado, request);
             return Ok(respuesta);
         }
 
         [HttpPost("eliminar")]
-        public async Task<IActionResult> Eliminar([FromBody] EliminarMasterTableRequest request)
+        public async Task<IActionResult> Eliminar([FromQuery] EliminarMasterTableRequest request)
         {
             var respuesta = await _masterTableHandler.EliminarAsync(UsuarioLogueado, request);
             return Ok(respuesta);
