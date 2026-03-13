@@ -107,7 +107,7 @@ namespace SafetyReport.DAO
             }
         }
 
-        public async Task<Respuesta> EditarUsuarioAsync(UsuarioGeneral usuarioLogueado, EditarUsuario request)
+        public async Task<Respuesta> EditarUsuarioAsync(UsuarioGeneral usuarioLogueado, InfoUsuarioEditar request)
         {
             try
             {
@@ -121,16 +121,16 @@ namespace SafetyReport.DAO
                 cmd.Parameters.Add("@intIdEmpresa", SqlDbType.Int).Value = usuarioLogueado.IdEmpresa;
                 cmd.Parameters.Add("@intIdRol", SqlDbType.Int).Value = usuarioLogueado.IdRol;
                 cmd.Parameters.Add("@intIdUsuarioEditar", SqlDbType.Int).Value = request.IdUsuario;
-                cmd.Parameters.Add("@vchNombres", SqlDbType.VarChar, 50).Value = request.InfoUsuario.Nombres;
-                cmd.Parameters.Add("@vchApellidoPaterno", SqlDbType.VarChar, 50).Value = request.InfoUsuario.ApellidoPaterno;
-                cmd.Parameters.Add("@vchApellidoMaterno", SqlDbType.VarChar, 50).Value = (object?)request.InfoUsuario.ApellidoMaterno ?? DBNull.Value;
+                cmd.Parameters.Add("@vchNombres", SqlDbType.VarChar, 50).Value = request.Nombres;
+                cmd.Parameters.Add("@vchApellidoPaterno", SqlDbType.VarChar, 50).Value = request.ApellidoPaterno;
+                cmd.Parameters.Add("@vchApellidoMaterno", SqlDbType.VarChar, 50).Value = (object?)request.ApellidoMaterno ?? DBNull.Value;
 
-                var table = ConstruirTabla_LISTA_GENERAL_NUM(request.InfoUsuario.Roles);
+                var table = ConstruirTabla_LISTA_GENERAL_NUM(request.Roles);
                 var tvp = cmd.Parameters.AddWithValue("@lstRoles", table);
                 tvp.SqlDbType = SqlDbType.Structured;
                 tvp.TypeName = "LISTA_GENERAL_NUM";
 
-                var table2 = ConstruirTabla_LISTA_GENERAL_NUM(request.InfoUsuario.Idiomas);
+                var table2 = ConstruirTabla_LISTA_GENERAL_NUM(request.Idiomas);
                 var tvp2 = cmd.Parameters.AddWithValue("@lstIdiomas", table2);
                 tvp2.SqlDbType = SqlDbType.Structured;
                 tvp2.TypeName = "LISTA_GENERAL_NUM";

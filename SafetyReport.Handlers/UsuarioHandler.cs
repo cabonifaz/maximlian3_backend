@@ -85,7 +85,7 @@ namespace SafetyReport.Handlers
             }
         }
 
-        public async Task<Respuesta> EditarUsuarioAsync(UsuarioGeneral usuarioLogueado, EditarUsuario request)
+        public async Task<Respuesta> EditarUsuarioAsync(UsuarioGeneral usuarioLogueado, InfoUsuarioEditar request)
         {
             try
             {

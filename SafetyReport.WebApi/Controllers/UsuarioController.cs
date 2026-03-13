@@ -24,7 +24,7 @@ namespace SafetyReport.WebApi.Controllers
         }
 
         [HttpPost("editar")]
-        public async Task<IActionResult> Editar([FromBody] EditarUsuario request)
+        public async Task<IActionResult> Editar([FromBody] InfoUsuarioEditar request)
         {
             var respuesta = await _usuarioHandler.EditarUsuarioAsync(UsuarioLogueado, request);
             return Ok(respuesta);

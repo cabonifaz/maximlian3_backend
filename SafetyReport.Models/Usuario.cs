@@ -29,10 +29,14 @@ namespace SafetyReport.Models
         public List<int> Idiomas { get; set; }
     }
 
-    public class EditarUsuario
+    public class InfoUsuarioEditar
     {
         public int IdUsuario { get; set; }
-        public Usuario InfoUsuario { get; set; }
+        public string Nombres { get; set; }
+        public string ApellidoPaterno { get; set; }
+        public string ApellidoMaterno { get; set; }
+        public List<int> Roles { get; set; }
+        public List<int> Idiomas { get; set; }
     }
 
     public class UsuarioCreado
