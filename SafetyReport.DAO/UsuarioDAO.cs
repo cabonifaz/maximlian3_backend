@@ -89,7 +89,7 @@ namespace SafetyReport.DAO
                 tvp.TypeName = "LISTA_GENERAL_NUM";
 
                 var table2 = ConstruirTabla_LISTA_GENERAL_NUM(request.Idiomas);
-                var tvp2 = cmd.Parameters.AddWithValue("@lstIdiomas", table);
+                var tvp2 = cmd.Parameters.AddWithValue("@lstIdiomas", table2);
                 tvp2.SqlDbType = SqlDbType.Structured;
                 tvp2.TypeName = "LISTA_GENERAL_NUM";
 
@@ -130,6 +130,11 @@ namespace SafetyReport.DAO
                 var tvp = cmd.Parameters.AddWithValue("@lstRoles", table);
                 tvp.SqlDbType = SqlDbType.Structured;
                 tvp.TypeName = "LISTA_GENERAL_NUM";
+
+                var table2 = ConstruirTabla_LISTA_GENERAL_NUM(request.InfoUsuario.Idiomas);
+                var tvp2 = cmd.Parameters.AddWithValue("@lstIdiomas", table2);
+                tvp2.SqlDbType = SqlDbType.Structured;
+                tvp2.TypeName = "LISTA_GENERAL_NUM";
 
                 await cn.OpenAsync();
                 return await LeerRespuestaAsync<UsuarioCreado>(cmd);
