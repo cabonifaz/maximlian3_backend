@@ -17,21 +17,21 @@ namespace SafetyReport.WebApi.Controllers
         }
 
         [HttpPost("crear")]
-        public async Task<IActionResult> Crear([FromQuery] Usuario request)
+        public async Task<IActionResult> Crear([FromBody] Usuario request)
         {
             var respuesta = await _usuarioHandler.CrearUsuarioAsync(UsuarioLogueado, request);
             return Ok(respuesta);
         }
 
         [HttpPost("editar")]
-        public async Task<IActionResult> Editar([FromQuery] EditarUsuario request)
+        public async Task<IActionResult> Editar([FromBody] EditarUsuario request)
         {
             var respuesta = await _usuarioHandler.EditarUsuarioAsync(UsuarioLogueado, request);
             return Ok(respuesta);
         }
 
         [HttpPost("eliminar")]
-        public async Task<IActionResult> Eliminar([FromQuery] EliminarUsuario request)
+        public async Task<IActionResult> Eliminar([FromBody] EliminarUsuario request)
         {
             var respuesta = await _usuarioHandler.EliminarUsuarioAsync(UsuarioLogueado, request);
             return Ok(respuesta);

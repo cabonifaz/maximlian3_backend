@@ -31,21 +31,21 @@ namespace SafetyReport.WebApi.Controllers
         }
 
         [HttpPost("crear")]
-        public async Task<IActionResult> Crear([FromQuery] MasterTableRequest request)
+        public async Task<IActionResult> Crear([FromBody] MasterTableRequest request)
         {
             var respuesta = await _masterTableHandler.CrearAsync(UsuarioLogueado, request);
             return Ok(respuesta);
         }
 
         [HttpPost("editar")]
-        public async Task<IActionResult> Editar([FromQuery] EditarMasterTableRequest request)
+        public async Task<IActionResult> Editar([FromBody] EditarMasterTableRequest request)
         {
             var respuesta = await _masterTableHandler.EditarAsync(UsuarioLogueado, request);
             return Ok(respuesta);
         }
 
         [HttpPost("eliminar")]
-        public async Task<IActionResult> Eliminar([FromQuery] EliminarMasterTableRequest request)
+        public async Task<IActionResult> Eliminar([FromBody] EliminarMasterTableRequest request)
         {
             var respuesta = await _masterTableHandler.EliminarAsync(UsuarioLogueado, request);
             return Ok(respuesta);
