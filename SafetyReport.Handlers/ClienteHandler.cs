@@ -63,11 +63,11 @@ namespace SafetyReport.Handlers
             }
         }
 
-        public async Task<Respuesta> ListarClientesAsync(UsuarioGeneral usuarioLogueado, string? filtro)
+        public async Task<Respuesta> ListarClientesAsync(UsuarioGeneral usuarioLogueado, string? filtro, int? numPag)
         {
             try
             {
-                return await _dao.ListarClientesAsync(usuarioLogueado, filtro);
+                return await _dao.ListarClientesAsync(usuarioLogueado, filtro, numPag);
             }
             catch (Exception ex)
             {
@@ -75,7 +75,7 @@ namespace SafetyReport.Handlers
                 {
                     IdTipoMensaje = 1,
                     Mensaje = ex.Message,
-                    Result = new List<ClienteConsulta>()
+                    Result = new ClienteListaResult()
                 };
             }
         }

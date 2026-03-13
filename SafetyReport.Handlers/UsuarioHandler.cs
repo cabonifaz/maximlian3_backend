@@ -139,7 +139,7 @@ namespace SafetyReport.Handlers
                 {
                     IdTipoMensaje = 1,
                     Mensaje = ex.Message,
-                    Result = new List<UsuarioConsulta>()
+                    Result = new List<UsuarioListaResult>()
                 };
             }
         }

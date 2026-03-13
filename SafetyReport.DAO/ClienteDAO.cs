@@ -217,7 +217,7 @@ namespace SafetyReport.DAO
             }
         }
 
-        public async Task<Respuesta> ListarClientesAsync(UsuarioGeneral usuarioLogueado, string? filtro)
+        public async Task<Respuesta> ListarClientesAsync(UsuarioGeneral usuarioLogueado, string? filtro, int? numPag)
         {
             try
             {
@@ -231,9 +231,35 @@ namespace SafetyReport.DAO
                 cmd.Parameters.Add("@intIdEmpresa", SqlDbType.Int).Value = usuarioLogueado.IdEmpresa;
                 cmd.Parameters.Add("@intIdRol", SqlDbType.Int).Value = usuarioLogueado.IdRol;
                 cmd.Parameters.Add("@vchFiltro", SqlDbType.VarChar, 255).Value = (object?)filtro ?? DBNull.Value;
+                cmd.Parameters.Add("@numPag", SqlDbType.Int).Value = numPag;
 
                 await cn.OpenAsync();
-                return await LeerRespuestaAsync<ClienteConsulta>(cmd);
+
+                var respuesta = new Respuesta();
+                using var dr = await cmd.ExecuteReaderAsync();
+
+                if (await dr.ReadAsync())
+                {
+                    respuesta.IdTipoMensaje = dr["IdTipoMensaje"] != DBNull.Value
+                        ? Convert.ToInt32(dr["IdTipoMensaje"]) : 0;
+                    respuesta.Mensaje = dr["Mensaje"]?.ToString() ?? string.Empty;
+
+                    var json = dr["Result"]?.ToString();
+                    respuesta.Result = !string.IsNullOrWhiteSpace(json)
+                        ? JsonSerializer.Deserialize<ClienteListaResult>(json, new JsonSerializerOptions
+                        {
+                            PropertyNameCaseInsensitive = true
+                        }) ?? new ClienteListaResult()
+                        : new ClienteListaResult();
+                }
+                else
+                {
+                    respuesta.IdTipoMensaje = 1;
+                    respuesta.Mensaje = "No se obtuvo respuesta del procedimiento.";
+                    respuesta.Result = new ClienteListaResult();
+                }
+
+                return respuesta;
             }
             catch (Exception ex)
             {
@@ -241,7 +267,7 @@ namespace SafetyReport.DAO
                 {
                     IdTipoMensaje = 1,
                     Mensaje = ex.Message,
-                    Result = new List<ClienteConsulta>()
+                    Result = new ClienteListaResult()
                 };
             }
         }

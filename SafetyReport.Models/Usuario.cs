@@ -57,6 +57,7 @@ namespace SafetyReport.Models
     {
         public List<UsuarioListaConsulta> lstUsuarios { get; set; } = new();
         public int TotalRegistros { get; set; }
+        public int TotalPaginas { get; set; }
     }
 
     public class UsuarioListaConsulta
@@ -68,7 +69,8 @@ namespace SafetyReport.Models
         public string ApellidoMaterno { get; set; }
         public string Email { get; set; }
         public string Username { get; set; }
-        
+        public string Roles { get; set; }
+        public string Estado { get; set; }
     }
 
     public class UsuarioLoginResponse

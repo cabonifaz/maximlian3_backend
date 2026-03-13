@@ -89,8 +89,16 @@
         public List<ClienteContactoConsulta> ContactosJson { get; set; } = new();
     }
 
+    public class ClienteListaResult
+    {
+        public List<ClienteConsulta> lstClientes { get; set; } = new();
+        public int TotalRegistros { get; set; }
+        public int TotalPaginas { get; set; }
+    }
+
     public class FiltroCliente
     {
+        public int numPag { get; set; }
         public string? Filtro { get; set; }
     }
 
