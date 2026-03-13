@@ -88,6 +88,12 @@ namespace SafetyReport.Models
         public int IdUsuarioEliminar { get; set; }
     }
 
+    public class EliminarUsuarioResult
+    {
+        public int IdUsuarioEliminar { get; set; }
+        public string Username { get; set; }
+    }
+
     public class FiltroUsuario
     {
         public int numPag { get; set; }

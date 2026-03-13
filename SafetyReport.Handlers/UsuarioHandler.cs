@@ -106,7 +106,34 @@ namespace SafetyReport.Handlers
         {
             try
             {
-                return await _dao.EliminarUsuarioAsync(usuarioLogueado, request.IdUsuarioEliminar);
+                var respuesta = await _dao.EliminarUsuarioAsync(usuarioLogueado, request.IdUsuarioEliminar);
+
+                if (respuesta.IdTipoMensaje != 2)
+                    return respuesta;
+
+                var eliminado = ((List<EliminarUsuarioResult>)respuesta.Result).FirstOrDefault();
+
+                if (eliminado != null && !string.IsNullOrWhiteSpace(eliminado.Username))
+                {
+                    var accessKey = _config["AWS:AccessKey"];
+                    var secretKey = _config["AWS:SecretKey"];
+                    var region = _config["AWS:Region"];
+                    var userPoolId = _config["Cognito:UserPoolId"];
+
+                    var credentials = new BasicAWSCredentials(accessKey, secretKey);
+                    var client = new AmazonCognitoIdentityProviderClient(
+                        credentials,
+                        RegionEndpoint.GetBySystemName(region)
+                    );
+
+                    await client.AdminDeleteUserAsync(new AdminDeleteUserRequest
+                    {
+                        UserPoolId = userPoolId,
+                        Username = eliminado.Username
+                    });
+                }
+
+                return respuesta;
             }
             catch (Exception ex)
             {

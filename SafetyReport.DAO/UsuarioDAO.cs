@@ -161,7 +161,7 @@ namespace SafetyReport.DAO
                 cmd.Parameters.Add("@intIdUsuarioDel", SqlDbType.Int).Value = idUsuarioEliminar;
 
                 await cn.OpenAsync();
-                return await LeerRespuestaAsync<EliminarUsuario>(cmd);
+                return await LeerRespuestaAsync<EliminarUsuarioResult>(cmd);
             }
             catch (Exception ex)
             {
@@ -169,7 +169,7 @@ namespace SafetyReport.DAO
                 {
                     IdTipoMensaje = 1,
                     Mensaje = ex.Message,
-                    Result = new List<EliminarUsuario>()
+                    Result = new List<EliminarUsuarioResult>()
                 };
             }
         }
