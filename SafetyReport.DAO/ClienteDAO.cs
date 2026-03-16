@@ -33,12 +33,48 @@ namespace SafetyReport.DAO
                 {
                     table.Rows.Add(
                         i++,
-                        contacto.Codigo,
+                        (object?)contacto.Codigo ?? DBNull.Value,
                         contacto.Nombres ?? string.Empty,
                         contacto.IdTipoContacto,
                         contacto.AreaTrabajo,
                         (object?)contacto.Telefono ?? DBNull.Value,
                         (object?)contacto.Email ?? DBNull.Value
+                    );
+                }
+            }
+
+            return table;
+        }
+
+        private static DataTable ConstruirTablaTarifario(List<ClienteTarifarioRequest>? tarifas)
+        {
+            var table = new DataTable();
+            table.Columns.Add("ID", typeof(int));
+            table.Columns.Add("IDPRODUCTO", typeof(int));
+            table.Columns.Add("IDTIPOTRAMITE", typeof(int));
+            table.Columns.Add("IDPAIS", typeof(int));
+            table.Columns.Add("IDMONEDA", typeof(int));
+            table.Columns.Add("DIASMAX", typeof(int));
+            table.Columns.Add("DIASMIN", typeof(int));
+            table.Columns.Add("PRECIO", typeof(decimal));
+            table.Columns.Add("PENALIDAD", typeof(decimal));
+
+            int i = 1;
+
+            if (tarifas != null)
+            {
+                foreach (var tarifa in tarifas)
+                {
+                    table.Rows.Add(
+                        i++,
+                        tarifa.IdProducto,
+                        tarifa.IdTipoTramite,
+                        tarifa.IdPais,
+                        tarifa.IdMoneda,
+                        tarifa.DiasMax,
+                        tarifa.DiasMin,
+                        tarifa.Precio,
+                        tarifa.Penalidad
                     );
                 }
             }
@@ -83,8 +119,8 @@ namespace SafetyReport.DAO
         {
             try
             {
-                using SqlConnection cn = new SqlConnection(_dbConfig.ConnectionString);
-                using SqlCommand cmd = new SqlCommand("Cliente_INS", cn);
+                using SqlConnection cn = new(_dbConfig.ConnectionString);
+                using SqlCommand cmd = new("Cliente_INS", cn);
 
                 cmd.CommandType = CommandType.StoredProcedure;
 
@@ -93,32 +129,37 @@ namespace SafetyReport.DAO
                 cmd.Parameters.Add("@intIdEmpresa", SqlDbType.Int).Value = usuarioLogueado.IdEmpresa;
                 cmd.Parameters.Add("@intIdRol", SqlDbType.Int).Value = usuarioLogueado.IdRol;
 
-                cmd.Parameters.Add("@IdTipoPersona", SqlDbType.Int).Value = request.IdTipoPersona;
-                cmd.Parameters.Add("@Nombre", SqlDbType.VarChar).Value = request.Nombre;
-                cmd.Parameters.Add("@NombreCorto", SqlDbType.VarChar, 512).Value = (object?)request.NombreCorto ?? DBNull.Value;
-                cmd.Parameters.Add("@IdPais", SqlDbType.Int).Value = request.IdPais;
-                cmd.Parameters.Add("@IdRegistroTributario", SqlDbType.Int).Value = request.IdRegistroTributario;
-                cmd.Parameters.Add("@NumRegistroTributario", SqlDbType.VarChar, 50).Value = (object?)request.NumRegistroTributario ?? DBNull.Value;
-                cmd.Parameters.Add("@Correo", SqlDbType.VarChar, 50).Value = (object?)request.Correo ?? DBNull.Value;
-                cmd.Parameters.Add("@WebSite", SqlDbType.VarChar, 200).Value = (object?)request.WebSite ?? DBNull.Value;
-                cmd.Parameters.Add("@Telefono", SqlDbType.VarChar, 32).Value = (object?)request.Telefono ?? DBNull.Value;
-                cmd.Parameters.Add("@Fax", SqlDbType.VarChar, 50).Value = (object?)request.Fax ?? DBNull.Value;
-                cmd.Parameters.Add("@Direccion", SqlDbType.VarChar, 512).Value = (object?)request.Direccion ?? DBNull.Value;
-                cmd.Parameters.Add("@Recomendacion", SqlDbType.VarChar).Value = (object?)request.Recomendacion ?? DBNull.Value;
-                cmd.Parameters.Add("@IdEmpresaAtencion", SqlDbType.Int).Value = request.IdEmpresaAtencion;
-                cmd.Parameters.Add("@IdIdioma", SqlDbType.Int).Value = request.IdIdioma;
-                cmd.Parameters.Add("@LogoClienteUrl", SqlDbType.VarChar).Value = (object?)request.LogoClienteUrl ?? DBNull.Value;
-                cmd.Parameters.Add("@ImprimeLogoSafety", SqlDbType.Bit).Value = request.ImprimeLogoSafety;
-                cmd.Parameters.Add("@IdFormatoDocumento", SqlDbType.Int).Value = request.IdFormatoDocumento;
-                cmd.Parameters.Add("@IdMoneda", SqlDbType.Int).Value = request.IdMoneda;
-                cmd.Parameters.Add("@IdIdiomaFacturacion", SqlDbType.Int).Value = request.IdIdiomaFacturacion;
-                cmd.Parameters.Add("@AplicaPenalidad", SqlDbType.Bit).Value = request.AplicaPenalidad;
-                cmd.Parameters.Add("@IdPlantilla", SqlDbType.Int).Value = request.IdPlantilla;
+                cmd.Parameters.Add("@intIdTipoPersona", SqlDbType.Int).Value = request.IdTipoPersona;
+                cmd.Parameters.Add("@vchNombre", SqlDbType.VarChar).Value = request.Nombre;
+                cmd.Parameters.Add("@vchNombreCorto", SqlDbType.VarChar, 512).Value = (object?)request.NombreCorto ?? DBNull.Value;
+                cmd.Parameters.Add("@intIdPais", SqlDbType.Int).Value = request.IdPais;
+                cmd.Parameters.Add("@intIdRegistroTributario", SqlDbType.Int).Value = request.IdRegistroTributario;
+                cmd.Parameters.Add("@vchNumRegistroTributario", SqlDbType.VarChar, 50).Value = (object?)request.NumRegistroTributario ?? DBNull.Value;
+                cmd.Parameters.Add("@vchEmail", SqlDbType.VarChar, 50).Value = (object?)request.Email ?? DBNull.Value;
+                cmd.Parameters.Add("@vchWebSite", SqlDbType.VarChar, 200).Value = (object?)request.WebSite ?? DBNull.Value;
+                cmd.Parameters.Add("@vchTelefono", SqlDbType.VarChar, 32).Value = (object?)request.Telefono ?? DBNull.Value;
+                cmd.Parameters.Add("@vchFax", SqlDbType.VarChar, 50).Value = (object?)request.Fax ?? DBNull.Value;
+                cmd.Parameters.Add("@vchDireccion", SqlDbType.VarChar, 512).Value = (object?)request.Direccion ?? DBNull.Value;
+                cmd.Parameters.Add("@vchRecomendacion", SqlDbType.VarChar).Value = (object?)request.Recomendacion ?? DBNull.Value;
+                cmd.Parameters.Add("@intIdEmpresaAtencion", SqlDbType.Int).Value = request.IdEmpresaAtencion;
+                cmd.Parameters.Add("@intIdIdioma", SqlDbType.Int).Value = request.IdIdioma;
+                cmd.Parameters.Add("@vchLogoClienteUrl", SqlDbType.VarChar).Value = (object?)request.LogoClienteUrl ?? DBNull.Value;
+                cmd.Parameters.Add("@bitImprimeLogoSafety", SqlDbType.Bit).Value = request.ImprimeLogoSafety;
+                cmd.Parameters.Add("@intIdFormatoDocumento", SqlDbType.Int).Value = request.IdFormatoDocumento;
+                cmd.Parameters.Add("@intIdMoneda", SqlDbType.Int).Value = request.IdMoneda;
+                cmd.Parameters.Add("@intIdIdiomaFacturacion", SqlDbType.Int).Value = request.IdIdiomaFacturacion;
+                cmd.Parameters.Add("@bitAplicaPenalidad", SqlDbType.Bit).Value = request.AplicaPenalidad;
+                cmd.Parameters.Add("@intIdPlantilla", SqlDbType.Int).Value = request.IdPlantilla;
 
-                var table = ConstruirTablaContactos(request.Contactos);
-                var tvp = cmd.Parameters.AddWithValue("@lstContactos", table);
-                tvp.SqlDbType = SqlDbType.Structured;
-                tvp.TypeName = "LISTA_CLIENTE_CONTACTO";
+                var tableContactos = ConstruirTablaContactos(request.Contactos);
+                var tvpContactos = cmd.Parameters.AddWithValue("@lstContactos", tableContactos);
+                tvpContactos.SqlDbType = SqlDbType.Structured;
+                tvpContactos.TypeName = "LISTA_CLIENTE_CONTACTO";
+
+                var tableTarifario = ConstruirTablaTarifario(request.Tarifario);
+                var tvpTarifario = cmd.Parameters.AddWithValue("@lstTarifario", tableTarifario);
+                tvpTarifario.SqlDbType = SqlDbType.Structured;
+                tvpTarifario.TypeName = "LISTA_CLIENTE_TARIFARIO";
 
                 await cn.OpenAsync();
                 return await LeerRespuestaAsync<ClienteCreado>(cmd);
@@ -138,8 +179,8 @@ namespace SafetyReport.DAO
         {
             try
             {
-                using SqlConnection cn = new SqlConnection(_dbConfig.ConnectionString);
-                using SqlCommand cmd = new SqlCommand("Cliente_UPD", cn);
+                using SqlConnection cn = new(_dbConfig.ConnectionString);
+                using SqlCommand cmd = new("Cliente_UPD", cn);
 
                 cmd.CommandType = CommandType.StoredProcedure;
 
@@ -148,33 +189,38 @@ namespace SafetyReport.DAO
                 cmd.Parameters.Add("@intIdEmpresa", SqlDbType.Int).Value = usuarioLogueado.IdEmpresa;
                 cmd.Parameters.Add("@intIdRol", SqlDbType.Int).Value = usuarioLogueado.IdRol;
 
-                cmd.Parameters.Add("@IdCliente", SqlDbType.Int).Value = request.IdCliente;
-                cmd.Parameters.Add("@IdTipoPersona", SqlDbType.Int).Value = request.InfoCliente.IdTipoPersona;
-                cmd.Parameters.Add("@Nombre", SqlDbType.VarChar).Value = request.InfoCliente.Nombre;
-                cmd.Parameters.Add("@NombreCorto", SqlDbType.VarChar, 512).Value = (object?)request.InfoCliente.NombreCorto ?? DBNull.Value;
-                cmd.Parameters.Add("@IdPais", SqlDbType.Int).Value = request.InfoCliente.IdPais;
-                cmd.Parameters.Add("@IdRegistroTributario", SqlDbType.Int).Value = request.InfoCliente.IdRegistroTributario;
-                cmd.Parameters.Add("@NumRegistroTributario", SqlDbType.VarChar, 50).Value = (object?)request.InfoCliente.NumRegistroTributario ?? DBNull.Value;
-                cmd.Parameters.Add("@Correo", SqlDbType.VarChar, 50).Value = (object?)request.InfoCliente.Correo ?? DBNull.Value;
-                cmd.Parameters.Add("@WebSite", SqlDbType.VarChar, 200).Value = (object?)request.InfoCliente.WebSite ?? DBNull.Value;
-                cmd.Parameters.Add("@Telefono", SqlDbType.VarChar, 32).Value = (object?)request.InfoCliente.Telefono ?? DBNull.Value;
-                cmd.Parameters.Add("@Fax", SqlDbType.VarChar, 50).Value = (object?)request.InfoCliente.Fax ?? DBNull.Value;
-                cmd.Parameters.Add("@Direccion", SqlDbType.VarChar, 512).Value = (object?)request.InfoCliente.Direccion ?? DBNull.Value;
-                cmd.Parameters.Add("@Recomendacion", SqlDbType.VarChar).Value = (object?)request.InfoCliente.Recomendacion ?? DBNull.Value;
-                cmd.Parameters.Add("@IdEmpresaAtencion", SqlDbType.Int).Value = request.InfoCliente.IdEmpresaAtencion;
-                cmd.Parameters.Add("@IdIdioma", SqlDbType.Int).Value = request.InfoCliente.IdIdioma;
-                cmd.Parameters.Add("@LogoClienteUrl", SqlDbType.VarChar).Value = (object?)request.InfoCliente.LogoClienteUrl ?? DBNull.Value;
-                cmd.Parameters.Add("@ImprimeLogoSafety", SqlDbType.Bit).Value = request.InfoCliente.ImprimeLogoSafety;
-                cmd.Parameters.Add("@IdFormatoDocumento", SqlDbType.Int).Value = request.InfoCliente.IdFormatoDocumento;
-                cmd.Parameters.Add("@IdMoneda", SqlDbType.Int).Value = request.InfoCliente.IdMoneda;
-                cmd.Parameters.Add("@IdIdiomaFacturacion", SqlDbType.Int).Value = request.InfoCliente.IdIdiomaFacturacion;
-                cmd.Parameters.Add("@AplicaPenalidad", SqlDbType.Bit).Value = request.InfoCliente.AplicaPenalidad;
-                cmd.Parameters.Add("@IdPlantilla", SqlDbType.Int).Value = request.InfoCliente.IdPlantilla;
+                cmd.Parameters.Add("@intIdCliente", SqlDbType.Int).Value = request.IdCliente;
+                cmd.Parameters.Add("@intIdTipoPersona", SqlDbType.Int).Value = request.InfoCliente.IdTipoPersona;
+                cmd.Parameters.Add("@vchNombre", SqlDbType.VarChar).Value = request.InfoCliente.Nombre;
+                cmd.Parameters.Add("@vchNombreCorto", SqlDbType.VarChar, 512).Value = (object?)request.InfoCliente.NombreCorto ?? DBNull.Value;
+                cmd.Parameters.Add("@intIdPais", SqlDbType.Int).Value = request.InfoCliente.IdPais;
+                cmd.Parameters.Add("@intIdRegistroTributario", SqlDbType.Int).Value = request.InfoCliente.IdRegistroTributario;
+                cmd.Parameters.Add("@vchNumRegistroTributario", SqlDbType.VarChar, 50).Value = (object?)request.InfoCliente.NumRegistroTributario ?? DBNull.Value;
+                cmd.Parameters.Add("@vchEmail", SqlDbType.VarChar, 50).Value = (object?)request.InfoCliente.Email ?? DBNull.Value;
+                cmd.Parameters.Add("@vchWebSite", SqlDbType.VarChar, 200).Value = (object?)request.InfoCliente.WebSite ?? DBNull.Value;
+                cmd.Parameters.Add("@vchTelefono", SqlDbType.VarChar, 32).Value = (object?)request.InfoCliente.Telefono ?? DBNull.Value;
+                cmd.Parameters.Add("@vchFax", SqlDbType.VarChar, 50).Value = (object?)request.InfoCliente.Fax ?? DBNull.Value;
+                cmd.Parameters.Add("@vchDireccion", SqlDbType.VarChar, 512).Value = (object?)request.InfoCliente.Direccion ?? DBNull.Value;
+                cmd.Parameters.Add("@vchRecomendacion", SqlDbType.VarChar).Value = (object?)request.InfoCliente.Recomendacion ?? DBNull.Value;
+                cmd.Parameters.Add("@intIdEmpresaAtencion", SqlDbType.Int).Value = request.InfoCliente.IdEmpresaAtencion;
+                cmd.Parameters.Add("@intIdIdioma", SqlDbType.Int).Value = request.InfoCliente.IdIdioma;
+                cmd.Parameters.Add("@vchLogoClienteUrl", SqlDbType.VarChar).Value = (object?)request.InfoCliente.LogoClienteUrl ?? DBNull.Value;
+                cmd.Parameters.Add("@bitImprimeLogoSafety", SqlDbType.Bit).Value = request.InfoCliente.ImprimeLogoSafety;
+                cmd.Parameters.Add("@intIdFormatoDocumento", SqlDbType.Int).Value = request.InfoCliente.IdFormatoDocumento;
+                cmd.Parameters.Add("@intIdMoneda", SqlDbType.Int).Value = request.InfoCliente.IdMoneda;
+                cmd.Parameters.Add("@intIdIdiomaFacturacion", SqlDbType.Int).Value = request.InfoCliente.IdIdiomaFacturacion;
+                cmd.Parameters.Add("@bitAplicaPenalidad", SqlDbType.Bit).Value = request.InfoCliente.AplicaPenalidad;
+                cmd.Parameters.Add("@intIdPlantilla", SqlDbType.Int).Value = request.InfoCliente.IdPlantilla;
 
-                var table = ConstruirTablaContactos(request.InfoCliente.Contactos);
-                var tvp = cmd.Parameters.AddWithValue("@lstContactos", table);
-                tvp.SqlDbType = SqlDbType.Structured;
-                tvp.TypeName = "LISTA_CLIENTE_CONTACTO";
+                var tableContactos = ConstruirTablaContactos(request.InfoCliente.Contactos);
+                var tvpContactos = cmd.Parameters.AddWithValue("@lstContactos", tableContactos);
+                tvpContactos.SqlDbType = SqlDbType.Structured;
+                tvpContactos.TypeName = "LISTA_CLIENTE_CONTACTO";
+
+                var tableTarifario = ConstruirTablaTarifario(request.InfoCliente.Tarifario);
+                var tvpTarifario = cmd.Parameters.AddWithValue("@lstTarifario", tableTarifario);
+                tvpTarifario.SqlDbType = SqlDbType.Structured;
+                tvpTarifario.TypeName = "LISTA_CLIENTE_TARIFARIO";
 
                 await cn.OpenAsync();
                 return await LeerRespuestaAsync<ClienteCreado>(cmd);
@@ -194,16 +240,15 @@ namespace SafetyReport.DAO
         {
             try
             {
-                using SqlConnection cn = new SqlConnection(_dbConfig.ConnectionString);
-                using SqlCommand cmd = new SqlCommand("Cliente_SEL", cn);
+                using SqlConnection cn = new(_dbConfig.ConnectionString);
+                using SqlCommand cmd = new("Cliente_SEL", cn);
 
                 cmd.CommandType = CommandType.StoredProcedure;
-
                 cmd.Parameters.Add("@intIdUsuario", SqlDbType.Int).Value = usuarioLogueado.IdUsuario;
                 cmd.Parameters.Add("@vchUsername", SqlDbType.VarChar, 32).Value = usuarioLogueado.Username;
                 cmd.Parameters.Add("@intIdEmpresa", SqlDbType.Int).Value = usuarioLogueado.IdEmpresa;
                 cmd.Parameters.Add("@intIdRol", SqlDbType.Int).Value = usuarioLogueado.IdRol;
-                cmd.Parameters.Add("@IdCliente", SqlDbType.Int).Value = idCliente;
+                cmd.Parameters.Add("@intIdCliente", SqlDbType.Int).Value = idCliente;
 
                 await cn.OpenAsync();
                 return await LeerRespuestaAsync<ClienteConsulta>(cmd);
@@ -223,17 +268,16 @@ namespace SafetyReport.DAO
         {
             try
             {
-                using SqlConnection cn = new SqlConnection(_dbConfig.ConnectionString);
-                using SqlCommand cmd = new SqlCommand("Cliente_LST", cn);
+                using SqlConnection cn = new(_dbConfig.ConnectionString);
+                using SqlCommand cmd = new("Cliente_LST", cn);
 
                 cmd.CommandType = CommandType.StoredProcedure;
-
                 cmd.Parameters.Add("@intIdUsuario", SqlDbType.Int).Value = usuarioLogueado.IdUsuario;
                 cmd.Parameters.Add("@vchUsername", SqlDbType.VarChar, 32).Value = usuarioLogueado.Username;
                 cmd.Parameters.Add("@intIdEmpresa", SqlDbType.Int).Value = usuarioLogueado.IdEmpresa;
                 cmd.Parameters.Add("@intIdRol", SqlDbType.Int).Value = usuarioLogueado.IdRol;
                 cmd.Parameters.Add("@vchFiltro", SqlDbType.VarChar, 255).Value = (object?)filtro ?? DBNull.Value;
-                cmd.Parameters.Add("@numPag", SqlDbType.Int).Value = numPag;
+                cmd.Parameters.Add("@numPag", SqlDbType.Int).Value = (object?)numPag ?? DBNull.Value;
 
                 await cn.OpenAsync();
 
@@ -243,7 +287,8 @@ namespace SafetyReport.DAO
                 if (await dr.ReadAsync())
                 {
                     respuesta.IdTipoMensaje = dr["IdTipoMensaje"] != DBNull.Value
-                        ? Convert.ToInt32(dr["IdTipoMensaje"]) : 0;
+                        ? Convert.ToInt32(dr["IdTipoMensaje"])
+                        : 0;
                     respuesta.Mensaje = dr["Mensaje"]?.ToString() ?? string.Empty;
 
                     var json = dr["Result"]?.ToString();
@@ -278,16 +323,15 @@ namespace SafetyReport.DAO
         {
             try
             {
-                using SqlConnection cn = new SqlConnection(_dbConfig.ConnectionString);
-                using SqlCommand cmd = new SqlCommand("Cliente_DEL", cn);
+                using SqlConnection cn = new(_dbConfig.ConnectionString);
+                using SqlCommand cmd = new("Cliente_DEL", cn);
 
                 cmd.CommandType = CommandType.StoredProcedure;
-
                 cmd.Parameters.Add("@intIdUsuario", SqlDbType.Int).Value = usuarioLogueado.IdUsuario;
                 cmd.Parameters.Add("@vchUsername", SqlDbType.VarChar, 32).Value = usuarioLogueado.Username;
                 cmd.Parameters.Add("@intIdEmpresa", SqlDbType.Int).Value = usuarioLogueado.IdEmpresa;
                 cmd.Parameters.Add("@intIdRol", SqlDbType.Int).Value = usuarioLogueado.IdRol;
-                cmd.Parameters.Add("@IdCliente", SqlDbType.Int).Value = idCliente;
+                cmd.Parameters.Add("@intIdCliente", SqlDbType.Int).Value = idCliente;
 
                 await cn.OpenAsync();
                 return await LeerRespuestaAsync<ClienteEliminado>(cmd);

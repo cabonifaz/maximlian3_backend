@@ -1,64 +1,59 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Text;
-
-namespace SafetyReport.Models
+﻿namespace SafetyReport.Models
 {
     public class Roles
     {
         public int IdRol { get; set; }
-        public string Rol { get; set; }
-        public string Descripcion { get; set; }
+        public string? Rol { get; set; }
+        public string? Descripcion { get; set; }
     }
 
     public class UsuarioGeneral
     {
         public int IdUsuario { get; set; }
-        public string Username { get; set; }
+        public string Username { get; set; } = string.Empty;
         public int IdEmpresa { get; set; }
         public int IdRol { get; set; }
     }
 
     public class Usuario
     {
-        public string Nombres { get; set; }
-        public string ApellidoPaterno { get; set; }
+        public string Nombres { get; set; } = string.Empty;
+        public string ApellidoPaterno { get; set; } = string.Empty;
         public string? ApellidoMaterno { get; set; }
-        public string Email { get; set; }
-        public string Username { get; set; }
-        public List<int> Roles { get; set; }
-        public List<int> Idiomas { get; set; }
+        public string Email { get; set; } = string.Empty;
+        public List<int> Roles { get; set; } = new();
+        public List<int> Idiomas { get; set; } = new();
     }
 
     public class InfoUsuarioEditar
     {
         public int IdUsuario { get; set; }
-        public string Nombres { get; set; }
-        public string ApellidoPaterno { get; set; }
-        public string ApellidoMaterno { get; set; }
-        public List<int> Roles { get; set; }
-        public List<int> Idiomas { get; set; }
+        public string Nombres { get; set; } = string.Empty;
+        public string ApellidoPaterno { get; set; } = string.Empty;
+        public string? ApellidoMaterno { get; set; }
+        public string Email { get; set; } = string.Empty;
+        public List<int> Roles { get; set; } = new();
+        public List<int> Idiomas { get; set; } = new();
     }
 
     public class UsuarioCreado
     {
         public int IdUsuario { get; set; }
-        public string Username { get; set; }
+        public string Username { get; set; } = string.Empty;
     }
 
     public class UsuarioConsulta
     {
+        public int IdUsuario { get; set; }
         public int IdEmpresa { get; set; }
-        public string Nombres { get; set; }
-        public string ApellidoPaterno { get; set; }
-        public string ApellidoMaterno { get; set; }
-        public string Email { get; set; }
-        public string Username { get; set; }
+        public string Nombres { get; set; } = string.Empty;
+        public string ApellidoPaterno { get; set; } = string.Empty;
+        public string? ApellidoMaterno { get; set; }
+        public string Email { get; set; } = string.Empty;
+        public string Username { get; set; } = string.Empty;
         public List<int> Roles { get; set; } = new();
         public List<int> Idiomas { get; set; } = new();
     }
-
-
 
     public class UsuarioListaResult
     {
@@ -71,22 +66,22 @@ namespace SafetyReport.Models
     {
         public int IdUsuario { get; set; }
         public int IdEmpresa { get; set; }
-        public string Nombres { get; set; }
-        public string ApellidoPaterno { get; set; }
-        public string ApellidoMaterno { get; set; }
-        public string Email { get; set; }
-        public string Username { get; set; }
-        public string Roles { get; set; }
-        public string Estado { get; set; }
+        public string Nombres { get; set; } = string.Empty;
+        public string ApellidoPaterno { get; set; } = string.Empty;
+        public string? ApellidoMaterno { get; set; }
+        public string Email { get; set; } = string.Empty;
+        public string Username { get; set; } = string.Empty;
+        public string? Roles { get; set; }
+        public string? Estado { get; set; }
     }
 
     public class UsuarioLoginResponse
     {
         public int IdUsuario { get; set; }
         public int IdEmpresa { get; set; }
-        public string Nombres { get; set; }
-        public string Email { get; set; }
-        public string Username { get; set; }
+        public string Nombres { get; set; } = string.Empty;
+        public string Email { get; set; } = string.Empty;
+        public string Username { get; set; } = string.Empty;
         public List<Roles> Roles { get; set; } = new();
     }
 
@@ -98,12 +93,12 @@ namespace SafetyReport.Models
     public class EliminarUsuarioResult
     {
         public int IdUsuarioEliminar { get; set; }
-        public string Username { get; set; }
+        public string Username { get; set; } = string.Empty;
     }
 
     public class FiltroUsuario
     {
-        public int numPag { get; set; }
+        public int? numPag { get; set; }
         public string? Filtro { get; set; }
     }
 }
