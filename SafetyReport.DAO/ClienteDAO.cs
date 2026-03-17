@@ -25,6 +25,7 @@ namespace SafetyReport.DAO
             table.Columns.Add("AREATRABAJO", typeof(int));
             table.Columns.Add("TELEFONO", typeof(string));
             table.Columns.Add("EMAIL", typeof(string));
+            table.Columns.Add("ENVIARCORREO", typeof(bool));
 
             int i = 1;
 
@@ -40,9 +41,24 @@ namespace SafetyReport.DAO
                         contacto.IdTipoContacto,
                         contacto.AreaTrabajo,
                         (object?)contacto.Telefono ?? DBNull.Value,
-                        (object?)contacto.Email ?? DBNull.Value
+                        (object?)contacto.Email ?? DBNull.Value,
+                        contacto.EnviarCorreo
                     );
                 }
+            }
+
+            return table;
+        }
+
+        private static DataTable ConstruirTablaFormatoDocumento(List<int>? ids)
+        {
+            var table = new DataTable();
+            table.Columns.Add("IdFormatoDocumento", typeof(int));
+
+            if (ids != null)
+            {
+                foreach (var id in ids)
+                    table.Rows.Add(id);
             }
 
             return table;
@@ -147,12 +163,16 @@ namespace SafetyReport.DAO
                 cmd.Parameters.Add("@intIdIdioma", SqlDbType.Int).Value = request.IdIdioma;
                 cmd.Parameters.Add("@vchLogoClienteUrl", SqlDbType.VarChar).Value = (object?)request.LogoClienteUrl ?? DBNull.Value;
                 cmd.Parameters.Add("@bitImprimeLogoSafety", SqlDbType.Bit).Value = request.ImprimeLogoSafety;
-                cmd.Parameters.Add("@intIdFormatoDocumento", SqlDbType.Int).Value = request.IdFormatoDocumento;
                 cmd.Parameters.Add("@intIdMoneda", SqlDbType.Int).Value = request.IdMoneda;
                 cmd.Parameters.Add("@intIdIdiomaFacturacion", SqlDbType.Int).Value = request.IdIdiomaFacturacion;
                 cmd.Parameters.Add("@bitAplicaPenalidad", SqlDbType.Bit).Value = request.AplicaPenalidad;
                 cmd.Parameters.Add("@intIdPlantilla", SqlDbType.Int).Value = request.IdPlantilla;
                 cmd.Parameters.Add("@intIdEstado", SqlDbType.Int).Value = request.IdEstado;
+
+                var tableFormatoDocumento = ConstruirTablaFormatoDocumento(request.LstIdFormatoDocumento);
+                var tvpFormatoDocumento = cmd.Parameters.AddWithValue("@lstIdFormatoDocumento", tableFormatoDocumento);
+                tvpFormatoDocumento.SqlDbType = SqlDbType.Structured;
+                tvpFormatoDocumento.TypeName = "LISTA_CLIENTE_FORMATO_DOCUMENTO";
 
                 var tableContactos = ConstruirTablaContactos(request.Contactos);
                 var tvpContactos = cmd.Parameters.AddWithValue("@lstContactos", tableContactos);
@@ -209,13 +229,17 @@ namespace SafetyReport.DAO
                 cmd.Parameters.Add("@intIdIdioma", SqlDbType.Int).Value = request.IdIdioma;
                 cmd.Parameters.Add("@vchLogoClienteUrl", SqlDbType.VarChar).Value = (object?)request.LogoClienteUrl ?? DBNull.Value;
                 cmd.Parameters.Add("@bitImprimeLogoSafety", SqlDbType.Bit).Value = request.ImprimeLogoSafety;
-                cmd.Parameters.Add("@intIdFormatoDocumento", SqlDbType.Int).Value = request.IdFormatoDocumento;
                 cmd.Parameters.Add("@intIdMoneda", SqlDbType.Int).Value = request.IdMoneda;
                 cmd.Parameters.Add("@intIdIdiomaFacturacion", SqlDbType.Int).Value = request.IdIdiomaFacturacion;
                 cmd.Parameters.Add("@bitAplicaPenalidad", SqlDbType.Bit).Value = request.AplicaPenalidad;
                 cmd.Parameters.Add("@intIdPlantilla", SqlDbType.Int).Value = request.IdPlantilla;
                 cmd.Parameters.Add("@intIdEstado", SqlDbType.Int).Value = request.IdEstado;
-                
+
+                var tableFormatoDocumento = ConstruirTablaFormatoDocumento(request.LstIdFormatoDocumento);
+                var tvpFormatoDocumento = cmd.Parameters.AddWithValue("@lstIdFormatoDocumento", tableFormatoDocumento);
+                tvpFormatoDocumento.SqlDbType = SqlDbType.Structured;
+                tvpFormatoDocumento.TypeName = "LISTA_CLIENTE_FORMATO_DOCUMENTO";
+
                 await cn.OpenAsync();
                 return await LeerRespuestaAsync<ClienteCreado>(cmd);
             }

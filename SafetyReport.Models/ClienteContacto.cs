@@ -9,6 +9,7 @@
         public int AreaTrabajo { get; set; }
         public string? Telefono { get; set; }
         public string? Email { get; set; }
+        public bool EnviarCorreo { get; set; }
     }
 
     public class ClienteContactoCrear
@@ -21,6 +22,7 @@
         public int IdAreaTrabajo { get; set; }
         public string? Telefono { get; set; }
         public string? Email { get; set; }
+        public bool EnviarCorreo { get; set; }
     }
 
     public class ClienteContactoEditar
@@ -34,6 +36,7 @@
         public int AreaTrabajo { get; set; }
         public string? Telefono { get; set; }
         public string? Email { get; set; }
+        public bool EnviarCorreo { get; set; }
     }
 
     public class ClienteContactoSeleccionado
@@ -47,6 +50,7 @@
         public int AreaTrabajo { get; set; }
         public string? Telefono { get; set; }
         public string? Email { get; set; }
+        public bool EnviarCorreo { get; set; }
     }
 
     public class ClienteContactoCreado

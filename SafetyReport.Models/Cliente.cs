@@ -30,7 +30,7 @@
         public int IdIdioma { get; set; }
         public string? LogoClienteUrl { get; set; }
         public bool ImprimeLogoSafety { get; set; }
-        public int IdFormatoDocumento { get; set; }
+        public List<int> LstIdFormatoDocumento { get; set; } = new();
         public int IdMoneda { get; set; }
         public int IdIdiomaFacturacion { get; set; }
         public bool AplicaPenalidad { get; set; }
@@ -59,7 +59,7 @@
         public int IdIdioma { get; set; }
         public string? LogoClienteUrl { get; set; }
         public bool ImprimeLogoSafety { get; set; }
-        public int IdFormatoDocumento { get; set; }
+        public List<int> LstIdFormatoDocumento { get; set; } = new();
         public int IdMoneda { get; set; }
         public int IdIdiomaFacturacion { get; set; }
         public bool AplicaPenalidad { get; set; }
@@ -86,6 +86,7 @@
         public int IdAreaTrabajo { get; set; }
         public string? Telefono { get; set; }
         public string? Email { get; set; }
+        public bool EnviarCorreo { get; set; }
     }
 
     public class ClienteConsulta
@@ -108,7 +109,7 @@
         public int IdIdioma { get; set; }
         public string? LogoClienteUrl { get; set; }
         public bool ImprimeLogoSafety { get; set; }
-        public int IdFormatoDocumento { get; set; }
+        public List<int> LstIdFormatoDocumento { get; set; } = new();
         public int IdMoneda { get; set; }
         public int IdIdiomaFacturacion { get; set; }
         public bool AplicaPenalidad { get; set; }

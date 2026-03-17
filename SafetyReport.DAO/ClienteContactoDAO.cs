@@ -64,6 +64,7 @@ namespace SafetyReport.DAO
                 cmd.Parameters.Add("@intIdAreaTrabajo", SqlDbType.Int).Value = request.IdAreaTrabajo;
                 cmd.Parameters.Add("@vchTelefono", SqlDbType.VarChar, 128).Value = (object?)request.Telefono ?? DBNull.Value;
                 cmd.Parameters.Add("@vchEmail", SqlDbType.VarChar, 100).Value = (object?)request.Email ?? DBNull.Value;
+                cmd.Parameters.Add("@bitEnviarCorreo", SqlDbType.Bit).Value = request.EnviarCorreo;
                 cmd.Parameters.Add("@vchUsername", SqlDbType.VarChar, 32).Value = usuarioLogueado.Username;
 
                 await cn.OpenAsync();
@@ -189,6 +190,7 @@ namespace SafetyReport.DAO
                 cmd.Parameters.Add("@intIdAreaTrabajo", SqlDbType.Int).Value = request.AreaTrabajo;
                 cmd.Parameters.Add("@vchTelefono", SqlDbType.VarChar, 128).Value = (object?)request.Telefono ?? DBNull.Value;
                 cmd.Parameters.Add("@vchEmail", SqlDbType.VarChar, 100).Value = (object?)request.Email ?? DBNull.Value;
+                cmd.Parameters.Add("@bitEnviarCorreo", SqlDbType.Bit).Value = request.EnviarCorreo;
 
                 await cn.OpenAsync();
                 return await LeerRespuestaAsync<ClienteContactoCreado>(cmd);
