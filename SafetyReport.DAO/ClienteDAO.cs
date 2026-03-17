@@ -116,7 +116,7 @@ namespace SafetyReport.DAO
 
                 var json = dr["Result"]?.ToString();
 
-                respuesta.Result = !string.IsNullOrWhiteSpace(json)
+                respuesta.Result = respuesta.IdTipoMensaje == 2 && !string.IsNullOrWhiteSpace(json)
                     ? JsonSerializer.Deserialize<List<T>>(json, new JsonSerializerOptions
                     {
                         PropertyNameCaseInsensitive = true
@@ -312,7 +312,7 @@ namespace SafetyReport.DAO
                     respuesta.Mensaje = dr["Mensaje"]?.ToString() ?? string.Empty;
 
                     var json = dr["Result"]?.ToString();
-                    respuesta.Result = !string.IsNullOrWhiteSpace(json)
+                    respuesta.Result = respuesta.IdTipoMensaje == 2 && !string.IsNullOrWhiteSpace(json)
                         ? JsonSerializer.Deserialize<ClienteListaResult>(json, new JsonSerializerOptions
                         {
                             PropertyNameCaseInsensitive = true
