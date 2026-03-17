@@ -71,11 +71,11 @@ namespace SafetyReport.Models
     public class TarifarioListaConsulta
     {
         public int IdTarifario { get; set; }
-        public string Producto { get; set; }
-        public string Pais { get; set; }
-        public string Moneda { get; set; }
-        public string TipoTramite { get; set; }
-        public string DiasMinMax { get; set; }
+        public string Producto { get; set; } = string.Empty;
+        public string Pais { get; set; } = string.Empty;
+        public string Moneda { get; set; } = string.Empty;
+        public string TipoTramite { get; set; } = string.Empty;
+        public string DiasMinMax { get; set; } = string.Empty;
         public decimal Precio { get; set; }
         public decimal Penalidad { get; set; }
     }
