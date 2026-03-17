@@ -59,6 +59,7 @@ namespace SafetyReport.DAO
                 cmd.Parameters.Add("@intIdCliente", SqlDbType.Int).Value = request.IdCliente;
                 cmd.Parameters.Add("@vchCodigo", SqlDbType.VarChar, 32).Value = (object?)request.Codigo ?? DBNull.Value;
                 cmd.Parameters.Add("@vchNombres", SqlDbType.VarChar, 255).Value = request.Nombres;
+                cmd.Parameters.Add("@intIdTipoPersonaContacto", SqlDbType.Int).Value = request.IdTipoPersonaContacto;
                 cmd.Parameters.Add("@intIdTipoContacto", SqlDbType.Int).Value = request.IdTipoContacto;
                 cmd.Parameters.Add("@intIdAreaTrabajo", SqlDbType.Int).Value = request.IdAreaTrabajo;
                 cmd.Parameters.Add("@vchTelefono", SqlDbType.VarChar, 128).Value = (object?)request.Telefono ?? DBNull.Value;
