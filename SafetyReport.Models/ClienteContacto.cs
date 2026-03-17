@@ -33,7 +33,7 @@
         public string Nombres { get; set; } = string.Empty;
         public int IdTipoPersonaContacto { get; set;}
         public int IdTipoContacto { get; set; }
-        public int AreaTrabajo { get; set; }
+        public int IdAreaTrabajo { get; set; }
         public string? Telefono { get; set; }
         public string? Email { get; set; }
         public bool EnviarCorreo { get; set; }
