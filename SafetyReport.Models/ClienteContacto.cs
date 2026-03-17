@@ -77,8 +77,20 @@
 
     public class ClienteContactoListaResult
     {
-        public List<ClienteContactoConsulta> lstClienteContactos { get; set; } = new();
+        public List<ClienteContactoListaDetalleResult> lstClienteContactos { get; set; } = new();
         public int TotalRegistros { get; set; }
         public int TotalPaginas { get; set; }
+    }
+
+
+    public class ClienteContactoListaDetalleResult
+    {
+        public int IdClienteContacto { get; set; }
+        public string Nombres { get; set; } = string.Empty;
+        public string TipoContacto { get; set; } = string.Empty;
+        public string AreaTrabajo { get; set; } = string.Empty;
+        public string? Telefono { get; set; }
+        public string? Email { get; set; }
+        public bool EnviarCorreo { get; set; }
     }
 }

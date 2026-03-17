@@ -77,17 +77,6 @@
         public int IdCliente { get; set; }
     }
 
-    public class ClienteContactoConsulta
-    {
-        public int IdClienteContacto { get; set; }
-        public string? Codigo { get; set; }
-        public string Nombres { get; set; } = string.Empty;
-        public int IdTipoContacto { get; set; }
-        public int IdAreaTrabajo { get; set; }
-        public string? Telefono { get; set; }
-        public string? Email { get; set; }
-        public bool EnviarCorreo { get; set; }
-    }
 
     public class ClienteConsulta
     {
