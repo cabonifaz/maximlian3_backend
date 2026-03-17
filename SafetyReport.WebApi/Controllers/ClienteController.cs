@@ -41,7 +41,7 @@ namespace SafetyReport.WebApi.Controllers
         [HttpGet("listar")]
         public async Task<IActionResult> Listar([FromQuery] FiltroCliente request)
         {
-            var respuesta = await _clienteHandler.ListarClientesAsync(UsuarioLogueado, request?.Filtro, request?.numPag);
+            var respuesta = await _clienteHandler.ListarClientesAsync(UsuarioLogueado, request?.Busqueda, request?.numPag, request?.idPais, request?.idEstado);
             return Ok(respuesta);
         }
 

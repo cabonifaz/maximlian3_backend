@@ -3,20 +3,20 @@ using SafetyReport.Models;
 
 namespace SafetyReport.Handlers
 {
-    public class ClienteHandler
+    public class TarifarioHandler
     {
-        private readonly ClienteDAO _dao;
+        private readonly TarifarioDAO _dao;
 
-        public ClienteHandler(ClienteDAO dao)
+        public TarifarioHandler(TarifarioDAO dao)
         {
             _dao = dao;
         }
 
-        public async Task<Respuesta> CrearClienteAsync(UsuarioGeneral usuarioLogueado, Cliente request)
+        public async Task<Respuesta> CrearAsync(UsuarioGeneral usuarioLogueado, TarifarioCrear request)
         {
             try
             {
-                return await _dao.CrearClienteAsync(usuarioLogueado, request);
+                return await _dao.CrearAsync(usuarioLogueado, request);
             }
             catch (Exception ex)
             {
@@ -24,16 +24,16 @@ namespace SafetyReport.Handlers
                 {
                     IdTipoMensaje = 1,
                     Mensaje = ex.Message,
-                    Result = new List<ClienteCreado>()
+                    Result = new List<TarifarioCreado>()
                 };
             }
         }
 
-        public async Task<Respuesta> EditarClienteAsync(UsuarioGeneral usuarioLogueado, EditarCliente request)
+        public async Task<Respuesta> ListarAsync(UsuarioGeneral usuarioLogueado, TarifarioFiltro request)
         {
             try
             {
-                return await _dao.EditarClienteAsync(usuarioLogueado, request);
+                return await _dao.ListarAsync(usuarioLogueado, request);
             }
             catch (Exception ex)
             {
@@ -41,16 +41,16 @@ namespace SafetyReport.Handlers
                 {
                     IdTipoMensaje = 1,
                     Mensaje = ex.Message,
-                    Result = new List<ClienteCreado>()
+                    Result = new TarifarioListaResult()
                 };
             }
         }
 
-        public async Task<Respuesta> ObtenerClienteAsync(UsuarioGeneral usuarioLogueado, int idCliente)
+        public async Task<Respuesta> ObtenerAsync(UsuarioGeneral usuarioLogueado, TarifarioIdRequest request)
         {
             try
             {
-                return await _dao.ObtenerClienteAsync(usuarioLogueado, idCliente);
+                return await _dao.ObtenerAsync(usuarioLogueado, request);
             }
             catch (Exception ex)
             {
@@ -58,16 +58,16 @@ namespace SafetyReport.Handlers
                 {
                     IdTipoMensaje = 1,
                     Mensaje = ex.Message,
-                    Result = new List<ClienteConsulta>()
+                    Result = new List<TarifarioConsulta>()
                 };
             }
         }
 
-        public async Task<Respuesta> ListarClientesAsync(UsuarioGeneral usuarioLogueado, string? busqueda, int? numPag, int? idPais, int? idEstado)
+        public async Task<Respuesta> EditarAsync(UsuarioGeneral usuarioLogueado, TarifarioEditar request)
         {
             try
             {
-                return await _dao.ListarClientesAsync(usuarioLogueado, busqueda, numPag, idPais, idEstado);
+                return await _dao.EditarAsync(usuarioLogueado, request);
             }
             catch (Exception ex)
             {
@@ -75,16 +75,16 @@ namespace SafetyReport.Handlers
                 {
                     IdTipoMensaje = 1,
                     Mensaje = ex.Message,
-                    Result = new ClienteListaResult()
+                    Result = new List<TarifarioCreado>()
                 };
             }
         }
 
-        public async Task<Respuesta> EliminarClienteAsync(UsuarioGeneral usuarioLogueado, ClienteIdRequest request)
+        public async Task<Respuesta> EliminarAsync(UsuarioGeneral usuarioLogueado, TarifarioIdRequest request)
         {
             try
             {
-                return await _dao.EliminarClienteAsync(usuarioLogueado, request.IdCliente);
+                return await _dao.EliminarAsync(usuarioLogueado, request);
             }
             catch (Exception ex)
             {
@@ -92,7 +92,7 @@ namespace SafetyReport.Handlers
                 {
                     IdTipoMensaje = 1,
                     Mensaje = ex.Message,
-                    Result = new List<ClienteEliminado>()
+                    Result = new List<TarifarioEliminado>()
                 };
             }
         }

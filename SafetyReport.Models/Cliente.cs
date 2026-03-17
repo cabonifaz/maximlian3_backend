@@ -1,15 +1,5 @@
 ﻿namespace SafetyReport.Models
 {
-    public class ClienteContactoRequest
-    {
-        public string? Codigo { get; set; }
-        public string Nombres { get; set; } = string.Empty;
-        public int IdTipoContacto { get; set; }
-        public int AreaTrabajo { get; set; }
-        public string? Telefono { get; set; }
-        public string? Email { get; set; }
-    }
-
     public class ClienteTarifarioRequest
     {
         public int IdProducto { get; set; }
@@ -45,6 +35,7 @@
         public int IdIdiomaFacturacion { get; set; }
         public bool AplicaPenalidad { get; set; }
         public int IdPlantilla { get; set; }
+        public int IdEstado { get; set; }
         public List<ClienteContactoRequest> Contactos { get; set; } = new();
         public List<ClienteTarifarioRequest> Tarifario { get; set; } = new();
     }
@@ -52,7 +43,28 @@
     public class EditarCliente
     {
         public int IdCliente { get; set; }
-        public Cliente InfoCliente { get; set; } = new();
+        public int IdTipoPersona { get; set; }
+        public string Nombre { get; set; } = string.Empty;
+        public string? NombreCorto { get; set; }
+        public int IdPais { get; set; }
+        public int IdRegistroTributario { get; set; }
+        public string? NumRegistroTributario { get; set; }
+        public string? Email { get; set; }
+        public string? WebSite { get; set; }
+        public string? Telefono { get; set; }
+        public string? Fax { get; set; }
+        public string? Direccion { get; set; }
+        public string? Recomendacion { get; set; }
+        public int IdEmpresaAtencion { get; set; }
+        public int IdIdioma { get; set; }
+        public string? LogoClienteUrl { get; set; }
+        public bool ImprimeLogoSafety { get; set; }
+        public int IdFormatoDocumento { get; set; }
+        public int IdMoneda { get; set; }
+        public int IdIdiomaFacturacion { get; set; }
+        public bool AplicaPenalidad { get; set; }
+        public int IdPlantilla { get; set; }
+        public int IdEstado { get; set; }
     }
 
     public class ClienteCreado
@@ -71,7 +83,7 @@
         public string? Codigo { get; set; }
         public string Nombres { get; set; } = string.Empty;
         public int IdTipoContacto { get; set; }
-        public int AreaTrabajo { get; set; }
+        public int IdAreaTrabajo { get; set; }
         public string? Telefono { get; set; }
         public string? Email { get; set; }
     }
@@ -101,7 +113,7 @@
         public int IdIdiomaFacturacion { get; set; }
         public bool AplicaPenalidad { get; set; }
         public int IdPlantilla { get; set; }
-        public List<ClienteContactoConsulta> ContactosJson { get; set; } = new();
+        public int IdEstado { get; set; }
     }
 
     public class ClienteListaResult
@@ -114,17 +126,20 @@
     public class ClienteListaConsulta
     {
         public int IdCliente { get; set; }
+        public int IdPais { get; set; }
+        public int IdTipoPersona { get; set; }
         public string Nombre { get; set; } = string.Empty;
-        public string? Pais { get; set; }
-        public string? TipoPersona { get; set; }
         public string? Email { get; set; }
         public string? Telefono { get; set; }
+        public int IdEstado { get; set; }
     }
 
     public class FiltroCliente
     {
         public int? numPag { get; set; }
-        public string? Filtro { get; set; }
+        public string? Busqueda { get; set; }
+        public int? idPais { get; set; }
+        public int? idEstado { get; set; }
     }
 
     public class ClienteIdRequest
