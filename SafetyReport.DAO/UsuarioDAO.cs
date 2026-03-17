@@ -65,7 +65,7 @@ namespace SafetyReport.DAO
             return respuesta;
         }
 
-        public async Task<Respuesta> CrearUsuarioAsync(UsuarioGeneral usuarioLogueado, Usuario request)
+        public async Task<Respuesta> CrearUsuarioAsync(UsuarioGeneral usuarioLogueado, UsuarioCrear request)
         {
             try
             {
@@ -81,6 +81,7 @@ namespace SafetyReport.DAO
                 cmd.Parameters.Add("@vchApellidoPaterno", SqlDbType.VarChar, 50).Value = request.ApellidoPaterno;
                 cmd.Parameters.Add("@vchApellidoMaterno", SqlDbType.VarChar, 50).Value = (object?)request.ApellidoMaterno ?? DBNull.Value;
                 cmd.Parameters.Add("@vchEmail", SqlDbType.VarChar, 100).Value = request.Email;
+                cmd.Parameters.Add("@vchUsernameCreado", SqlDbType.VarChar, 32).Value = request.usernameCreacion;
 
                 var tableRoles = ConstruirTablaListaGeneralNum(request.Roles);
                 var tvpRoles = cmd.Parameters.AddWithValue("@lstRoles", tableRoles);

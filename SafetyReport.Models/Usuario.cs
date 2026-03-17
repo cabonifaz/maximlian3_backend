@@ -15,12 +15,13 @@
         public int IdRol { get; set; }
     }
 
-    public class Usuario
+    public class UsuarioCrear
     {
         public string Nombres { get; set; } = string.Empty;
         public string ApellidoPaterno { get; set; } = string.Empty;
         public string? ApellidoMaterno { get; set; }
         public string Email { get; set; } = string.Empty;
+        public string usernameCreacion {get; set;} = string.Empty;
         public List<int> Roles { get; set; } = new();
         public List<int> Idiomas { get; set; } = new();
     }
