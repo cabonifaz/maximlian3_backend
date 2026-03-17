@@ -57,15 +57,15 @@ namespace SafetyReport.Models
 
     public class TarifarioIdRequest
     {
-        public int IdTarifario { get; set; }
-        public int IdCliente { get; set; }
+        public int idTarifario { get; set; }
+        public int idCliente { get; set; }
     }
 
     public class TarifarioFiltro
     {
-        public int IdCliente { get; set; }
-        public string? Filtro { get; set; }
-        public int? NumPag { get; set; }
+        public int idCliente { get; set; }
+        public string? busqueda { get; set; }
+        public int? numPag { get; set; }
     }
 
     public class TarifarioListaConsulta

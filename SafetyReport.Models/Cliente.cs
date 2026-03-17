@@ -137,7 +137,7 @@
     public class FiltroCliente
     {
         public int? numPag { get; set; }
-        public string? Busqueda { get; set; }
+        public string? busqueda { get; set; }
         public int? idPais { get; set; }
         public int? idEstado { get; set; }
     }

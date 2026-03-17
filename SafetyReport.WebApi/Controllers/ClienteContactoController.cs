@@ -31,8 +31,8 @@ namespace SafetyReport.WebApi.Controllers
             return Ok(respuesta);
         }
 
-        [HttpPost("obtener")]
-        public async Task<IActionResult> Obtener([FromBody] ClienteContactoIdRequest request)
+        [HttpGet("obtener")]
+        public async Task<IActionResult> Obtener([FromQuery] ClienteContactoIdRequest request)
         {
             var respuesta = await _clienteContactoHandler.ObtenerAsync(UsuarioLogueado, request);
             return Ok(respuesta);

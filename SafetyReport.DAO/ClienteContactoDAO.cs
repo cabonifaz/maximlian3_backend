@@ -60,7 +60,7 @@ namespace SafetyReport.DAO
                 cmd.Parameters.Add("@vchCodigo", SqlDbType.VarChar, 32).Value = (object?)request.Codigo ?? DBNull.Value;
                 cmd.Parameters.Add("@vchNombres", SqlDbType.VarChar, 255).Value = request.Nombres;
                 cmd.Parameters.Add("@intIdTipoContacto", SqlDbType.Int).Value = request.IdTipoContacto;
-                cmd.Parameters.Add("@intAreaTrabajo", SqlDbType.Int).Value = request.AreaTrabajo;
+                cmd.Parameters.Add("@intIdAreaTrabajo", SqlDbType.Int).Value = request.IdAreaTrabajo;
                 cmd.Parameters.Add("@vchTelefono", SqlDbType.VarChar, 128).Value = (object?)request.Telefono ?? DBNull.Value;
                 cmd.Parameters.Add("@vchEmail", SqlDbType.VarChar, 100).Value = (object?)request.Email ?? DBNull.Value;
                 cmd.Parameters.Add("@vchUsername", SqlDbType.VarChar, 32).Value = usuarioLogueado.Username;
@@ -184,7 +184,7 @@ namespace SafetyReport.DAO
                 cmd.Parameters.Add("@vchCodigo", SqlDbType.VarChar, 32).Value = (object?)request.Codigo ?? DBNull.Value;
                 cmd.Parameters.Add("@vchNombres", SqlDbType.VarChar, 255).Value = request.Nombres;
                 cmd.Parameters.Add("@intIdTipoContacto", SqlDbType.Int).Value = request.IdTipoContacto;
-                cmd.Parameters.Add("@intAreaTrabajo", SqlDbType.Int).Value = request.AreaTrabajo;
+                cmd.Parameters.Add("@intIdAreaTrabajo", SqlDbType.Int).Value = request.AreaTrabajo;
                 cmd.Parameters.Add("@vchTelefono", SqlDbType.VarChar, 128).Value = (object?)request.Telefono ?? DBNull.Value;
                 cmd.Parameters.Add("@vchEmail", SqlDbType.VarChar, 100).Value = (object?)request.Email ?? DBNull.Value;
 

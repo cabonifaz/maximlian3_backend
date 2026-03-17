@@ -125,6 +125,10 @@ builder.Services.AddScoped<MasterTableDAO>();
 builder.Services.AddScoped<MasterTableHandler>();
 builder.Services.AddScoped<ClienteDAO>();
 builder.Services.AddScoped<ClienteHandler>();
+builder.Services.AddScoped<TarifarioDAO>();
+builder.Services.AddScoped<TarifarioHandler>();
+builder.Services.AddScoped<ClienteContactoHandler>();
+builder.Services.AddScoped<ClienteContactoDAO>();
 builder.Services.AddScoped<CognitoTokenValidator>();
 
 var app = builder.Build();

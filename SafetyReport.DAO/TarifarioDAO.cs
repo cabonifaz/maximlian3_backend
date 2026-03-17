@@ -101,9 +101,9 @@ namespace SafetyReport.DAO
                 cmd.Parameters.Add("@vchUsername", SqlDbType.VarChar, 32).Value = usuarioLogueado.Username;
                 cmd.Parameters.Add("@intIdEmpresa", SqlDbType.Int).Value = usuarioLogueado.IdEmpresa;
                 cmd.Parameters.Add("@intIdRol", SqlDbType.Int).Value = usuarioLogueado.IdRol;
-                cmd.Parameters.Add("@intIdCliente", SqlDbType.Int).Value = request.IdCliente;
-                cmd.Parameters.Add("@vchFiltro", SqlDbType.VarChar, 255).Value = (object?)request.Filtro ?? DBNull.Value;
-                cmd.Parameters.Add("@numPag", SqlDbType.Int).Value = (object?)request.NumPag ?? DBNull.Value;
+                cmd.Parameters.Add("@intIdCliente", SqlDbType.Int).Value = request.idCliente;
+                cmd.Parameters.Add("@vchBusqueda", SqlDbType.VarChar, 255).Value = (object?)request.busqueda ?? DBNull.Value;
+                cmd.Parameters.Add("@numPag", SqlDbType.Int).Value = (object?)request.numPag ?? DBNull.Value;
 
                 await cn.OpenAsync();
 
@@ -159,8 +159,8 @@ namespace SafetyReport.DAO
                 cmd.Parameters.Add("@vchUsername", SqlDbType.VarChar, 32).Value = usuarioLogueado.Username;
                 cmd.Parameters.Add("@intIdEmpresa", SqlDbType.Int).Value = usuarioLogueado.IdEmpresa;
                 cmd.Parameters.Add("@intIdRol", SqlDbType.Int).Value = usuarioLogueado.IdRol;
-                cmd.Parameters.Add("@intIdTarifario", SqlDbType.Int).Value = request.IdTarifario;
-                cmd.Parameters.Add("@intIdCliente", SqlDbType.Int).Value = request.IdCliente;
+                cmd.Parameters.Add("@intIdTarifario", SqlDbType.Int).Value = request.idTarifario;
+                cmd.Parameters.Add("@intIdCliente", SqlDbType.Int).Value = request.idCliente;
 
                 await cn.OpenAsync();
                 return await LeerRespuestaAsync<TarifarioConsulta>(cmd);
@@ -233,8 +233,8 @@ namespace SafetyReport.DAO
                 cmd.Parameters.Add("@vchUsername", SqlDbType.VarChar, 32).Value = usuarioLogueado.Username;
                 cmd.Parameters.Add("@intIdEmpresa", SqlDbType.Int).Value = usuarioLogueado.IdEmpresa;
                 cmd.Parameters.Add("@intIdRol", SqlDbType.Int).Value = usuarioLogueado.IdRol;
-                cmd.Parameters.Add("@intIdTarifario", SqlDbType.Int).Value = request.IdTarifario;
-                cmd.Parameters.Add("@intIdCliente", SqlDbType.Int).Value = request.IdCliente;
+                cmd.Parameters.Add("@intIdTarifario", SqlDbType.Int).Value = request.idTarifario;
+                cmd.Parameters.Add("@intIdCliente", SqlDbType.Int).Value = request.idCliente;
 
                 await cn.OpenAsync();
                 return await LeerRespuestaAsync<TarifarioEliminado>(cmd);
