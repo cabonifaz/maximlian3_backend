@@ -117,6 +117,19 @@ builder.Services.AddAuthentication(options =>
 
 builder.Services.AddAuthorization();
 
+var allowedOrigins = builder.Configuration.GetSection("Cors:AllowedOrigins").Get<string[]>() ?? [];
+
+builder.Services.AddCors(options =>
+{
+    options.AddPolicy("LocalDev", policy =>
+    {
+        policy.WithOrigins(allowedOrigins)
+              .AllowAnyHeader()
+              .AllowAnyMethod()
+              .AllowCredentials();
+    });
+});
+
 builder.Services.AddScoped<LoginDAO>();
 builder.Services.AddScoped<LoginHandler>();
 builder.Services.AddScoped<UsuarioDAO>();
@@ -135,6 +148,8 @@ var app = builder.Build();
 
 app.UseSwagger();
 app.UseSwaggerUI();
+
+app.UseCors("LocalDev");
 
 app.UseAuthentication();
 app.UseAuthorization();
