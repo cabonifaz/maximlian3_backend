@@ -4,6 +4,7 @@
     {
         public string? Codigo { get; set; }
         public string Nombres { get; set; } = string.Empty;
+        public int IdTipoPersonaContacto { get; set; }
         public int IdTipoContacto { get; set; }
         public int AreaTrabajo { get; set; }
         public string? Telefono { get; set; }
@@ -15,6 +16,7 @@
         public int IdCliente { get; set; }
         public string? Codigo { get; set; }
         public string Nombres { get; set; } = string.Empty;
+        public int IdTipoPersonaContacto { get; set;}
         public int IdTipoContacto { get; set; }
         public int IdAreaTrabajo { get; set; }
         public string? Telefono { get; set; }
@@ -27,6 +29,7 @@
         public int IdCliente { get; set; }
         public string? Codigo { get; set; }
         public string Nombres { get; set; } = string.Empty;
+        public int IdTipoPersonaContacto { get; set;}
         public int IdTipoContacto { get; set; }
         public int AreaTrabajo { get; set; }
         public string? Telefono { get; set; }
@@ -39,6 +42,7 @@
         public int IdCliente { get; set; }
         public string? Codigo { get; set; }
         public string Nombres { get; set; } = string.Empty;
+        public int IdTipoPersonaContacto { get; set; }
         public int IdTipoContacto { get; set; }
         public int AreaTrabajo { get; set; }
         public string? Telefono { get; set; }

@@ -20,6 +20,7 @@ namespace SafetyReport.DAO
             table.Columns.Add("ID", typeof(int));
             table.Columns.Add("CODIGO", typeof(string));
             table.Columns.Add("NOMBRES", typeof(string));
+            table.Columns.Add("IDTIPOPERSONACONTACTO", typeof(int));
             table.Columns.Add("IDTIPOCONTACTO", typeof(int));
             table.Columns.Add("AREATRABAJO", typeof(int));
             table.Columns.Add("TELEFONO", typeof(string));
@@ -35,6 +36,7 @@ namespace SafetyReport.DAO
                         i++,
                         (object?)contacto.Codigo ?? DBNull.Value,
                         contacto.Nombres ?? string.Empty,
+                        contacto.IdTipoPersonaContacto,
                         contacto.IdTipoContacto,
                         contacto.AreaTrabajo,
                         (object?)contacto.Telefono ?? DBNull.Value,
