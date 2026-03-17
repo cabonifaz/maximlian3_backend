@@ -31,7 +31,7 @@ namespace SafetyReport.WebApi.Controllers
             return Ok(respuesta);
         }
 
-        [HttpGet("obtener/{idCliente:int}")]
+        [HttpGet("obtener")]
         public async Task<IActionResult> Obtener([FromQuery] int idCliente)
         {
             var respuesta = await _clienteHandler.ObtenerClienteAsync(UsuarioLogueado, idCliente);
