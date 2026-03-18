@@ -1,0 +1,297 @@
+﻿using Microsoft.Data.SqlClient;
+using SafetyReport.Models;
+using System.Data;
+using System.Text.Json;
+
+namespace SafetyReport.DAO
+{
+    public class PedidoDAO
+    {
+        private readonly DbConfig _dbConfig;
+
+        public PedidoDAO(DbConfig dbConfig)
+        {
+            _dbConfig = dbConfig;
+        }
+
+        private static DataTable ConstruirTablaArchivos(List<PedidoArchivoRequest>? archivos)
+        {
+            var table = new DataTable();
+            table.Columns.Add("ID", typeof(int));
+            table.Columns.Add("DOCUMENTOURL", typeof(string));
+            table.Columns.Add("NOMBREDOCUMENTO", typeof(string));
+            table.Columns.Add("FORMATODOCUMENTO", typeof(string));
+
+            int i = 1;
+
+            if (archivos != null)
+            {
+                foreach (var archivo in archivos)
+                {
+                    table.Rows.Add(
+                        i++,
+                        archivo.DocumentoURL ?? string.Empty,
+                        archivo.NombreDocumento ?? string.Empty,
+                        archivo.FormatoDocumento ?? string.Empty
+                    );
+                }
+            }
+
+            return table;
+        }
+
+        private static async Task<Respuesta> LeerRespuestaAsync<T>(SqlCommand cmd)
+        {
+            var respuesta = new Respuesta();
+
+            using var dr = await cmd.ExecuteReaderAsync();
+
+            if (await dr.ReadAsync())
+            {
+                respuesta.IdTipoMensaje = dr["IdTipoMensaje"] != DBNull.Value
+                    ? Convert.ToInt32(dr["IdTipoMensaje"])
+                    : 0;
+
+                respuesta.Mensaje = dr["Mensaje"]?.ToString() ?? string.Empty;
+
+                var json = dr["Result"]?.ToString();
+
+                respuesta.Result = !string.IsNullOrWhiteSpace(json)
+                    ? JsonSerializer.Deserialize<List<T>>(json, new JsonSerializerOptions
+                    {
+                        PropertyNameCaseInsensitive = true
+                    }) ?? new List<T>()
+                    : new List<T>();
+            }
+            else
+            {
+                respuesta.IdTipoMensaje = 1;
+                respuesta.Mensaje = "No se obtuvo respuesta del procedimiento.";
+                respuesta.Result = new List<T>();
+            }
+
+            return respuesta;
+        }
+
+        public async Task<Respuesta> CrearAsync(UsuarioGeneral usuarioLogueado, Pedido request)
+        {
+            try
+            {
+                using SqlConnection cn = new(_dbConfig.ConnectionString);
+                using SqlCommand cmd = new("Pedido_INS", cn);
+
+                cmd.CommandType = CommandType.StoredProcedure;
+
+                cmd.Parameters.Add("@intIdUsuario", SqlDbType.Int).Value = usuarioLogueado.IdUsuario;
+                cmd.Parameters.Add("@vchUsername", SqlDbType.VarChar, 32).Value = usuarioLogueado.Username;
+                cmd.Parameters.Add("@intIdEmpresa", SqlDbType.Int).Value = usuarioLogueado.IdEmpresa;
+                cmd.Parameters.Add("@intIdRol", SqlDbType.Int).Value = usuarioLogueado.IdRol;
+
+                cmd.Parameters.Add("@vchCodigo", SqlDbType.VarChar, 50).Value = request.Codigo;
+                cmd.Parameters.Add("@intIdCliente", SqlDbType.Int).Value = request.IdCliente;
+                cmd.Parameters.Add("@vchRUC", SqlDbType.VarChar, 50).Value = (object?)request.RUC ?? DBNull.Value;
+                cmd.Parameters.Add("@vchRazonSocial", SqlDbType.VarChar, 255).Value = (object?)request.RazonSocial ?? DBNull.Value;
+                cmd.Parameters.Add("@intIdTipoPersona", SqlDbType.Int).Value = request.IdTipoPersona;
+                cmd.Parameters.Add("@intIdCompania", SqlDbType.Int).Value = request.IdCompania;
+                cmd.Parameters.Add("@vchInvestigarRazonSocialNombres", SqlDbType.VarChar).Value = request.InvestigarRazonSocialNombres;
+                cmd.Parameters.Add("@intIdTarifario", SqlDbType.Int).Value = request.IdTarifario;
+                cmd.Parameters.Add("@intIdPlantilla", SqlDbType.Int).Value = request.IdPlantilla;
+                cmd.Parameters.Add("@intIdIdioma", SqlDbType.Int).Value = request.IdIdioma;
+                cmd.Parameters.Add("@intIdClaseInforme", SqlDbType.Int).Value = request.IdClaseInforme;
+                cmd.Parameters.Add("@vchNumReferencia", SqlDbType.VarChar, 32).Value = (object?)request.NumReferencia ?? DBNull.Value;
+
+                cmd.Parameters.Add("@decMontoCredito", SqlDbType.Decimal).Value = (object?)request.MontoCredito ?? DBNull.Value;
+                cmd.Parameters["@decMontoCredito"].Precision = 18;
+                cmd.Parameters["@decMontoCredito"].Scale = 2;
+
+                cmd.Parameters.Add("@intPlazoCredito", SqlDbType.Int).Value = (object?)request.PlazoCredito ?? DBNull.Value;
+                cmd.Parameters.Add("@dtFchDesde", SqlDbType.DateTime).Value = (object?)request.FchDesde ?? DBNull.Value;
+                cmd.Parameters.Add("@dtFchHasta", SqlDbType.DateTime).Value = (object?)request.FchHasta ?? DBNull.Value;
+                cmd.Parameters.Add("@vchComentario", SqlDbType.VarChar).Value = (object?)request.Comentario ?? DBNull.Value;
+                cmd.Parameters.Add("@intIdEstado", SqlDbType.Int).Value = request.IdEstado;
+
+                var tableArchivos = ConstruirTablaArchivos(request.Archivos);
+                var tvpArchivos = cmd.Parameters.AddWithValue("@lstArchivos", tableArchivos);
+                tvpArchivos.SqlDbType = SqlDbType.Structured;
+                tvpArchivos.TypeName = "LISTA_PEDIDO_ARCHIVO";
+
+                await cn.OpenAsync();
+                return await LeerRespuestaAsync<PedidoCreado>(cmd);
+            }
+            catch (Exception ex)
+            {
+                return new Respuesta
+                {
+                    IdTipoMensaje = 1,
+                    Mensaje = ex.Message,
+                    Result = new List<PedidoCreado>()
+                };
+            }
+        }
+
+        public async Task<Respuesta> EditarAsync(UsuarioGeneral usuarioLogueado, EditarPedido request)
+        {
+            try
+            {
+                using SqlConnection cn = new(_dbConfig.ConnectionString);
+                using SqlCommand cmd = new("Pedido_UPD", cn);
+
+                cmd.CommandType = CommandType.StoredProcedure;
+
+                cmd.Parameters.Add("@intIdUsuario", SqlDbType.Int).Value = usuarioLogueado.IdUsuario;
+                cmd.Parameters.Add("@vchUsername", SqlDbType.VarChar, 32).Value = usuarioLogueado.Username;
+                cmd.Parameters.Add("@intIdEmpresa", SqlDbType.Int).Value = usuarioLogueado.IdEmpresa;
+                cmd.Parameters.Add("@intIdRol", SqlDbType.Int).Value = usuarioLogueado.IdRol;
+
+                cmd.Parameters.Add("@intIdPedido", SqlDbType.Int).Value = request.IdPedido;
+                cmd.Parameters.Add("@vchCodigo", SqlDbType.VarChar, 50).Value = request.Codigo;
+                cmd.Parameters.Add("@intIdCliente", SqlDbType.Int).Value = request.IdCliente;
+                cmd.Parameters.Add("@vchRUC", SqlDbType.VarChar, 50).Value = (object?)request.RUC ?? DBNull.Value;
+                cmd.Parameters.Add("@vchRazonSocial", SqlDbType.VarChar, 255).Value = (object?)request.RazonSocial ?? DBNull.Value;
+                cmd.Parameters.Add("@intIdTipoPersona", SqlDbType.Int).Value = request.IdTipoPersona;
+                cmd.Parameters.Add("@intIdCompania", SqlDbType.Int).Value = request.IdCompania;
+                cmd.Parameters.Add("@vchInvestigarRazonSocialNombres", SqlDbType.VarChar).Value = request.InvestigarRazonSocialNombres;
+                cmd.Parameters.Add("@intIdTarifario", SqlDbType.Int).Value = request.IdTarifario;
+                cmd.Parameters.Add("@intIdPlantilla", SqlDbType.Int).Value = request.IdPlantilla;
+                cmd.Parameters.Add("@intIdIdioma", SqlDbType.Int).Value = request.IdIdioma;
+                cmd.Parameters.Add("@intIdClaseInforme", SqlDbType.Int).Value = request.IdClaseInforme;
+                cmd.Parameters.Add("@vchNumReferencia", SqlDbType.VarChar, 32).Value = (object?)request.NumReferencia ?? DBNull.Value;
+
+                cmd.Parameters.Add("@decMontoCredito", SqlDbType.Decimal).Value = (object?)request.MontoCredito ?? DBNull.Value;
+                cmd.Parameters["@decMontoCredito"].Precision = 18;
+                cmd.Parameters["@decMontoCredito"].Scale = 2;
+
+                cmd.Parameters.Add("@intPlazoCredito", SqlDbType.Int).Value = (object?)request.PlazoCredito ?? DBNull.Value;
+                cmd.Parameters.Add("@dtFchDesde", SqlDbType.DateTime).Value = (object?)request.FchDesde ?? DBNull.Value;
+                cmd.Parameters.Add("@dtFchHasta", SqlDbType.DateTime).Value = (object?)request.FchHasta ?? DBNull.Value;
+                cmd.Parameters.Add("@vchComentario", SqlDbType.VarChar).Value = (object?)request.Comentario ?? DBNull.Value;
+                cmd.Parameters.Add("@intIdEstado", SqlDbType.Int).Value = request.IdEstado;
+
+                await cn.OpenAsync();
+                return await LeerRespuestaAsync<PedidoCreado>(cmd);
+            }
+            catch (Exception ex)
+            {
+                return new Respuesta
+                {
+                    IdTipoMensaje = 1,
+                    Mensaje = ex.Message,
+                    Result = new List<PedidoCreado>()
+                };
+            }
+        }
+
+        public async Task<Respuesta> ObtenerAsync(UsuarioGeneral usuarioLogueado, int idPedido)
+        {
+            try
+            {
+                using SqlConnection cn = new(_dbConfig.ConnectionString);
+                using SqlCommand cmd = new("Pedido_SEL", cn);
+
+                cmd.CommandType = CommandType.StoredProcedure;
+                cmd.Parameters.Add("@intIdUsuario", SqlDbType.Int).Value = usuarioLogueado.IdUsuario;
+                cmd.Parameters.Add("@vchUsername", SqlDbType.VarChar, 32).Value = usuarioLogueado.Username;
+                cmd.Parameters.Add("@intIdEmpresa", SqlDbType.Int).Value = usuarioLogueado.IdEmpresa;
+                cmd.Parameters.Add("@intIdRol", SqlDbType.Int).Value = usuarioLogueado.IdRol;
+                cmd.Parameters.Add("@intIdPedido", SqlDbType.Int).Value = idPedido;
+
+                await cn.OpenAsync();
+                return await LeerRespuestaAsync<PedidoConsulta>(cmd);
+            }
+            catch (Exception ex)
+            {
+                return new Respuesta
+                {
+                    IdTipoMensaje = 1,
+                    Mensaje = ex.Message,
+                    Result = new List<PedidoConsulta>()
+                };
+            }
+        }
+
+        public async Task<Respuesta> ListarAsync(UsuarioGeneral usuarioLogueado, FiltroPedido request)
+        {
+            try
+            {
+                using SqlConnection cn = new(_dbConfig.ConnectionString);
+                using SqlCommand cmd = new("Pedido_LST", cn);
+
+                cmd.CommandType = CommandType.StoredProcedure;
+                cmd.Parameters.Add("@intIdUsuario", SqlDbType.Int).Value = usuarioLogueado.IdUsuario;
+                cmd.Parameters.Add("@vchUsername", SqlDbType.VarChar, 32).Value = usuarioLogueado.Username;
+                cmd.Parameters.Add("@intIdEmpresa", SqlDbType.Int).Value = usuarioLogueado.IdEmpresa;
+                cmd.Parameters.Add("@intIdRol", SqlDbType.Int).Value = usuarioLogueado.IdRol;
+                cmd.Parameters.Add("@vchBusqueda", SqlDbType.VarChar, 255).Value = (object?)request.Busqueda ?? DBNull.Value;
+                cmd.Parameters.Add("@intIdCliente", SqlDbType.Int).Value = (object?)request.IdCliente ?? DBNull.Value;
+                cmd.Parameters.Add("@intIdEstado", SqlDbType.Int).Value = (object?)request.IdEstado ?? DBNull.Value;
+                cmd.Parameters.Add("@numPag", SqlDbType.Int).Value = (object?)request.NumPag ?? DBNull.Value;
+
+                await cn.OpenAsync();
+
+                var respuesta = new Respuesta();
+                using var dr = await cmd.ExecuteReaderAsync();
+
+                if (await dr.ReadAsync())
+                {
+                    respuesta.IdTipoMensaje = dr["IdTipoMensaje"] != DBNull.Value
+                        ? Convert.ToInt32(dr["IdTipoMensaje"])
+                        : 0;
+                    respuesta.Mensaje = dr["Mensaje"]?.ToString() ?? string.Empty;
+
+                    var json = dr["Result"]?.ToString();
+                    respuesta.Result = !string.IsNullOrWhiteSpace(json)
+                        ? JsonSerializer.Deserialize<PedidoListaResult>(json, new JsonSerializerOptions
+                        {
+                            PropertyNameCaseInsensitive = true
+                        }) ?? new PedidoListaResult()
+                        : new PedidoListaResult();
+                }
+                else
+                {
+                    respuesta.IdTipoMensaje = 1;
+                    respuesta.Mensaje = "No se obtuvo respuesta del procedimiento.";
+                    respuesta.Result = new PedidoListaResult();
+                }
+
+                return respuesta;
+            }
+            catch (Exception ex)
+            {
+                return new Respuesta
+                {
+                    IdTipoMensaje = 1,
+                    Mensaje = ex.Message,
+                    Result = new PedidoListaResult()
+                };
+            }
+        }
+
+        public async Task<Respuesta> EliminarAsync(UsuarioGeneral usuarioLogueado, int idPedido)
+        {
+            try
+            {
+                using SqlConnection cn = new(_dbConfig.ConnectionString);
+                using SqlCommand cmd = new("Pedido_DEL", cn);
+
+                cmd.CommandType = CommandType.StoredProcedure;
+                cmd.Parameters.Add("@intIdUsuario", SqlDbType.Int).Value = usuarioLogueado.IdUsuario;
+                cmd.Parameters.Add("@vchUsername", SqlDbType.VarChar, 32).Value = usuarioLogueado.Username;
+                cmd.Parameters.Add("@intIdEmpresa", SqlDbType.Int).Value = usuarioLogueado.IdEmpresa;
+                cmd.Parameters.Add("@intIdRol", SqlDbType.Int).Value = usuarioLogueado.IdRol;
+                cmd.Parameters.Add("@intIdPedido", SqlDbType.Int).Value = idPedido;
+
+                await cn.OpenAsync();
+                return await LeerRespuestaAsync<PedidoEliminado>(cmd);
+            }
+            catch (Exception ex)
+            {
+                return new Respuesta
+                {
+                    IdTipoMensaje = 1,
+                    Mensaje = ex.Message,
+                    Result = new List<PedidoEliminado>()
+                };
+            }
+        }
+    }
+}
