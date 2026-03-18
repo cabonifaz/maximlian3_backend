@@ -19,7 +19,7 @@ namespace SafetyReport.Handlers
             _config = config;
         }
 
-        public async Task<Respuesta> CrearUsuarioAsync(UsuarioGeneral usuarioLogueado, Usuario request)
+        public async Task<Respuesta> CrearUsuarioAsync(UsuarioGeneral usuarioLogueado, UsuarioCrear request)
         {
             try
             {

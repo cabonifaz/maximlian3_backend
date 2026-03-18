@@ -17,7 +17,7 @@ namespace SafetyReport.WebApi.Controllers
         }
 
         [HttpPost("crear")]
-        public async Task<IActionResult> Crear([FromBody] Usuario request)
+        public async Task<IActionResult> Crear([FromBody] UsuarioCrear request)
         {
             var respuesta = await _usuarioHandler.CrearUsuarioAsync(UsuarioLogueado, request);
             return Ok(respuesta);
