@@ -142,6 +142,10 @@ builder.Services.AddScoped<TarifarioDAO>();
 builder.Services.AddScoped<TarifarioHandler>();
 builder.Services.AddScoped<ClienteContactoHandler>();
 builder.Services.AddScoped<ClienteContactoDAO>();
+builder.Services.AddScoped<PedidoHandler>();
+builder.Services.AddScoped<PedidoDAO>();
+builder.Services.AddScoped<PedidoArchivoHandler>();
+builder.Services.AddScoped<PedidoArchivoDAO>();
 builder.Services.AddScoped<CognitoTokenValidator>();
 
 var app = builder.Build();
