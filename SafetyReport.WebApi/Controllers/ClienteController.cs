@@ -53,7 +53,7 @@ namespace SafetyReport.WebApi.Controllers
         }
 
         [HttpGet("listaCorta")]
-        public async Task<IActionResult> ListarCorta()
+        public async Task<IActionResult> ListaCorta()
         {
             var respuesta = await _clienteHandler.ListarClienteShortAsync(UsuarioLogueado);
             return Ok(respuesta);
