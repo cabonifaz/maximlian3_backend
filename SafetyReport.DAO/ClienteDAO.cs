@@ -367,7 +367,7 @@ namespace SafetyReport.DAO
             }
         }
 
-        public async Task<Respuesta> ListarClienteShortAsync(UsuarioGeneral usuarioLogueado, int IdCliente)
+        public async Task<Respuesta> ListarClienteShortAsync(UsuarioGeneral usuarioLogueado)
         {
             try
             {
@@ -379,7 +379,6 @@ namespace SafetyReport.DAO
                 cmd.Parameters.Add("@vchUsername", SqlDbType.VarChar, 32).Value = usuarioLogueado.Username;
                 cmd.Parameters.Add("@intIdEmpresa", SqlDbType.Int).Value = usuarioLogueado.IdEmpresa;
                 cmd.Parameters.Add("@intIdRol", SqlDbType.Int).Value = usuarioLogueado.IdRol;
-                cmd.Parameters.Add("@intIdCliente", SqlDbType.Int).Value = IdCliente;
 
                 await cn.OpenAsync();
 
