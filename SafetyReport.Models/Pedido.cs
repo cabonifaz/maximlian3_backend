@@ -102,22 +102,14 @@
     public class PedidoListaConsulta
     {
         public int IdPedido { get; set; }
-        public string Codigo { get; set; } = string.Empty;
         public int IdCliente { get; set; }
-        public string? RUC { get; set; }
-        public string? RazonSocial { get; set; }
-        public int IdTipoPersona { get; set; }
-        public int IdCompania { get; set; }
-        public int IdTarifario { get; set; }
-        public int IdPlantilla { get; set; }
+        public string Cliente { get; set; } = string.Empty;
+        public string? Investigado { get; set; }
         public int IdIdioma { get; set; }
-        public int IdClaseInforme { get; set; }
-        public string? NumReferencia { get; set; }
-        public decimal? MontoCredito { get; set; }
-        public int? PlazoCredito { get; set; }
-        public DateTime? FchDesde { get; set; }
-        public DateTime? FchHasta { get; set; }
-        public int IdEstado { get; set; }
+        public string? Idioma { get; set; }
+        public bool LogoImprimible { get; set; }
+        public int Estado { get; set; }
+        public int Vigencia { get; set; }
     }
 
     public class PedidoListaResult
