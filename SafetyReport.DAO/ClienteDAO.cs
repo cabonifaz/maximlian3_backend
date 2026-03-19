@@ -382,7 +382,33 @@ namespace SafetyReport.DAO
                 cmd.Parameters.Add("@intIdCliente", SqlDbType.Int).Value = IdCliente;
 
                 await cn.OpenAsync();
-                return await LeerRespuestaAsync<ClienteListaCorta>(cmd);
+
+                var respuesta = new Respuesta();
+                using var dr = await cmd.ExecuteReaderAsync();
+
+                if (await dr.ReadAsync())
+                {
+                    respuesta.IdTipoMensaje = dr["IdTipoMensaje"] != DBNull.Value
+                        ? Convert.ToInt32(dr["IdTipoMensaje"])
+                        : 0;
+                    respuesta.Mensaje = dr["Mensaje"]?.ToString() ?? string.Empty;
+
+                    var json = dr["Result"]?.ToString();
+                    respuesta.Result = respuesta.IdTipoMensaje == 2 && !string.IsNullOrWhiteSpace(json)
+                        ? JsonSerializer.Deserialize<ClienteListaCorta>(json, new JsonSerializerOptions
+                        {
+                            PropertyNameCaseInsensitive = true
+                        }) ?? new ClienteListaCorta()
+                        : new ClienteListaCorta();
+                }
+                else
+                {
+                    respuesta.IdTipoMensaje = 1;
+                    respuesta.Mensaje = "No se obtuvo respuesta del procedimiento.";
+                    respuesta.Result = new ClienteListaCorta();
+                }
+
+                return respuesta;
             }
             catch (Exception ex)
             {
@@ -390,7 +416,7 @@ namespace SafetyReport.DAO
                 {
                     IdTipoMensaje = 1,
                     Mensaje = ex.Message,
-                    Result = new List<ClienteListaCorta>()
+                    Result = new ClienteListaCorta()
                 };
             }
         }
