@@ -11,8 +11,8 @@
     {
         public string Codigo { get; set; } = string.Empty;
         public int IdCliente { get; set; }
-        public string? RUC { get; set; }
-        public string? RazonSocial { get; set; }
+        public string? NumeroDocumento { get; set; }
+        public string? NombreCliente { get; set; }
         public int IdTipoPersona { get; set; }
         public int IdCompania { get; set; }
         public string InvestigarRazonSocialNombres { get; set; } = string.Empty;
