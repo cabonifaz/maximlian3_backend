@@ -139,7 +139,8 @@
     public class ClienteListaCortaItem
     {
         public int IdCliente { get; set; }
-        public string Nombre { get; set; } = string.Empty;
+        public string NumeroDocumento { get; set; } = string.Empty;
+        public string NombreCliente { get; set; } = string.Empty;
         public int IdIdioma { get; set; }
         public bool LogoImprimible { get; set; }
     }
