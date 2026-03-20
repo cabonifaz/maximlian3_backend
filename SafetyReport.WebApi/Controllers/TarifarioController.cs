@@ -51,5 +51,12 @@ namespace SafetyReport.WebApi.Controllers
             var respuesta = await _tarifarioHandler.EliminarAsync(UsuarioLogueado, request);
             return Ok(respuesta);
         }
+
+        [HttpGet("listaCorta")]
+        public async Task<IActionResult> ListaCorta([FromQuery] TarifarioListaCortaFiltro request)
+        {
+            var respuesta = await _tarifarioHandler.ListarCortaAsync(UsuarioLogueado, request);
+            return Ok(respuesta);
+        }
     }
 }

@@ -22,7 +22,7 @@ namespace SafetyReport.Handlers
             {
                 return new Respuesta
                 {
-                    IdTipoMensaje = 1,
+                    IdTipoMensaje = 3,
                     Mensaje = ex.Message,
                     Result = new List<TarifarioCreado>()
                 };
@@ -39,7 +39,7 @@ namespace SafetyReport.Handlers
             {
                 return new Respuesta
                 {
-                    IdTipoMensaje = 1,
+                    IdTipoMensaje = 3,
                     Mensaje = ex.Message,
                     Result = new TarifarioListaResult()
                 };
@@ -56,7 +56,7 @@ namespace SafetyReport.Handlers
             {
                 return new Respuesta
                 {
-                    IdTipoMensaje = 1,
+                    IdTipoMensaje = 3,
                     Mensaje = ex.Message,
                     Result = new List<TarifarioConsulta>()
                 };
@@ -73,7 +73,7 @@ namespace SafetyReport.Handlers
             {
                 return new Respuesta
                 {
-                    IdTipoMensaje = 1,
+                    IdTipoMensaje = 3,
                     Mensaje = ex.Message,
                     Result = new List<TarifarioCreado>()
                 };
@@ -90,9 +90,25 @@ namespace SafetyReport.Handlers
             {
                 return new Respuesta
                 {
-                    IdTipoMensaje = 1,
+                    IdTipoMensaje = 3,
                     Mensaje = ex.Message,
                     Result = new List<TarifarioEliminado>()
+                };
+            }
+        }
+        public async Task<Respuesta> ListarCortaAsync(UsuarioGeneral usuarioLogueado, TarifarioListaCortaFiltro request)
+        {
+            try
+            {
+                return await _dao.ListaCortaAsync(usuarioLogueado, request);
+            }
+            catch (Exception ex)
+            {
+                return new Respuesta
+                {
+                    IdTipoMensaje = 3,
+                    Mensaje = ex.Message,
+                    Result = new TarifarioListaCortaResult()
                 };
             }
         }

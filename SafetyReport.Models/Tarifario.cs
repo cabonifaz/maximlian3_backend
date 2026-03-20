@@ -86,4 +86,25 @@ namespace SafetyReport.Models
         public int TotalRegistros { get; set; }
         public int TotalPaginas { get; set; }
     }
+    public class TarifarioListaCortaFiltro
+    {
+        public int idCliente { get; set; }
+        public int IdTipoProducto { get; set; }
+        public int IdTipoTramite { get; set; }
+        public int IdPais { get; set; }
+    }
+
+    public class TarifarioListaCorta
+    {
+        public int IdTarifario { get; set; }
+        public string TipoTramite { get; set; } = string.Empty;
+        public int IdMoneda { get; set; }
+        public string Moneda { get; set; } = string.Empty;
+        public string SimboloMoneda { get; set; } = string.Empty;
+        public decimal Precio { get; set; }
+    }
+    public class TarifarioListaCortaResult
+    {
+        public List<TarifarioListaCorta> lstTarifario { get; set; } = new();
+    }
 }
