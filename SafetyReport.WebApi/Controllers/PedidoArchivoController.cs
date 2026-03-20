@@ -17,6 +17,15 @@ namespace SafetyReport.WebApi.Controllers
             _pedidoArchivoHandler = pedidoArchivoHandler;
         }
 
+        [HttpPost("subir")]
+        [Consumes("multipart/form-data")]
+        public async Task<IActionResult> Subir([FromForm] PedidoArchivoSubirRequest request)
+        {
+            var respuesta = await _pedidoArchivoHandler.SubirAsync(UsuarioLogueado, request);
+
+            return Ok(respuesta);
+        }
+
         [HttpPost("crear")]
         public async Task<IActionResult> Crear([FromBody] PedidoArchivoCrear request)
         {
@@ -51,5 +60,6 @@ namespace SafetyReport.WebApi.Controllers
             var respuesta = await _pedidoArchivoHandler.EliminarAsync(UsuarioLogueado, request);
             return Ok(respuesta);
         }
+
     }
 }

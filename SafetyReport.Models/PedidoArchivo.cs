@@ -1,4 +1,6 @@
-﻿namespace SafetyReport.Models
+﻿using Microsoft.AspNetCore.Http;
+
+namespace SafetyReport.Models
 {
     public class PedidoArchivoCrear
     {
@@ -67,5 +69,19 @@
         public List<PedidoArchivoListaConsulta> lstPedidoArchivo { get; set; } = new();
         public int TotalRegistros { get; set; }
         public int TotalPaginas { get; set; }
+    }
+    public class PedidoArchivoSubido
+    {
+        public int IdPedidoArchivo { get; set; }
+        public string RutaArchivo { get; set; } = string.Empty;
+    }
+
+    public class PedidoArchivoSubirRequest
+    {
+        public int IdPedido { get; set; }
+        public string NombreArchivo { get; set; } = string.Empty;
+        public string TipoArchivo { get; set; } = string.Empty;
+        public long TamanoArchivo { get; set; }
+        public IFormFile Archivo { get; set; } = default!;
     }
 }
