@@ -143,6 +143,7 @@
         public string NombreCliente { get; set; } = string.Empty;
         public int IdIdioma { get; set; }
         public bool LogoImprimible { get; set; }
+        public int IdPlantilla { get; set; }
     }
 
     public class ClienteListaCorta
