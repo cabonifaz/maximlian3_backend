@@ -2,9 +2,9 @@
 {
     public class PedidoArchivoRequest
     {
-        public string DocumentoURL { get; set; } = string.Empty;
+        public string TipoArchivo { get; set; } = string.Empty;
         public string NombreDocumento { get; set; } = string.Empty;
-        public string FormatoDocumento { get; set; } = string.Empty;
+        public long TamanoArchivo { get; set; }
     }
 
     public class Pedido
@@ -119,5 +119,18 @@
         public List<PedidoListaConsulta> lstPedido { get; set; } = new();
         public int TotalRegistros { get; set; }
         public int TotalPaginas { get; set; }
+    }
+
+    public class PedidoArchivoPresignado
+    {
+        public string NombreDocumento { get; set; } = string.Empty;
+        public string RutaArchivo { get; set; } = string.Empty;
+        public string UploadUrl { get; set; } = string.Empty;
+    }
+
+    public class PedidoCreadoConArchivos
+    {
+        public int IdPedido { get; set; }
+        public List<PedidoArchivoPresignado> Archivos { get; set; } = new();
     }
 }

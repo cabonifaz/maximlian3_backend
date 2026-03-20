@@ -17,10 +17,10 @@ namespace SafetyReport.DAO
         private static DataTable ConstruirTablaArchivos(List<PedidoArchivoRequest>? archivos)
         {
             var table = new DataTable();
-            table.Columns.Add("ID", typeof(int));
-            table.Columns.Add("DOCUMENTOURL", typeof(string));
-            table.Columns.Add("NOMBREDOCUMENTO", typeof(string));
-            table.Columns.Add("FORMATODOCUMENTO", typeof(string));
+            table.Columns.Add("Id", typeof(int));
+            table.Columns.Add("DocumentoURL", typeof(string));
+            table.Columns.Add("NombreDocumento", typeof(string));
+            table.Columns.Add("FormatoDocumento", typeof(string));
 
             int i = 1;
 
@@ -30,9 +30,9 @@ namespace SafetyReport.DAO
                 {
                     table.Rows.Add(
                         i++,
-                        archivo.DocumentoURL ?? string.Empty,
+                        string.Empty,
                         archivo.NombreDocumento ?? string.Empty,
-                        archivo.FormatoDocumento ?? string.Empty
+                        archivo.TipoArchivo ?? string.Empty
                     );
                 }
             }
@@ -73,7 +73,10 @@ namespace SafetyReport.DAO
             return respuesta;
         }
 
-        public async Task<Respuesta> CrearAsync(UsuarioGeneral usuarioLogueado, Pedido request)
+        public async Task<Respuesta> CrearAsync(
+     UsuarioGeneral usuarioLogueado,
+     Pedido request,
+     List<(string RutaArchivo, string NombreDocumento, string FormatoDocumento)> archivosPreparados)
         {
             try
             {
@@ -110,7 +113,7 @@ namespace SafetyReport.DAO
                 cmd.Parameters.Add("@vchComentario", SqlDbType.VarChar).Value = (object?)request.Comentario ?? DBNull.Value;
                 cmd.Parameters.Add("@intIdEstado", SqlDbType.Int).Value = request.IdEstado;
 
-                var tableArchivos = ConstruirTablaArchivos(request.Archivos);
+                var tableArchivos = ConstruirTablaArchivos(archivosPreparados);
                 var tvpArchivos = cmd.Parameters.AddWithValue("@lstArchivos", tableArchivos);
                 tvpArchivos.SqlDbType = SqlDbType.Structured;
                 tvpArchivos.TypeName = "LISTA_PEDIDO_ARCHIVO";
@@ -128,7 +131,6 @@ namespace SafetyReport.DAO
                 };
             }
         }
-
         public async Task<Respuesta> EditarAsync(UsuarioGeneral usuarioLogueado, EditarPedido request)
         {
             try
@@ -292,6 +294,29 @@ namespace SafetyReport.DAO
                     Result = new List<PedidoEliminado>()
                 };
             }
+        }
+
+        private static DataTable ConstruirTablaArchivos(List<(string RutaArchivo, string NombreDocumento, string FormatoDocumento)> archivos)
+        {
+            var table = new DataTable();
+            table.Columns.Add("Id", typeof(int));
+            table.Columns.Add("DocumentoURL", typeof(string));
+            table.Columns.Add("NombreDocumento", typeof(string));
+            table.Columns.Add("FormatoDocumento", typeof(string));
+
+            int i = 1;
+
+            foreach (var archivo in archivos)
+            {
+                table.Rows.Add(
+                    i++,
+                    archivo.RutaArchivo,
+                    archivo.NombreDocumento,
+                    archivo.FormatoDocumento
+                );
+            }
+
+            return table;
         }
     }
 }
