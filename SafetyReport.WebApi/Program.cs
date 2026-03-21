@@ -1,5 +1,4 @@
 using Amazon.S3;
-using Amazon.SecurityToken;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi;
@@ -166,13 +165,6 @@ builder.Services.AddSingleton<IAmazonS3>(sp =>
     var regionEndpoint = Amazon.RegionEndpoint.GetBySystemName(awsRegion);
     var credentials = new Amazon.Runtime.BasicAWSCredentials(awsAccessKey, awsSecretKey);
     return new AmazonS3Client(credentials, regionEndpoint);
-});
-
-builder.Services.AddSingleton<IAmazonSecurityTokenService>(sp =>
-{
-    var regionEndpoint = Amazon.RegionEndpoint.GetBySystemName(awsRegion);
-    var credentials = new Amazon.Runtime.BasicAWSCredentials(awsAccessKey, awsSecretKey);
-    return new AmazonSecurityTokenServiceClient(credentials, regionEndpoint);
 });
 
 builder.Services.AddSingleton<IS3UploadService, S3UploadService>();

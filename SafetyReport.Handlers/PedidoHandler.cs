@@ -88,13 +88,14 @@ namespace SafetyReport.Handlers
                                 Result = new List<PedidoCreadoResponse>()
                             };
                         }
-                    }
 
-                    var credenciales = await _s3UploadService.ObtenerCredencialesTemporalesAsync(idPedido);
-                    respuesta.AccessKeyId = credenciales.AccessKeyId;
-                    respuesta.SecretAccessKey = credenciales.SecretAccessKey;
-                    respuesta.SessionToken = credenciales.SessionToken;
-                    respuesta.Expiration = credenciales.Expiration;
+                        respuesta.Archivos.Add(new PedidoArchivoPresignado
+                        {
+                            NombreDocumento = archivo.NombreDocumento,
+                            RutaArchivo = rutaArchivo,
+                            UploadUrl = _s3UploadService.GenerarUploadUrl(rutaArchivo, archivo.TipoArchivo)
+                        });
+                    }
                 }
 
                 return new Respuesta

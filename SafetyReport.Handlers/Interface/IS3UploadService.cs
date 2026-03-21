@@ -6,5 +6,4 @@ public interface IS3UploadService
     string GenerarRutaPedidoArchivo(int idPedido, string nombreArchivo);
     string GenerarUploadUrl(string rutaArchivo, string tipoArchivo);
     Task UploadFileAsync(string rutaArchivo, IFormFile file);
-    Task<CredencialesTemporalesS3> ObtenerCredencialesTemporalesAsync(int idPedido);
 }
