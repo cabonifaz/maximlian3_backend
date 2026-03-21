@@ -1,17 +1,22 @@
 ﻿using Amazon.S3;
 using Amazon.S3.Model;
+using Amazon.SecurityToken;
+using Amazon.SecurityToken.Model;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Configuration;
+using SafetyReport.Models;
 
 public class S3UploadService : IS3UploadService
 {
     private readonly IAmazonS3 _s3Client;
+    private readonly IAmazonSecurityTokenService _stsClient;
     private readonly IConfiguration _configuration;
     private readonly string _bucketName;
 
-    public S3UploadService(IAmazonS3 s3Client, IConfiguration configuration)
+    public S3UploadService(IAmazonS3 s3Client, IAmazonSecurityTokenService stsClient, IConfiguration configuration)
     {
         _s3Client = s3Client;
+        _stsClient = stsClient;
         _configuration = configuration;
         _bucketName = _configuration["AWS:BucketName"] ?? throw new Exception("Falta AWS:BucketName");
     }
@@ -64,5 +69,36 @@ public class S3UploadService : IS3UploadService
         };
 
         await _s3Client.PutObjectAsync(putRequest);
+    }
+
+    public async Task<CredencialesTemporalesS3> ObtenerCredencialesTemporalesAsync(int idPedido)
+    {
+        var policy = $$"""
+            {
+              "Version": "2012-10-17",
+              "Statement": [{
+                "Effect": "Allow",
+                "Action": ["s3:PutObject"],
+                "Resource": "arn:aws:s3:::{{_bucketName}}/pedidos/{{idPedido}}/*"
+              }]
+            }
+            """;
+
+        var request = new GetFederationTokenRequest
+        {
+            Name = $"pedido-{idPedido}",
+            Policy = policy,
+            DurationSeconds = 900
+        };
+
+        var response = await _stsClient.GetFederationTokenAsync(request);
+
+        return new CredencialesTemporalesS3
+        {
+            AccessKeyId = response.Credentials.AccessKeyId,
+            SecretAccessKey = response.Credentials.SecretAccessKey,
+            SessionToken = response.Credentials.SessionToken,
+            Expiration = response.Credentials.Expiration ?? DateTime.UtcNow.AddMinutes(15)
+        };
     }
 }

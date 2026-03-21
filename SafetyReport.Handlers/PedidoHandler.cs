@@ -51,8 +51,6 @@ namespace SafetyReport.Handlers
                 if (request.IdEstado <= 0)
                     return new Respuesta { IdTipoMensaje = 1, Mensaje = "IdEstado inválido.", Result = new List<PedidoCreadoConArchivos>() };
 
-                var archivosRespuesta = new List<PedidoArchivoPresignado>();
-
                 // Crea el pedido primero (sin archivos) para obtener el IdPedido real.
                 var respuestaDao = await _dao.CrearAsync(usuarioLogueado, request, new List<(string RutaArchivo, string NombreDocumento, string FormatoDocumento)>());
 
@@ -62,6 +60,8 @@ namespace SafetyReport.Handlers
                 var pedidos = respuestaDao.Result as List<PedidoCreado> ?? new List<PedidoCreado>();
                 var idPedido = pedidos.FirstOrDefault()?.IdPedido ?? 0;
 
+                var respuesta = new PedidoCreadoResponse { IdPedido = idPedido };
+
                 if (idPedido > 0 && request.Archivos != null && request.Archivos.Count > 0)
                 {
                     foreach (var archivo in request.Archivos)
@@ -69,7 +69,6 @@ namespace SafetyReport.Handlers
                         var formatoDocumento = ResolverFormatoDocumento(archivo.TipoArchivo, archivo.NombreDocumento);
                         var rutaArchivo = _s3UploadService.GenerarRutaPedidoArchivo(idPedido, archivo.NombreDocumento);
 
-                        // Guardar metadata en DB
                         var archivoCrear = new PedidoArchivoCrear
                         {
                             IdPedido = idPedido,
@@ -86,38 +85,30 @@ namespace SafetyReport.Handlers
                             {
                                 IdTipoMensaje = respuestaArchivo.IdTipoMensaje,
                                 Mensaje = respuestaArchivo.Mensaje,
-                                Result = new List<PedidoCreadoConArchivos>()
+                                Result = new List<PedidoCreadoResponse>()
                             };
                         }
-
-                        archivosRespuesta.Add(new PedidoArchivoPresignado
-                        {
-                            NombreDocumento = archivo.NombreDocumento,
-                            RutaArchivo = rutaArchivo,
-                            UploadUrl = _s3UploadService.GenerarUploadUrl(rutaArchivo, archivo.TipoArchivo)
-                        });
                     }
+
+                    var credenciales = await _s3UploadService.ObtenerCredencialesTemporalesAsync(idPedido);
+                    respuesta.AccessKeyId = credenciales.AccessKeyId;
+                    respuesta.SecretAccessKey = credenciales.SecretAccessKey;
+                    respuesta.SessionToken = credenciales.SessionToken;
+                    respuesta.Expiration = credenciales.Expiration;
                 }
 
                 return new Respuesta
                 {
                     IdTipoMensaje = 2,
                     Mensaje = respuestaDao.Mensaje,
-                    Result = new List<PedidoCreadoConArchivos>
-                    {
-                        new PedidoCreadoConArchivos
-                        {
-                            IdPedido = idPedido,
-                            Archivos = archivosRespuesta
-                        }
-                    }
+                    Result = new List<PedidoCreadoResponse> { respuesta }
                 };
             }
             catch (Exception ex)
             {
                 return new Respuesta
                 {
-                    IdTipoMensaje = 1,
+                    IdTipoMensaje = 3,
                     Mensaje = ex.Message,
                     Result = new List<PedidoCreadoConArchivos>()
                 };
@@ -134,7 +125,7 @@ namespace SafetyReport.Handlers
             {
                 return new Respuesta
                 {
-                    IdTipoMensaje = 1,
+                    IdTipoMensaje = 3,
                     Mensaje = ex.Message,
                     Result = new List<PedidoCreado>()
                 };
@@ -151,7 +142,7 @@ namespace SafetyReport.Handlers
             {
                 return new Respuesta
                 {
-                    IdTipoMensaje = 1,
+                    IdTipoMensaje = 3,
                     Mensaje = ex.Message,
                     Result = new List<PedidoConsulta>()
                 };
@@ -168,7 +159,7 @@ namespace SafetyReport.Handlers
             {
                 return new Respuesta
                 {
-                    IdTipoMensaje = 1,
+                    IdTipoMensaje = 3,
                     Mensaje = ex.Message,
                     Result = new PedidoListaResult()
                 };
@@ -185,7 +176,7 @@ namespace SafetyReport.Handlers
             {
                 return new Respuesta
                 {
-                    IdTipoMensaje = 1,
+                    IdTipoMensaje = 3,
                     Mensaje = ex.Message,
                     Result = new List<PedidoEliminado>()
                 };

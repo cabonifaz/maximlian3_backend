@@ -79,6 +79,24 @@
     public class PedidoCreado
     {
         public int IdPedido { get; set; }
+        public string RutaBaseArchivos { get; set; } = string.Empty;
+    }
+
+    public class PedidoCreadoResponse
+    {
+        public int IdPedido { get; set; }
+        public string AccessKeyId { get; set; } = string.Empty;
+        public string SecretAccessKey { get; set; } = string.Empty;
+        public string SessionToken { get; set; } = string.Empty;
+        public DateTime Expiration { get; set; }
+    }
+
+    public class CredencialesTemporalesS3
+    {
+        public string AccessKeyId { get; set; } = string.Empty;
+        public string SecretAccessKey { get; set; } = string.Empty;
+        public string SessionToken { get; set; } = string.Empty;
+        public DateTime Expiration { get; set; }
     }
 
     public class PedidoEliminado
