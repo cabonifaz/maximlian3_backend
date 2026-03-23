@@ -8,6 +8,7 @@ namespace SafetyReport.Models
         public string DocumentoURL { get; set; } = string.Empty;
         public string NombreDocumento { get; set; } = string.Empty;
         public string FormatoDocumento { get; set; } = string.Empty;
+        public List<PedidoArchivoRequest> Archivos { get; set; } = new();
     }
 
     public class PedidoArchivoEditar

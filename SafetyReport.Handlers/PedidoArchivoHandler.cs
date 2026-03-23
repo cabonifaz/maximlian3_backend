@@ -1,4 +1,6 @@
-﻿using SafetyReport.DAO;
+﻿using System.IO;
+using System.Linq;
+using SafetyReport.DAO;
 using SafetyReport.Models;
 
 namespace SafetyReport.Handlers
@@ -18,7 +20,88 @@ namespace SafetyReport.Handlers
         {
             try
             {
-                return await _dao.CrearAsync(usuarioLogueado, request);
+                if (request.IdPedido <= 0)
+                {
+                    return new Respuesta
+                    {
+                        IdTipoMensaje = 1,
+                        Mensaje = "IdPedido inválido",
+                        Result = new List<PedidoArchivoPresignado>()
+                    };
+                }
+
+                if (request.Archivos == null || request.Archivos.Count == 0)
+                {
+                    return new Respuesta
+                    {
+                        IdTipoMensaje = 1,
+                        Mensaje = "Se requiere al menos un archivo",
+                        Result = new List<PedidoArchivoPresignado>()
+                    };
+                }
+
+                var archivosPresignados = new List<PedidoArchivoPresignado>();
+
+                foreach (var archivo in request.Archivos)
+                {
+                    if (string.IsNullOrWhiteSpace(archivo.NombreDocumento))
+                    {
+                        return new Respuesta
+                        {
+                            IdTipoMensaje = 1,
+                            Mensaje = "NombreDocumento es requerido para cada archivo",
+                            Result = new List<PedidoArchivoPresignado>()
+                        };
+                    }
+
+                    if (string.IsNullOrWhiteSpace(archivo.TipoArchivo))
+                    {
+                        return new Respuesta
+                        {
+                            IdTipoMensaje = 1,
+                            Mensaje = "TipoArchivo es requerido para cada archivo",
+                            Result = new List<PedidoArchivoPresignado>()
+                        };
+                    }
+
+                    var formatoDocumento = ResolverFormatoDocumento(archivo.TipoArchivo, archivo.NombreDocumento);
+                    var rutaArchivo = _s3UploadService.GenerarRutaPedidoArchivo(request.IdPedido, archivo.NombreDocumento);
+
+                    var crearRequest = new PedidoArchivoCrear
+                    {
+                        IdPedido = request.IdPedido,
+                        DocumentoURL = rutaArchivo,
+                        NombreDocumento = archivo.NombreDocumento,
+                        FormatoDocumento = formatoDocumento
+                    };
+
+                    var daoResponse = await _dao.CrearAsync(usuarioLogueado, crearRequest);
+                    if (daoResponse.IdTipoMensaje != 2)
+                    {
+                        return new Respuesta
+                        {
+                            IdTipoMensaje = daoResponse.IdTipoMensaje,
+                            Mensaje = daoResponse.Mensaje,
+                            Result = new List<PedidoArchivoPresignado>()
+                        };
+                    }
+
+                    var uploadUrl = _s3UploadService.GenerarUploadUrl(rutaArchivo, archivo.TipoArchivo);
+
+                    archivosPresignados.Add(new PedidoArchivoPresignado
+                    {
+                        NombreDocumento = archivo.NombreDocumento,
+                        RutaArchivo = rutaArchivo,
+                        UploadUrl = uploadUrl
+                    });
+                }
+
+                return new Respuesta
+                {
+                    IdTipoMensaje = 2,
+                    Mensaje = "Archivos insertados correctamente",
+                    Result = archivosPresignados
+                };
             }
             catch (Exception ex)
             {
@@ -26,9 +109,27 @@ namespace SafetyReport.Handlers
                 {
                     IdTipoMensaje = 1,
                     Mensaje = ex.Message,
-                    Result = new List<PedidoArchivoCreado>()
+                    Result = new List<PedidoArchivoPresignado>()
                 };
             }
+        }
+
+        private static string ResolverFormatoDocumento(string tipoArchivo, string nombreArchivo)
+        {
+            var tipo = (tipoArchivo ?? string.Empty).Trim().ToUpperInvariant();
+
+            return tipo switch
+            {
+                "IMAGE/JPEG" => "JPG",
+                "IMAGE/JPG" => "JPG",
+                "IMAGE/PNG" => "PNG",
+                "APPLICATION/PDF" => "PDF",
+                "APPLICATION/MSWORD" => "DOC",
+                "APPLICATION/VND.OPENXMLFORMATS-OFFICEDOCUMENT.WORDPROCESSINGML.DOCUMENT" => "DOCX",
+                "APPLICATION/VND.MS-EXCEL" => "XLS",
+                "APPLICATION/VND.OPENXMLFORMATS-OFFICEDOCUMENT.SPREADSHEETML.SHEET" => "XLSX",
+                _ => Path.GetExtension(nombreArchivo).TrimStart('.').ToUpperInvariant()
+            };
         }
 
         public async Task<Respuesta> SubirAsync(UsuarioGeneral usuarioLogueado, PedidoArchivoSubirRequest request)
@@ -89,7 +190,69 @@ namespace SafetyReport.Handlers
         {
             try
             {
-                return await _dao.EditarAsync(usuarioLogueado, request);
+                if (request.IdPedidoArchivo <= 0)
+                {
+                    return new Respuesta
+                    {
+                        IdTipoMensaje = 1,
+                        Mensaje = "IdPedidoArchivo inválido",
+                        Result = new List<PedidoArchivoCreado>()
+                    };
+                }
+
+                if (string.IsNullOrWhiteSpace(request.NombreDocumento))
+                {
+                    return new Respuesta
+                    {
+                        IdTipoMensaje = 1,
+                        Mensaje = "NombreDocumento es requerido",
+                        Result = new List<PedidoArchivoCreado>()
+                    };
+                }
+
+                if (string.IsNullOrWhiteSpace(request.FormatoDocumento))
+                {
+                    request.FormatoDocumento = ResolverFormatoDocumento(request.FormatoDocumento, request.NombreDocumento);
+                }
+
+                var obtenerResponse = await _dao.ObtenerAsync(usuarioLogueado, new PedidoArchivoIdRequest
+                {
+                    IdPedidoArchivo = request.IdPedidoArchivo,
+                    IdPedido = request.IdPedido
+                });
+
+                if (obtenerResponse.IdTipoMensaje != 2)
+                    return obtenerResponse;
+
+                var existente = (obtenerResponse.Result as List<PedidoArchivoConsulta>)?.FirstOrDefault();
+
+                if (existente == null)
+                {
+                    return new Respuesta
+                    {
+                        IdTipoMensaje = 1,
+                        Mensaje = "No se encontró el archivo solicitado",
+                        Result = new List<PedidoArchivoCreado>()
+                    };
+                }
+
+                var rutaOrigen = existente.DocumentoURL;
+                var rutaDestino = _s3UploadService.GenerarRutaPedidoArchivo(request.IdPedido, request.NombreDocumento);
+
+                // Solo mover S3 si cambia el nombre / ruta
+                if (!string.Equals(rutaOrigen, rutaDestino, StringComparison.OrdinalIgnoreCase))
+                {
+                    await _s3UploadService.MoverArchivoAsync(rutaOrigen, rutaDestino);
+                    request.DocumentoURL = rutaDestino;
+                }
+                else
+                {
+                    request.DocumentoURL = rutaOrigen;
+                }
+
+                var daoResponse = await _dao.EditarAsync(usuarioLogueado, request);
+
+                return daoResponse;
             }
             catch (Exception ex)
             {
@@ -140,7 +303,37 @@ namespace SafetyReport.Handlers
         {
             try
             {
-                return await _dao.EliminarAsync(usuarioLogueado, request);
+                var obtenerResponse = await _dao.ObtenerAsync(usuarioLogueado, request);
+
+                if (obtenerResponse.IdTipoMensaje != 2)
+                    return obtenerResponse;
+
+                var existente = (obtenerResponse.Result as List<PedidoArchivoConsulta>)?.FirstOrDefault();
+                if (existente == null)
+                {
+                    return new Respuesta
+                    {
+                        IdTipoMensaje = 1,
+                        Mensaje = "No se encontró el archivo a eliminar",
+                        Result = new List<PedidoArchivoEliminado>()
+                    };
+                }
+
+                var daoResponse = await _dao.EliminarAsync(usuarioLogueado, request);
+
+                if (daoResponse.IdTipoMensaje == 2)
+                {
+                    try
+                    {
+                        await _s3UploadService.DeleteFileAsync(existente.DocumentoURL);
+                    }
+                    catch
+                    {
+                        // No hacemos rollback si falla S3, la eliminación en BD ya fue realizada.
+                    }
+                }
+
+                return daoResponse;
             }
             catch (Exception ex)
             {
