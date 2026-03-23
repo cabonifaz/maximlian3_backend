@@ -1,4 +1,6 @@
-﻿namespace SafetyReport.Models
+﻿using System.Text.Json.Serialization;
+
+namespace SafetyReport.Models
 {
     public class PedidoArchivoRequest
     {
@@ -35,8 +37,8 @@
         public int IdPedido { get; set; }
         public string Codigo { get; set; } = string.Empty;
         public int IdCliente { get; set; }
-        public string? RUC { get; set; }
-        public string? RazonSocial { get; set; }
+        public string? NumeroDocumento { get; set; }
+        public string? NombreCliente { get; set; }
         public int IdTipoPersona { get; set; }
         public int IdCompania { get; set; }
         public string InvestigarRazonSocialNombres { get; set; } = string.Empty;
@@ -58,8 +60,8 @@
         public int IdPedido { get; set; }
         public string Codigo { get; set; } = string.Empty;
         public int IdCliente { get; set; }
-        public string? RUC { get; set; }
-        public string? RazonSocial { get; set; }
+        public string? NumeroDocumento { get; set; }
+        public string? NombreCliente { get; set; }
         public int IdTipoPersona { get; set; }
         public int IdCompania { get; set; }
         public string? InvestigarRazonSocialNombres { get; set; }
@@ -110,7 +112,7 @@
     {
         public int IdPedido { get; set; }
         public int IdCliente { get; set; }
-        public string Cliente { get; set; } = string.Empty;
+        public string? Cliente { get; set; }    
         public string? Investigado { get; set; }
         public int IdIdioma { get; set; }
         public string? Idioma { get; set; }
