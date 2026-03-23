@@ -40,8 +40,8 @@ namespace SafetyReport.WebApi.Controllers
             return Ok(respuesta);
         }
 
-        [HttpPost("obtener")]
-        public async Task<IActionResult> Obtener([FromBody] PedidoArchivoIdRequest request)
+        [HttpGet("obtener")]
+        public async Task<IActionResult> Obtener([FromQuery] PedidoArchivoIdRequest request)
         {
             var respuesta = await _pedidoArchivoHandler.ObtenerAsync(UsuarioLogueado, request);
             return Ok(respuesta);
