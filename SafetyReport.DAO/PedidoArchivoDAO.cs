@@ -64,6 +64,7 @@ namespace SafetyReport.DAO
                 cmd.Parameters.Add("@vchNombreDocumento", SqlDbType.VarChar, 255).Value = request.NombreDocumento;
                 cmd.Parameters.Add("@vchFormatoDocumento", SqlDbType.VarChar, 255).Value = request.FormatoDocumento;
                 cmd.Parameters.Add("@bigTamanoArchivo", SqlDbType.BigInt).Value = request.TamanoArchivo;
+                cmd.Parameters.Add("@intIdTipoArchivo", SqlDbType.Int).Value = request.IdTipoArchivo;
 
                 await cn.OpenAsync();
                 return await LeerRespuestaAsync<PedidoArchivoCreado>(cmd);
