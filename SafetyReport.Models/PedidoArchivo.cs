@@ -9,7 +9,7 @@ namespace SafetyReport.Models
         public string NombreDocumento { get; set; } = string.Empty;
         public string FormatoDocumento { get; set; } = string.Empty;
         public long TamanoArchivo { get; set; }
-        public List<PedidoArchivoRequest> Archivos { get; set; } = new();
+        public int IdTipoArchivo { get; set; }
     }
 
     public class PedidoArchivoEditar
@@ -32,6 +32,7 @@ namespace SafetyReport.Models
         public long TamanoArchivo { get; set; }
         public int IdFormato { get; set; }
         public int IdEstado { get; set; }
+        public int IdTipoArchivo { get; set; }
         public string DownloadUrl { get; set; } = string.Empty;
     }
 
