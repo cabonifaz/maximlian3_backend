@@ -71,6 +71,7 @@ namespace SafetyReport.Models
         public string TipoFormato { get; set; } = string.Empty;
         public int IdTipoArchivo { get; set; }
         public int IdEstado { get; set; }
+        public string FechaCarga { get; set; } = string.Empty;
     }
 
     public class PedidoArchivoListaResult
