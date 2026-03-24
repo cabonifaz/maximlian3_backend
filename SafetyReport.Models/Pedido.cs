@@ -25,6 +25,8 @@ namespace SafetyReport.Models
         public string? NumReferencia { get; set; }
         public decimal? MontoCredito { get; set; }
         public int? PlazoCredito { get; set; }
+        public int? IdTipoPlazoCredito { get; set; }
+        public string? TipoPlazoCredito { get; set; }
         public DateTime? FchDesde { get; set; }
         public DateTime? FchHasta { get; set; }
         public string? Comentario { get; set; }
@@ -49,6 +51,8 @@ namespace SafetyReport.Models
         public string? NumReferencia { get; set; }
         public decimal? MontoCredito { get; set; }
         public int? PlazoCredito { get; set; }
+        public int? IdTipoPlazoCredito { get; set; }
+        public string? TipoPlazoCredito { get; set; }
         public DateTime? FchDesde { get; set; }
         public DateTime? FchHasta { get; set; }
         public string? Comentario { get; set; }
@@ -72,6 +76,7 @@ namespace SafetyReport.Models
         public string? NumReferencia { get; set; }
         public decimal? MontoCredito { get; set; }
         public int? PlazoCredito { get; set; }
+        public int? IdTipoPlazoCredito { get; set; }
         public DateTime? FchDesde { get; set; }
         public DateTime? FchHasta { get; set; }
         public string? Comentario { get; set; }

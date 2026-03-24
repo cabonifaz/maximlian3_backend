@@ -107,6 +107,8 @@ namespace SafetyReport.DAO
                 cmd.Parameters["@decMontoCredito"].Scale = 2;
 
                 cmd.Parameters.Add("@intPlazoCredito", SqlDbType.Int).Value = (object?)request.PlazoCredito ?? DBNull.Value;
+                cmd.Parameters.Add("@intIdTipoPlazoCredito", SqlDbType.Int).Value = (object?)request.IdTipoPlazoCredito ?? DBNull.Value;
+                cmd.Parameters.Add("@vchTipoPlazoCredito", SqlDbType.VarChar).Value = (object?)request.TipoPlazoCredito ?? DBNull.Value;
                 cmd.Parameters.Add("@dtFchDesde", SqlDbType.DateTime).Value = (object?)request.FchDesde ?? DBNull.Value;
                 cmd.Parameters.Add("@dtFchHasta", SqlDbType.DateTime).Value = (object?)request.FchHasta ?? DBNull.Value;
                 cmd.Parameters.Add("@vchComentario", SqlDbType.VarChar).Value = (object?)request.Comentario ?? DBNull.Value;
@@ -163,6 +165,8 @@ namespace SafetyReport.DAO
                 cmd.Parameters["@decMontoCredito"].Scale = 2;
 
                 cmd.Parameters.Add("@intPlazoCredito", SqlDbType.Int).Value = (object?)request.PlazoCredito ?? DBNull.Value;
+                cmd.Parameters.Add("@intIdTipoPlazoCredito", SqlDbType.Int).Value = (object?)request.IdTipoPlazoCredito ?? DBNull.Value;
+                cmd.Parameters.Add("@vchTipoPlazoCredito", SqlDbType.VarChar).Value = (object?)request.TipoPlazoCredito ?? DBNull.Value;
                 cmd.Parameters.Add("@dtFchDesde", SqlDbType.DateTime).Value = (object?)request.FchDesde ?? DBNull.Value;
                 cmd.Parameters.Add("@dtFchHasta", SqlDbType.DateTime).Value = (object?)request.FchHasta ?? DBNull.Value;
                 cmd.Parameters.Add("@vchComentario", SqlDbType.VarChar).Value = (object?)request.Comentario ?? DBNull.Value;
