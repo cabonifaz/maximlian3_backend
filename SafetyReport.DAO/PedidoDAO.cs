@@ -291,27 +291,5 @@ namespace SafetyReport.DAO
             }
         }
 
-        private static DataTable ConstruirTablaArchivos(List<(string RutaArchivo, string NombreDocumento, string FormatoDocumento)> archivos)
-        {
-            var table = new DataTable();
-            table.Columns.Add("Id", typeof(int));
-            table.Columns.Add("DocumentoURL", typeof(string));
-            table.Columns.Add("NombreDocumento", typeof(string));
-            table.Columns.Add("FormatoDocumento", typeof(string));
-
-            int i = 1;
-
-            foreach (var archivo in archivos)
-            {
-                table.Rows.Add(
-                    i++,
-                    archivo.RutaArchivo,
-                    archivo.NombreDocumento,
-                    archivo.FormatoDocumento
-                );
-            }
-
-            return table;
-        }
     }
 }

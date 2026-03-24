@@ -67,8 +67,9 @@ namespace SafetyReport.Models
         public string DocumentoURL { get; set; } = string.Empty;
         public string NombreDocumento { get; set; } = string.Empty;
         public long TamanoArchivo { get; set; }
-        public string TipoArchivo { get; set; } = string.Empty;
         public int IdFormato { get; set; }
+        public string TipoFormato { get; set; } = string.Empty;
+        public int IdTipoArchivo { get; set; }
         public int IdEstado { get; set; }
     }
 
