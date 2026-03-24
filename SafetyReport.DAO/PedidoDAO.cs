@@ -85,7 +85,7 @@ namespace SafetyReport.DAO
                 cmd.Parameters.Add("@dtFchHasta", SqlDbType.DateTime).Value = (object?)request.FchHasta ?? DBNull.Value;
                 cmd.Parameters.Add("@vchComentario", SqlDbType.VarChar).Value = (object?)request.Comentario ?? DBNull.Value;
                 cmd.Parameters.Add("@intIdEstado", SqlDbType.Int).Value = request.IdEstado;
-                cmd.Parameters.Add("@intImprimeLogoSafety", SqlDbType.Bit).Value = request.ImprimeLogoSafety;
+                cmd.Parameters.Add("@bitImprimeLogoSafety", SqlDbType.Bit).Value = request.ImprimeLogoSafety;
 
                 await cn.OpenAsync();
                 return await LeerRespuestaAsync<PedidoCreado>(cmd);
@@ -139,7 +139,7 @@ namespace SafetyReport.DAO
                 cmd.Parameters.Add("@dtFchHasta", SqlDbType.DateTime).Value = (object?)request.FchHasta ?? DBNull.Value;
                 cmd.Parameters.Add("@vchComentario", SqlDbType.VarChar).Value = (object?)request.Comentario ?? DBNull.Value;
                 cmd.Parameters.Add("@intIdEstado", SqlDbType.Int).Value = request.IdEstado;
-                cmd.Parameters.Add("@intImprimeLogoSafety", SqlDbType.Bit).Value = request.ImprimeLogoSafety;
+                cmd.Parameters.Add("@bitImprimeLogoSafety", SqlDbType.Bit).Value = request.ImprimeLogoSafety;
 
                 await cn.OpenAsync();
                 return await LeerRespuestaAsync<PedidoCreado>(cmd);
