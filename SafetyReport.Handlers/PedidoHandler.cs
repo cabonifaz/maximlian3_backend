@@ -52,7 +52,7 @@ namespace SafetyReport.Handlers
                     return new Respuesta { IdTipoMensaje = 1, Mensaje = "IdEstado inválido.", Result = new List<PedidoCreadoConArchivos>() };
 
                 // Crea el pedido primero (sin archivos) para obtener el IdPedido real.
-                var respuestaDao = await _dao.CrearAsync(usuarioLogueado, request, new List<(string RutaArchivo, string NombreDocumento, string FormatoDocumento)>());
+                var respuestaDao = await _dao.CrearAsync(usuarioLogueado, request, new List<(string RutaArchivo, string NombreDocumento, string FormatoDocumento, long TamanoArchivo )>());
 
                 if (respuestaDao.IdTipoMensaje != 2)
                     return respuestaDao;
