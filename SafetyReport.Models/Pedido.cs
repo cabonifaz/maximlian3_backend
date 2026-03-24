@@ -32,6 +32,7 @@ namespace SafetyReport.Models
         public DateTime? FchHasta { get; set; }
         public string? Comentario { get; set; }
         public int IdEstado { get; set; }
+        public bool ImprimeLogoSafety { get; set; }
         public List<PedidoArchivoRequest> Archivos { get; set; } = new();
     }
 
@@ -58,6 +59,7 @@ namespace SafetyReport.Models
         public DateTime? FchHasta { get; set; }
         public string? Comentario { get; set; }
         public int IdEstado { get; set; }
+        public bool ImprimeLogoSafety { get; set; }
     }
 
     public class PedidoConsulta
@@ -82,6 +84,7 @@ namespace SafetyReport.Models
         public DateTime? FchHasta { get; set; }
         public string? Comentario { get; set; }
         public int IdEstado { get; set; }
+        public bool ImprimeLogoSafety { get; set; }
     }
 
     public class PedidoCreado

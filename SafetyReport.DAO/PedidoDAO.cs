@@ -14,31 +14,6 @@ namespace SafetyReport.DAO
             _dbConfig = dbConfig;
         }
 
-        private static DataTable ConstruirTablaArchivos(List<(string RutaArchivo, string NombreDocumento, string FormatoDocumento, long TamanoArchivo)> archivos)
-        {
-            var table = new DataTable();
-            table.Columns.Add("ID", typeof(int));
-            table.Columns.Add("DOCUMENTOURL", typeof(string));
-            table.Columns.Add("NOMBREDOCUMENTO", typeof(string));
-            table.Columns.Add("FORMATODOCUMENTO", typeof(string));
-            table.Columns.Add("TAMANOARCHIVO", typeof(long));
-
-            int i = 1;
-
-            foreach (var archivo in archivos)
-            {
-                table.Rows.Add(
-                    i++,
-                    archivo.RutaArchivo,
-                    archivo.NombreDocumento,
-                    archivo.FormatoDocumento,
-                    archivo.TamanoArchivo
-                );
-            }
-
-            return table;
-        }
-
         private static async Task<Respuesta> LeerRespuestaAsync<T>(SqlCommand cmd)
         {
             var respuesta = new Respuesta();
@@ -110,6 +85,7 @@ namespace SafetyReport.DAO
                 cmd.Parameters.Add("@dtFchHasta", SqlDbType.DateTime).Value = (object?)request.FchHasta ?? DBNull.Value;
                 cmd.Parameters.Add("@vchComentario", SqlDbType.VarChar).Value = (object?)request.Comentario ?? DBNull.Value;
                 cmd.Parameters.Add("@intIdEstado", SqlDbType.Int).Value = request.IdEstado;
+                cmd.Parameters.Add("@intImprimeLogoSafety", SqlDbType.Bit).Value = request.ImprimeLogoSafety;
 
                 await cn.OpenAsync();
                 return await LeerRespuestaAsync<PedidoCreado>(cmd);
@@ -163,6 +139,7 @@ namespace SafetyReport.DAO
                 cmd.Parameters.Add("@dtFchHasta", SqlDbType.DateTime).Value = (object?)request.FchHasta ?? DBNull.Value;
                 cmd.Parameters.Add("@vchComentario", SqlDbType.VarChar).Value = (object?)request.Comentario ?? DBNull.Value;
                 cmd.Parameters.Add("@intIdEstado", SqlDbType.Int).Value = request.IdEstado;
+                cmd.Parameters.Add("@intImprimeLogoSafety", SqlDbType.Bit).Value = request.ImprimeLogoSafety;
 
                 await cn.OpenAsync();
                 return await LeerRespuestaAsync<PedidoCreado>(cmd);
