@@ -269,7 +269,18 @@ namespace SafetyReport.Handlers
         {
             try
             {
-                return await _dao.ObtenerAsync(usuarioLogueado, request);
+                var daoResponse = await _dao.ObtenerAsync(usuarioLogueado, request);
+
+                if (daoResponse.IdTipoMensaje == 2 && daoResponse.Result is List<PedidoArchivoConsulta> archivos)
+                {
+                    foreach (var archivo in archivos)
+                    {
+                        // Generar URL prefirmada para descarga (GET)
+                        archivo.DownloadUrl = _s3UploadService.GenerarDownloadUrl(archivo.DocumentoURL);
+                    }
+                }
+
+                return daoResponse;
             }
             catch (Exception ex)
             {

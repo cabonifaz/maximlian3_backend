@@ -29,6 +29,7 @@ namespace SafetyReport.Models
         public string NombreDocumento { get; set; } = string.Empty;
         public int IdFormato { get; set; }
         public int IdEstado { get; set; }
+        public string DownloadUrl { get; set; } = string.Empty;
     }
 
     public class PedidoArchivoCreado
@@ -61,6 +62,8 @@ namespace SafetyReport.Models
         public int IdPedido { get; set; }
         public string DocumentoURL { get; set; } = string.Empty;
         public string NombreDocumento { get; set; } = string.Empty;
+        public long TamanoArchivo { get; set; }
+        public string TipoArchivo { get; set; } = string.Empty;
         public int IdFormato { get; set; }
         public int IdEstado { get; set; }
     }
