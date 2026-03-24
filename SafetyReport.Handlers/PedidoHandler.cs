@@ -20,37 +20,6 @@ namespace SafetyReport.Handlers
         {
             try
             {
-                // Validaciones previas que exige el SP Pedido_INS:
-                if (string.IsNullOrWhiteSpace(request.Codigo))
-                    return new Respuesta { IdTipoMensaje = 1, Mensaje = "El código de pedido es obligatorio.", Result = new List<PedidoCreadoConArchivos>() };
-
-                if (request.IdCliente <= 0)
-                    return new Respuesta { IdTipoMensaje = 1, Mensaje = "IdCliente inválido.", Result = new List<PedidoCreadoConArchivos>() };
-
-                if (request.IdTipoPersona <= 0)
-                    return new Respuesta { IdTipoMensaje = 1, Mensaje = "IdTipoPersona inválido.", Result = new List<PedidoCreadoConArchivos>() };
-
-                if (request.IdCompania <= 0)
-                    return new Respuesta { IdTipoMensaje = 1, Mensaje = "IdCompania inválido.", Result = new List<PedidoCreadoConArchivos>() };
-
-                if (string.IsNullOrWhiteSpace(request.InvestigarRazonSocialNombres))
-                    request.InvestigarRazonSocialNombres = request.NombreCliente ?? string.Empty;
-
-                if (request.IdTarifario <= 0)
-                    return new Respuesta { IdTipoMensaje = 1, Mensaje = "IdTarifario inválido.", Result = new List<PedidoCreadoConArchivos>() };
-
-                if (request.IdPlantilla <= 0)
-                    return new Respuesta { IdTipoMensaje = 1, Mensaje = "IdPlantilla inválido.", Result = new List<PedidoCreadoConArchivos>() };
-
-                if (request.IdIdioma <= 0)
-                    return new Respuesta { IdTipoMensaje = 1, Mensaje = "IdIdioma inválido.", Result = new List<PedidoCreadoConArchivos>() };
-
-                if (request.IdClaseInforme <= 0)
-                    return new Respuesta { IdTipoMensaje = 1, Mensaje = "IdClaseInforme inválido.", Result = new List<PedidoCreadoConArchivos>() };
-
-                if (request.IdEstado <= 0)
-                    return new Respuesta { IdTipoMensaje = 1, Mensaje = "IdEstado inválido.", Result = new List<PedidoCreadoConArchivos>() };
-
                 // Crea el pedido primero (sin archivos) para obtener el IdPedido real.
                 var respuestaDao = await _dao.CrearAsync(usuarioLogueado, request, new List<(string RutaArchivo, string NombreDocumento, string FormatoDocumento, long TamanoArchivo )>());
 
