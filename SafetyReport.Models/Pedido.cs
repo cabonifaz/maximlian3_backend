@@ -11,7 +11,7 @@ namespace SafetyReport.Models
 
     public class Pedido
     {
-        public string? Codigo { get; set; };
+        public string? Codigo { get; set; }
         public int IdCliente { get; set; }
         public string? NumeroDocumento { get; set; }
         public string? NombreCliente { get; set; }
