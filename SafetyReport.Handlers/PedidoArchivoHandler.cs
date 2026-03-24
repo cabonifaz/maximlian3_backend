@@ -72,7 +72,8 @@ namespace SafetyReport.Handlers
                         IdPedido = request.IdPedido,
                         DocumentoURL = rutaArchivo,
                         NombreDocumento = archivo.NombreDocumento,
-                        FormatoDocumento = formatoDocumento
+                        FormatoDocumento = formatoDocumento,
+                        TamanoArchivo = archivo.TamanoArchivo
                     };
 
                     var daoResponse = await _dao.CrearAsync(usuarioLogueado, crearRequest);
@@ -234,6 +235,12 @@ namespace SafetyReport.Handlers
                         Mensaje = "No se encontró el archivo solicitado",
                         Result = new List<PedidoArchivoCreado>()
                     };
+                }
+
+                // Mantener TamanoArchivo existente si no se proporciona uno nuevo
+                if (request.TamanoArchivo == 0)
+                {
+                    request.TamanoArchivo = existente.TamanoArchivo;
                 }
 
                 var rutaOrigen = existente.DocumentoURL;

@@ -14,27 +14,26 @@ namespace SafetyReport.DAO
             _dbConfig = dbConfig;
         }
 
-        private static DataTable ConstruirTablaArchivos(List<PedidoArchivoRequest>? archivos)
+        private static DataTable ConstruirTablaArchivos(List<(string RutaArchivo, string NombreDocumento, string FormatoDocumento, long TamanoArchivo)> archivos)
         {
             var table = new DataTable();
-            table.Columns.Add("Id", typeof(int));
-            table.Columns.Add("DocumentoURL", typeof(string));
-            table.Columns.Add("NombreDocumento", typeof(string));
-            table.Columns.Add("FormatoDocumento", typeof(string));
+            table.Columns.Add("ID", typeof(int));
+            table.Columns.Add("DOCUMENTOURL", typeof(string));
+            table.Columns.Add("NOMBREDOCUMENTO", typeof(string));
+            table.Columns.Add("FORMATODOCUMENTO", typeof(string));
+            table.Columns.Add("TAMANOARCHIVO", typeof(long));
 
             int i = 1;
 
-            if (archivos != null)
+            foreach (var archivo in archivos)
             {
-                foreach (var archivo in archivos)
-                {
-                    table.Rows.Add(
-                        i++,
-                        string.Empty,
-                        archivo.NombreDocumento ?? string.Empty,
-                        archivo.TipoArchivo ?? string.Empty
-                    );
-                }
+                table.Rows.Add(
+                    i++,
+                    archivo.RutaArchivo,
+                    archivo.NombreDocumento,
+                    archivo.FormatoDocumento,
+                    archivo.TamanoArchivo
+                );
             }
 
             return table;

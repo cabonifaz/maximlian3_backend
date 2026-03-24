@@ -4,8 +4,8 @@ namespace SafetyReport.Models
 {
     public class PedidoArchivoRequest
     {
-        public string TipoArchivo { get; set; } = string.Empty;
         public string NombreDocumento { get; set; } = string.Empty;
+        public string TipoArchivo { get; set; } = string.Empty;
         public long TamanoArchivo { get; set; }
     }
 
