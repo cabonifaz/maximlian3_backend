@@ -74,7 +74,8 @@ namespace SafetyReport.Handlers
                             IdPedido = idPedido,
                             DocumentoURL = rutaArchivo,
                             NombreDocumento = archivo.NombreDocumento,
-                            FormatoDocumento = formatoDocumento
+                            FormatoDocumento = formatoDocumento,
+                            TamanoArchivo = archivo.TamanoArchivo
                         };
 
                         var respuestaArchivo = await _pedidoArchivoDao.CrearAsync(usuarioLogueado, archivoCrear);
