@@ -21,7 +21,7 @@ namespace SafetyReport.Handlers
             try
             {
                 // Crea el pedido primero (sin archivos) para obtener el IdPedido real.
-                var respuestaDao = await _dao.CrearAsync(usuarioLogueado, request, new List<(string RutaArchivo, string NombreDocumento, string FormatoDocumento, long TamanoArchivo )>());
+                var respuestaDao = await _dao.CrearAsync(usuarioLogueado, request);
 
                 if (respuestaDao.IdTipoMensaje != 2)
                     return respuestaDao;

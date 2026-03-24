@@ -109,7 +109,7 @@ namespace SafetyReport.Models
     {
         public string? Busqueda { get; set; }
         public int? IdCliente { get; set; }
-        public int? IdEstado { get; set; }
+        public string? IdEstado { get; set; }
         public int? NumPag { get; set; }
     }
 

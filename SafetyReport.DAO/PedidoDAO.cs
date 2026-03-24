@@ -72,10 +72,7 @@ namespace SafetyReport.DAO
             return respuesta;
         }
 
-        public async Task<Respuesta> CrearAsync(
-     UsuarioGeneral usuarioLogueado,
-     Pedido request,
-     List<(string RutaArchivo, string NombreDocumento, string FormatoDocumento, long TamanoArchivo )> archivosPreparados)
+        public async Task<Respuesta> CrearAsync(UsuarioGeneral usuarioLogueado, Pedido request)
         {
             try
             {
@@ -113,11 +110,6 @@ namespace SafetyReport.DAO
                 cmd.Parameters.Add("@dtFchHasta", SqlDbType.DateTime).Value = (object?)request.FchHasta ?? DBNull.Value;
                 cmd.Parameters.Add("@vchComentario", SqlDbType.VarChar).Value = (object?)request.Comentario ?? DBNull.Value;
                 cmd.Parameters.Add("@intIdEstado", SqlDbType.Int).Value = request.IdEstado;
-
-                var tableArchivos = ConstruirTablaArchivos(archivosPreparados);
-                var tvpArchivos = cmd.Parameters.AddWithValue("@lstArchivos", tableArchivos);
-                tvpArchivos.SqlDbType = SqlDbType.Structured;
-                tvpArchivos.TypeName = "LISTA_PEDIDO_ARCHIVO";
 
                 await cn.OpenAsync();
                 return await LeerRespuestaAsync<PedidoCreado>(cmd);
@@ -228,7 +220,7 @@ namespace SafetyReport.DAO
                 cmd.Parameters.Add("@intIdRol", SqlDbType.Int).Value = usuarioLogueado.IdRol;
                 cmd.Parameters.Add("@vchBusqueda", SqlDbType.VarChar, 255).Value = (object?)request.Busqueda ?? DBNull.Value;
                 cmd.Parameters.Add("@intIdCliente", SqlDbType.Int).Value = (object?)request.IdCliente ?? DBNull.Value;
-                cmd.Parameters.Add("@intIdEstado", SqlDbType.Int).Value = (object?)request.IdEstado ?? DBNull.Value;
+                cmd.Parameters.Add("@vchIdEstado", SqlDbType.VarChar).Value = (object?)request.IdEstado ?? DBNull.Value;
                 cmd.Parameters.Add("@numPag", SqlDbType.Int).Value = (object?)request.NumPag ?? DBNull.Value;
 
                 await cn.OpenAsync();
