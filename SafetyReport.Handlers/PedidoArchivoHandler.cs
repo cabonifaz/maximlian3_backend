@@ -16,55 +16,16 @@ namespace SafetyReport.Handlers
             _s3UploadService = s3UploadService;
         }
 
-        public async Task<Respuesta> CrearAsync(UsuarioGeneral usuarioLogueado, PedidoArchivoCrear request)
+        public async Task<Respuesta> CrearAsync(UsuarioGeneral usuarioLogueado, PedidoArchivoCrearBatch request)
         {
             try
             {
-                if (request.IdPedido <= 0)
-                {
-                    return new Respuesta
-                    {
-                        IdTipoMensaje = 1,
-                        Mensaje = "IdPedido inválido",
-                        Result = new List<PedidoArchivoPresignado>()
-                    };
-                }
-
-                if (request.Archivos == null || request.Archivos.Count == 0)
-                {
-                    return new Respuesta
-                    {
-                        IdTipoMensaje = 1,
-                        Mensaje = "Se requiere al menos un archivo",
-                        Result = new List<PedidoArchivoPresignado>()
-                    };
-                }
-
                 var archivosPresignados = new List<PedidoArchivoPresignado>();
 
                 foreach (var archivo in request.Archivos)
                 {
-                    if (string.IsNullOrWhiteSpace(archivo.NombreDocumento))
-                    {
-                        return new Respuesta
-                        {
-                            IdTipoMensaje = 1,
-                            Mensaje = "NombreDocumento es requerido para cada archivo",
-                            Result = new List<PedidoArchivoPresignado>()
-                        };
-                    }
 
-                    if (string.IsNullOrWhiteSpace(archivo.TipoArchivo))
-                    {
-                        return new Respuesta
-                        {
-                            IdTipoMensaje = 1,
-                            Mensaje = "TipoArchivo es requerido para cada archivo",
-                            Result = new List<PedidoArchivoPresignado>()
-                        };
-                    }
-
-                    var formatoDocumento = ResolverFormatoDocumento(archivo.TipoArchivo, archivo.NombreDocumento);
+                    var formatoDocumento = ResolverFormatoDocumento(archivo.FormatoArchivo, archivo.NombreDocumento);
                     var rutaArchivo = _s3UploadService.GenerarRutaPedidoArchivo(request.IdPedido, archivo.NombreDocumento);
 
                     var crearRequest = new PedidoArchivoCrear
@@ -73,7 +34,8 @@ namespace SafetyReport.Handlers
                         DocumentoURL = rutaArchivo,
                         NombreDocumento = archivo.NombreDocumento,
                         FormatoDocumento = formatoDocumento,
-                        TamanoArchivo = archivo.TamanoArchivo
+                        TamanoArchivo = archivo.TamanoArchivo,
+                        IdTipoArchivo = archivo.IdTipoArchivo
                     };
 
                     var daoResponse = await _dao.CrearAsync(usuarioLogueado, crearRequest);
@@ -87,7 +49,7 @@ namespace SafetyReport.Handlers
                         };
                     }
 
-                    var uploadUrl = _s3UploadService.GenerarUploadUrl(rutaArchivo, archivo.TipoArchivo);
+                    var uploadUrl = _s3UploadService.GenerarUploadUrl(rutaArchivo, archivo.FormatoArchivo);
 
                     archivosPresignados.Add(new PedidoArchivoPresignado
                     {
@@ -115,9 +77,9 @@ namespace SafetyReport.Handlers
             }
         }
 
-        private static string ResolverFormatoDocumento(string tipoArchivo, string nombreArchivo)
+        private static string ResolverFormatoDocumento(string formatoArchivo, string nombreArchivo)
         {
-            var tipo = (tipoArchivo ?? string.Empty).Trim().ToUpperInvariant();
+            var tipo = (formatoArchivo ?? string.Empty).Trim().ToUpperInvariant();
 
             return tipo switch
             {

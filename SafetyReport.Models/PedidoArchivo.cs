@@ -92,4 +92,19 @@ namespace SafetyReport.Models
         public long TamanoArchivo { get; set; }
         public IFormFile Archivo { get; set; } = default!;
     }
+
+    public class PedidoArchivoItem
+    {
+        public string NombreDocumento { get; set; } = string.Empty;
+        public string FormatoArchivo { get; set; } = string.Empty;
+        public long TamanoArchivo { get; set; }
+        public int IdTipoArchivo { get; set; }
+    }
+
+    public class PedidoArchivoCrearBatch
+    {
+        public int IdPedido { get; set; }
+        public List<PedidoArchivoItem> Archivos { get; set; } = new();
+    }
+
 }
