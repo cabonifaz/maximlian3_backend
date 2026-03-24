@@ -47,7 +47,7 @@ public class S3UploadService : IS3UploadService
         return _s3Client.GetPreSignedURL(request);
     }
 
-    public string GenerarUploadUrl(string rutaArchivo, string tipoArchivo)
+    public string GenerarUploadUrl(string rutaArchivo, string formatoArchivo)
     {
         var request = new GetPreSignedUrlRequest
         {
@@ -55,7 +55,7 @@ public class S3UploadService : IS3UploadService
             Key = rutaArchivo,
             Verb = HttpVerb.PUT,
             Expires = DateTime.UtcNow.AddMinutes(_s3ExpirationMinutes),
-            ContentType = tipoArchivo
+            ContentType = formatoArchivo
         };
 
         return _s3Client.GetPreSignedURL(request);

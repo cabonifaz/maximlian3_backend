@@ -35,7 +35,7 @@ namespace SafetyReport.Handlers
                 {
                     foreach (var archivo in request.Archivos)
                     {
-                        var formatoDocumento = ResolverFormatoDocumento(archivo.TipoArchivo, archivo.NombreDocumento);
+                        var formatoDocumento = ResolverFormatoDocumento(archivo.FormatoArchivo, archivo.NombreDocumento);
                         var rutaArchivo = _s3UploadService.GenerarRutaPedidoArchivo(idPedido, archivo.NombreDocumento);
 
                         var archivoCrear = new PedidoArchivoCrear
@@ -64,7 +64,7 @@ namespace SafetyReport.Handlers
                         {
                             NombreDocumento = archivo.NombreDocumento,
                             RutaArchivo = rutaArchivo,
-                            UploadUrl = _s3UploadService.GenerarUploadUrl(rutaArchivo, archivo.TipoArchivo)
+                            UploadUrl = _s3UploadService.GenerarUploadUrl(rutaArchivo, archivo.FormatoArchivo)
                         });
                     }
                 }
@@ -155,9 +155,9 @@ namespace SafetyReport.Handlers
             }
         }
 
-        private static string ResolverFormatoDocumento(string tipoArchivo, string nombreArchivo)
+        private static string ResolverFormatoDocumento(string formatoArchivo, string nombreArchivo)
         {
-            var tipo = (tipoArchivo ?? string.Empty).Trim().ToUpperInvariant();
+            var tipo = (formatoArchivo ?? string.Empty).Trim().ToUpperInvariant();
 
             return tipo switch
             {

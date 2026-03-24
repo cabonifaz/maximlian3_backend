@@ -4,7 +4,7 @@ using SafetyReport.Models;
 public interface IS3UploadService
 {
     string GenerarRutaPedidoArchivo(int idPedido, string nombreArchivo);
-    string GenerarUploadUrl(string rutaArchivo, string tipoArchivo);
+    string GenerarUploadUrl(string rutaArchivo, string formatoArchivo);
     string GenerarDownloadUrl(string rutaArchivo);
     Task UploadFileAsync(string rutaArchivo, IFormFile file);
     Task DeleteFileAsync(string rutaArchivo);
