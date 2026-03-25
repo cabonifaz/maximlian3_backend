@@ -69,9 +69,12 @@ namespace SafetyReport.Handlers
                 principal.FindFirst("cognito:username")?.Value ??
                 principal.FindFirst(ClaimTypes.Name)?.Value;
 
+            var subClaim = jwt.Claims.FirstOrDefault(c => c.Type == "sub")?.Value;
+
             return new UsuarioGeneral
             {
                 Username  = usernameClaim ?? string.Empty,
+                Sub       = subClaim ?? string.Empty,
                 IdUsuario = 0,
                 IdEmpresa = 0,
                 IdRol     = 0

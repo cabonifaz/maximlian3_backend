@@ -25,9 +25,8 @@ namespace SafetyReport.DAO
 
                 cmd.CommandType = CommandType.StoredProcedure;
 
-                cmd.Parameters.Add("@intIdUsuario", SqlDbType.Int).Value = usuarioActual.IdUsuario;
                 cmd.Parameters.Add("@vchUsername", SqlDbType.VarChar, 32).Value = usuarioActual.Username;
-                cmd.Parameters.Add("@intIdEmpresa", SqlDbType.Int).Value = usuarioActual.IdEmpresa;
+                cmd.Parameters.Add("@vchSub", SqlDbType.VarChar, 255).Value = usuarioActual.Sub;
 
                 await cn.OpenAsync();
 
