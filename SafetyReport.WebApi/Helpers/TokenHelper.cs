@@ -1,31 +1,29 @@
-﻿using System.Security.Claims;
+using System.Security.Claims;
 using SafetyReport.Models;
 
 namespace SafetyReport.WebApi.Helpers
 {
     public static class TokenHelper
     {
-        public static UsuarioGeneral GetUsuario(ClaimsPrincipal user, string idRolHeader)
+        public static UsuarioGeneral GetUsuario(ClaimsPrincipal user, HttpRequest request)
         {
-            var idUsuarioClaim =
-                user.FindFirst("custom:id_usuario")?.Value ??
-                user.FindFirst("id_usuario")?.Value;
-
-            var idEmpresaClaim =
-                user.FindFirst("custom:id_empresa")?.Value ??
-                user.FindFirst("id_empresa")?.Value;
-
+            // El access token de Cognito expone el username en el claim "username"
             var usernameClaim =
-                user.FindFirst("cognito:username")?.Value ??
                 user.FindFirst("username")?.Value ??
+                user.FindFirst("cognito:username")?.Value ??
                 user.FindFirst(ClaimTypes.Name)?.Value;
+
+            // Los datos del usuario llegan como headers, ya no provienen del token
+            var idUsuarioHeader = request.Headers["idUsuario"].ToString();
+            var idEmpresaHeader = request.Headers["idEmpresa"].ToString();
+            var idRolHeader     = request.Headers["idRol"].ToString();
 
             return new UsuarioGeneral
             {
-                IdUsuario = int.TryParse(idUsuarioClaim, out var idUsuario) ? idUsuario : 0,
-                IdEmpresa = int.TryParse(idEmpresaClaim, out var idEmpresa) ? idEmpresa : 0,
-                Username = usernameClaim ?? string.Empty,
-                IdRol = int.TryParse(idRolHeader, out var idRol)? idRol : 0
+                IdUsuario = int.TryParse(idUsuarioHeader, out var idUsuario) ? idUsuario : 0,
+                IdEmpresa = int.TryParse(idEmpresaHeader, out var idEmpresa) ? idEmpresa : 0,
+                Username  = usernameClaim ?? string.Empty,
+                IdRol     = int.TryParse(idRolHeader, out var idRol) ? idRol : 0
             };
         }
     }

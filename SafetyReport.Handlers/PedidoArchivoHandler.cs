@@ -24,14 +24,13 @@ namespace SafetyReport.Handlers
 
                 foreach (var archivo in request.Archivos)
                 {
-
                     var formatoDocumento = ResolverFormatoDocumento(archivo.FormatoArchivo, archivo.NombreDocumento);
-                    var rutaArchivo = _s3UploadService.GenerarRutaPedidoArchivo(request.IdPedido, archivo.NombreDocumento);
+                    var rutaDefecto = _s3UploadService.GenerarRutaPedidoArchivo(request.IdPedido, archivo.NombreDocumento, 0);
 
                     var crearRequest = new PedidoArchivoCrear
                     {
                         IdPedido = request.IdPedido,
-                        DocumentoURL = rutaArchivo,
+                        DocumentoURL = rutaDefecto,
                         NombreDocumento = archivo.NombreDocumento,
                         FormatoDocumento = formatoDocumento,
                         TamanoArchivo = archivo.TamanoArchivo,
@@ -48,6 +47,9 @@ namespace SafetyReport.Handlers
                             Result = new List<PedidoArchivoPresignado>()
                         };
                     }
+
+                    var archivosCreados = daoResponse.Result as List<PedidoArchivoCreado> ?? [];
+                    var rutaArchivo = archivosCreados.FirstOrDefault()?.DocumentoURL ?? rutaDefecto;
 
                     var uploadUrl = _s3UploadService.GenerarUploadUrl(rutaArchivo, archivo.FormatoArchivo);
 
@@ -152,7 +154,7 @@ namespace SafetyReport.Handlers
                 }
 
                 var rutaOrigen = existente.DocumentoURL;
-                var rutaDestino = _s3UploadService.GenerarRutaPedidoArchivo(request.IdPedido, request.NombreDocumento);
+                var rutaDestino = _s3UploadService.GenerarRutaPedidoArchivo(request.IdPedido, request.NombreDocumento, request.IdPedidoArchivo);
 
                 // Solo mover S3 si cambia el nombre / ruta
                 if (!string.Equals(rutaOrigen, rutaDestino, StringComparison.OrdinalIgnoreCase))

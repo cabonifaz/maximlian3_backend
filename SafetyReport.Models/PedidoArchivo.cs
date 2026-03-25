@@ -38,7 +38,7 @@ namespace SafetyReport.Models
 
     public class PedidoArchivoCreado
     {
-        public int IdPedidoArchivo { get; set; }
+        public string DocumentoURL { get; set; } = string.Empty;
     }
 
     public class PedidoArchivoEliminado

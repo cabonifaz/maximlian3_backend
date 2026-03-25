@@ -5,6 +5,7 @@ using Microsoft.OpenApi;
 using SafetyReport.DAO;
 using SafetyReport.Handlers;
 using SafetyReport.Models;
+using SafetyReport.WebApi.Helpers;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -22,7 +23,7 @@ builder.Services.AddSwaggerGen(c =>
     c.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
     {
         Name = "Authorization",
-        Description = "Bearer {token}",
+        Description = "Access token de Cognito: Bearer {access_token}",
         In = ParameterLocation.Header,
         Type = SecuritySchemeType.Http,
         Scheme = "bearer",
@@ -33,6 +34,8 @@ builder.Services.AddSwaggerGen(c =>
     {
         [new OpenApiSecuritySchemeReference("Bearer", document)] = []
     });
+
+    c.OperationFilter<SwaggerHeaderFilter>();
 });
 
 var region = builder.Configuration["AWS:Region"];
@@ -85,17 +88,17 @@ builder.Services.AddAuthentication(options =>
             Console.WriteLine("TOKEN VALIDADO POR FIRMA/ISSUER/LIFETIME");
 
             var tokenUse = context.Principal?.FindFirst("token_use")?.Value;
-            var audClaim = context.Principal?.FindFirst("aud")?.Value;
+            var clientIdClaim = context.Principal?.FindFirst("client_id")?.Value;
 
-            if (!string.Equals(tokenUse, "id", StringComparison.OrdinalIgnoreCase))
+            if (!string.Equals(tokenUse, "access", StringComparison.OrdinalIgnoreCase))
             {
-                context.Fail("Solo se aceptan id tokens.");
+                context.Fail("Solo se aceptan access tokens.");
                 return Task.CompletedTask;
             }
 
-            if (!validClientIds.Contains(audClaim, StringComparer.Ordinal))
+            if (!validClientIds.Contains(clientIdClaim, StringComparer.Ordinal))
             {
-                context.Fail($"El aud del token ({audClaim}) no está autorizado.");
+                context.Fail($"El client_id del token ({clientIdClaim}) no está autorizado.");
                 return Task.CompletedTask;
             }
 
