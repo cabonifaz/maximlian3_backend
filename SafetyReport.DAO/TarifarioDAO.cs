@@ -249,5 +249,64 @@ namespace SafetyReport.DAO
                 };
             }
         }
+
+        public async Task<Respuesta> ListaCortaAsync(UsuarioGeneral usuarioLogueado, TarifarioListaCortaFiltro request)
+        {
+            try
+            {
+                using SqlConnection cn = new SqlConnection(_dbConfig.ConnectionString);
+                using SqlCommand cmd = new SqlCommand("Tarifario_LST_Corta", cn);
+
+                cmd.CommandType = CommandType.StoredProcedure;
+
+                cmd.Parameters.Add("@intIdUsuario", SqlDbType.Int).Value = usuarioLogueado.IdUsuario;
+                cmd.Parameters.Add("@vchUsername", SqlDbType.VarChar, 32).Value = usuarioLogueado.Username;
+                cmd.Parameters.Add("@intIdEmpresa", SqlDbType.Int).Value = usuarioLogueado.IdEmpresa;
+                cmd.Parameters.Add("@intIdRol", SqlDbType.Int).Value = usuarioLogueado.IdRol;
+                cmd.Parameters.Add("@intIdCliente", SqlDbType.Int).Value = request.idCliente;
+                cmd.Parameters.Add("@intIdTipoProducto", SqlDbType.Int).Value = (object?)request.IdTipoProducto ?? DBNull.Value;
+                cmd.Parameters.Add("@intIdTipoTramite", SqlDbType.Int).Value = (object?)request.IdTipoTramite ?? DBNull.Value;
+                cmd.Parameters.Add("@intIdPais", SqlDbType.Int).Value = (object?)request.IdPais ?? DBNull.Value;
+
+                await cn.OpenAsync();
+
+                var respuesta = new Respuesta();
+                using var dr = await cmd.ExecuteReaderAsync();
+
+                if (await dr.ReadAsync())
+                {
+                    respuesta.IdTipoMensaje = dr["IdTipoMensaje"] != DBNull.Value
+                        ? Convert.ToInt32(dr["IdTipoMensaje"])
+                        : 0;
+
+                    respuesta.Mensaje = dr["Mensaje"]?.ToString() ?? string.Empty;
+
+                    var json = dr["Result"]?.ToString();
+                    respuesta.Result = respuesta.IdTipoMensaje == 2 && !string.IsNullOrWhiteSpace(json)
+                        ? JsonSerializer.Deserialize<TarifarioListaCortaResult>(json, new JsonSerializerOptions
+                        {
+                            PropertyNameCaseInsensitive = true
+                        }) ?? new TarifarioListaCortaResult()
+                        : new TarifarioListaCortaResult();
+                }
+                else
+                {
+                    respuesta.IdTipoMensaje = 1;
+                    respuesta.Mensaje = "No se obtuvo respuesta del procedimiento.";
+                    respuesta.Result = new TarifarioListaResult();
+                }
+
+                return respuesta;
+            }
+            catch (Exception ex)
+            {
+                return new Respuesta
+                {
+                    IdTipoMensaje = 1,
+                    Mensaje = ex.Message,
+                    Result = new TarifarioListaResult()
+                };
+            }
+        }
     }
 }

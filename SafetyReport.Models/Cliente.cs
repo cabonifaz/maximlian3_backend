@@ -136,4 +136,18 @@
     {
         public int IdCliente { get; set; }
     }
+    public class ClienteListaCortaItem
+    {
+        public int IdCliente { get; set; }
+        public string NumeroDocumento { get; set; } = string.Empty;
+        public string NombreCliente { get; set; } = string.Empty;
+        public int IdIdioma { get; set; }
+        public bool LogoImprimible { get; set; }
+        public int IdPlantilla { get; set; }
+    }
+
+    public class ClienteListaCorta
+    {
+        public List<ClienteListaCortaItem> lstCliente { get; set; } = new();
+    }
 }

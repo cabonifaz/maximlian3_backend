@@ -96,5 +96,22 @@ namespace SafetyReport.Handlers
                 };
             }
         }
+
+        public async Task<Respuesta> ListarClienteShortAsync(UsuarioGeneral usuarioLogueado)
+        {
+            try
+            {
+                return await _dao.ListarClienteShortAsync(usuarioLogueado);
+            }
+            catch (Exception ex)
+            {
+                return new Respuesta
+                {
+                    IdTipoMensaje = 1,
+                    Mensaje = ex.Message,
+                    Result = new List<ClienteListaCorta>()
+                };
+            }
+        }
     }
 }

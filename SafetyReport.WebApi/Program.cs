@@ -1,3 +1,4 @@
+using Amazon.S3;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi;
@@ -142,6 +143,34 @@ builder.Services.AddScoped<TarifarioDAO>();
 builder.Services.AddScoped<TarifarioHandler>();
 builder.Services.AddScoped<ClienteContactoHandler>();
 builder.Services.AddScoped<ClienteContactoDAO>();
+builder.Services.AddScoped<PedidoHandler>();
+builder.Services.AddScoped<PedidoDAO>();
+
+var awsRegion = builder.Configuration["AWS:Region"];
+var awsBucketName = builder.Configuration["AWS:BucketName"];
+var awsAccessKey = builder.Configuration["AWS:AccessKey"];
+var awsSecretKey = builder.Configuration["AWS:SecretKey"];
+
+if (string.IsNullOrWhiteSpace(awsRegion))
+    throw new Exception("Falta configuración AWS:Region");
+
+if (string.IsNullOrWhiteSpace(awsBucketName))
+    throw new Exception("Falta configuración AWS:BucketName");
+
+if (string.IsNullOrWhiteSpace(awsAccessKey) || string.IsNullOrWhiteSpace(awsSecretKey))
+    throw new Exception("Falta configuración AWS:AccessKey o AWS:SecretKey");
+
+builder.Services.AddSingleton<IAmazonS3>(sp =>
+{
+    var regionEndpoint = Amazon.RegionEndpoint.GetBySystemName(awsRegion);
+    var credentials = new Amazon.Runtime.BasicAWSCredentials(awsAccessKey, awsSecretKey);
+    return new AmazonS3Client(credentials, regionEndpoint);
+});
+
+builder.Services.AddSingleton<IS3UploadService, S3UploadService>();
+
+builder.Services.AddScoped<PedidoArchivoHandler>();
+builder.Services.AddScoped<PedidoArchivoDAO>();
 builder.Services.AddScoped<CognitoTokenValidator>();
 
 var app = builder.Build();
