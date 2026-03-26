@@ -42,10 +42,11 @@ var region = builder.Configuration["AWS:Region"];
 var userPoolId = builder.Configuration["Cognito:UserPoolId"];
 var clientIdFrontend = builder.Configuration["Cognito:ClientIdFrontend"];
 var clientIdBackend = builder.Configuration["Cognito:ClientIdBackend"];
+var clientIdN8n = builder.Configuration["Cognito:ClientIdN8n"];
 var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
 
 var cognitoIssuer = $"https://cognito-idp.{region}.amazonaws.com/{userPoolId}";
-var validClientIds = new[] { clientIdFrontend, clientIdBackend };
+var validClientIds = new[] { clientIdFrontend, clientIdBackend, clientIdN8n };
 
 Console.WriteLine($"AUTHORITY CONFIG: {cognitoIssuer}");
 Console.WriteLine($"CLIENT ID FRONTEND: {clientIdFrontend}");
