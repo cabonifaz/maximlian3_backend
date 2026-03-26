@@ -4,13 +4,16 @@ using Swashbuckle.AspNetCore.SwaggerGen;
 
 namespace SafetyReport.WebApi.Helpers
 {
+    [AttributeUsage(AttributeTargets.Class | AttributeTargets.Method)]
+    public class N8nHeaderAttribute : Attribute { }
+
     public class SwaggerHeaderFilter : IOperationFilter
     {
-        private static readonly (string Name, string Description)[] CustomHeaders =
+        private static readonly (string Name, string Description, bool IsString)[] CustomHeaders =
         [
-            ("idUsuario",  "ID del usuario autenticado"),
-            ("idEmpresa",  "ID de la empresa del usuario"),
-            ("idRol",      "ID del rol activo del usuario")
+            ("idUsuario",  "ID del usuario autenticado",       false),
+            ("idEmpresa",  "ID de la empresa del usuario",     false),
+            ("idRol",      "ID del rol activo del usuario",    false)
         ];
 
         public void Apply(OpenApiOperation operation, OperationFilterContext context)
@@ -27,7 +30,7 @@ namespace SafetyReport.WebApi.Helpers
             if (hasAllowAnonymous)
                 return;
 
-            foreach (var (name, description) in CustomHeaders)
+            foreach (var (name, description, isString) in CustomHeaders)
             {
                 operation.Parameters!.Add(new OpenApiParameter
                 {
@@ -35,7 +38,28 @@ namespace SafetyReport.WebApi.Helpers
                     In = ParameterLocation.Header,
                     Required = true,
                     Description = description,
-                    Schema = new OpenApiSchema { Type = JsonSchemaType.Integer }
+                    Schema = new OpenApiSchema { Type = isString ? JsonSchemaType.String : JsonSchemaType.Integer }
+                });
+            }
+
+            var hasN8nHeader = context.MethodInfo
+                .GetCustomAttributes(true)
+                .OfType<N8nHeaderAttribute>()
+                .Any()
+                || (context.MethodInfo.DeclaringType?
+                    .GetCustomAttributes(true)
+                    .OfType<N8nHeaderAttribute>()
+                    .Any() ?? false);
+
+            if (hasN8nHeader)
+            {
+                operation.Parameters!.Add(new OpenApiParameter
+                {
+                    Name = "username",
+                    In = ParameterLocation.Header,
+                    Required = true,
+                    Description = "Username de Cognito (requerido para clientes N8n)",
+                    Schema = new OpenApiSchema { Type = JsonSchemaType.String }
                 });
             }
         }

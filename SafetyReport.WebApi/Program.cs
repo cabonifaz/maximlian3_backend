@@ -176,6 +176,8 @@ builder.Services.AddSingleton<IS3UploadService, S3UploadService>();
 builder.Services.AddScoped<PedidoArchivoHandler>();
 builder.Services.AddScoped<PedidoArchivoDAO>();
 builder.Services.AddScoped<CognitoTokenValidator>();
+builder.Services.AddScoped<N8nDAO>();
+builder.Services.AddScoped<N8nHandler>();
 
 var app = builder.Build();
 
