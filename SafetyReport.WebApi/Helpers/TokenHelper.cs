@@ -11,7 +11,8 @@ namespace SafetyReport.WebApi.Helpers
             var usernameClaim =
                 user.FindFirst("username")?.Value ??
                 user.FindFirst("cognito:username")?.Value ??
-                user.FindFirst(ClaimTypes.Name)?.Value;
+                user.FindFirst(ClaimTypes.Name)?.Value ??
+                request.Headers["username"].ToString();
 
             // Los datos del usuario llegan como headers, ya no provienen del token
             var idUsuarioHeader = request.Headers["idUsuario"].ToString();
