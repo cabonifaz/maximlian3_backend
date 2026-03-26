@@ -72,7 +72,7 @@
     public class ClienteContactoFiltro
     {
         public int IdCliente { get; set; }
-        public string? busqueda { get; set; }
+        public string? Busqueda { get; set; }
         public int? NumPag { get; set; }
     }
 
