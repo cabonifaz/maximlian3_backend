@@ -95,7 +95,7 @@ namespace SafetyReport.DAO
                 cmd.Parameters.Add("@intIdEmpresa", SqlDbType.Int).Value = usuarioLogueado.IdEmpresa;
                 cmd.Parameters.Add("@intIdRol", SqlDbType.Int).Value = usuarioLogueado.IdRol;
                 cmd.Parameters.Add("@intIdCliente", SqlDbType.Int).Value = request.IdCliente;
-                cmd.Parameters.Add("@vchBusqueda", SqlDbType.VarChar).Value = (object?)request.busqueda ?? DBNull.Value;
+                cmd.Parameters.Add("@vchBusqueda", SqlDbType.VarChar).Value = (object?)request.Busqueda ?? DBNull.Value;
                 cmd.Parameters.Add("@numPag", SqlDbType.Int).Value = (object?)request.NumPag ?? DBNull.Value;
 
                 await cn.OpenAsync();
