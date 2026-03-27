@@ -22,6 +22,7 @@ namespace SafetyReport.DAO
             table.Columns.Add("NOMBRES", typeof(string));
             table.Columns.Add("IDTIPOPERSONACONTACTO", typeof(int));
             table.Columns.Add("IDTIPOCONTACTO", typeof(int));
+            table.Columns.Add("TIPOCONTACTO", typeof(string));
             table.Columns.Add("AREATRABAJO", typeof(int));
             table.Columns.Add("TELEFONO", typeof(string));
             table.Columns.Add("EMAIL", typeof(string));
@@ -39,6 +40,7 @@ namespace SafetyReport.DAO
                         contacto.Nombres ?? string.Empty,
                         contacto.IdTipoPersonaContacto,
                         contacto.IdTipoContacto,
+                        contacto.TipoContacto
                         contacto.AreaTrabajo,
                         (object?)contacto.Telefono ?? DBNull.Value,
                         (object?)contacto.Email ?? DBNull.Value,

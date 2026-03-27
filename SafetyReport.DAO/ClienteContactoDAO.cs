@@ -61,11 +61,16 @@ namespace SafetyReport.DAO
                 cmd.Parameters.Add("@vchNombres", SqlDbType.VarChar, 255).Value = request.Nombres;
                 cmd.Parameters.Add("@intIdTipoPersonaContacto", SqlDbType.Int).Value = request.IdTipoPersonaContacto;
                 cmd.Parameters.Add("@intIdTipoContacto", SqlDbType.Int).Value = request.IdTipoContacto;
+                cmd.Parameters.Add("@vchTipoContacto", SqlDbType.VarChar, 255).Value = (object?)request.TipoContacto ?? DBNull.Value;
                 cmd.Parameters.Add("@intIdAreaTrabajo", SqlDbType.Int).Value = request.IdAreaTrabajo;
                 cmd.Parameters.Add("@vchTelefono", SqlDbType.VarChar, 128).Value = (object?)request.Telefono ?? DBNull.Value;
                 cmd.Parameters.Add("@vchEmail", SqlDbType.VarChar, 100).Value = (object?)request.Email ?? DBNull.Value;
                 cmd.Parameters.Add("@bitEnviarCorreo", SqlDbType.Bit).Value = request.EnviarCorreo;
+
                 cmd.Parameters.Add("@vchUsername", SqlDbType.VarChar, 32).Value = usuarioLogueado.Username;
+                cmd.Parameters.Add("@intIdUsuario", SqlDbType.Int).Value = usuarioLogueado.IdUsuario;
+                cmd.Parameters.Add("@intIdEmpresa", SqlDbType.Int).Value = usuarioLogueado.IdEmpresa;
+                cmd.Parameters.Add("@intIdRol", SqlDbType.Int).Value = usuarioLogueado.IdRol;
 
                 await cn.OpenAsync();
                 return await LeerRespuestaAsync<ClienteContactoCreado>(cmd);
