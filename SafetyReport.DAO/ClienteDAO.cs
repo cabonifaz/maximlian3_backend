@@ -40,7 +40,7 @@ namespace SafetyReport.DAO
                         contacto.Nombres ?? string.Empty,
                         contacto.IdTipoPersonaContacto,
                         contacto.IdTipoContacto,
-                        contacto.TipoContacto
+                        contacto.TipoContacto,
                         contacto.AreaTrabajo,
                         (object?)contacto.Telefono ?? DBNull.Value,
                         (object?)contacto.Email ?? DBNull.Value,
