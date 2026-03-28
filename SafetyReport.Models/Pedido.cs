@@ -18,6 +18,7 @@ namespace SafetyReport.Models
         public string? NombreCliente { get; set; }
         public int IdTipoPersona { get; set; }
         public int IdCompania { get; set; }
+        public string? NumeroDocumentoInvestigado { get; set; }
         public string InvestigarRazonSocialNombres { get; set; } = string.Empty;
         public int IdTarifario { get; set; }
         public int IdPlantilla { get; set; }
@@ -45,6 +46,7 @@ namespace SafetyReport.Models
         public string? NombreCliente { get; set; }
         public int IdTipoPersona { get; set; }
         public int IdCompania { get; set; }
+        public string? NumeroDocumentoInvestigado { get; set; }
         public string InvestigarRazonSocialNombres { get; set; } = string.Empty;
         public int IdTarifario { get; set; }
         public int IdPlantilla { get; set; }
@@ -71,6 +73,7 @@ namespace SafetyReport.Models
         public string? NombreCliente { get; set; }
         public int IdTipoPersona { get; set; }
         public int IdCompania { get; set; }
+        public string? NumeroDocumentoInvestigado { get; set; }
         public string? InvestigarRazonSocialNombres { get; set; }
         public int IdTarifario { get; set; }
         public int IdPlantilla { get; set; }
