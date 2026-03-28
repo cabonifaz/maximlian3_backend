@@ -41,12 +41,25 @@ namespace SafetyReport.DAO
                     respuesta.Mensaje = dr["Mensaje"]?.ToString() ?? string.Empty;
 
                     var json = dr["Result"]?.ToString();
-                    respuesta.Result = respuesta.IdTipoMensaje == 2 && !string.IsNullOrWhiteSpace(json)
-                        ? JsonSerializer.Deserialize<List<N8nClienteConsulta>>(json, new JsonSerializerOptions
+                    if (respuesta.IdTipoMensaje == 2 && !string.IsNullOrWhiteSpace(json))
+                    {
+                        var options = new JsonSerializerOptions { PropertyNameCaseInsensitive = true };
+                        if (json.TrimStart().StartsWith('['))
                         {
-                            PropertyNameCaseInsensitive = true
-                        }) ?? new List<N8nClienteConsulta>()
-                        : new List<N8nClienteConsulta>();
+                            respuesta.Result = JsonSerializer.Deserialize<List<N8nClienteConsulta>>(json, options) ?? [];
+                        }
+                        else
+                        {
+                            var item = JsonSerializer.Deserialize<N8nClienteConsulta>(json, options);
+                            respuesta.Result = item != null
+                                ? new List<N8nClienteConsulta> { item }
+                                : new List<N8nClienteConsulta>();
+                        }
+                    }
+                    else
+                    {
+                        respuesta.Result = new List<N8nClienteConsulta>();
+                    }
                 }
                 else
                 {
