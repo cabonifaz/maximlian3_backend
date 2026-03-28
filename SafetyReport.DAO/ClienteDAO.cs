@@ -369,7 +369,7 @@ namespace SafetyReport.DAO
             }
         }
 
-        public async Task<Respuesta> ListarClienteShortAsync(UsuarioGeneral usuarioLogueado)
+        public async Task<Respuesta> ListarClienteShortAsync(UsuarioGeneral usuarioLogueado, string? emailBusqueda)
         {
             try
             {
@@ -381,6 +381,7 @@ namespace SafetyReport.DAO
                 cmd.Parameters.Add("@vchUsername", SqlDbType.VarChar, 32).Value = usuarioLogueado.Username;
                 cmd.Parameters.Add("@intIdEmpresa", SqlDbType.Int).Value = usuarioLogueado.IdEmpresa;
                 cmd.Parameters.Add("@intIdRol", SqlDbType.Int).Value = usuarioLogueado.IdRol;
+                cmd.Parameters.Add("@vchEmailBusqueda", SqlDbType.VarChar, 100).Value = (object?)emailBusqueda ?? DBNull.Value;
 
                 await cn.OpenAsync();
 

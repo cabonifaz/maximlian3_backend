@@ -97,11 +97,11 @@ namespace SafetyReport.Handlers
             }
         }
 
-        public async Task<Respuesta> ListarClienteShortAsync(UsuarioGeneral usuarioLogueado)
+        public async Task<Respuesta> ListarClienteShortAsync(UsuarioGeneral usuarioLogueado, string? emailBusqueda)
         {
             try
             {
-                return await _dao.ListarClienteShortAsync(usuarioLogueado);
+                return await _dao.ListarClienteShortAsync(usuarioLogueado, emailBusqueda);
             }
             catch (Exception ex)
             {
