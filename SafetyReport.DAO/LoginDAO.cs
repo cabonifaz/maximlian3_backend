@@ -55,7 +55,7 @@ namespace SafetyReport.DAO
             }
             catch (Exception ex)
             {
-                respuesta.IdTipoMensaje = 1;
+                respuesta.IdTipoMensaje = 3;
                 respuesta.Mensaje = $"Error al autenticar: {ex.Message}";
                 respuesta.Result = new List<UsuarioLoginResponse>();
             }

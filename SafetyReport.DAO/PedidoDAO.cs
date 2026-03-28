@@ -94,7 +94,7 @@ namespace SafetyReport.DAO
             {
                 return new Respuesta
                 {
-                    IdTipoMensaje = 1,
+                    IdTipoMensaje = 3,
                     Mensaje = ex.Message,
                     Result = new List<PedidoCreado>()
                 };
@@ -148,7 +148,7 @@ namespace SafetyReport.DAO
             {
                 return new Respuesta
                 {
-                    IdTipoMensaje = 1,
+                    IdTipoMensaje = 3,
                     Mensaje = ex.Message,
                     Result = new List<PedidoCreado>()
                 };
@@ -176,7 +176,7 @@ namespace SafetyReport.DAO
             {
                 return new Respuesta
                 {
-                    IdTipoMensaje = 1,
+                    IdTipoMensaje = 3,
                     Mensaje = ex.Message,
                     Result = new List<PedidoConsulta>()
                 };
@@ -233,7 +233,7 @@ namespace SafetyReport.DAO
             {
                 return new Respuesta
                 {
-                    IdTipoMensaje = 1,
+                    IdTipoMensaje = 3,
                     Mensaje = ex.Message,
                     Result = new PedidoListaResult()
                 };
@@ -261,7 +261,7 @@ namespace SafetyReport.DAO
             {
                 return new Respuesta
                 {
-                    IdTipoMensaje = 1,
+                    IdTipoMensaje = 3,
                     Mensaje = ex.Message,
                     Result = new List<PedidoEliminado>()
                 };

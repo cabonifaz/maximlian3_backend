@@ -19,9 +19,9 @@ namespace SafetyReport.WebApi.Controllers
         [HttpGet("validator")]
         public async Task<IActionResult> Login()
         {
-            var authHeader = Request.Headers.Authorization.ToString();
+            var cabeceraAuth = Request.Headers.Authorization.ToString();
 
-            if (string.IsNullOrWhiteSpace(authHeader) || !authHeader.StartsWith("Bearer "))
+            if (string.IsNullOrWhiteSpace(cabeceraAuth) || !cabeceraAuth.StartsWith("Bearer "))
             {
                 return Ok(new
                 {
@@ -31,7 +31,7 @@ namespace SafetyReport.WebApi.Controllers
                 });
             }
 
-            var token = authHeader["Bearer ".Length..].Trim();
+            var token = cabeceraAuth["Bearer ".Length..].Trim();
 
             var respuesta = await _loginHandler.AutenticarAsync(token);
 

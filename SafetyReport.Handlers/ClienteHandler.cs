@@ -22,7 +22,7 @@ namespace SafetyReport.Handlers
             {
                 return new Respuesta
                 {
-                    IdTipoMensaje = 1,
+                    IdTipoMensaje = 3,
                     Mensaje = ex.Message,
                     Result = new List<ClienteCreado>()
                 };
@@ -39,7 +39,7 @@ namespace SafetyReport.Handlers
             {
                 return new Respuesta
                 {
-                    IdTipoMensaje = 1,
+                    IdTipoMensaje = 3,
                     Mensaje = ex.Message,
                     Result = new List<ClienteCreado>()
                 };
@@ -56,7 +56,7 @@ namespace SafetyReport.Handlers
             {
                 return new Respuesta
                 {
-                    IdTipoMensaje = 1,
+                    IdTipoMensaje = 3,
                     Mensaje = ex.Message,
                     Result = new List<ClienteConsulta>()
                 };
@@ -73,7 +73,7 @@ namespace SafetyReport.Handlers
             {
                 return new Respuesta
                 {
-                    IdTipoMensaje = 1,
+                    IdTipoMensaje = 3,
                     Mensaje = ex.Message,
                     Result = new ClienteListaResult()
                 };
@@ -90,7 +90,7 @@ namespace SafetyReport.Handlers
             {
                 return new Respuesta
                 {
-                    IdTipoMensaje = 1,
+                    IdTipoMensaje = 3,
                     Mensaje = ex.Message,
                     Result = new List<ClienteEliminado>()
                 };
@@ -107,7 +107,7 @@ namespace SafetyReport.Handlers
             {
                 return new Respuesta
                 {
-                    IdTipoMensaje = 1,
+                    IdTipoMensaje = 3,
                     Mensaje = ex.Message,
                     Result = new List<ClienteListaCorta>()
                 };

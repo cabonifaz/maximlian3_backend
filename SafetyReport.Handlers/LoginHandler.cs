@@ -36,7 +36,7 @@ namespace SafetyReport.Handlers
             {
                 return new Respuesta
                 {
-                    IdTipoMensaje = 1,
+                    IdTipoMensaje = 3,
                     Mensaje = $"Error al autenticar: {ex.Message}",
                     Result = new List<UsuarioLoginResponse>()
                 };

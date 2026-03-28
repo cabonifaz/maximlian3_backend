@@ -39,13 +39,13 @@ builder.Services.AddSwaggerGen(c =>
 });
 
 var region = builder.Configuration["AWS:Region"];
-var userPoolId = builder.Configuration["Cognito:UserPoolId"];
+var idPoolUsuarios = builder.Configuration["Cognito:UserPoolId"];
 var clientIdFrontend = builder.Configuration["Cognito:ClientIdFrontend"];
 var clientIdBackend = builder.Configuration["Cognito:ClientIdBackend"];
 var clientIdN8n = builder.Configuration["Cognito:ClientIdN8n"];
 var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
 
-var cognitoIssuer = $"https://cognito-idp.{region}.amazonaws.com/{userPoolId}";
+var cognitoIssuer = $"https://cognito-idp.{region}.amazonaws.com/{idPoolUsuarios}";
 var validClientIds = new[] { clientIdFrontend, clientIdBackend, clientIdN8n };
 
 Console.WriteLine($"AUTHORITY CONFIG: {cognitoIssuer}");
@@ -167,8 +167,8 @@ if (string.IsNullOrWhiteSpace(awsAccessKey) || string.IsNullOrWhiteSpace(awsSecr
 builder.Services.AddSingleton<IAmazonS3>(sp =>
 {
     var regionEndpoint = Amazon.RegionEndpoint.GetBySystemName(awsRegion);
-    var credentials = new Amazon.Runtime.BasicAWSCredentials(awsAccessKey, awsSecretKey);
-    return new AmazonS3Client(credentials, regionEndpoint);
+    var credenciales = new Amazon.Runtime.BasicAWSCredentials(awsAccessKey, awsSecretKey);
+    return new AmazonS3Client(credenciales, regionEndpoint);
 });
 
 builder.Services.AddSingleton<IS3UploadService, S3UploadService>();

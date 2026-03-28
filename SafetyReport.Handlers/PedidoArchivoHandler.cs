@@ -21,13 +21,14 @@ namespace SafetyReport.Handlers
             try
             {
                 var archivosPresignados = new List<PedidoArchivoPresignado>();
+                Respuesta respuesta = new Respuesta();
 
                 foreach (var archivo in request.Archivos)
                 {
                     var formatoDocumento = ResolverFormatoDocumento(archivo.FormatoArchivo, archivo.NombreDocumento);
                     var rutaDefecto = _s3UploadService.GenerarRutaPedidoArchivo(request.IdPedido, archivo.NombreDocumento, 0);
 
-                    var crearRequest = new PedidoArchivoCrear
+                    var solicitudCrear = new PedidoArchivoCrear
                     {
                         IdPedido = request.IdPedido,
                         DocumentoURL = rutaDefecto,
@@ -37,34 +38,36 @@ namespace SafetyReport.Handlers
                         IdTipoArchivo = archivo.IdTipoArchivo
                     };
 
-                    var daoResponse = await _dao.CrearAsync(usuarioLogueado, crearRequest);
-                    if (daoResponse.IdTipoMensaje != 2)
+                    var daoRespuesta = await _dao.CrearAsync(usuarioLogueado, solicitudCrear);
+                    if (daoRespuesta.IdTipoMensaje != 2)
                     {
                         return new Respuesta
                         {
-                            IdTipoMensaje = daoResponse.IdTipoMensaje,
-                            Mensaje = daoResponse.Mensaje,
+                            IdTipoMensaje = daoRespuesta.IdTipoMensaje,
+                            Mensaje = daoRespuesta.Mensaje,
                             Result = new List<PedidoArchivoPresignado>()
                         };
                     }
 
-                    var archivosCreados = daoResponse.Result as List<PedidoArchivoCreado> ?? [];
+                    respuesta = daoRespuesta;
+
+                    var archivosCreados = daoRespuesta.Result as List<PedidoArchivoCreado> ?? [];
                     var rutaArchivo = archivosCreados.FirstOrDefault()?.DocumentoURL ?? rutaDefecto;
 
-                    var uploadUrl = _s3UploadService.GenerarUploadUrl(rutaArchivo, archivo.FormatoArchivo);
+                    var urlSubida = _s3UploadService.GenerarUploadUrl(rutaArchivo, archivo.FormatoArchivo);
 
                     archivosPresignados.Add(new PedidoArchivoPresignado
                     {
                         NombreDocumento = archivo.NombreDocumento,
                         RutaArchivo = rutaArchivo,
-                        UploadUrl = uploadUrl
+                        UploadUrl = urlSubida
                     });
                 }
 
                 return new Respuesta
                 {
-                    IdTipoMensaje = 2,
-                    Mensaje = "Archivos insertados correctamente",
+                    IdTipoMensaje = respuesta.IdTipoMensaje,
+                    Mensaje = respuesta.Mensaje,
                     Result = archivosPresignados
                 };
             }
@@ -72,7 +75,7 @@ namespace SafetyReport.Handlers
             {
                 return new Respuesta
                 {
-                    IdTipoMensaje = 1,
+                    IdTipoMensaje = 3,
                     Mensaje = ex.Message,
                     Result = new List<PedidoArchivoPresignado>()
                 };
@@ -101,51 +104,21 @@ namespace SafetyReport.Handlers
         {
             try
             {
-                if (request.IdPedidoArchivo <= 0)
-                {
-                    return new Respuesta
-                    {
-                        IdTipoMensaje = 1,
-                        Mensaje = "IdPedidoArchivo inválido",
-                        Result = new List<PedidoArchivoCreado>()
-                    };
-                }
-
-                if (string.IsNullOrWhiteSpace(request.NombreDocumento))
-                {
-                    return new Respuesta
-                    {
-                        IdTipoMensaje = 1,
-                        Mensaje = "NombreDocumento es requerido",
-                        Result = new List<PedidoArchivoCreado>()
-                    };
-                }
-
                 if (string.IsNullOrWhiteSpace(request.FormatoDocumento))
                 {
                     request.FormatoDocumento = ResolverFormatoDocumento(request.FormatoDocumento, request.NombreDocumento);
                 }
 
-                var obtenerResponse = await _dao.ObtenerAsync(usuarioLogueado, new PedidoArchivoIdRequest
+                var respuestaObtener = await _dao.ObtenerAsync(usuarioLogueado, new PedidoArchivoIdRequest
                 {
                     IdPedidoArchivo = request.IdPedidoArchivo,
                     IdPedido = request.IdPedido
                 });
 
-                if (obtenerResponse.IdTipoMensaje != 2)
-                    return obtenerResponse;
+                if (respuestaObtener.IdTipoMensaje != 2)
+                    return respuestaObtener;
 
-                var existente = (obtenerResponse.Result as List<PedidoArchivoConsulta>)?.FirstOrDefault();
-
-                if (existente == null)
-                {
-                    return new Respuesta
-                    {
-                        IdTipoMensaje = 1,
-                        Mensaje = "No se encontró el archivo solicitado",
-                        Result = new List<PedidoArchivoCreado>()
-                    };
-                }
+                var existente = (respuestaObtener.Result as List<PedidoArchivoConsulta>)?.FirstOrDefault();
 
                 // Mantener TamanoArchivo existente si no se proporciona uno nuevo
                 if (request.TamanoArchivo == 0)
@@ -167,15 +140,15 @@ namespace SafetyReport.Handlers
                     request.DocumentoURL = rutaOrigen;
                 }
 
-                var daoResponse = await _dao.EditarAsync(usuarioLogueado, request);
+                var daoRespuesta = await _dao.EditarAsync(usuarioLogueado, request);
 
-                return daoResponse;
+                return daoRespuesta;
             }
             catch (Exception ex)
             {
                 return new Respuesta
                 {
-                    IdTipoMensaje = 1,
+                    IdTipoMensaje = 3,
                     Mensaje = ex.Message,
                     Result = new List<PedidoArchivoCreado>()
                 };
@@ -186,9 +159,9 @@ namespace SafetyReport.Handlers
         {
             try
             {
-                var daoResponse = await _dao.ObtenerAsync(usuarioLogueado, request);
+                var daoRespuesta = await _dao.ObtenerAsync(usuarioLogueado, request);
 
-                if (daoResponse.IdTipoMensaje == 2 && daoResponse.Result is List<PedidoArchivoConsulta> archivos)
+                if (daoRespuesta.IdTipoMensaje == 2 && daoRespuesta.Result is List<PedidoArchivoConsulta> archivos)
                 {
                     foreach (var archivo in archivos)
                     {
@@ -197,13 +170,13 @@ namespace SafetyReport.Handlers
                     }
                 }
 
-                return daoResponse;
+                return daoRespuesta;
             }
             catch (Exception ex)
             {
                 return new Respuesta
                 {
-                    IdTipoMensaje = 1,
+                    IdTipoMensaje = 3,
                     Mensaje = ex.Message,
                     Result = new List<PedidoArchivoConsulta>()
                 };
@@ -220,7 +193,7 @@ namespace SafetyReport.Handlers
             {
                 return new Respuesta
                 {
-                    IdTipoMensaje = 1,
+                    IdTipoMensaje = 3,
                     Mensaje = ex.Message,
                     Result = new PedidoArchivoListaResult()
                 };
@@ -231,25 +204,16 @@ namespace SafetyReport.Handlers
         {
             try
             {
-                var obtenerResponse = await _dao.ObtenerAsync(usuarioLogueado, request);
+                var respuestaObtener = await _dao.ObtenerAsync(usuarioLogueado, request);
 
-                if (obtenerResponse.IdTipoMensaje != 2)
-                    return obtenerResponse;
+                if (respuestaObtener.IdTipoMensaje != 2)
+                    return respuestaObtener;
 
-                var existente = (obtenerResponse.Result as List<PedidoArchivoConsulta>)?.FirstOrDefault();
-                if (existente == null)
-                {
-                    return new Respuesta
-                    {
-                        IdTipoMensaje = 1,
-                        Mensaje = "No se encontró el archivo a eliminar",
-                        Result = new List<PedidoArchivoEliminado>()
-                    };
-                }
+                var existente = (respuestaObtener.Result as List<PedidoArchivoConsulta>)?.FirstOrDefault();
 
-                var daoResponse = await _dao.EliminarAsync(usuarioLogueado, request);
+                var daoRespuesta = await _dao.EliminarAsync(usuarioLogueado, request);
 
-                if (daoResponse.IdTipoMensaje == 2)
+                if (daoRespuesta.IdTipoMensaje == 2)
                 {
                     try
                     {
@@ -261,13 +225,13 @@ namespace SafetyReport.Handlers
                     }
                 }
 
-                return daoResponse;
+                return daoRespuesta;
             }
             catch (Exception ex)
             {
                 return new Respuesta
                 {
-                    IdTipoMensaje = 1,
+                    IdTipoMensaje = 3,
                     Mensaje = ex.Message,
                     Result = new List<PedidoArchivoEliminado>()
                 };

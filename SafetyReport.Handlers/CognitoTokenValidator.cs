@@ -20,13 +20,13 @@ namespace SafetyReport.Handlers
         public async Task<UsuarioGeneral?> ValidarTokenAsync(string token)
         {
             var region = _configuration["AWS:Region"];
-            var userPoolId = _configuration["Cognito:UserPoolId"];
+            var idPoolUsuarios = _configuration["Cognito:UserPoolId"];
             var clientIdFrontend = _configuration["Cognito:ClientIdFrontend"];
             var clientIdBackend = _configuration["Cognito:ClientIdBackend"];
             var clientIdN8n = _configuration["Cognito:ClientIdN8n"];
             var validClientIds = new[] { clientIdFrontend, clientIdBackend, clientIdN8n };
 
-            var issuer = $"https://cognito-idp.{region}.amazonaws.com/{userPoolId}";
+            var issuer = $"https://cognito-idp.{region}.amazonaws.com/{idPoolUsuarios}";
             var metadataAddress = $"{issuer}/.well-known/openid-configuration";
 
             var configManager = new ConfigurationManager<OpenIdConnectConfiguration>(
