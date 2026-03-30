@@ -36,12 +36,12 @@ namespace SafetyReport.Handlers
                     foreach (var archivo in request.Archivos)
                     {
                         var formatoDocumento = ResolverFormatoDocumento(archivo.FormatoArchivo, archivo.NombreDocumento);
-                        var rutaArchivo = _s3UploadService.GenerarRutaPedidoArchivo(idPedido, archivo.NombreDocumento);
+                        var rutaDefecto = _s3UploadService.GenerarRutaPedidoArchivo(idPedido, archivo.NombreDocumento, 0);
 
                         var archivoCrear = new PedidoArchivoCrear
                         {
                             IdPedido = idPedido,
-                            DocumentoURL = rutaArchivo,
+                            DocumentoURL = rutaDefecto,
                             NombreDocumento = archivo.NombreDocumento,
                             FormatoDocumento = formatoDocumento,
                             TamanoArchivo = archivo.TamanoArchivo,
@@ -59,6 +59,9 @@ namespace SafetyReport.Handlers
                                 Result = new List<PedidoCreadoResponse>()
                             };
                         }
+
+                        var archivosCreados = respuestaArchivo.Result as List<PedidoArchivoCreado> ?? [];
+                        var rutaArchivo = archivosCreados.FirstOrDefault()?.DocumentoURL ?? rutaDefecto;
 
                         respuesta.Archivos.Add(new PedidoArchivoPresignado
                         {

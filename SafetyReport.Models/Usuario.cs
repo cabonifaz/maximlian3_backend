@@ -11,6 +11,7 @@
     {
         public int IdUsuario { get; set; }
         public string Username { get; set; } = string.Empty;
+        public string Sub { get; set; } = string.Empty;
         public int IdEmpresa { get; set; }
         public int IdRol { get; set; }
     }

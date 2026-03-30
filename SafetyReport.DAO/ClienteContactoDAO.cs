@@ -61,11 +61,16 @@ namespace SafetyReport.DAO
                 cmd.Parameters.Add("@vchNombres", SqlDbType.VarChar, 255).Value = request.Nombres;
                 cmd.Parameters.Add("@intIdTipoPersonaContacto", SqlDbType.Int).Value = request.IdTipoPersonaContacto;
                 cmd.Parameters.Add("@intIdTipoContacto", SqlDbType.Int).Value = request.IdTipoContacto;
+                cmd.Parameters.Add("@vchTipoContacto", SqlDbType.VarChar, 255).Value = (object?)request.TipoContacto ?? DBNull.Value;
                 cmd.Parameters.Add("@intIdAreaTrabajo", SqlDbType.Int).Value = request.IdAreaTrabajo;
                 cmd.Parameters.Add("@vchTelefono", SqlDbType.VarChar, 128).Value = (object?)request.Telefono ?? DBNull.Value;
                 cmd.Parameters.Add("@vchEmail", SqlDbType.VarChar, 100).Value = (object?)request.Email ?? DBNull.Value;
                 cmd.Parameters.Add("@bitEnviarCorreo", SqlDbType.Bit).Value = request.EnviarCorreo;
+
                 cmd.Parameters.Add("@vchUsername", SqlDbType.VarChar, 32).Value = usuarioLogueado.Username;
+                cmd.Parameters.Add("@intIdUsuario", SqlDbType.Int).Value = usuarioLogueado.IdUsuario;
+                cmd.Parameters.Add("@intIdEmpresa", SqlDbType.Int).Value = usuarioLogueado.IdEmpresa;
+                cmd.Parameters.Add("@intIdRol", SqlDbType.Int).Value = usuarioLogueado.IdRol;
 
                 await cn.OpenAsync();
                 return await LeerRespuestaAsync<ClienteContactoCreado>(cmd);
@@ -74,7 +79,7 @@ namespace SafetyReport.DAO
             {
                 return new Respuesta
                 {
-                    IdTipoMensaje = 1,
+                    IdTipoMensaje = 3,
                     Mensaje = ex.Message,
                     Result = new List<ClienteContactoCreado>()
                 };
@@ -95,6 +100,7 @@ namespace SafetyReport.DAO
                 cmd.Parameters.Add("@intIdEmpresa", SqlDbType.Int).Value = usuarioLogueado.IdEmpresa;
                 cmd.Parameters.Add("@intIdRol", SqlDbType.Int).Value = usuarioLogueado.IdRol;
                 cmd.Parameters.Add("@intIdCliente", SqlDbType.Int).Value = request.IdCliente;
+                cmd.Parameters.Add("@vchBusqueda", SqlDbType.VarChar).Value = (object?)request.Busqueda ?? DBNull.Value;
                 cmd.Parameters.Add("@numPag", SqlDbType.Int).Value = (object?)request.NumPag ?? DBNull.Value;
 
                 await cn.OpenAsync();
@@ -131,7 +137,7 @@ namespace SafetyReport.DAO
             {
                 return new Respuesta
                 {
-                    IdTipoMensaje = 1,
+                    IdTipoMensaje = 3,
                     Mensaje = ex.Message,
                     Result = new ClienteContactoListaResult()
                 };
@@ -161,7 +167,7 @@ namespace SafetyReport.DAO
             {
                 return new Respuesta
                 {
-                    IdTipoMensaje = 1,
+                    IdTipoMensaje = 3,
                     Mensaje = ex.Message,
                     Result = new List<ClienteContactoSeleccionado>()
                 };
@@ -199,7 +205,7 @@ namespace SafetyReport.DAO
             {
                 return new Respuesta
                 {
-                    IdTipoMensaje = 1,
+                    IdTipoMensaje = 3,
                     Mensaje = ex.Message,
                     Result = new List<ClienteContactoCreado>()
                 };
@@ -229,7 +235,7 @@ namespace SafetyReport.DAO
             {
                 return new Respuesta
                 {
-                    IdTipoMensaje = 1,
+                    IdTipoMensaje = 3,
                     Mensaje = ex.Message,
                     Result = new List<ClienteContactoEliminado>()
                 };

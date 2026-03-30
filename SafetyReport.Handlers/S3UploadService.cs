@@ -19,10 +19,11 @@ public class S3UploadService : IS3UploadService
         _s3ExpirationMinutes = int.TryParse(_configuration["AWS:S3ExpirationTime"], out var exp) ? exp : 15;
     }
 
-    public string GenerarRutaPedidoArchivo(int idPedido, string nombreArchivo)
+    public string GenerarRutaPedidoArchivo(int idPedido, string nombreArchivo, int idArchivo)
     {
         var extension = Path.GetExtension(nombreArchivo).TrimStart('.');
         var nombreBase = Path.GetFileNameWithoutExtension(nombreArchivo);
+        var idArchivoCreado = idArchivo == 0 ? "[IdArchivo]" : idArchivo.ToString();
 
         var nombreLimpio = string.Concat(
             nombreBase.Where(c => char.IsLetterOrDigit(c) || c == '_' || c == '-')
@@ -31,7 +32,7 @@ public class S3UploadService : IS3UploadService
         if (string.IsNullOrWhiteSpace(nombreLimpio))
             nombreLimpio = "archivo";
 
-        return $"pedidos/{idPedido}/{nombreLimpio}.{extension}";
+        return $"pedidos/{idPedido}/{idArchivoCreado}/{nombreLimpio}.{extension}";
     }
 
     public string GenerarDownloadUrl(string rutaArchivo)

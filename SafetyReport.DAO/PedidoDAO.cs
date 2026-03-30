@@ -67,6 +67,7 @@ namespace SafetyReport.DAO
                 cmd.Parameters.Add("@vchNombreCliente", SqlDbType.VarChar, 255).Value = (object?)request.NombreCliente ?? DBNull.Value;
                 cmd.Parameters.Add("@intIdTipoPersona", SqlDbType.Int).Value = request.IdTipoPersona;
                 cmd.Parameters.Add("@intIdCompania", SqlDbType.Int).Value = request.IdCompania;
+                cmd.Parameters.Add("@vchNumeroDocumentoInvestigado", SqlDbType.VarChar, 50).Value = (object?)request.NumeroDocumentoInvestigado ?? DBNull.Value;
                 cmd.Parameters.Add("@vchInvestigarRazonSocialNombres", SqlDbType.VarChar).Value = request.InvestigarRazonSocialNombres;
                 cmd.Parameters.Add("@intIdTarifario", SqlDbType.Int).Value = request.IdTarifario;
                 cmd.Parameters.Add("@intIdPlantilla", SqlDbType.Int).Value = request.IdPlantilla;
@@ -94,7 +95,7 @@ namespace SafetyReport.DAO
             {
                 return new Respuesta
                 {
-                    IdTipoMensaje = 1,
+                    IdTipoMensaje = 3,
                     Mensaje = ex.Message,
                     Result = new List<PedidoCreado>()
                 };
@@ -121,6 +122,7 @@ namespace SafetyReport.DAO
                 cmd.Parameters.Add("@vchNombreCliente", SqlDbType.VarChar, 255).Value = (object?)request.NombreCliente ?? DBNull.Value;
                 cmd.Parameters.Add("@intIdTipoPersona", SqlDbType.Int).Value = request.IdTipoPersona;
                 cmd.Parameters.Add("@intIdCompania", SqlDbType.Int).Value = request.IdCompania;
+                cmd.Parameters.Add("@vchNumeroDocumentoInvestigado", SqlDbType.VarChar, 50).Value = (object?)request.NumeroDocumentoInvestigado ?? DBNull.Value;
                 cmd.Parameters.Add("@vchInvestigarRazonSocialNombres", SqlDbType.VarChar).Value = request.InvestigarRazonSocialNombres;
                 cmd.Parameters.Add("@intIdTarifario", SqlDbType.Int).Value = request.IdTarifario;
                 cmd.Parameters.Add("@intIdPlantilla", SqlDbType.Int).Value = request.IdPlantilla;
@@ -148,7 +150,7 @@ namespace SafetyReport.DAO
             {
                 return new Respuesta
                 {
-                    IdTipoMensaje = 1,
+                    IdTipoMensaje = 3,
                     Mensaje = ex.Message,
                     Result = new List<PedidoCreado>()
                 };
@@ -176,7 +178,7 @@ namespace SafetyReport.DAO
             {
                 return new Respuesta
                 {
-                    IdTipoMensaje = 1,
+                    IdTipoMensaje = 3,
                     Mensaje = ex.Message,
                     Result = new List<PedidoConsulta>()
                 };
@@ -233,7 +235,7 @@ namespace SafetyReport.DAO
             {
                 return new Respuesta
                 {
-                    IdTipoMensaje = 1,
+                    IdTipoMensaje = 3,
                     Mensaje = ex.Message,
                     Result = new PedidoListaResult()
                 };
@@ -261,7 +263,7 @@ namespace SafetyReport.DAO
             {
                 return new Respuesta
                 {
-                    IdTipoMensaje = 1,
+                    IdTipoMensaje = 3,
                     Mensaje = ex.Message,
                     Result = new List<PedidoEliminado>()
                 };

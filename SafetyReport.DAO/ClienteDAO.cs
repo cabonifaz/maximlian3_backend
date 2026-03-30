@@ -22,6 +22,7 @@ namespace SafetyReport.DAO
             table.Columns.Add("NOMBRES", typeof(string));
             table.Columns.Add("IDTIPOPERSONACONTACTO", typeof(int));
             table.Columns.Add("IDTIPOCONTACTO", typeof(int));
+            table.Columns.Add("TIPOCONTACTO", typeof(string));
             table.Columns.Add("AREATRABAJO", typeof(int));
             table.Columns.Add("TELEFONO", typeof(string));
             table.Columns.Add("EMAIL", typeof(string));
@@ -39,6 +40,7 @@ namespace SafetyReport.DAO
                         contacto.Nombres ?? string.Empty,
                         contacto.IdTipoPersonaContacto,
                         contacto.IdTipoContacto,
+                        contacto.TipoContacto,
                         contacto.AreaTrabajo,
                         (object?)contacto.Telefono ?? DBNull.Value,
                         (object?)contacto.Email ?? DBNull.Value,
@@ -191,7 +193,7 @@ namespace SafetyReport.DAO
             {
                 return new Respuesta
                 {
-                    IdTipoMensaje = 1,
+                    IdTipoMensaje = 3,
                     Mensaje = ex.Message,
                     Result = new List<ClienteCreado>()
                 };
@@ -247,7 +249,7 @@ namespace SafetyReport.DAO
             {
                 return new Respuesta
                 {
-                    IdTipoMensaje = 1,
+                    IdTipoMensaje = 3,
                     Mensaje = ex.Message,
                     Result = new List<ClienteCreado>()
                 };
@@ -275,7 +277,7 @@ namespace SafetyReport.DAO
             {
                 return new Respuesta
                 {
-                    IdTipoMensaje = 1,
+                    IdTipoMensaje = 3,
                     Mensaje = ex.Message,
                     Result = new List<ClienteConsulta>()
                 };
@@ -332,7 +334,7 @@ namespace SafetyReport.DAO
             {
                 return new Respuesta
                 {
-                    IdTipoMensaje = 1,
+                    IdTipoMensaje = 3,
                     Mensaje = ex.Message,
                     Result = new ClienteListaResult()
                 };
@@ -360,14 +362,14 @@ namespace SafetyReport.DAO
             {
                 return new Respuesta
                 {
-                    IdTipoMensaje = 1,
+                    IdTipoMensaje = 3,
                     Mensaje = ex.Message,
                     Result = new List<ClienteEliminado>()
                 };
             }
         }
 
-        public async Task<Respuesta> ListarClienteShortAsync(UsuarioGeneral usuarioLogueado)
+        public async Task<Respuesta> ListarClienteShortAsync(UsuarioGeneral usuarioLogueado, string? emailBusqueda)
         {
             try
             {
@@ -379,6 +381,7 @@ namespace SafetyReport.DAO
                 cmd.Parameters.Add("@vchUsername", SqlDbType.VarChar, 32).Value = usuarioLogueado.Username;
                 cmd.Parameters.Add("@intIdEmpresa", SqlDbType.Int).Value = usuarioLogueado.IdEmpresa;
                 cmd.Parameters.Add("@intIdRol", SqlDbType.Int).Value = usuarioLogueado.IdRol;
+                cmd.Parameters.Add("@vchEmailBusqueda", SqlDbType.VarChar, 100).Value = (object?)emailBusqueda ?? DBNull.Value;
 
                 await cn.OpenAsync();
 
@@ -413,7 +416,7 @@ namespace SafetyReport.DAO
             {
                 return new Respuesta
                 {
-                    IdTipoMensaje = 1,
+                    IdTipoMensaje = 3,
                     Mensaje = ex.Message,
                     Result = new ClienteListaCorta()
                 };

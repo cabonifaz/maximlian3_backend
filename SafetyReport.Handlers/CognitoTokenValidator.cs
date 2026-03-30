@@ -1,4 +1,4 @@
-﻿using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Configuration;
 using Microsoft.IdentityModel.Protocols;
 using Microsoft.IdentityModel.Protocols.OpenIdConnect;
 using Microsoft.IdentityModel.Tokens;
@@ -20,12 +20,13 @@ namespace SafetyReport.Handlers
         public async Task<UsuarioGeneral?> ValidarTokenAsync(string token)
         {
             var region = _configuration["AWS:Region"];
-            var userPoolId = _configuration["Cognito:UserPoolId"];
+            var idPoolUsuarios = _configuration["Cognito:UserPoolId"];
             var clientIdFrontend = _configuration["Cognito:ClientIdFrontend"];
             var clientIdBackend = _configuration["Cognito:ClientIdBackend"];
-            var validClientIds = new[] { clientIdFrontend, clientIdBackend };
+            var clientIdN8n = _configuration["Cognito:ClientIdN8n"];
+            var validClientIds = new[] { clientIdFrontend, clientIdBackend, clientIdN8n };
 
-            var issuer = $"https://cognito-idp.{region}.amazonaws.com/{userPoolId}";
+            var issuer = $"https://cognito-idp.{region}.amazonaws.com/{idPoolUsuarios}";
             var metadataAddress = $"{issuer}/.well-known/openid-configuration";
 
             var configManager = new ConfigurationManager<OpenIdConnectConfiguration>(
@@ -55,35 +56,29 @@ namespace SafetyReport.Handlers
             var jwt = (JwtSecurityToken)validatedToken;
 
             var tokenUse = jwt.Claims.FirstOrDefault(c => c.Type == "token_use")?.Value;
-            var aud = jwt.Claims.FirstOrDefault(c => c.Type == "aud")?.Value;
             var clientIdClaim = jwt.Claims.FirstOrDefault(c => c.Type == "client_id")?.Value;
 
-            if (!string.Equals(tokenUse, "id", StringComparison.OrdinalIgnoreCase))
+            if (!string.Equals(tokenUse, "access", StringComparison.OrdinalIgnoreCase))
                 return null;
 
-            if (!validClientIds.Contains(aud, StringComparer.Ordinal) &&
-                !validClientIds.Contains(clientIdClaim, StringComparer.Ordinal))
+            if (!validClientIds.Contains(clientIdClaim, StringComparer.Ordinal))
                 return null;
 
-            var idUsuarioClaim =
-                principal.FindFirst("custom:id_usuario")?.Value ??
-                principal.FindFirst("id_usuario")?.Value;
-
-            var idEmpresaClaim =
-                principal.FindFirst("custom:id_empresa")?.Value ??
-                principal.FindFirst("id_empresa")?.Value;
-
+            // El access token expone el username en el claim "username"
             var usernameClaim =
-                principal.FindFirst("cognito:username")?.Value ??
                 principal.FindFirst("username")?.Value ??
+                principal.FindFirst("cognito:username")?.Value ??
                 principal.FindFirst(ClaimTypes.Name)?.Value;
+
+            var subClaim = jwt.Claims.FirstOrDefault(c => c.Type == "sub")?.Value;
 
             return new UsuarioGeneral
             {
-                IdUsuario = int.TryParse(idUsuarioClaim, out var idUsuario) ? idUsuario : 0,
-                IdEmpresa = int.TryParse(idEmpresaClaim, out var idEmpresa) ? idEmpresa : 0,
-                Username = usernameClaim ?? string.Empty,
-                IdRol = 0
+                Username  = usernameClaim ?? string.Empty,
+                Sub       = subClaim ?? string.Empty,
+                IdUsuario = 0,
+                IdEmpresa = 0,
+                IdRol     = 0
             };
         }
     }

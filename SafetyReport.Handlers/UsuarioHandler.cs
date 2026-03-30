@@ -33,21 +33,21 @@ namespace SafetyReport.Handlers
                 if (creado == null)
                     return respuesta;
 
-                var accessKey = _config["AWS:AccessKey"];
-                var secretKey = _config["AWS:SecretKey"];
+                var llaveAcceso = _config["AWS:AccessKey"];
+                var llaveSecreta = _config["AWS:SecretKey"];
                 var region = _config["AWS:Region"];
-                var userPoolId = _config["Cognito:UserPoolId"];
+                var idPoolUsuarios = _config["Cognito:UserPoolId"];
 
-                var credentials = new BasicAWSCredentials(accessKey, secretKey);
+                var credenciales = new BasicAWSCredentials(llaveAcceso, llaveSecreta);
 
-                var client = new AmazonCognitoIdentityProviderClient(
-                    credentials,
+                var clienteCognito = new AmazonCognitoIdentityProviderClient(
+                    credenciales,
                     RegionEndpoint.GetBySystemName(region)
                 );
 
-                var createRequest = new AdminCreateUserRequest
+                var solicitudCrear = new AdminCreateUserRequest
                 {
-                    UserPoolId = userPoolId,
+                    UserPoolId = idPoolUsuarios,
                     Username = creado.Username,
                     DesiredDeliveryMediums = new List<string> { "EMAIL" },
                     UserAttributes = new List<AttributeType>
@@ -59,9 +59,9 @@ namespace SafetyReport.Handlers
                     }
                 };
 
-                var cognitoResp = await client.AdminCreateUserAsync(createRequest);
+                var respuestaCognito = await clienteCognito.AdminCreateUserAsync(solicitudCrear);
 
-                var sub = cognitoResp.User.Attributes?
+                var sub = respuestaCognito.User.Attributes?
                     .FirstOrDefault(x => x.Name == "sub")?.Value;
 
                 if (!string.IsNullOrWhiteSpace(sub))
@@ -115,20 +115,20 @@ namespace SafetyReport.Handlers
 
                 if (eliminado != null && !string.IsNullOrWhiteSpace(eliminado.Username))
                 {
-                    var accessKey = _config["AWS:AccessKey"];
-                    var secretKey = _config["AWS:SecretKey"];
+                    var llaveAcceso = _config["AWS:AccessKey"];
+                    var llaveSecreta = _config["AWS:SecretKey"];
                     var region = _config["AWS:Region"];
-                    var userPoolId = _config["Cognito:UserPoolId"];
+                    var idPoolUsuarios = _config["Cognito:UserPoolId"];
 
-                    var credentials = new BasicAWSCredentials(accessKey, secretKey);
-                    var client = new AmazonCognitoIdentityProviderClient(
-                        credentials,
+                    var credenciales = new BasicAWSCredentials(llaveAcceso, llaveSecreta);
+                    var clienteCognito = new AmazonCognitoIdentityProviderClient(
+                        credenciales,
                         RegionEndpoint.GetBySystemName(region)
                     );
 
-                    await client.AdminDeleteUserAsync(new AdminDeleteUserRequest
+                    await clienteCognito.AdminDeleteUserAsync(new AdminDeleteUserRequest
                     {
-                        UserPoolId = userPoolId,
+                        UserPoolId = idPoolUsuarios,
                         Username = eliminado.Username
                     });
                 }

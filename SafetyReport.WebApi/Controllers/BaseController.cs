@@ -1,4 +1,4 @@
-﻿using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc;
 using SafetyReport.Models;
 using SafetyReport.WebApi.Helpers;
 
@@ -7,6 +7,6 @@ namespace SafetyReport.WebApi.Controllers
     [ApiController]
     public class BaseController : ControllerBase
     {
-        protected UsuarioGeneral UsuarioLogueado => TokenHelper.GetUsuario(User, Request.Headers["idRol"].ToString());
+        protected UsuarioGeneral UsuarioLogueado => TokenHelper.GetUsuario(User, Request);
     }
 }

@@ -100,7 +100,7 @@ namespace SafetyReport.DAO
             {
                 return new Respuesta
                 {
-                    IdTipoMensaje = 1,
+                    IdTipoMensaje = 3,
                     Mensaje = ex.Message,
                     Result = new List<UsuarioCreado>()
                 };
@@ -142,7 +142,7 @@ namespace SafetyReport.DAO
             {
                 return new Respuesta
                 {
-                    IdTipoMensaje = 1,
+                    IdTipoMensaje = 3,
                     Mensaje = ex.Message,
                     Result = new List<UsuarioCreado>()
                 };
@@ -170,7 +170,7 @@ namespace SafetyReport.DAO
             {
                 return new Respuesta
                 {
-                    IdTipoMensaje = 1,
+                    IdTipoMensaje = 3,
                     Mensaje = ex.Message,
                     Result = new List<EliminarUsuarioResult>()
                 };
@@ -225,7 +225,7 @@ namespace SafetyReport.DAO
             {
                 return new Respuesta
                 {
-                    IdTipoMensaje = 1,
+                    IdTipoMensaje = 3,
                     Mensaje = ex.Message,
                     Result = new UsuarioListaResult()
                 };
@@ -253,7 +253,7 @@ namespace SafetyReport.DAO
             {
                 return new Respuesta
                 {
-                    IdTipoMensaje = 1,
+                    IdTipoMensaje = 3,
                     Mensaje = ex.Message,
                     Result = new List<UsuarioConsulta>()
                 };
@@ -285,7 +285,7 @@ namespace SafetyReport.DAO
             {
                 return new Respuesta
                 {
-                    IdTipoMensaje = 1,
+                    IdTipoMensaje = 3,
                     Mensaje = ex.Message,
                     Result = null
                 };
