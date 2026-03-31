@@ -52,7 +52,7 @@ namespace SafetyReport.DAO
             try
             {
                 using SqlConnection cn = new SqlConnection(_dbConfig.ConnectionString);
-                using SqlCommand cmd = new SqlCommand("Tarifario_INS", cn);
+                using SqlCommand cmd = new SqlCommand("Tarifario_Insertar", cn);
 
                 cmd.CommandType = CommandType.StoredProcedure;
 
@@ -72,7 +72,7 @@ namespace SafetyReport.DAO
                 cmd.Parameters["@decPenalidad"].Precision = 18;
                 cmd.Parameters["@decPenalidad"].Scale = 2;
 
-                cmd.Parameters.Add("@vchUsername", SqlDbType.VarChar, 32).Value = usuarioLogueado.Username;
+                cmd.Parameters.Add("@vchUsuario", SqlDbType.VarChar, 32).Value = usuarioLogueado.Usuario;
 
                 await cn.OpenAsync();
                 return await LeerRespuestaAsync<TarifarioCreado>(cmd);
@@ -93,12 +93,12 @@ namespace SafetyReport.DAO
             try
             {
                 using SqlConnection cn = new SqlConnection(_dbConfig.ConnectionString);
-                using SqlCommand cmd = new SqlCommand("Tarifario_LST", cn);
+                using SqlCommand cmd = new SqlCommand("Tarifario_Listar", cn);
 
                 cmd.CommandType = CommandType.StoredProcedure;
 
                 cmd.Parameters.Add("@intIdUsuario", SqlDbType.Int).Value = usuarioLogueado.IdUsuario;
-                cmd.Parameters.Add("@vchUsername", SqlDbType.VarChar, 32).Value = usuarioLogueado.Username;
+                cmd.Parameters.Add("@vchUsuario", SqlDbType.VarChar, 32).Value = usuarioLogueado.Usuario;
                 cmd.Parameters.Add("@intIdEmpresa", SqlDbType.Int).Value = usuarioLogueado.IdEmpresa;
                 cmd.Parameters.Add("@intIdRol", SqlDbType.Int).Value = usuarioLogueado.IdRol;
                 cmd.Parameters.Add("@intIdCliente", SqlDbType.Int).Value = request.idCliente;
@@ -151,12 +151,12 @@ namespace SafetyReport.DAO
             try
             {
                 using SqlConnection cn = new SqlConnection(_dbConfig.ConnectionString);
-                using SqlCommand cmd = new SqlCommand("Tarifario_SEL", cn);
+                using SqlCommand cmd = new SqlCommand("Tarifario_Obtener", cn);
 
                 cmd.CommandType = CommandType.StoredProcedure;
 
                 cmd.Parameters.Add("@intIdUsuario", SqlDbType.Int).Value = usuarioLogueado.IdUsuario;
-                cmd.Parameters.Add("@vchUsername", SqlDbType.VarChar, 32).Value = usuarioLogueado.Username;
+                cmd.Parameters.Add("@vchUsuario", SqlDbType.VarChar, 32).Value = usuarioLogueado.Usuario;
                 cmd.Parameters.Add("@intIdEmpresa", SqlDbType.Int).Value = usuarioLogueado.IdEmpresa;
                 cmd.Parameters.Add("@intIdRol", SqlDbType.Int).Value = usuarioLogueado.IdRol;
                 cmd.Parameters.Add("@intIdTarifario", SqlDbType.Int).Value = request.idTarifario;
@@ -181,12 +181,12 @@ namespace SafetyReport.DAO
             try
             {
                 using SqlConnection cn = new SqlConnection(_dbConfig.ConnectionString);
-                using SqlCommand cmd = new SqlCommand("Tarifario_UPD", cn);
+                using SqlCommand cmd = new SqlCommand("Tarifario_Actualizar", cn);
 
                 cmd.CommandType = CommandType.StoredProcedure;
 
                 cmd.Parameters.Add("@intIdUsuario", SqlDbType.Int).Value = usuarioLogueado.IdUsuario;
-                cmd.Parameters.Add("@vchUsername", SqlDbType.VarChar, 32).Value = usuarioLogueado.Username;
+                cmd.Parameters.Add("@vchUsuario", SqlDbType.VarChar, 32).Value = usuarioLogueado.Usuario;
                 cmd.Parameters.Add("@intIdEmpresa", SqlDbType.Int).Value = usuarioLogueado.IdEmpresa;
                 cmd.Parameters.Add("@intIdRol", SqlDbType.Int).Value = usuarioLogueado.IdRol;
                 cmd.Parameters.Add("@intIdTarifario", SqlDbType.Int).Value = request.IdTarifario;
@@ -225,12 +225,12 @@ namespace SafetyReport.DAO
             try
             {
                 using SqlConnection cn = new SqlConnection(_dbConfig.ConnectionString);
-                using SqlCommand cmd = new SqlCommand("Tarifario_DEL", cn);
+                using SqlCommand cmd = new SqlCommand("Tarifario_Eliminar", cn);
 
                 cmd.CommandType = CommandType.StoredProcedure;
 
                 cmd.Parameters.Add("@intIdUsuario", SqlDbType.Int).Value = usuarioLogueado.IdUsuario;
-                cmd.Parameters.Add("@vchUsername", SqlDbType.VarChar, 32).Value = usuarioLogueado.Username;
+                cmd.Parameters.Add("@vchUsuario", SqlDbType.VarChar, 32).Value = usuarioLogueado.Usuario;
                 cmd.Parameters.Add("@intIdEmpresa", SqlDbType.Int).Value = usuarioLogueado.IdEmpresa;
                 cmd.Parameters.Add("@intIdRol", SqlDbType.Int).Value = usuarioLogueado.IdRol;
                 cmd.Parameters.Add("@intIdTarifario", SqlDbType.Int).Value = request.idTarifario;
@@ -255,12 +255,12 @@ namespace SafetyReport.DAO
             try
             {
                 using SqlConnection cn = new SqlConnection(_dbConfig.ConnectionString);
-                using SqlCommand cmd = new SqlCommand("Tarifario_LST_Corta", cn);
+                using SqlCommand cmd = new SqlCommand("Tarifario_Listar_Corta", cn);
 
                 cmd.CommandType = CommandType.StoredProcedure;
 
                 cmd.Parameters.Add("@intIdUsuario", SqlDbType.Int).Value = usuarioLogueado.IdUsuario;
-                cmd.Parameters.Add("@vchUsername", SqlDbType.VarChar, 32).Value = usuarioLogueado.Username;
+                cmd.Parameters.Add("@vchUsuario", SqlDbType.VarChar, 32).Value = usuarioLogueado.Usuario;
                 cmd.Parameters.Add("@intIdEmpresa", SqlDbType.Int).Value = usuarioLogueado.IdEmpresa;
                 cmd.Parameters.Add("@intIdRol", SqlDbType.Int).Value = usuarioLogueado.IdRol;
                 cmd.Parameters.Add("@intIdCliente", SqlDbType.Int).Value = request.idCliente;

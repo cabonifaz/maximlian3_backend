@@ -7,47 +7,47 @@ namespace SafetyReport.WebApi.Controllers
 {
     [Authorize]
     [Route("api/[controller]")]
-    public class MasterTableController : BaseController
+    public class TablaMaestraController : BaseController
     {
-        private readonly MasterTableHandler _masterTableHandler;
+        private readonly TablaMaestraHandler _tablaMaestraHandler;
 
-        public MasterTableController(MasterTableHandler masterTableHandler)
+        public TablaMaestraController(TablaMaestraHandler tablaMaestraHandler)
         {
-            _masterTableHandler = masterTableHandler;
+            _tablaMaestraHandler = tablaMaestraHandler;
         }
 
         [HttpGet("listar")]
-        public async Task<IActionResult> Listar([FromQuery] FiltroMasterTableRequest request)
+        public async Task<IActionResult> Listar([FromQuery] FiltroTablaMaestraRequest request)
         {
-            var respuesta = await _masterTableHandler.ListarAsync(UsuarioLogueado, request?.IdMaster);
+            var respuesta = await _tablaMaestraHandler.ListarAsync(UsuarioLogueado, request?.IdMaestro);
             return Ok(respuesta);
         }
 
         [HttpGet("listar-inventario")]
         public async Task<IActionResult> ListarInventario([FromQuery] object? request)
         {
-            var respuesta = await _masterTableHandler.ListarInventarioAsync(UsuarioLogueado);
+            var respuesta = await _tablaMaestraHandler.ListarInventarioAsync(UsuarioLogueado);
             return Ok(respuesta);
         }
 
         [HttpPost("crear")]
-        public async Task<IActionResult> Crear([FromBody] MasterTableRequest request)
+        public async Task<IActionResult> Crear([FromBody] TablaMaestraRequest request)
         {
-            var respuesta = await _masterTableHandler.CrearAsync(UsuarioLogueado, request);
+            var respuesta = await _tablaMaestraHandler.CrearAsync(UsuarioLogueado, request);
             return Ok(respuesta);
         }
 
         [HttpPost("editar")]
-        public async Task<IActionResult> Editar([FromBody] EditarMasterTableRequest request)
+        public async Task<IActionResult> Editar([FromBody] EditarTablaMaestraRequest request)
         {
-            var respuesta = await _masterTableHandler.EditarAsync(UsuarioLogueado, request);
+            var respuesta = await _tablaMaestraHandler.EditarAsync(UsuarioLogueado, request);
             return Ok(respuesta);
         }
 
         [HttpPost("eliminar")]
-        public async Task<IActionResult> Eliminar([FromBody] EliminarMasterTableRequest request)
+        public async Task<IActionResult> Eliminar([FromBody] EliminarTablaMaestraRequest request)
         {
-            var respuesta = await _masterTableHandler.EliminarAsync(UsuarioLogueado, request);
+            var respuesta = await _tablaMaestraHandler.EliminarAsync(UsuarioLogueado, request);
             return Ok(respuesta);
         }
     }

@@ -48,7 +48,7 @@ namespace SafetyReport.Handlers
                 var solicitudCrear = new AdminCreateUserRequest
                 {
                     UserPoolId = idPoolUsuarios,
-                    Username = creado.Username,
+                    Username = creado.Usuario,
                     DesiredDeliveryMediums = new List<string> { "EMAIL" },
                     UserAttributes = new List<AttributeType>
                     {
@@ -113,7 +113,7 @@ namespace SafetyReport.Handlers
 
                 var eliminado = ((List<EliminarUsuarioResult>)respuesta.Result).FirstOrDefault();
 
-                if (eliminado != null && !string.IsNullOrWhiteSpace(eliminado.Username))
+                if (eliminado != null && !string.IsNullOrWhiteSpace(eliminado.Usuario))
                 {
                     var llaveAcceso = _config["AWS:AccessKey"];
                     var llaveSecreta = _config["AWS:SecretKey"];
@@ -129,7 +129,7 @@ namespace SafetyReport.Handlers
                     await clienteCognito.AdminDeleteUserAsync(new AdminDeleteUserRequest
                     {
                         UserPoolId = idPoolUsuarios,
-                        Username = eliminado.Username
+                        Username = eliminado.Usuario
                     });
                 }
 

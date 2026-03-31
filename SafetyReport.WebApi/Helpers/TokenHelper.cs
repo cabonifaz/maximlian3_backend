@@ -23,7 +23,7 @@ namespace SafetyReport.WebApi.Helpers
             {
                 IdUsuario = int.TryParse(idUsuarioHeader, out var idUsuario) ? idUsuario : 0,
                 IdEmpresa = int.TryParse(idEmpresaHeader, out var idEmpresa) ? idEmpresa : 0,
-                Username  = usernameClaim ?? string.Empty,
+                Usuario   = usernameClaim ?? string.Empty,
                 IdRol     = int.TryParse(idRolHeader, out var idRol) ? idRol : 0
             };
         }

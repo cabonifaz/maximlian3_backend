@@ -6,7 +6,7 @@ namespace SafetyReport.Models
 {
     public class LoginRequest
     {
-        public string Username { get; set; }
+        public string Usuario { get; set; }
         public string Password { get; set; }
     }
 
@@ -24,7 +24,7 @@ namespace SafetyReport.Models
         public string RefreshToken { get; set; }
 
         public int? IdUsuario { get; set; }
-        public string Username { get; set; }
+        public string Usuario { get; set; }
         public int? IdEmpresa { get; set; }
     }
 }

@@ -116,12 +116,12 @@
     public class ClienteListaConsulta
     {
         public int IdCliente { get; set; }
-        public int IdPais { get; set; }
-        public int IdTipoPersona { get; set; }
         public string Nombre { get; set; } = string.Empty;
         public string? Email { get; set; }
         public string? Telefono { get; set; }
-        public int IdEstado { get; set; }
+        public string Pais { get; set; } = string.Empty;
+        public string TipoPersona { get; set; } = string.Empty;
+        public string Estado { get; set; } = string.Empty;
     }
 
     public class FiltroCliente

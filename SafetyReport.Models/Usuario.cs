@@ -10,7 +10,7 @@
     public class UsuarioGeneral
     {
         public int IdUsuario { get; set; }
-        public string Username { get; set; } = string.Empty;
+        public string Usuario { get; set; } = string.Empty;
         public string Sub { get; set; } = string.Empty;
         public int IdEmpresa { get; set; }
         public int IdRol { get; set; }
@@ -22,7 +22,7 @@
         public string ApellidoPaterno { get; set; } = string.Empty;
         public string? ApellidoMaterno { get; set; }
         public string Email { get; set; } = string.Empty;
-        public string usernameCreacion {get; set;} = string.Empty;
+        public string usuarioCreacion {get; set;} = string.Empty;
         public List<int> Roles { get; set; } = new();
         public List<int> Idiomas { get; set; } = new();
     }
@@ -41,7 +41,7 @@
     public class UsuarioCreado
     {
         public int IdUsuario { get; set; }
-        public string Username { get; set; } = string.Empty;
+        public string Usuario { get; set; } = string.Empty;
     }
 
     public class UsuarioConsulta
@@ -52,7 +52,7 @@
         public string ApellidoPaterno { get; set; } = string.Empty;
         public string? ApellidoMaterno { get; set; }
         public string Email { get; set; } = string.Empty;
-        public string Username { get; set; } = string.Empty;
+        public string Usuario { get; set; } = string.Empty;
         public List<int> Roles { get; set; } = new();
         public List<int> Idiomas { get; set; } = new();
     }
@@ -72,7 +72,7 @@
         public string ApellidoPaterno { get; set; } = string.Empty;
         public string? ApellidoMaterno { get; set; }
         public string Email { get; set; } = string.Empty;
-        public string Username { get; set; } = string.Empty;
+        public string Usuario { get; set; } = string.Empty;
         public string? Roles { get; set; }
         public string? Estado { get; set; }
     }
@@ -83,7 +83,7 @@
         public int IdEmpresa { get; set; }
         public string Nombres { get; set; } = string.Empty;
         public string Email { get; set; } = string.Empty;
-        public string Username { get; set; } = string.Empty;
+        public string Usuario { get; set; } = string.Empty;
         public List<Roles> Roles { get; set; } = new();
     }
 
@@ -95,7 +95,7 @@
     public class EliminarUsuarioResult
     {
         public int IdUsuarioEliminar { get; set; }
-        public string Username { get; set; } = string.Empty;
+        public string Usuario { get; set; } = string.Empty;
     }
 
     public class FiltroUsuario

@@ -11,6 +11,6 @@ namespace SafetyReport.Models
         public string IdUsuario { get; set; }
 
         [JsonPropertyName("cognito:username")]
-        public string Username { get; set; }
+        public string Usuario { get; set; }
     }
 }

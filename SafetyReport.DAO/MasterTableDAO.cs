@@ -5,11 +5,11 @@ using System.Text.Json;
 
 namespace SafetyReport.DAO
 {
-    public class MasterTableDAO
+    public class TablaMaestraDAO
     {
         private readonly DbConfig _dbConfig;
 
-        public MasterTableDAO(DbConfig dbConfig)
+        public TablaMaestraDAO(DbConfig dbConfig)
         {
             _dbConfig = dbConfig;
         }
@@ -48,22 +48,22 @@ namespace SafetyReport.DAO
             };
         }
 
-        public async Task<Respuesta> ListarAsync(UsuarioGeneral usuarioLogueado, int? idMaster)
+        public async Task<Respuesta> ListarAsync(UsuarioGeneral usuarioLogueado, int? idMaestro)
         {
             try
             {
                 using SqlConnection cn = new(_dbConfig.ConnectionString);
-                using SqlCommand cmd = new("MasterTable_LST", cn);
+                using SqlCommand cmd = new("TablaMaestra_Listar", cn);
 
                 cmd.CommandType = CommandType.StoredProcedure;
                 cmd.Parameters.Add("@intIdUsuario", SqlDbType.Int).Value = usuarioLogueado.IdUsuario;
-                cmd.Parameters.Add("@vchUsername", SqlDbType.VarChar, 32).Value = usuarioLogueado.Username;
+                cmd.Parameters.Add("@vchUsuario", SqlDbType.VarChar, 32).Value = usuarioLogueado.Usuario;
                 cmd.Parameters.Add("@intIdEmpresa", SqlDbType.Int).Value = usuarioLogueado.IdEmpresa;
                 cmd.Parameters.Add("@intIdRol", SqlDbType.Int).Value = usuarioLogueado.IdRol;
-                cmd.Parameters.Add("@intIdMaster", SqlDbType.Int).Value = (object?)idMaster ?? DBNull.Value;
+                cmd.Parameters.Add("@intIdMaestro", SqlDbType.Int).Value = (object?)idMaestro ?? DBNull.Value;
 
                 await cn.OpenAsync();
-                return await LeerRespuestaAsync<MasterTableItem>(cmd);
+                return await LeerRespuestaAsync<TablaMaestraItem>(cmd);
             }
             catch (Exception ex)
             {
@@ -71,7 +71,7 @@ namespace SafetyReport.DAO
                 {
                     IdTipoMensaje = 3,
                     Mensaje = ex.Message,
-                    Result = new List<MasterTableItem>()
+                    Result = new List<TablaMaestraItem>()
                 };
             }
         }
@@ -81,11 +81,11 @@ namespace SafetyReport.DAO
             try
             {
                 using SqlConnection cn = new(_dbConfig.ConnectionString);
-                using SqlCommand cmd = new("InventarioMaestros_LST", cn);
+                using SqlCommand cmd = new("InventarioMaestros_Listar", cn);
 
                 cmd.CommandType = CommandType.StoredProcedure;
                 cmd.Parameters.Add("@intIdUsuario", SqlDbType.Int).Value = usuarioLogueado.IdUsuario;
-                cmd.Parameters.Add("@vchUsername", SqlDbType.VarChar, 32).Value = usuarioLogueado.Username;
+                cmd.Parameters.Add("@vchUsuario", SqlDbType.VarChar, 32).Value = usuarioLogueado.Usuario;
                 cmd.Parameters.Add("@intIdEmpresa", SqlDbType.Int).Value = usuarioLogueado.IdEmpresa;
                 cmd.Parameters.Add("@intIdRol", SqlDbType.Int).Value = usuarioLogueado.IdRol;
 
@@ -103,20 +103,20 @@ namespace SafetyReport.DAO
             }
         }
 
-        public async Task<Respuesta> CrearAsync(UsuarioGeneral usuarioLogueado, MasterTableRequest request)
+        public async Task<Respuesta> CrearAsync(UsuarioGeneral usuarioLogueado, TablaMaestraRequest request)
         {
             try
             {
                 using SqlConnection cn = new(_dbConfig.ConnectionString);
-                using SqlCommand cmd = new("MasterTable_INS", cn);
+                using SqlCommand cmd = new("TablaMaestra_Insertar", cn);
 
                 cmd.CommandType = CommandType.StoredProcedure;
                 cmd.Parameters.Add("@intIdUsuario", SqlDbType.Int).Value = usuarioLogueado.IdUsuario;
-                cmd.Parameters.Add("@vchUsername", SqlDbType.VarChar, 32).Value = usuarioLogueado.Username;
+                cmd.Parameters.Add("@vchUsuario", SqlDbType.VarChar, 32).Value = usuarioLogueado.Usuario;
                 cmd.Parameters.Add("@intIdEmpresa", SqlDbType.Int).Value = usuarioLogueado.IdEmpresa;
                 cmd.Parameters.Add("@intIdRol", SqlDbType.Int).Value = usuarioLogueado.IdRol;
 
-                cmd.Parameters.Add("@intIdMaster", SqlDbType.Int).Value = request.IdMaster;
+                cmd.Parameters.Add("@intIdMaestro", SqlDbType.Int).Value = request.IdMaestro;
                 cmd.Parameters.Add("@vchDescripcion", SqlDbType.VarChar, 255).Value = request.Descripcion;
                 cmd.Parameters.Add("@intNum1", SqlDbType.Int).Value = (object?)request.Num1 ?? DBNull.Value;
 
@@ -136,7 +136,7 @@ namespace SafetyReport.DAO
                 cmd.Parameters.Add("@dtDate3", SqlDbType.DateTime).Value = (object?)request.Date3 ?? DBNull.Value;
 
                 await cn.OpenAsync();
-                return await LeerRespuestaAsync<MasterTableResultado>(cmd);
+                return await LeerRespuestaAsync<TablaMaestraResultado>(cmd);
             }
             catch (Exception ex)
             {
@@ -144,25 +144,25 @@ namespace SafetyReport.DAO
                 {
                     IdTipoMensaje = 3,
                     Mensaje = ex.Message,
-                    Result = new List<MasterTableResultado>()
+                    Result = new List<TablaMaestraResultado>()
                 };
             }
         }
 
-        public async Task<Respuesta> EditarAsync(UsuarioGeneral usuarioLogueado, EditarMasterTableRequest request)
+        public async Task<Respuesta> EditarAsync(UsuarioGeneral usuarioLogueado, EditarTablaMaestraRequest request)
         {
             try
             {
                 using SqlConnection cn = new(_dbConfig.ConnectionString);
-                using SqlCommand cmd = new("MasterTable_UPD", cn);
+                using SqlCommand cmd = new("TablaMaestra_Actualizar", cn);
 
                 cmd.CommandType = CommandType.StoredProcedure;
                 cmd.Parameters.Add("@intIdUsuario", SqlDbType.Int).Value = usuarioLogueado.IdUsuario;
-                cmd.Parameters.Add("@vchUsername", SqlDbType.VarChar, 32).Value = usuarioLogueado.Username;
+                cmd.Parameters.Add("@vchUsuario", SqlDbType.VarChar, 32).Value = usuarioLogueado.Usuario;
                 cmd.Parameters.Add("@intIdEmpresa", SqlDbType.Int).Value = usuarioLogueado.IdEmpresa;
                 cmd.Parameters.Add("@intIdRol", SqlDbType.Int).Value = usuarioLogueado.IdRol;
 
-                cmd.Parameters.Add("@intIdMaster", SqlDbType.Int).Value = request.IdMaster;
+                cmd.Parameters.Add("@intIdMaestro", SqlDbType.Int).Value = request.IdMaestro;
                 cmd.Parameters.Add("@intNum1", SqlDbType.Int).Value = (object?)request.Num1 ?? DBNull.Value;
 
                 cmd.Parameters.Add("@decNum2", SqlDbType.Decimal).Value = (object?)request.Num2 ?? DBNull.Value;
@@ -181,7 +181,7 @@ namespace SafetyReport.DAO
                 cmd.Parameters.Add("@dtDate3", SqlDbType.DateTime).Value = (object?)request.Date3 ?? DBNull.Value;
 
                 await cn.OpenAsync();
-                return await LeerRespuestaAsync<MasterTableResultado>(cmd);
+                return await LeerRespuestaAsync<TablaMaestraResultado>(cmd);
             }
             catch (Exception ex)
             {
@@ -189,27 +189,27 @@ namespace SafetyReport.DAO
                 {
                     IdTipoMensaje = 3,
                     Mensaje = ex.Message,
-                    Result = new List<MasterTableResultado>()
+                    Result = new List<TablaMaestraResultado>()
                 };
             }
         }
 
-        public async Task<Respuesta> EliminarAsync(UsuarioGeneral usuarioLogueado, int idMasterTable)
+        public async Task<Respuesta> EliminarAsync(UsuarioGeneral usuarioLogueado, int idTablaMaestra)
         {
             try
             {
                 using SqlConnection cn = new(_dbConfig.ConnectionString);
-                using SqlCommand cmd = new("MasterTable_DEL", cn);
+                using SqlCommand cmd = new("TablaMaestra_Eliminar", cn);
 
                 cmd.CommandType = CommandType.StoredProcedure;
                 cmd.Parameters.Add("@intIdUsuario", SqlDbType.Int).Value = usuarioLogueado.IdUsuario;
-                cmd.Parameters.Add("@vchUsername", SqlDbType.VarChar, 32).Value = usuarioLogueado.Username;
+                cmd.Parameters.Add("@vchUsuario", SqlDbType.VarChar, 32).Value = usuarioLogueado.Usuario;
                 cmd.Parameters.Add("@intIdEmpresa", SqlDbType.Int).Value = usuarioLogueado.IdEmpresa;
                 cmd.Parameters.Add("@intIdRol", SqlDbType.Int).Value = usuarioLogueado.IdRol;
-                cmd.Parameters.Add("@intIdMasterTable", SqlDbType.Int).Value = idMasterTable;
+                cmd.Parameters.Add("@intIdTablaMaestra", SqlDbType.Int).Value = idTablaMaestra;
 
                 await cn.OpenAsync();
-                return await LeerRespuestaAsync<MasterTableResultado>(cmd);
+                return await LeerRespuestaAsync<TablaMaestraResultado>(cmd);
             }
             catch (Exception ex)
             {
@@ -217,7 +217,7 @@ namespace SafetyReport.DAO
                 {
                     IdTipoMensaje = 3,
                     Mensaje = ex.Message,
-                    Result = new List<MasterTableResultado>()
+                    Result = new List<TablaMaestraResultado>()
                 };
             }
         }
