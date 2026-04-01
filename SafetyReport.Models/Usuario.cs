@@ -103,4 +103,12 @@
         public int? numPag { get; set; }
         public string? Filtro { get; set; }
     }
+
+    public class UsuarioListaCortaItem
+    {
+        public string Nombres { get; set; } = string.Empty;
+        public string ApellidoPaterno { get; set; } = string.Empty;
+        public string? ApellidoMaterno { get; set; }
+        public string Email { get; set; } = string.Empty;
+    }
 }

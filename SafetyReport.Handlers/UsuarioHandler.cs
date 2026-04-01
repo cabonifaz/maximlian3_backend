@@ -179,5 +179,22 @@ namespace SafetyReport.Handlers
                 };
             }
         }
+
+        public async Task<Respuesta> ListarCortaAsync(UsuarioGeneral usuarioLogueado, int idRolFiltro)
+        {
+            try
+            {
+                return await _dao.ListarCortaAsync(usuarioLogueado, idRolFiltro);
+            }
+            catch (Exception ex)
+            {
+                return new Respuesta
+                {
+                    IdTipoMensaje = 3,
+                    Mensaje = ex.Message,
+                    Result = new List<UsuarioListaCortaItem>()
+                };
+            }
+        }
     }
 }

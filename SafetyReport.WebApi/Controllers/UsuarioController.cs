@@ -59,5 +59,16 @@ namespace SafetyReport.WebApi.Controllers
 
             return Ok(respuesta);
         }
+
+        [HttpGet("listaCorta")]
+        public async Task<IActionResult> ListarCorta([FromQuery] int IdRolFiltro)
+        {
+            var respuesta = await _usuarioHandler.ListarCortaAsync(
+                UsuarioLogueado,
+                IdRolFiltro
+            );
+
+            return Ok(respuesta);
+        }
     }
 }
