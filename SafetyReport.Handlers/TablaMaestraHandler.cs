@@ -80,6 +80,23 @@ namespace SafetyReport.Handlers
             }
         }
 
+        public async Task<Respuesta> ObtenerAsync(UsuarioGeneral usuarioLogueado, ObtenerTablaMaestraRequest request)
+        {
+            try
+            {
+                return await _dao.ObtenerAsync(usuarioLogueado, request);
+            }
+            catch (Exception ex)
+            {
+                return new Respuesta
+                {
+                    IdTipoMensaje = 3,
+                    Mensaje = ex.Message,
+                    Result = new List<TablaMaestraItem>()
+                };
+            }
+        }
+
         public async Task<Respuesta> EliminarAsync(UsuarioGeneral usuarioLogueado, EliminarTablaMaestraRequest request)
         {
             try

@@ -67,4 +67,11 @@
     {
         public int? IdMaestro { get; set; }
     }
+
+    public class ObtenerTablaMaestraRequest
+    {
+        public int IdMaestro { get; set; }
+        public int? IdBusqueda { get; set; }
+        public string? VchBusqueda { get; set; }
+    }
 }

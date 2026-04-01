@@ -194,6 +194,36 @@ namespace SafetyReport.DAO
             }
         }
 
+        public async Task<Respuesta> ObtenerAsync(UsuarioGeneral usuarioLogueado, ObtenerTablaMaestraRequest request)
+        {
+            try
+            {
+                using SqlConnection cn = new(_dbConfig.ConnectionString);
+                using SqlCommand cmd = new("TablaMaestra_Obtener", cn);
+
+                cmd.CommandType = CommandType.StoredProcedure;
+                cmd.Parameters.Add("@intIdUsuario",  SqlDbType.Int).Value         = usuarioLogueado.IdUsuario;
+                cmd.Parameters.Add("@vchUsuario",    SqlDbType.VarChar, 32).Value = usuarioLogueado.Usuario;
+                cmd.Parameters.Add("@intIdEmpresa",  SqlDbType.Int).Value         = usuarioLogueado.IdEmpresa;
+                cmd.Parameters.Add("@intIdRol",      SqlDbType.Int).Value         = usuarioLogueado.IdRol;
+                cmd.Parameters.Add("@intIdMaestro",  SqlDbType.Int).Value         = request.IdMaestro;
+                cmd.Parameters.Add("@intIdBusqueda", SqlDbType.Int).Value         = (object?)request.IdBusqueda ?? DBNull.Value;
+                cmd.Parameters.Add("@vchBusqueda",   SqlDbType.VarChar).Value     = (object?)request.VchBusqueda ?? DBNull.Value;
+
+                await cn.OpenAsync();
+                return await LeerRespuestaAsync<TablaMaestraItem>(cmd);
+            }
+            catch (Exception ex)
+            {
+                return new Respuesta
+                {
+                    IdTipoMensaje = 3,
+                    Mensaje = ex.Message,
+                    Result = new List<TablaMaestraItem>()
+                };
+            }
+        }
+
         public async Task<Respuesta> EliminarAsync(UsuarioGeneral usuarioLogueado, int idTablaMaestra)
         {
             try

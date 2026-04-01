@@ -44,6 +44,13 @@ namespace SafetyReport.WebApi.Controllers
             return Ok(respuesta);
         }
 
+        [HttpGet("obtener")]
+        public async Task<IActionResult> Obtener([FromQuery] ObtenerTablaMaestraRequest request)
+        {
+            var respuesta = await _tablaMaestraHandler.ObtenerAsync(UsuarioLogueado, request);
+            return Ok(respuesta);
+        }
+
         [HttpPost("eliminar")]
         public async Task<IActionResult> Eliminar([FromBody] EliminarTablaMaestraRequest request)
         {
