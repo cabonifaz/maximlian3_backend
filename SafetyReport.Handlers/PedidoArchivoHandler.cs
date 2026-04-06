@@ -96,6 +96,8 @@ namespace SafetyReport.Handlers
                 "APPLICATION/VND.OPENXMLFORMATS-OFFICEDOCUMENT.WORDPROCESSINGML.DOCUMENT" => "DOCX",
                 "APPLICATION/VND.MS-EXCEL" => "XLS",
                 "APPLICATION/VND.OPENXMLFORMATS-OFFICEDOCUMENT.SPREADSHEETML.SHEET" => "XLSX",
+                "TEXT/PLAIN" => "TXT",
+                "APPLICATION/OCTET-STREAM" => "TXT",
                 _ => Path.GetExtension(nombreArchivo).TrimStart('.').ToUpperInvariant()
             };
         }
