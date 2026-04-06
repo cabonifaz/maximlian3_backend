@@ -174,6 +174,7 @@ namespace SafetyReport.Handlers
                 "APPLICATION/VND.OPENXMLFORMATS-OFFICEDOCUMENT.SPREADSHEETML.SHEET" => "XLSX",
                 "TEXT/PLAIN" => "TXT",
                 "APPLICATION/OCTET-STREAM" => "TXT",
+                "TEXT/HTML" => "HTML",
                 _ => Path.GetExtension(nombreArchivo).TrimStart('.').ToUpperInvariant()
             };
         }
