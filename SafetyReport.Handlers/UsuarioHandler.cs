@@ -66,7 +66,7 @@ namespace SafetyReport.Handlers
 
                 if (!string.IsNullOrWhiteSpace(sub))
                 {
-                    var respuestaSub = await _dao.ActualizarSubAsync(creado.IdUsuario, sub);
+                    var respuestaSub = await _dao.ActualizarSubAsync(usuarioLogueado, creado.IdUsuario, sub);
 
                     if (respuestaSub.IdTipoMensaje != 2)
                         return respuestaSub;

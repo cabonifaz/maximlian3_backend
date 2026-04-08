@@ -323,7 +323,7 @@ namespace SafetyReport.DAO
             }
         }
 
-        public async Task<Respuesta> ActualizarSubAsync(int idUsuario, string sub)
+        public async Task<Respuesta> ActualizarSubAsync(UsuarioGeneral usuarioActual, int idUsuarioActualizar, string sub)
         {
             try
             {
@@ -331,7 +331,11 @@ namespace SafetyReport.DAO
                 using SqlCommand cmd = new("Usuario_Actualizar_COGNITO", cn);
 
                 cmd.CommandType = CommandType.StoredProcedure;
-                cmd.Parameters.Add("@intIdUsuario", SqlDbType.Int).Value = idUsuario;
+                cmd.Parameters.Add("@intIdUsuario", SqlDbType.Int).Value = usuarioActual.IdUsuario;
+                cmd.Parameters.Add("@vchUsuario", SqlDbType.VarChar, 32).Value = usuarioActual.Usuario;
+                cmd.Parameters.Add("@intIdEmpresa", SqlDbType.Int).Value = usuarioActual.IdEmpresa;
+                cmd.Parameters.Add("@intIdRol", SqlDbType.Int).Value = usuarioActual.IdRol;
+                cmd.Parameters.Add("@intIdUsuarioActualizar", SqlDbType.Int).Value = idUsuarioActualizar;
                 cmd.Parameters.Add("@vchSub", SqlDbType.VarChar, 255).Value = sub;
 
                 await cn.OpenAsync();
