@@ -21,7 +21,7 @@
         public string Nombres { get; set; } = string.Empty;
         public string ApellidoPaterno { get; set; } = string.Empty;
         public string? ApellidoMaterno { get; set; }
-        public string Email { get; set; } = string.Empty;
+        public string Correo { get; set; } = string.Empty;
         public string usuarioCreacion {get; set;} = string.Empty;
         public List<int> Roles { get; set; } = new();
         public List<int> Idiomas { get; set; } = new();
@@ -33,7 +33,7 @@
         public string Nombres { get; set; } = string.Empty;
         public string ApellidoPaterno { get; set; } = string.Empty;
         public string? ApellidoMaterno { get; set; }
-        public string Email { get; set; } = string.Empty;
+        public string Correo { get; set; } = string.Empty;
         public List<int> Roles { get; set; } = new();
         public List<int> Idiomas { get; set; } = new();
     }
@@ -51,7 +51,7 @@
         public string Nombres { get; set; } = string.Empty;
         public string ApellidoPaterno { get; set; } = string.Empty;
         public string? ApellidoMaterno { get; set; }
-        public string Email { get; set; } = string.Empty;
+        public string Correo { get; set; } = string.Empty;
         public string Usuario { get; set; } = string.Empty;
         public List<int> Roles { get; set; } = new();
         public List<int> Idiomas { get; set; } = new();
@@ -71,7 +71,7 @@
         public string Nombres { get; set; } = string.Empty;
         public string ApellidoPaterno { get; set; } = string.Empty;
         public string? ApellidoMaterno { get; set; }
-        public string Email { get; set; } = string.Empty;
+        public string Correo { get; set; } = string.Empty;
         public string Usuario { get; set; } = string.Empty;
         public string? Roles { get; set; }
         public string? Estado { get; set; }
@@ -82,7 +82,7 @@
         public int IdUsuario { get; set; }
         public int IdEmpresa { get; set; }
         public string Nombres { get; set; } = string.Empty;
-        public string Email { get; set; } = string.Empty;
+        public string Correo { get; set; } = string.Empty;
         public string Usuario { get; set; } = string.Empty;
         public List<Roles> Roles { get; set; } = new();
     }
@@ -109,6 +109,24 @@
         public string Nombres { get; set; } = string.Empty;
         public string ApellidoPaterno { get; set; } = string.Empty;
         public string? ApellidoMaterno { get; set; }
-        public string Email { get; set; } = string.Empty;
+        public string Correo { get; set; } = string.Empty;
+    }
+
+    public class UsuarioAsignacionListaCortaItem
+    {
+        public int IdUsuario { get; set; }
+        public string Iniciales { get; set; } = string.Empty;
+        public string NombreCompleto { get; set; } = string.Empty;
+        public int? CantidadIdiomas { get; set; }
+        public int? CantidadIdiomasCoincidentes { get; set; }
+        public int CantidadAsignaciones { get; set; }
+    }
+
+    public class FiltroUsuarioAsignacionListaCorta
+    {
+        public int IdRolFiltro { get; set; }
+        public string? Filtro { get; set; }
+        public bool EsTraductor { get; set; }
+        public List<int>? IdiomasPedido { get; set; }
     }
 }

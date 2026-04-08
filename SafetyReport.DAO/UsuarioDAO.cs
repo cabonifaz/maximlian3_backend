@@ -80,7 +80,7 @@ namespace SafetyReport.DAO
                 cmd.Parameters.Add("@vchNombres", SqlDbType.VarChar, 50).Value = request.Nombres;
                 cmd.Parameters.Add("@vchApellidoPaterno", SqlDbType.VarChar, 50).Value = request.ApellidoPaterno;
                 cmd.Parameters.Add("@vchApellidoMaterno", SqlDbType.VarChar, 50).Value = (object?)request.ApellidoMaterno ?? DBNull.Value;
-                cmd.Parameters.Add("@vchEmail", SqlDbType.VarChar, 100).Value = request.Email;
+                cmd.Parameters.Add("@vchCorreo", SqlDbType.VarChar, 100).Value = request.Correo;
                 cmd.Parameters.Add("@vchUsuarioCreado", SqlDbType.VarChar, 32).Value = request.usuarioCreacion;
 
                 var tableRoles = ConstruirTablaListaGeneralNum(request.Roles);
@@ -123,7 +123,7 @@ namespace SafetyReport.DAO
                 cmd.Parameters.Add("@vchNombres", SqlDbType.VarChar, 50).Value = request.Nombres;
                 cmd.Parameters.Add("@vchApellidoPaterno", SqlDbType.VarChar, 50).Value = request.ApellidoPaterno;
                 cmd.Parameters.Add("@vchApellidoMaterno", SqlDbType.VarChar, 50).Value = (object?)request.ApellidoMaterno ?? DBNull.Value;
-                cmd.Parameters.Add("@vchEmail", SqlDbType.VarChar, 100).Value = request.Email;
+                cmd.Parameters.Add("@vchCorreo", SqlDbType.VarChar, 100).Value = request.Correo;
 
                 var tableRoles = ConstruirTablaListaGeneralNum(request.Roles);
                 var tvpRoles = cmd.Parameters.AddWithValue("@lstRoles", tableRoles);
@@ -265,7 +265,7 @@ namespace SafetyReport.DAO
             try
             {
                 using SqlConnection cn = new(_dbConfig.ConnectionString);
-                using SqlCommand cmd = new("UsuarioListar_Corta", cn);
+                using SqlCommand cmd = new("Usuario_Listar_Corta", cn);
 
                 cmd.CommandType = CommandType.StoredProcedure;
                 cmd.Parameters.Add("@intIdUsuario", SqlDbType.Int).Value = usuarioActual.IdUsuario;
@@ -288,6 +288,41 @@ namespace SafetyReport.DAO
             }
         }
 
+        public async Task<Respuesta> ListarCortaAsignacionAsync(UsuarioGeneral usuarioActual, int idRolFiltro, string? filtro, bool esTraductor, List<int>? idiomasPedido)
+        {
+            try
+            {
+                using SqlConnection cn = new(_dbConfig.ConnectionString);
+                using SqlCommand cmd = new("UsuarioAsignacion_Listar_Corta", cn);
+
+                cmd.CommandType = CommandType.StoredProcedure;
+                cmd.Parameters.Add("@intIdUsuario", SqlDbType.Int).Value = usuarioActual.IdUsuario;
+                cmd.Parameters.Add("@vchUsuario", SqlDbType.VarChar, 32).Value = usuarioActual.Usuario;
+                cmd.Parameters.Add("@intIdEmpresa", SqlDbType.Int).Value = usuarioActual.IdEmpresa;
+                cmd.Parameters.Add("@intIdRol", SqlDbType.Int).Value = usuarioActual.IdRol;
+                cmd.Parameters.Add("@intIdRolFiltro", SqlDbType.Int).Value = idRolFiltro;
+                cmd.Parameters.Add("@vchFiltro", SqlDbType.VarChar, 255).Value = (object?)filtro ?? DBNull.Value;
+                cmd.Parameters.Add("@bitEsTraductor", SqlDbType.Bit).Value = esTraductor;
+
+                var tableIdiomas = ConstruirTablaListaGeneralNum(idiomasPedido);
+                var tvpIdiomas = cmd.Parameters.AddWithValue("@lstIdiomasPedido", tableIdiomas);
+                tvpIdiomas.SqlDbType = SqlDbType.Structured;
+                tvpIdiomas.TypeName = "LISTA_GENERAL_NUM";
+
+                await cn.OpenAsync();
+                return await LeerRespuestaAsync<UsuarioAsignacionListaCortaItem>(cmd);
+            }
+            catch (Exception ex)
+            {
+                return new Respuesta
+                {
+                    IdTipoMensaje = 3,
+                    Mensaje = ex.Message,
+                    Result = new List<UsuarioAsignacionListaCortaItem>()
+                };
+            }
+        }
+
         public async Task<Respuesta> ActualizarSubAsync(int idUsuario, string sub)
         {
             try
@@ -300,14 +335,7 @@ namespace SafetyReport.DAO
                 cmd.Parameters.Add("@vchSub", SqlDbType.VarChar, 255).Value = sub;
 
                 await cn.OpenAsync();
-                await cmd.ExecuteNonQueryAsync();
-
-                return new Respuesta
-                {
-                    IdTipoMensaje = 2,
-                    Mensaje = "Sub actualizado correctamente.",
-                    Result = null
-                };
+                return await LeerRespuestaAsync<UsuarioCreado>(cmd);
             }
             catch (Exception ex)
             {
@@ -315,7 +343,7 @@ namespace SafetyReport.DAO
                 {
                     IdTipoMensaje = 3,
                     Mensaje = ex.Message,
-                    Result = null
+                    Result = new List<UsuarioCreado>()
                 };
             }
         }

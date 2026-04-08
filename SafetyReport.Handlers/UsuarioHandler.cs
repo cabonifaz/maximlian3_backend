@@ -52,7 +52,7 @@ namespace SafetyReport.Handlers
                     DesiredDeliveryMediums = new List<string> { "EMAIL" },
                     UserAttributes = new List<AttributeType>
                     {
-                        new AttributeType { Name = "email", Value = request.Email },
+                        new AttributeType { Name = "email", Value = request.Correo },
                         new AttributeType { Name = "email_verified", Value = "true" },
                         new AttributeType { Name = "custom:id_empresa", Value = usuarioLogueado.IdEmpresa.ToString() },
                         new AttributeType { Name = "custom:id_usuario", Value = creado.IdUsuario.ToString() }
@@ -193,6 +193,23 @@ namespace SafetyReport.Handlers
                     IdTipoMensaje = 3,
                     Mensaje = ex.Message,
                     Result = new List<UsuarioListaCortaItem>()
+                };
+            }
+        }
+
+        public async Task<Respuesta> ListarCortaAsignacionAsync(UsuarioGeneral usuarioLogueado, int idRolFiltro, string? filtro, bool esTraductor, List<int>? idiomasPedido)
+        {
+            try
+            {
+                return await _dao.ListarCortaAsignacionAsync(usuarioLogueado, idRolFiltro, filtro, esTraductor, idiomasPedido);
+            }
+            catch (Exception ex)
+            {
+                return new Respuesta
+                {
+                    IdTipoMensaje = 3,
+                    Mensaje = ex.Message,
+                    Result = new List<UsuarioAsignacionListaCortaItem>()
                 };
             }
         }

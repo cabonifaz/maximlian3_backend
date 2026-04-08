@@ -149,6 +149,8 @@ builder.Services.AddScoped<ClienteContactoHandler>();
 builder.Services.AddScoped<ClienteContactoDAO>();
 builder.Services.AddScoped<PedidoHandler>();
 builder.Services.AddScoped<PedidoDAO>();
+builder.Services.AddScoped<AsignacionHandler>();
+builder.Services.AddScoped<AsignacionDAO>();
 
 var awsRegion = builder.Configuration["AWS:Region"];
 var awsBucketName = builder.Configuration["AWS:BucketName"];
@@ -176,8 +178,6 @@ builder.Services.AddSingleton<IS3UploadService, S3UploadService>();
 builder.Services.AddScoped<PedidoArchivoHandler>();
 builder.Services.AddScoped<PedidoArchivoDAO>();
 builder.Services.AddScoped<CognitoTokenValidator>();
-builder.Services.AddScoped<N8nDAO>();
-builder.Services.AddScoped<N8nHandler>();
 
 var app = builder.Build();
 

@@ -50,22 +50,36 @@ namespace SafetyReport.WebApi.Controllers
         }
 
         [HttpGet("obtener")]
-        public async Task<IActionResult> Obtener([FromQuery] int IdUsuario)
+        public async Task<IActionResult> Obtener([FromQuery] int idUsuario)
         {
             var respuesta = await _usuarioHandler.ObtenerUsuarioAsync(
                 UsuarioLogueado,
-                IdUsuario
+                idUsuario
             );
 
             return Ok(respuesta);
         }
 
         [HttpGet("listaCorta")]
-        public async Task<IActionResult> ListarCorta([FromQuery] int IdRolFiltro)
+        public async Task<IActionResult> ListarCorta([FromQuery] int idRolFiltro)
         {
             var respuesta = await _usuarioHandler.ListarCortaAsync(
                 UsuarioLogueado,
-                IdRolFiltro
+                idRolFiltro
+            );
+
+            return Ok(respuesta);
+        }
+
+        [HttpGet("listaCortaAsignacion")]
+        public async Task<IActionResult> ListarCortaAsignacion([FromQuery] FiltroUsuarioAsignacionListaCorta request)
+        {
+            var respuesta = await _usuarioHandler.ListarCortaAsignacionAsync(
+                UsuarioLogueado,
+                request.IdRolFiltro,
+                request.Filtro,
+                request.EsTraductor,
+                request.IdiomasPedido
             );
 
             return Ok(respuesta);
