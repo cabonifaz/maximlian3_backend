@@ -32,9 +32,9 @@ namespace SafetyReport.WebApi.Controllers
         }
 
         [HttpGet("obtener")]
-        public async Task<IActionResult> Obtener([FromQuery] int idPedido)
+        public async Task<IActionResult> Obtener([FromQuery] FiltroPedidoObtener request)
         {
-            var respuesta = await _pedidoHandler.ObtenerAsync(UsuarioLogueado, idPedido);
+            var respuesta = await _pedidoHandler.ObtenerAsync(UsuarioLogueado, request);
             return Ok(respuesta);
         }
 

@@ -120,6 +120,14 @@ namespace SafetyReport.Models
         public int? NumPag { get; set; }
     }
 
+    public class FiltroPedidoObtener
+    {
+        public int IdPedido { get; set; }
+        public int? IdCliente { get; set; }
+        public int? IdTarifario { get; set; }
+        public string? NombreInvestigado { get; set; }
+    }
+
     public class PedidoListaConsulta
     {
         public int IdPedido { get; set; }

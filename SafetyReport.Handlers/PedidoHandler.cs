@@ -107,11 +107,11 @@ namespace SafetyReport.Handlers
             }
         }
 
-        public async Task<Respuesta> ObtenerAsync(UsuarioGeneral usuarioLogueado, int idPedido)
+        public async Task<Respuesta> ObtenerAsync(UsuarioGeneral usuarioLogueado, FiltroPedidoObtener request)
         {
             try
             {
-                return await _dao.ObtenerAsync(usuarioLogueado, idPedido);
+                return await _dao.ObtenerAsync(usuarioLogueado, request);
             }
             catch (Exception ex)
             {
