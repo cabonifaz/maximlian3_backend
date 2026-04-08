@@ -122,7 +122,7 @@ namespace SafetyReport.Models
 
     public class FiltroPedidoObtener
     {
-        public int IdPedido { get; set; }
+        public int? IdPedido { get; set; }
         public int? IdCliente { get; set; }
         public int? IdTarifario { get; set; }
         public string? NombreInvestigado { get; set; }
