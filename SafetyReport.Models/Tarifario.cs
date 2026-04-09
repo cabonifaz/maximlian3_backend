@@ -105,6 +105,8 @@ namespace SafetyReport.Models
         public int IdPais { get; set; }
         public int IdProducto { get; set; }
         public int IdTipoTramite { get; set; }
+        public int DiasMin { get; set; }
+        public int DiasMax { get; set; }
     }
     public class TarifarioListaCortaResult
     {
