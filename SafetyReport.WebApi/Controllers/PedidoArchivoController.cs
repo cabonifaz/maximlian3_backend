@@ -2,10 +2,12 @@
 using Microsoft.AspNetCore.Mvc;
 using SafetyReport.Handlers;
 using SafetyReport.Models;
+using SafetyReport.WebApi.Helpers;
 
 namespace SafetyReport.WebApi.Controllers
 {
     [Authorize]
+    [N8nHeader]
     [Route("api/[controller]")]
     [ApiController]
     public class PedidoArchivoController : BaseController
