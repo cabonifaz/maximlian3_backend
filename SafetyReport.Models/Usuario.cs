@@ -101,7 +101,7 @@
     public class FiltroUsuario
     {
         public int? numPag { get; set; }
-        public string? Filtro { get; set; }
+        public string? filtro { get; set; }
     }
 
     public class UsuarioListaCortaItem
@@ -124,9 +124,9 @@
 
     public class FiltroUsuarioAsignacionListaCorta
     {
-        public int IdRolFiltro { get; set; }
-        public string? Filtro { get; set; }
-        public bool EsTraductor { get; set; }
-        public List<int>? IdiomasPedido { get; set; }
+        public int idRolFiltro { get; set; }
+        public string? filtro { get; set; }
+        public bool esTraductor { get; set; }
+        public List<int>? idiomasPedido { get; set; }
     }
 }

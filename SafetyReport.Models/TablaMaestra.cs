@@ -65,13 +65,13 @@
 
     public class FiltroTablaMaestraRequest
     {
-        public int? IdMaestro { get; set; }
+        public int? idMaestro { get; set; }
     }
 
     public class ObtenerTablaMaestraRequest
     {
-        public int IdMaestro { get; set; }
-        public int? IdBusqueda { get; set; }
-        public string? VchBusqueda { get; set; }
+        public int idMaestro { get; set; }
+        public int? idBusqueda { get; set; }
+        public string? vchBusqueda { get; set; }
     }
 }

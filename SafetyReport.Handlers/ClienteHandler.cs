@@ -84,7 +84,7 @@ namespace SafetyReport.Handlers
         {
             try
             {
-                return await _dao.EliminarClienteAsync(usuarioLogueado, request.IdCliente);
+                return await _dao.EliminarClienteAsync(usuarioLogueado, request.idCliente);
             }
             catch (Exception ex)
             {

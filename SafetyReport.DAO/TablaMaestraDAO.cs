@@ -206,9 +206,9 @@ namespace SafetyReport.DAO
                 cmd.Parameters.Add("@vchUsuario",    SqlDbType.VarChar, 32).Value = usuarioLogueado.Usuario;
                 cmd.Parameters.Add("@intIdEmpresa",  SqlDbType.Int).Value         = usuarioLogueado.IdEmpresa;
                 cmd.Parameters.Add("@intIdRol",      SqlDbType.Int).Value         = usuarioLogueado.IdRol;
-                cmd.Parameters.Add("@intIdMaestro",  SqlDbType.Int).Value         = request.IdMaestro;
-                cmd.Parameters.Add("@intIdBusqueda", SqlDbType.Int).Value         = (object?)request.IdBusqueda ?? DBNull.Value;
-                cmd.Parameters.Add("@vchBusqueda",   SqlDbType.VarChar).Value     = (object?)request.VchBusqueda ?? DBNull.Value;
+                cmd.Parameters.Add("@intIdMaestro",  SqlDbType.Int).Value         = request.idMaestro;
+                cmd.Parameters.Add("@intIdBusqueda", SqlDbType.Int).Value         = (object?)request.idBusqueda ?? DBNull.Value;
+                cmd.Parameters.Add("@vchBusqueda",   SqlDbType.VarChar).Value     = (object?)request.vchBusqueda ?? DBNull.Value;
 
                 await cn.OpenAsync();
                 return await LeerRespuestaAsync<TablaMaestraItem>(cmd);

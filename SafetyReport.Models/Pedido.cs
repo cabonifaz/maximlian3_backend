@@ -114,18 +114,18 @@ namespace SafetyReport.Models
 
     public class FiltroPedido
     {
-        public string? Busqueda { get; set; }
-        public int? IdCliente { get; set; }
-        public string? IdEstado { get; set; }
-        public int? NumPag { get; set; }
+        public string? busqueda { get; set; }
+        public int? idCliente { get; set; }
+        public string? idEstado { get; set; }
+        public int? numPag { get; set; }
     }
 
     public class FiltroPedidoObtener
     {
-        public int? IdPedido { get; set; }
-        public int? IdCliente { get; set; }
-        public int? IdTarifario { get; set; }
-        public string? NombreInvestigado { get; set; }
+        public int? idPedido { get; set; }
+        public int? idCliente { get; set; }
+        public int? idTarifario { get; set; }
+        public string? nombreInvestigado { get; set; }
     }
 
     public class PedidoListaConsulta

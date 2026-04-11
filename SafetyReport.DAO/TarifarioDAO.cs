@@ -56,6 +56,10 @@ namespace SafetyReport.DAO
 
                 cmd.CommandType = CommandType.StoredProcedure;
 
+                cmd.Parameters.Add("@intIdUsuario", SqlDbType.Int).Value = usuarioLogueado.IdUsuario;
+                cmd.Parameters.Add("@vchUsuario", SqlDbType.VarChar, 32).Value = usuarioLogueado.Usuario;
+                cmd.Parameters.Add("@intIdEmpresa", SqlDbType.Int).Value = usuarioLogueado.IdEmpresa;
+                cmd.Parameters.Add("@intIdRol", SqlDbType.Int).Value = usuarioLogueado.IdRol;
                 cmd.Parameters.Add("@intIdCliente", SqlDbType.Int).Value = request.IdCliente;
                 cmd.Parameters.Add("@intIdProducto", SqlDbType.Int).Value = request.IdProducto;
                 cmd.Parameters.Add("@intIdTipoTramite", SqlDbType.Int).Value = request.IdTipoTramite;
@@ -71,8 +75,6 @@ namespace SafetyReport.DAO
                 cmd.Parameters.Add("@decPenalidad", SqlDbType.Decimal).Value = request.Penalidad;
                 cmd.Parameters["@decPenalidad"].Precision = 18;
                 cmd.Parameters["@decPenalidad"].Scale = 2;
-
-                cmd.Parameters.Add("@vchUsuario", SqlDbType.VarChar, 32).Value = usuarioLogueado.Usuario;
 
                 await cn.OpenAsync();
                 return await LeerRespuestaAsync<TarifarioCreado>(cmd);
@@ -264,9 +266,9 @@ namespace SafetyReport.DAO
                 cmd.Parameters.Add("@intIdEmpresa", SqlDbType.Int).Value = usuarioLogueado.IdEmpresa;
                 cmd.Parameters.Add("@intIdRol", SqlDbType.Int).Value = usuarioLogueado.IdRol;
                 cmd.Parameters.Add("@intIdCliente", SqlDbType.Int).Value = request.idCliente;
-                cmd.Parameters.Add("@intIdTipoProducto", SqlDbType.Int).Value = (object?)request.IdTipoProducto ?? DBNull.Value;
-                cmd.Parameters.Add("@intIdTipoTramite", SqlDbType.Int).Value = (object?)request.IdTipoTramite ?? DBNull.Value;
-                cmd.Parameters.Add("@intIdPais", SqlDbType.Int).Value = (object?)request.IdPais ?? DBNull.Value;
+                cmd.Parameters.Add("@intIdTipoProducto", SqlDbType.Int).Value = (object?)request.idTipoProducto ?? DBNull.Value;
+                cmd.Parameters.Add("@intIdTipoTramite", SqlDbType.Int).Value = (object?)request.idTipoTramite ?? DBNull.Value;
+                cmd.Parameters.Add("@intIdPais", SqlDbType.Int).Value = (object?)request.idPais ?? DBNull.Value;
 
                 await cn.OpenAsync();
 

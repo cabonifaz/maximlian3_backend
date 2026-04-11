@@ -54,10 +54,10 @@ namespace SafetyReport.Models
 
     public class FiltroPedidoArchivo
     {
-        public int IdPedido { get; set; }
-        public string? Busqueda { get; set; }
-        public int? IdEstado { get; set; }
-        public int? NumPag { get; set; }
+        public int idPedido { get; set; }
+        public string? busqueda { get; set; }
+        public int? idEstado { get; set; }
+        public int? numPag { get; set; }
     }
 
     public class PedidoArchivoListaConsulta

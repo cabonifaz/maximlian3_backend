@@ -134,7 +134,7 @@
 
     public class ClienteIdRequest
     {
-        public int IdCliente { get; set; }
+        public int idCliente { get; set; }
     }
     public class ClienteListaCortaItem
     {

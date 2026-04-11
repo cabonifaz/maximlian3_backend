@@ -3,6 +3,8 @@ namespace SafetyReport.Models
     public class AsignacionCrear
     {
         public int IdUsuarioAsignado { get; set; }
+        public int IdRolAsignado { get; set; }
+        public int IdEstado { get; set; }
         public List<int> IdsPedido { get; set; } = new();
     }
 
@@ -36,10 +38,10 @@ namespace SafetyReport.Models
         public int IdUsuarioAsignado { get; set; }
         public string NombreUsuarioAsignado { get; set; } = string.Empty;
         public string Iniciales { get; set; } = string.Empty;
+        public int IdRolAsignado { get; set; }
+        public string? DescripcionRolAsignado { get; set; }
         public int IdEstado { get; set; }
         public string? DescripcionEstado { get; set; }
-        public string? ColorLetra { get; set; }
-        public string? ColorFondo { get; set; }
         public DateTime FechaAsignacion { get; set; }
     }
 
@@ -54,8 +56,6 @@ namespace SafetyReport.Models
         public string Iniciales { get; set; } = string.Empty;
         public int IdEstado { get; set; }
         public string? DescripcionEstado { get; set; }
-        public string? ColorLetra { get; set; }
-        public string? ColorFondo { get; set; }
         public DateTime FechaAsignacion { get; set; }
     }
 
@@ -68,8 +68,8 @@ namespace SafetyReport.Models
 
     public class FiltroAsignacion
     {
-        public string? Busqueda { get; set; }
-        public int? IdEstado { get; set; }
-        public int? NumPag { get; set; }
+        public string? busqueda { get; set; }
+        public int? idEstado { get; set; }
+        public int? numPag { get; set; }
     }
 }

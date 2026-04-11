@@ -89,9 +89,9 @@ namespace SafetyReport.Models
     public class TarifarioListaCortaFiltro
     {
         public int idCliente { get; set; }
-        public int? IdTipoProducto { get; set; }
-        public int? IdTipoTramite { get; set; }
-        public int? IdPais { get; set; }
+        public int? idTipoProducto { get; set; }
+        public int? idTipoTramite { get; set; }
+        public int? idPais { get; set; }
     }
 
     public class TarifarioListaCorta

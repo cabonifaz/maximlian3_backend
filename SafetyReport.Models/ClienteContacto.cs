@@ -67,15 +67,15 @@
 
     public class ClienteContactoIdRequest
     {
-        public int IdClienteContacto { get; set; }
-        public int IdCliente { get; set; }
+        public int idClienteContacto { get; set; }
+        public int idCliente { get; set; }
     }
 
     public class ClienteContactoFiltro
     {
-        public int IdCliente { get; set; }
-        public string? Busqueda { get; set; }
-        public int? NumPag { get; set; }
+        public int idCliente { get; set; }
+        public string? busqueda { get; set; }
+        public int? numPag { get; set; }
     }
 
     public class ClienteContactoListaResult

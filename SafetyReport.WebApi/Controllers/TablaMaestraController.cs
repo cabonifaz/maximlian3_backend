@@ -19,7 +19,7 @@ namespace SafetyReport.WebApi.Controllers
         [HttpGet("listar")]
         public async Task<IActionResult> Listar([FromQuery] FiltroTablaMaestraRequest request)
         {
-            var respuesta = await _tablaMaestraHandler.ListarAsync(UsuarioLogueado, request?.IdMaestro);
+            var respuesta = await _tablaMaestraHandler.ListarAsync(UsuarioLogueado, request?.idMaestro);
             return Ok(respuesta);
         }
 
