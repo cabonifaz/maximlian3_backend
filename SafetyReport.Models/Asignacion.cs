@@ -11,6 +11,8 @@ namespace SafetyReport.Models
     public class AsignacionActualizar
     {
         public int IdUsuarioAsignado { get; set; }
+        public int IdRolAsignado { get; set; }
+        public int IdEstado { get; set; }
         public List<int> IdsPedido { get; set; } = new();
     }
 

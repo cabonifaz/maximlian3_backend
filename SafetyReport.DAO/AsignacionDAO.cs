@@ -113,6 +113,8 @@ namespace SafetyReport.DAO
                 cmd.Parameters.Add("@intIdEmpresa", SqlDbType.Int).Value = usuarioActual.IdEmpresa;
                 cmd.Parameters.Add("@intIdRol", SqlDbType.Int).Value = usuarioActual.IdRol;
                 cmd.Parameters.Add("@intIdUsuarioAsignado", SqlDbType.Int).Value = request.IdUsuarioAsignado;
+                cmd.Parameters.Add("@intIdRolAsignado", SqlDbType.Int).Value = request.IdRolAsignado;
+                cmd.Parameters.Add("@intIdEstado", SqlDbType.Int).Value = request.IdEstado;
 
                 var tableIdsPedido = ConstruirTablaListaGeneralNum(request.IdsPedido);
                 var tvpIdsPedido = cmd.Parameters.AddWithValue("@lstIdsPedido", tableIdsPedido);
