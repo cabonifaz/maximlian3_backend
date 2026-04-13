@@ -14,6 +14,22 @@ namespace SafetyReport.DAO
             _dbConfig = dbConfig;
         }
 
+        private static DataTable ConstruirTablaListaGeneralNum(List<int>? valores)
+        {
+            var table = new DataTable();
+            table.Columns.Add("ID", typeof(int));
+            table.Columns.Add("NUM1", typeof(int));
+
+            int i = 1;
+            if (valores != null)
+            {
+                foreach (var valor in valores)
+                    table.Rows.Add(i++, valor);
+            }
+
+            return table;
+        }
+
         private static async Task<Respuesta> LeerRespuestaAsync<T>(SqlCommand cmd)
         {
             var respuesta = new Respuesta();
@@ -173,7 +189,11 @@ namespace SafetyReport.DAO
                 cmd.Parameters.Add("@intIdCliente", SqlDbType.Int).Value = (object?)request.idCliente ?? DBNull.Value;
                 cmd.Parameters.Add("@intIdTarifario", SqlDbType.Int).Value = (object?)request.idTarifario ?? DBNull.Value;
                 cmd.Parameters.Add("@vchNombreInvestigado", SqlDbType.VarChar, 255).Value = (object?)request.nombreInvestigado ?? DBNull.Value;
-                cmd.Parameters.Add("@intIdEstado", SqlDbType.Int).Value = (object?)request.idEstado ?? DBNull.Value;
+
+                var tableIdEstado = ConstruirTablaListaGeneralNum(request.idEstado);
+                var tvpIdEstado = cmd.Parameters.AddWithValue("@lstIdEstado", tableIdEstado);
+                tvpIdEstado.SqlDbType = SqlDbType.Structured;
+                tvpIdEstado.TypeName = "LISTA_GENERAL_NUM";
 
                 await cn.OpenAsync();
                 return await LeerRespuestaAsync<PedidoConsulta>(cmd);
