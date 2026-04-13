@@ -126,6 +126,7 @@ namespace SafetyReport.Models
         public int? idCliente { get; set; }
         public int? idTarifario { get; set; }
         public string? nombreInvestigado { get; set; }
+        public int? idEstado { get; set; }
     }
 
     public class PedidoListaConsulta
