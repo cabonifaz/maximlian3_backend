@@ -51,14 +51,13 @@ namespace SafetyReport.Models
     {
         public int IdAsignacion { get; set; }
         public int IdPedido { get; set; }
-        public string CodigoPedido { get; set; } = string.Empty;
+        public string? Cliente { get; set; }
         public string? Investigado { get; set; }
-        public int IdUsuarioAsignado { get; set; }
-        public string NombreUsuarioAsignado { get; set; } = string.Empty;
-        public string Iniciales { get; set; } = string.Empty;
+        public string? Analista { get; set; }
+        public string? Traductor { get; set; }
         public int IdEstado { get; set; }
         public string? DescripcionEstado { get; set; }
-        public DateTime FechaAsignacion { get; set; }
+        public int? Vigencia { get; set; }
     }
 
     public class AsignacionListaResult
