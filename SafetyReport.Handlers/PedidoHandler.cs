@@ -143,6 +143,23 @@ namespace SafetyReport.Handlers
             }
         }
 
+        public async Task<Respuesta> ListarAsignacionAsync(UsuarioGeneral usuarioLogueado, FiltroPedidoAsignacion request)
+        {
+            try
+            {
+                return await _dao.ListarAsignacionAsync(usuarioLogueado, request);
+            }
+            catch (Exception ex)
+            {
+                return new Respuesta
+                {
+                    IdTipoMensaje = 3,
+                    Mensaje = ex.Message,
+                    Result = new PedidoAsignacionListaResult()
+                };
+            }
+        }
+
         public async Task<Respuesta> EliminarAsync(UsuarioGeneral usuarioLogueado, PedidoIdRequest request)
         {
             try

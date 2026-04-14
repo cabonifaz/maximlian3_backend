@@ -45,6 +45,13 @@ namespace SafetyReport.WebApi.Controllers
             return Ok(respuesta);
         }
 
+        [HttpGet("listarAsignacion")]
+        public async Task<IActionResult> ListarAsignacion([FromQuery] FiltroPedidoAsignacion request)
+        {
+            var respuesta = await _pedidoHandler.ListarAsignacionAsync(UsuarioLogueado, request);
+            return Ok(respuesta);
+        }
+
         [HttpPost("eliminar")]
         public async Task<IActionResult> Eliminar([FromBody] PedidoIdRequest request)
         {
