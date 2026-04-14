@@ -57,7 +57,7 @@ namespace SafetyReport.Models
         public string? Traductor { get; set; }
         public int IdEstado { get; set; }
         public string? DescripcionEstado { get; set; }
-        public int? Vigencia { get; set; }
+        public string? Vigencia { get; set; }
     }
 
     public class AsignacionListaResult
