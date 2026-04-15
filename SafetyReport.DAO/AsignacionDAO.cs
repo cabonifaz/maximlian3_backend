@@ -65,6 +65,21 @@ namespace SafetyReport.DAO
             return respuesta;
         }
 
+        private static DataTable ConstruirTablaAsignados(List<AsignacionUsuario> asignados)
+        {
+            var table = new DataTable();
+            table.Columns.Add("ID", typeof(int));
+            table.Columns.Add("IdUsuarioAsignado", typeof(int));
+            table.Columns.Add("IdRolAsignado", typeof(int));
+            table.Columns.Add("IdEstado", typeof(int));
+
+            int i = 1;
+            foreach (var a in asignados)
+                table.Rows.Add(i++, a.IdUsuarioAsignado, a.IdRolAsignado, a.IdEstado);
+
+            return table;
+        }
+
         public async Task<Respuesta> InsertarAsync(UsuarioGeneral usuarioActual, AsignacionCrear request)
         {
             try
@@ -77,14 +92,16 @@ namespace SafetyReport.DAO
                 cmd.Parameters.Add("@vchUsuario", SqlDbType.VarChar, 32).Value = usuarioActual.Usuario;
                 cmd.Parameters.Add("@intIdEmpresa", SqlDbType.Int).Value = usuarioActual.IdEmpresa;
                 cmd.Parameters.Add("@intIdRol", SqlDbType.Int).Value = usuarioActual.IdRol;
-                cmd.Parameters.Add("@intIdUsuarioAsignado", SqlDbType.Int).Value = request.IdUsuarioAsignado;
-                cmd.Parameters.Add("@intIdRolAsignado", SqlDbType.Int).Value = request.IdRolAsignado;
-                cmd.Parameters.Add("@intIdEstado", SqlDbType.Int).Value = request.IdEstado;
 
                 var tableIdsPedido = ConstruirTablaListaGeneralNum(request.IdsPedido);
                 var tvpIdsPedido = cmd.Parameters.AddWithValue("@lstIdsPedido", tableIdsPedido);
                 tvpIdsPedido.SqlDbType = SqlDbType.Structured;
                 tvpIdsPedido.TypeName = "LISTA_GENERAL_NUM";
+
+                var tableAsignados = ConstruirTablaAsignados(request.Asignados);
+                var tvpAsignados = cmd.Parameters.AddWithValue("@lstAsignados", tableAsignados);
+                tvpAsignados.SqlDbType = SqlDbType.Structured;
+                tvpAsignados.TypeName = "LISTA_ASIGNADOS";
 
                 await cn.OpenAsync();
                 return await LeerRespuestaAsync<AsignacionCreada>(cmd);
