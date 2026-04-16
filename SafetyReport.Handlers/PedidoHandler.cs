@@ -8,12 +8,14 @@ namespace SafetyReport.Handlers
         private readonly PedidoDAO _dao;
         private readonly PedidoArchivoDAO _pedidoArchivoDao;
         private readonly IS3UploadService _s3UploadService;
+        private readonly TablaMaestraDAO _tablaMaestraDao;
 
-        public PedidoHandler(PedidoDAO dao, PedidoArchivoDAO pedidoArchivoDao, IS3UploadService s3UploadService)
+        public PedidoHandler(PedidoDAO dao, PedidoArchivoDAO pedidoArchivoDao, IS3UploadService s3UploadService, TablaMaestraDAO tablaMaestraDao)
         {
             _dao = dao;
             _pedidoArchivoDao = pedidoArchivoDao;
             _s3UploadService = s3UploadService;
+            _tablaMaestraDao = tablaMaestraDao;
         }
 
         public async Task<Respuesta> CrearAsync(UsuarioGeneral usuarioLogueado, Pedido request)
@@ -35,7 +37,7 @@ namespace SafetyReport.Handlers
                 {
                     foreach (var archivo in request.Archivos)
                     {
-                        var formatoDocumento = ResolverFormatoDocumento(archivo.FormatoArchivo, archivo.NombreDocumento);
+                        var formatoDocumento = await ResolverFormatoDocumentoAsync(usuarioLogueado, archivo.FormatoArchivo, archivo.NombreDocumento);
                         var rutaDefecto = _s3UploadService.GenerarRutaPedidoArchivo(idPedido, archivo.NombreDocumento, 0);
 
                         var archivoCrear = new PedidoArchivoCrear
@@ -107,11 +109,11 @@ namespace SafetyReport.Handlers
             }
         }
 
-        public async Task<Respuesta> ObtenerAsync(UsuarioGeneral usuarioLogueado, int idPedido)
+        public async Task<Respuesta> ObtenerAsync(UsuarioGeneral usuarioLogueado, FiltroPedidoObtener request)
         {
             try
             {
-                return await _dao.ObtenerAsync(usuarioLogueado, idPedido);
+                return await _dao.ObtenerAsync(usuarioLogueado, request);
             }
             catch (Exception ex)
             {
@@ -141,6 +143,23 @@ namespace SafetyReport.Handlers
             }
         }
 
+        public async Task<Respuesta> ListarAsignacionAsync(UsuarioGeneral usuarioLogueado, FiltroPedidoAsignacion request)
+        {
+            try
+            {
+                return await _dao.ListarAsignacionAsync(usuarioLogueado, request);
+            }
+            catch (Exception ex)
+            {
+                return new Respuesta
+                {
+                    IdTipoMensaje = 3,
+                    Mensaje = ex.Message,
+                    Result = new PedidoAsignacionListaResult()
+                };
+            }
+        }
+
         public async Task<Respuesta> EliminarAsync(UsuarioGeneral usuarioLogueado, PedidoIdRequest request)
         {
             try
@@ -158,22 +177,23 @@ namespace SafetyReport.Handlers
             }
         }
 
-        private static string ResolverFormatoDocumento(string formatoArchivo, string nombreArchivo)
+        private async Task<string> ResolverFormatoDocumentoAsync(UsuarioGeneral usuarioLogueado, string formatoArchivo, string nombreArchivo)
         {
-            var tipo = (formatoArchivo ?? string.Empty).Trim().ToUpperInvariant();
+            var mime = (formatoArchivo ?? string.Empty).Trim().ToUpperInvariant();
 
-            return tipo switch
+            if (!string.IsNullOrWhiteSpace(mime))
             {
-                "IMAGE/JPEG" => "JPG",
-                "IMAGE/JPG" => "JPG",
-                "IMAGE/PNG" => "PNG",
-                "APPLICATION/PDF" => "PDF",
-                "APPLICATION/MSWORD" => "DOC",
-                "APPLICATION/VND.OPENXMLFORMATS-OFFICEDOCUMENT.WORDPROCESSINGML.DOCUMENT" => "DOCX",
-                "APPLICATION/VND.MS-EXCEL" => "XLS",
-                "APPLICATION/VND.OPENXMLFORMATS-OFFICEDOCUMENT.SPREADSHEETML.SHEET" => "XLSX",
-                _ => Path.GetExtension(nombreArchivo).TrimStart('.').ToUpperInvariant()
-            };
+                var respuesta = await _tablaMaestraDao.ListarAsync(usuarioLogueado, 34);
+                if (respuesta.IdTipoMensaje == 2 && respuesta.Result is List<TablaMaestraItem> items)
+                {
+                    var match = items.FirstOrDefault(i =>
+                        string.Equals(i.String3, mime, StringComparison.OrdinalIgnoreCase));
+                    if (match?.String1 != null)
+                        return match.String1.ToUpperInvariant();
+                }
+            }
+
+            return Path.GetExtension(nombreArchivo).TrimStart('.').ToUpperInvariant();
         }
     }
 }

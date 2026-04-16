@@ -74,7 +74,7 @@ namespace SafetyReport.Handlers
 
             return new UsuarioGeneral
             {
-                Username  = usernameClaim ?? string.Empty,
+                Usuario   = usernameClaim ?? string.Empty,
                 Sub       = subClaim ?? string.Empty,
                 IdUsuario = 0,
                 IdEmpresa = 0,

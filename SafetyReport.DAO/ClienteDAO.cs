@@ -25,7 +25,7 @@ namespace SafetyReport.DAO
             table.Columns.Add("TIPOCONTACTO", typeof(string));
             table.Columns.Add("AREATRABAJO", typeof(int));
             table.Columns.Add("TELEFONO", typeof(string));
-            table.Columns.Add("EMAIL", typeof(string));
+            table.Columns.Add("CORREO", typeof(string));
             table.Columns.Add("ENVIARCORREO", typeof(bool));
 
             int i = 1;
@@ -43,7 +43,7 @@ namespace SafetyReport.DAO
                         contacto.TipoContacto,
                         contacto.AreaTrabajo,
                         (object?)contacto.Telefono ?? DBNull.Value,
-                        (object?)contacto.Email ?? DBNull.Value,
+                        (object?)contacto.Correo ?? DBNull.Value,
                         contacto.EnviarCorreo
                     );
                 }
@@ -140,12 +140,12 @@ namespace SafetyReport.DAO
             try
             {
                 using SqlConnection cn = new(_dbConfig.ConnectionString);
-                using SqlCommand cmd = new("Cliente_INS", cn);
+                using SqlCommand cmd = new("Cliente_Insertar", cn);
 
                 cmd.CommandType = CommandType.StoredProcedure;
 
                 cmd.Parameters.Add("@intIdUsuario", SqlDbType.Int).Value = usuarioLogueado.IdUsuario;
-                cmd.Parameters.Add("@vchUsername", SqlDbType.VarChar, 32).Value = usuarioLogueado.Username;
+                cmd.Parameters.Add("@vchUsuario", SqlDbType.VarChar, 32).Value = usuarioLogueado.Usuario;
                 cmd.Parameters.Add("@intIdEmpresa", SqlDbType.Int).Value = usuarioLogueado.IdEmpresa;
                 cmd.Parameters.Add("@intIdRol", SqlDbType.Int).Value = usuarioLogueado.IdRol;
 
@@ -155,7 +155,7 @@ namespace SafetyReport.DAO
                 cmd.Parameters.Add("@intIdPais", SqlDbType.Int).Value = request.IdPais;
                 cmd.Parameters.Add("@intIdRegistroTributario", SqlDbType.Int).Value = request.IdRegistroTributario;
                 cmd.Parameters.Add("@vchNumRegistroTributario", SqlDbType.VarChar, 50).Value = (object?)request.NumRegistroTributario ?? DBNull.Value;
-                cmd.Parameters.Add("@vchEmail", SqlDbType.VarChar, 50).Value = (object?)request.Email ?? DBNull.Value;
+                cmd.Parameters.Add("@vchCorreo", SqlDbType.VarChar, 50).Value = (object?)request.Correo ?? DBNull.Value;
                 cmd.Parameters.Add("@vchWebSite", SqlDbType.VarChar, 200).Value = (object?)request.WebSite ?? DBNull.Value;
                 cmd.Parameters.Add("@vchTelefono", SqlDbType.VarChar, 32).Value = (object?)request.Telefono ?? DBNull.Value;
                 cmd.Parameters.Add("@vchFax", SqlDbType.VarChar, 50).Value = (object?)request.Fax ?? DBNull.Value;
@@ -205,12 +205,12 @@ namespace SafetyReport.DAO
             try
             {
                 using SqlConnection cn = new(_dbConfig.ConnectionString);
-                using SqlCommand cmd = new("Cliente_UPD", cn);
+                using SqlCommand cmd = new("Cliente_Actualizar", cn);
 
                 cmd.CommandType = CommandType.StoredProcedure;
 
                 cmd.Parameters.Add("@intIdUsuario", SqlDbType.Int).Value = usuarioLogueado.IdUsuario;
-                cmd.Parameters.Add("@vchUsername", SqlDbType.VarChar, 32).Value = usuarioLogueado.Username;
+                cmd.Parameters.Add("@vchUsuario", SqlDbType.VarChar, 32).Value = usuarioLogueado.Usuario;
                 cmd.Parameters.Add("@intIdEmpresa", SqlDbType.Int).Value = usuarioLogueado.IdEmpresa;
                 cmd.Parameters.Add("@intIdRol", SqlDbType.Int).Value = usuarioLogueado.IdRol;
 
@@ -221,7 +221,7 @@ namespace SafetyReport.DAO
                 cmd.Parameters.Add("@intIdPais", SqlDbType.Int).Value = request.IdPais;
                 cmd.Parameters.Add("@intIdRegistroTributario", SqlDbType.Int).Value = request.IdRegistroTributario;
                 cmd.Parameters.Add("@vchNumRegistroTributario", SqlDbType.VarChar, 50).Value = (object?)request.NumRegistroTributario ?? DBNull.Value;
-                cmd.Parameters.Add("@vchEmail", SqlDbType.VarChar, 50).Value = (object?)request.Email ?? DBNull.Value;
+                cmd.Parameters.Add("@vchCorreo", SqlDbType.VarChar, 50).Value = (object?)request.Correo ?? DBNull.Value;
                 cmd.Parameters.Add("@vchWebSite", SqlDbType.VarChar, 200).Value = (object?)request.WebSite ?? DBNull.Value;
                 cmd.Parameters.Add("@vchTelefono", SqlDbType.VarChar, 32).Value = (object?)request.Telefono ?? DBNull.Value;
                 cmd.Parameters.Add("@vchFax", SqlDbType.VarChar, 50).Value = (object?)request.Fax ?? DBNull.Value;
@@ -261,11 +261,11 @@ namespace SafetyReport.DAO
             try
             {
                 using SqlConnection cn = new(_dbConfig.ConnectionString);
-                using SqlCommand cmd = new("Cliente_SEL", cn);
+                using SqlCommand cmd = new("Cliente_Obtener", cn);
 
                 cmd.CommandType = CommandType.StoredProcedure;
                 cmd.Parameters.Add("@intIdUsuario", SqlDbType.Int).Value = usuarioLogueado.IdUsuario;
-                cmd.Parameters.Add("@vchUsername", SqlDbType.VarChar, 32).Value = usuarioLogueado.Username;
+                cmd.Parameters.Add("@vchUsuario", SqlDbType.VarChar, 32).Value = usuarioLogueado.Usuario;
                 cmd.Parameters.Add("@intIdEmpresa", SqlDbType.Int).Value = usuarioLogueado.IdEmpresa;
                 cmd.Parameters.Add("@intIdRol", SqlDbType.Int).Value = usuarioLogueado.IdRol;
                 cmd.Parameters.Add("@intIdCliente", SqlDbType.Int).Value = idCliente;
@@ -289,11 +289,11 @@ namespace SafetyReport.DAO
             try
             {
                 using SqlConnection cn = new(_dbConfig.ConnectionString);
-                using SqlCommand cmd = new("Cliente_LST", cn);
+                using SqlCommand cmd = new("Cliente_Listar", cn);
 
                 cmd.CommandType = CommandType.StoredProcedure;
                 cmd.Parameters.Add("@intIdUsuario", SqlDbType.Int).Value = usuarioLogueado.IdUsuario;
-                cmd.Parameters.Add("@vchUsername", SqlDbType.VarChar, 32).Value = usuarioLogueado.Username;
+                cmd.Parameters.Add("@vchUsuario", SqlDbType.VarChar, 32).Value = usuarioLogueado.Usuario;
                 cmd.Parameters.Add("@intIdEmpresa", SqlDbType.Int).Value = usuarioLogueado.IdEmpresa;
                 cmd.Parameters.Add("@intIdRol", SqlDbType.Int).Value = usuarioLogueado.IdRol;
                 cmd.Parameters.Add("@vchBusqueda", SqlDbType.VarChar, 255).Value = (object?)busqueda ?? DBNull.Value;
@@ -346,11 +346,11 @@ namespace SafetyReport.DAO
             try
             {
                 using SqlConnection cn = new(_dbConfig.ConnectionString);
-                using SqlCommand cmd = new("Cliente_DEL", cn);
+                using SqlCommand cmd = new("Cliente_Eliminar", cn);
 
                 cmd.CommandType = CommandType.StoredProcedure;
                 cmd.Parameters.Add("@intIdUsuario", SqlDbType.Int).Value = usuarioLogueado.IdUsuario;
-                cmd.Parameters.Add("@vchUsername", SqlDbType.VarChar, 32).Value = usuarioLogueado.Username;
+                cmd.Parameters.Add("@vchUsuario", SqlDbType.VarChar, 32).Value = usuarioLogueado.Usuario;
                 cmd.Parameters.Add("@intIdEmpresa", SqlDbType.Int).Value = usuarioLogueado.IdEmpresa;
                 cmd.Parameters.Add("@intIdRol", SqlDbType.Int).Value = usuarioLogueado.IdRol;
                 cmd.Parameters.Add("@intIdCliente", SqlDbType.Int).Value = idCliente;
@@ -369,19 +369,19 @@ namespace SafetyReport.DAO
             }
         }
 
-        public async Task<Respuesta> ListarClienteShortAsync(UsuarioGeneral usuarioLogueado, string? emailBusqueda)
+        public async Task<Respuesta> ListarClienteShortAsync(UsuarioGeneral usuarioLogueado, string? correoBusqueda)
         {
             try
             {
                 using SqlConnection cn = new(_dbConfig.ConnectionString);
-                using SqlCommand cmd = new("Cliente_LST_Corta", cn);
+                using SqlCommand cmd = new("Cliente_Listar_Corta", cn);
 
                 cmd.CommandType = CommandType.StoredProcedure;
                 cmd.Parameters.Add("@intIdUsuario", SqlDbType.Int).Value = usuarioLogueado.IdUsuario;
-                cmd.Parameters.Add("@vchUsername", SqlDbType.VarChar, 32).Value = usuarioLogueado.Username;
+                cmd.Parameters.Add("@vchUsuario", SqlDbType.VarChar, 32).Value = usuarioLogueado.Usuario;
                 cmd.Parameters.Add("@intIdEmpresa", SqlDbType.Int).Value = usuarioLogueado.IdEmpresa;
                 cmd.Parameters.Add("@intIdRol", SqlDbType.Int).Value = usuarioLogueado.IdRol;
-                cmd.Parameters.Add("@vchEmailBusqueda", SqlDbType.VarChar, 100).Value = (object?)emailBusqueda ?? DBNull.Value;
+                cmd.Parameters.Add("@vchCorreoBusqueda", SqlDbType.VarChar, 100).Value = (object?)correoBusqueda ?? DBNull.Value;
 
                 await cn.OpenAsync();
 

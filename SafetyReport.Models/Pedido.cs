@@ -114,17 +114,32 @@ namespace SafetyReport.Models
 
     public class FiltroPedido
     {
-        public string? Busqueda { get; set; }
-        public int? IdCliente { get; set; }
-        public string? IdEstado { get; set; }
-        public int? NumPag { get; set; }
+        public string? busqueda { get; set; }
+        public int? idCliente { get; set; }
+        public string? idEstado { get; set; }
+        public int? numPag { get; set; }
+    }
+
+    public class FiltroPedidoObtener
+    {
+        public int? idPedido { get; set; }
+        public int? idCliente { get; set; }
+        public int? idTarifario { get; set; }
+        public string? nombreInvestigado { get; set; }
+        public List<int>? idEstado { get; set; }
+    }
+
+    public class PedidoAsignacionResumen
+    {
+        public int IdEstadoAsignacion { get; set; }
+        public string? Descripcion { get; set; }
     }
 
     public class PedidoListaConsulta
     {
         public int IdPedido { get; set; }
         public int IdCliente { get; set; }
-        public string? Cliente { get; set; }    
+        public string? Cliente { get; set; }
         public string? Investigado { get; set; }
         public int IdIdioma { get; set; }
         public string? Idioma { get; set; }
@@ -133,11 +148,40 @@ namespace SafetyReport.Models
         public string? DescripcionEstado { get; set; }
         public string? ColorLetra { get; set; }
         public string? ColorFondo { get; set; }
+        public List<PedidoAsignacionResumen>? Asignaciones { get; set; }
     }
 
     public class PedidoListaResult
     {
         public List<PedidoListaConsulta> lstPedido { get; set; } = new();
+        public int TotalRegistros { get; set; }
+        public int TotalPaginas { get; set; }
+    }
+
+    public class FiltroPedidoAsignacion
+    {
+        public string? busqueda { get; set; }
+        public int? idCliente { get; set; }
+        public string? idEstado { get; set; }
+        public int? numPag { get; set; }
+    }
+
+    public class PedidoAsignacionListaConsulta
+    {
+        public int IdPedido { get; set; }
+        public string? Nombre { get; set; }
+        public string? Investigado { get; set; }
+        public string? Idioma { get; set; }
+        public string? TipoTramite { get; set; }
+        public int? DiasMin { get; set; }
+        public int? DiasMax { get; set; }
+        public string? Vigencia { get; set; }
+        public List<PedidoAsignacionResumen>? Asignaciones { get; set; }
+    }
+
+    public class PedidoAsignacionListaResult
+    {
+        public List<PedidoAsignacionListaConsulta> lstPedido { get; set; } = new();
         public int TotalRegistros { get; set; }
         public int TotalPaginas { get; set; }
     }

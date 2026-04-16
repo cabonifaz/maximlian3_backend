@@ -70,18 +70,18 @@ namespace SafetyReport.DAO
             try
             {
                 using SqlConnection cn = new(_dbConfig.ConnectionString);
-                using SqlCommand cmd = new("Usuario_INS", cn);
+                using SqlCommand cmd = new("Usuario_Insertar", cn);
 
                 cmd.CommandType = CommandType.StoredProcedure;
                 cmd.Parameters.Add("@intIdUsuario", SqlDbType.Int).Value = usuarioLogueado.IdUsuario;
-                cmd.Parameters.Add("@vchUsername", SqlDbType.VarChar, 32).Value = usuarioLogueado.Username;
+                cmd.Parameters.Add("@vchUsuario", SqlDbType.VarChar, 32).Value = usuarioLogueado.Usuario;
                 cmd.Parameters.Add("@intIdEmpresa", SqlDbType.Int).Value = usuarioLogueado.IdEmpresa;
                 cmd.Parameters.Add("@intIdRol", SqlDbType.Int).Value = usuarioLogueado.IdRol;
                 cmd.Parameters.Add("@vchNombres", SqlDbType.VarChar, 50).Value = request.Nombres;
                 cmd.Parameters.Add("@vchApellidoPaterno", SqlDbType.VarChar, 50).Value = request.ApellidoPaterno;
                 cmd.Parameters.Add("@vchApellidoMaterno", SqlDbType.VarChar, 50).Value = (object?)request.ApellidoMaterno ?? DBNull.Value;
-                cmd.Parameters.Add("@vchEmail", SqlDbType.VarChar, 100).Value = request.Email;
-                cmd.Parameters.Add("@vchUsernameCreado", SqlDbType.VarChar, 32).Value = request.usernameCreacion;
+                cmd.Parameters.Add("@vchCorreo", SqlDbType.VarChar, 100).Value = request.Correo;
+                cmd.Parameters.Add("@vchUsuarioCreado", SqlDbType.VarChar, 32).Value = request.usuarioCreacion;
 
                 var tableRoles = ConstruirTablaListaGeneralNum(request.Roles);
                 var tvpRoles = cmd.Parameters.AddWithValue("@lstRoles", tableRoles);
@@ -112,18 +112,18 @@ namespace SafetyReport.DAO
             try
             {
                 using SqlConnection cn = new(_dbConfig.ConnectionString);
-                using SqlCommand cmd = new("Usuario_UPD", cn);
+                using SqlCommand cmd = new("Usuario_Actualizar", cn);
 
                 cmd.CommandType = CommandType.StoredProcedure;
                 cmd.Parameters.Add("@intIdUsuario", SqlDbType.Int).Value = usuarioLogueado.IdUsuario;
-                cmd.Parameters.Add("@vchUsername", SqlDbType.VarChar, 32).Value = usuarioLogueado.Username;
+                cmd.Parameters.Add("@vchUsuario", SqlDbType.VarChar, 32).Value = usuarioLogueado.Usuario;
                 cmd.Parameters.Add("@intIdEmpresa", SqlDbType.Int).Value = usuarioLogueado.IdEmpresa;
                 cmd.Parameters.Add("@intIdRol", SqlDbType.Int).Value = usuarioLogueado.IdRol;
                 cmd.Parameters.Add("@intIdUsuarioEditar", SqlDbType.Int).Value = request.IdUsuario;
                 cmd.Parameters.Add("@vchNombres", SqlDbType.VarChar, 50).Value = request.Nombres;
                 cmd.Parameters.Add("@vchApellidoPaterno", SqlDbType.VarChar, 50).Value = request.ApellidoPaterno;
                 cmd.Parameters.Add("@vchApellidoMaterno", SqlDbType.VarChar, 50).Value = (object?)request.ApellidoMaterno ?? DBNull.Value;
-                cmd.Parameters.Add("@vchEmail", SqlDbType.VarChar, 100).Value = request.Email;
+                cmd.Parameters.Add("@vchCorreo", SqlDbType.VarChar, 100).Value = request.Correo;
 
                 var tableRoles = ConstruirTablaListaGeneralNum(request.Roles);
                 var tvpRoles = cmd.Parameters.AddWithValue("@lstRoles", tableRoles);
@@ -154,14 +154,14 @@ namespace SafetyReport.DAO
             try
             {
                 using SqlConnection cn = new(_dbConfig.ConnectionString);
-                using SqlCommand cmd = new("Usuario_DEL", cn);
+                using SqlCommand cmd = new("Usuario_Eliminar", cn);
 
                 cmd.CommandType = CommandType.StoredProcedure;
                 cmd.Parameters.Add("@intIdUsuario", SqlDbType.Int).Value = usuarioActual.IdUsuario;
-                cmd.Parameters.Add("@vchUsername", SqlDbType.VarChar, 32).Value = usuarioActual.Username;
+                cmd.Parameters.Add("@vchUsuario", SqlDbType.VarChar, 32).Value = usuarioActual.Usuario;
                 cmd.Parameters.Add("@intIdEmpresa", SqlDbType.Int).Value = usuarioActual.IdEmpresa;
                 cmd.Parameters.Add("@intIdRol", SqlDbType.Int).Value = usuarioActual.IdRol;
-                cmd.Parameters.Add("@intIdUsuarioDel", SqlDbType.Int).Value = idUsuarioEliminar;
+                cmd.Parameters.Add("@intIdUsuarioEliminar", SqlDbType.Int).Value = idUsuarioEliminar;
 
                 await cn.OpenAsync();
                 return await LeerRespuestaAsync<EliminarUsuarioResult>(cmd);
@@ -182,11 +182,11 @@ namespace SafetyReport.DAO
             try
             {
                 using SqlConnection cn = new(_dbConfig.ConnectionString);
-                using SqlCommand cmd = new("Usuario_LST", cn);
+                using SqlCommand cmd = new("Usuario_Listar", cn);
 
                 cmd.CommandType = CommandType.StoredProcedure;
                 cmd.Parameters.Add("@intIdUsuario", SqlDbType.Int).Value = usuarioActual.IdUsuario;
-                cmd.Parameters.Add("@vchUsername", SqlDbType.VarChar, 32).Value = usuarioActual.Username;
+                cmd.Parameters.Add("@vchUsuario", SqlDbType.VarChar, 32).Value = usuarioActual.Usuario;
                 cmd.Parameters.Add("@intIdEmpresa", SqlDbType.Int).Value = usuarioActual.IdEmpresa;
                 cmd.Parameters.Add("@intIdRol", SqlDbType.Int).Value = usuarioActual.IdRol;
                 cmd.Parameters.Add("@vchFiltro", SqlDbType.VarChar, 255).Value = (object?)filtro ?? DBNull.Value;
@@ -237,11 +237,11 @@ namespace SafetyReport.DAO
             try
             {
                 using SqlConnection cn = new(_dbConfig.ConnectionString);
-                using SqlCommand cmd = new("Usuario_SEL", cn);
+                using SqlCommand cmd = new("Usuario_Obtener", cn);
 
                 cmd.CommandType = CommandType.StoredProcedure;
                 cmd.Parameters.Add("@intIdUsuario", SqlDbType.Int).Value = usuarioActual.IdUsuario;
-                cmd.Parameters.Add("@vchUsername", SqlDbType.VarChar, 32).Value = usuarioActual.Username;
+                cmd.Parameters.Add("@vchUsuario", SqlDbType.VarChar, 32).Value = usuarioActual.Usuario;
                 cmd.Parameters.Add("@intIdEmpresa", SqlDbType.Int).Value = usuarioActual.IdEmpresa;
                 cmd.Parameters.Add("@intIdRol", SqlDbType.Int).Value = usuarioActual.IdRol;
                 cmd.Parameters.Add("@intIdUsuarioConsulta", SqlDbType.Int).Value = idUsuarioConsulta;
@@ -260,26 +260,22 @@ namespace SafetyReport.DAO
             }
         }
 
-        public async Task<Respuesta> ActualizarSubAsync(int idUsuario, string sub)
+        public async Task<Respuesta> ListarCortaAsync(UsuarioGeneral usuarioActual, int idRolFiltro)
         {
             try
             {
                 using SqlConnection cn = new(_dbConfig.ConnectionString);
-                using SqlCommand cmd = new("Usuario_UPD_COGNITO", cn);
+                using SqlCommand cmd = new("Usuario_Listar_Corta", cn);
 
                 cmd.CommandType = CommandType.StoredProcedure;
-                cmd.Parameters.Add("@intIdUsuario", SqlDbType.Int).Value = idUsuario;
-                cmd.Parameters.Add("@vchSub", SqlDbType.VarChar, 255).Value = sub;
+                cmd.Parameters.Add("@intIdUsuario", SqlDbType.Int).Value = usuarioActual.IdUsuario;
+                cmd.Parameters.Add("@vchUsuario", SqlDbType.VarChar, 32).Value = usuarioActual.Usuario;
+                cmd.Parameters.Add("@intIdEmpresa", SqlDbType.Int).Value = usuarioActual.IdEmpresa;
+                cmd.Parameters.Add("@intIdRol", SqlDbType.Int).Value = usuarioActual.IdRol;
+                cmd.Parameters.Add("@intIdRolFiltro", SqlDbType.Int).Value = idRolFiltro;
 
                 await cn.OpenAsync();
-                await cmd.ExecuteNonQueryAsync();
-
-                return new Respuesta
-                {
-                    IdTipoMensaje = 2,
-                    Mensaje = "Sub actualizado correctamente.",
-                    Result = null
-                };
+                return await LeerRespuestaAsync<UsuarioListaCortaItem>(cmd);
             }
             catch (Exception ex)
             {
@@ -287,7 +283,71 @@ namespace SafetyReport.DAO
                 {
                     IdTipoMensaje = 3,
                     Mensaje = ex.Message,
-                    Result = null
+                    Result = new List<UsuarioListaCortaItem>()
+                };
+            }
+        }
+
+        public async Task<Respuesta> ListarCortaAsignacionAsync(UsuarioGeneral usuarioActual, int idRolFiltro, string? filtro, bool esTraductor, List<int>? idiomasPedido)
+        {
+            try
+            {
+                using SqlConnection cn = new(_dbConfig.ConnectionString);
+                using SqlCommand cmd = new("UsuarioAsignacion_Listar_Corta", cn);
+
+                cmd.CommandType = CommandType.StoredProcedure;
+                cmd.Parameters.Add("@intIdUsuario", SqlDbType.Int).Value = usuarioActual.IdUsuario;
+                cmd.Parameters.Add("@vchUsuario", SqlDbType.VarChar, 32).Value = usuarioActual.Usuario;
+                cmd.Parameters.Add("@intIdEmpresa", SqlDbType.Int).Value = usuarioActual.IdEmpresa;
+                cmd.Parameters.Add("@intIdRol", SqlDbType.Int).Value = usuarioActual.IdRol;
+                cmd.Parameters.Add("@intIdRolFiltro", SqlDbType.Int).Value = idRolFiltro;
+                cmd.Parameters.Add("@vchFiltro", SqlDbType.VarChar, 255).Value = (object?)filtro ?? DBNull.Value;
+                cmd.Parameters.Add("@bitEsTraductor", SqlDbType.Bit).Value = esTraductor;
+
+                var tableIdiomas = ConstruirTablaListaGeneralNum(idiomasPedido);
+                var tvpIdiomas = cmd.Parameters.AddWithValue("@lstIdiomasPedido", tableIdiomas);
+                tvpIdiomas.SqlDbType = SqlDbType.Structured;
+                tvpIdiomas.TypeName = "LISTA_GENERAL_NUM";
+
+                await cn.OpenAsync();
+                return await LeerRespuestaAsync<UsuarioAsignacionListaCortaItem>(cmd);
+            }
+            catch (Exception ex)
+            {
+                return new Respuesta
+                {
+                    IdTipoMensaje = 3,
+                    Mensaje = ex.Message,
+                    Result = new List<UsuarioAsignacionListaCortaItem>()
+                };
+            }
+        }
+
+        public async Task<Respuesta> ActualizarSubAsync(UsuarioGeneral usuarioActual, int idUsuarioActualizar, string sub)
+        {
+            try
+            {
+                using SqlConnection cn = new(_dbConfig.ConnectionString);
+                using SqlCommand cmd = new("Usuario_Actualizar_COGNITO", cn);
+
+                cmd.CommandType = CommandType.StoredProcedure;
+                cmd.Parameters.Add("@intIdUsuario", SqlDbType.Int).Value = usuarioActual.IdUsuario;
+                cmd.Parameters.Add("@vchUsuario", SqlDbType.VarChar, 32).Value = usuarioActual.Usuario;
+                cmd.Parameters.Add("@intIdEmpresa", SqlDbType.Int).Value = usuarioActual.IdEmpresa;
+                cmd.Parameters.Add("@intIdRol", SqlDbType.Int).Value = usuarioActual.IdRol;
+                cmd.Parameters.Add("@intIdUsuarioActualizar", SqlDbType.Int).Value = idUsuarioActualizar;
+                cmd.Parameters.Add("@vchSub", SqlDbType.VarChar, 255).Value = sub;
+
+                await cn.OpenAsync();
+                return await LeerRespuestaAsync<UsuarioCreado>(cmd);
+            }
+            catch (Exception ex)
+            {
+                return new Respuesta
+                {
+                    IdTipoMensaje = 3,
+                    Mensaje = ex.Message,
+                    Result = new List<UsuarioCreado>()
                 };
             }
         }

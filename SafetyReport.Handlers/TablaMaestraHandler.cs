@@ -3,20 +3,20 @@ using SafetyReport.Models;
 
 namespace SafetyReport.Handlers
 {
-    public class MasterTableHandler
+    public class TablaMaestraHandler
     {
-        private readonly MasterTableDAO _dao;
+        private readonly TablaMaestraDAO _dao;
 
-        public MasterTableHandler(MasterTableDAO dao)
+        public TablaMaestraHandler(TablaMaestraDAO dao)
         {
             _dao = dao;
         }
 
-        public async Task<Respuesta> ListarAsync(UsuarioGeneral usuarioLogueado, int? idMaster)
+        public async Task<Respuesta> ListarAsync(UsuarioGeneral usuarioLogueado, int? idMaestro)
         {
             try
             {
-                return await _dao.ListarAsync(usuarioLogueado, idMaster);
+                return await _dao.ListarAsync(usuarioLogueado, idMaestro);
             }
             catch (Exception ex)
             {
@@ -24,7 +24,7 @@ namespace SafetyReport.Handlers
                 {
                     IdTipoMensaje = 3,
                     Mensaje = ex.Message,
-                    Result = new List<MasterTableItem>()
+                    Result = new List<TablaMaestraItem>()
                 };
             }
         }
@@ -46,7 +46,7 @@ namespace SafetyReport.Handlers
             }
         }
 
-        public async Task<Respuesta> CrearAsync(UsuarioGeneral usuarioLogueado, MasterTableRequest request)
+        public async Task<Respuesta> CrearAsync(UsuarioGeneral usuarioLogueado, TablaMaestraRequest request)
         {
             try
             {
@@ -58,12 +58,12 @@ namespace SafetyReport.Handlers
                 {
                     IdTipoMensaje = 3,
                     Mensaje = ex.Message,
-                    Result = new List<MasterTableResultado>()
+                    Result = new List<TablaMaestraResultado>()
                 };
             }
         }
 
-        public async Task<Respuesta> EditarAsync(UsuarioGeneral usuarioLogueado, EditarMasterTableRequest request)
+        public async Task<Respuesta> EditarAsync(UsuarioGeneral usuarioLogueado, EditarTablaMaestraRequest request)
         {
             try
             {
@@ -75,16 +75,16 @@ namespace SafetyReport.Handlers
                 {
                     IdTipoMensaje = 3,
                     Mensaje = ex.Message,
-                    Result = new List<MasterTableResultado>()
+                    Result = new List<TablaMaestraResultado>()
                 };
             }
         }
 
-        public async Task<Respuesta> EliminarAsync(UsuarioGeneral usuarioLogueado, EliminarMasterTableRequest request)
+        public async Task<Respuesta> ObtenerAsync(UsuarioGeneral usuarioLogueado, ObtenerTablaMaestraRequest request)
         {
             try
             {
-                return await _dao.EliminarAsync(usuarioLogueado, request.IdMasterTable);
+                return await _dao.ObtenerAsync(usuarioLogueado, request);
             }
             catch (Exception ex)
             {
@@ -92,7 +92,24 @@ namespace SafetyReport.Handlers
                 {
                     IdTipoMensaje = 3,
                     Mensaje = ex.Message,
-                    Result = new List<MasterTableResultado>()
+                    Result = new List<TablaMaestraItem>()
+                };
+            }
+        }
+
+        public async Task<Respuesta> EliminarAsync(UsuarioGeneral usuarioLogueado, EliminarTablaMaestraRequest request)
+        {
+            try
+            {
+                return await _dao.EliminarAsync(usuarioLogueado, request.IdTablaMaestra);
+            }
+            catch (Exception ex)
+            {
+                return new Respuesta
+                {
+                    IdTipoMensaje = 3,
+                    Mensaje = ex.Message,
+                    Result = new List<TablaMaestraResultado>()
                 };
             }
         }

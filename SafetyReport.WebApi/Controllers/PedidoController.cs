@@ -32,9 +32,9 @@ namespace SafetyReport.WebApi.Controllers
         }
 
         [HttpGet("obtener")]
-        public async Task<IActionResult> Obtener([FromQuery] int idPedido)
+        public async Task<IActionResult> Obtener([FromQuery] FiltroPedidoObtener request)
         {
-            var respuesta = await _pedidoHandler.ObtenerAsync(UsuarioLogueado, idPedido);
+            var respuesta = await _pedidoHandler.ObtenerAsync(UsuarioLogueado, request);
             return Ok(respuesta);
         }
 
@@ -42,6 +42,13 @@ namespace SafetyReport.WebApi.Controllers
         public async Task<IActionResult> Listar([FromQuery] FiltroPedido request)
         {
             var respuesta = await _pedidoHandler.ListarAsync(UsuarioLogueado, request);
+            return Ok(respuesta);
+        }
+
+        [HttpGet("listarAsignacion")]
+        public async Task<IActionResult> ListarAsignacion([FromQuery] FiltroPedidoAsignacion request)
+        {
+            var respuesta = await _pedidoHandler.ListarAsignacionAsync(UsuarioLogueado, request);
             return Ok(respuesta);
         }
 

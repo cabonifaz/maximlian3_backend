@@ -9,7 +9,7 @@
         public string? TipoContacto { get; set; }
         public int AreaTrabajo { get; set; }
         public string? Telefono { get; set; }
-        public string? Email { get; set; }
+        public string? Correo { get; set; }
         public bool EnviarCorreo { get; set; }
     }
 
@@ -23,7 +23,7 @@
         public string? TipoContacto { get; set; }
         public int IdAreaTrabajo { get; set; }
         public string? Telefono { get; set; }
-        public string? Email { get; set; }
+        public string? Correo { get; set; }
         public bool EnviarCorreo { get; set; }
     }
 
@@ -37,7 +37,7 @@
         public int IdTipoContacto { get; set; }
         public int IdAreaTrabajo { get; set; }
         public string? Telefono { get; set; }
-        public string? Email { get; set; }
+        public string? Correo { get; set; }
         public bool EnviarCorreo { get; set; }
     }
 
@@ -51,7 +51,7 @@
         public int IdTipoContacto { get; set; }
         public int IdAreaTrabajo { get; set; }
         public string? Telefono { get; set; }
-        public string? Email { get; set; }
+        public string? Correo { get; set; }
         public bool EnviarCorreo { get; set; }
     }
 
@@ -67,15 +67,15 @@
 
     public class ClienteContactoIdRequest
     {
-        public int IdClienteContacto { get; set; }
-        public int IdCliente { get; set; }
+        public int idClienteContacto { get; set; }
+        public int idCliente { get; set; }
     }
 
     public class ClienteContactoFiltro
     {
-        public int IdCliente { get; set; }
-        public string? Busqueda { get; set; }
-        public int? NumPag { get; set; }
+        public int idCliente { get; set; }
+        public string? busqueda { get; set; }
+        public int? numPag { get; set; }
     }
 
     public class ClienteContactoListaResult
@@ -93,7 +93,7 @@
         public string TipoContacto { get; set; } = string.Empty;
         public string AreaTrabajo { get; set; } = string.Empty;
         public string? Telefono { get; set; }
-        public string? Email { get; set; }
+        public string? Correo { get; set; }
         public bool EnviarCorreo { get; set; }
     }
 }

@@ -48,11 +48,11 @@ namespace SafetyReport.Handlers
                 var solicitudCrear = new AdminCreateUserRequest
                 {
                     UserPoolId = idPoolUsuarios,
-                    Username = creado.Username,
+                    Username = creado.Usuario,
                     DesiredDeliveryMediums = new List<string> { "EMAIL" },
                     UserAttributes = new List<AttributeType>
                     {
-                        new AttributeType { Name = "email", Value = request.Email },
+                        new AttributeType { Name = "email", Value = request.Correo },
                         new AttributeType { Name = "email_verified", Value = "true" },
                         new AttributeType { Name = "custom:id_empresa", Value = usuarioLogueado.IdEmpresa.ToString() },
                         new AttributeType { Name = "custom:id_usuario", Value = creado.IdUsuario.ToString() }
@@ -66,7 +66,7 @@ namespace SafetyReport.Handlers
 
                 if (!string.IsNullOrWhiteSpace(sub))
                 {
-                    var respuestaSub = await _dao.ActualizarSubAsync(creado.IdUsuario, sub);
+                    var respuestaSub = await _dao.ActualizarSubAsync(usuarioLogueado, creado.IdUsuario, sub);
 
                     if (respuestaSub.IdTipoMensaje != 2)
                         return respuestaSub;
@@ -113,7 +113,7 @@ namespace SafetyReport.Handlers
 
                 var eliminado = ((List<EliminarUsuarioResult>)respuesta.Result).FirstOrDefault();
 
-                if (eliminado != null && !string.IsNullOrWhiteSpace(eliminado.Username))
+                if (eliminado != null && !string.IsNullOrWhiteSpace(eliminado.Usuario))
                 {
                     var llaveAcceso = _config["AWS:AccessKey"];
                     var llaveSecreta = _config["AWS:SecretKey"];
@@ -129,7 +129,7 @@ namespace SafetyReport.Handlers
                     await clienteCognito.AdminDeleteUserAsync(new AdminDeleteUserRequest
                     {
                         UserPoolId = idPoolUsuarios,
-                        Username = eliminado.Username
+                        Username = eliminado.Usuario
                     });
                 }
 
@@ -176,6 +176,40 @@ namespace SafetyReport.Handlers
                     IdTipoMensaje = 3,
                     Mensaje = ex.Message,
                     Result = new List<UsuarioConsulta>()
+                };
+            }
+        }
+
+        public async Task<Respuesta> ListarCortaAsync(UsuarioGeneral usuarioLogueado, int idRolFiltro)
+        {
+            try
+            {
+                return await _dao.ListarCortaAsync(usuarioLogueado, idRolFiltro);
+            }
+            catch (Exception ex)
+            {
+                return new Respuesta
+                {
+                    IdTipoMensaje = 3,
+                    Mensaje = ex.Message,
+                    Result = new List<UsuarioListaCortaItem>()
+                };
+            }
+        }
+
+        public async Task<Respuesta> ListarCortaAsignacionAsync(UsuarioGeneral usuarioLogueado, int idRolFiltro, string? filtro, bool esTraductor, List<int>? idiomasPedido)
+        {
+            try
+            {
+                return await _dao.ListarCortaAsignacionAsync(usuarioLogueado, idRolFiltro, filtro, esTraductor, idiomasPedido);
+            }
+            catch (Exception ex)
+            {
+                return new Respuesta
+                {
+                    IdTipoMensaje = 3,
+                    Mensaje = ex.Message,
+                    Result = new List<UsuarioAsignacionListaCortaItem>()
                 };
             }
         }

@@ -53,9 +53,9 @@ namespace SafetyReport.WebApi.Controllers
         }
 
         [HttpGet("listaCorta")]
-        public async Task<IActionResult> ListaCorta([FromQuery] string? emailBusqueda)
+        public async Task<IActionResult> ListaCorta([FromQuery] string? correoBusqueda)
         {
-            var respuesta = await _clienteHandler.ListarClienteShortAsync(UsuarioLogueado, emailBusqueda);
+            var respuesta = await _clienteHandler.ListarClienteShortAsync(UsuarioLogueado, correoBusqueda);
             return Ok(respuesta);
         }
     }
