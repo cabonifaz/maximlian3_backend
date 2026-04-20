@@ -323,6 +323,34 @@ namespace SafetyReport.DAO
             }
         }
 
+        public async Task<Respuesta> CancelarAsync(UsuarioGeneral usuarioLogueado, int idPedido)
+        {
+            try
+            {
+                using SqlConnection cn = new(_dbConfig.ConnectionString);
+                using SqlCommand cmd = new("Pedido_Cancelar", cn);
+
+                cmd.CommandType = CommandType.StoredProcedure;
+                cmd.Parameters.Add("@intIdUsuario", SqlDbType.Int).Value = usuarioLogueado.IdUsuario;
+                cmd.Parameters.Add("@vchUsuario", SqlDbType.VarChar, 32).Value = usuarioLogueado.Usuario;
+                cmd.Parameters.Add("@intIdEmpresa", SqlDbType.Int).Value = usuarioLogueado.IdEmpresa;
+                cmd.Parameters.Add("@intIdRol", SqlDbType.Int).Value = usuarioLogueado.IdRol;
+                cmd.Parameters.Add("@intIdPedido", SqlDbType.Int).Value = idPedido;
+
+                await cn.OpenAsync();
+                return await LeerRespuestaAsync<PedidoEliminado>(cmd);
+            }
+            catch (Exception ex)
+            {
+                return new Respuesta
+                {
+                    IdTipoMensaje = 3,
+                    Mensaje = ex.Message,
+                    Result = new List<PedidoEliminado>()
+                };
+            }
+        }
+
         public async Task<Respuesta> EliminarAsync(UsuarioGeneral usuarioLogueado, int idPedido)
         {
             try

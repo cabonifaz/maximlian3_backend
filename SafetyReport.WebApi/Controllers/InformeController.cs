@@ -1,0 +1,50 @@
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
+using SafetyReport.Handlers;
+using SafetyReport.Models;
+
+namespace SafetyReport.WebApi.Controllers
+{
+    [Authorize]
+    [Route("api/[controller]")]
+    [ApiController]
+    public class InformeController(InformeHandler informeHandler) : BaseController
+    {
+        private readonly InformeHandler _informeHandler = informeHandler;
+
+        [HttpPost("crear")]
+        public async Task<IActionResult> Crear([FromBody] InformeCrear request)
+        {
+            var respuesta = await _informeHandler.InsertarAsync(UsuarioLogueado, request);
+            return Ok(respuesta);
+        }
+
+        [HttpPost("editar")]
+        public async Task<IActionResult> Editar([FromBody] InformeEditar request)
+        {
+            var respuesta = await _informeHandler.ActualizarAsync(UsuarioLogueado, request);
+            return Ok(respuesta);
+        }
+
+        [HttpGet("obtener")]
+        public async Task<IActionResult> Obtener([FromQuery] FiltroInformeObtener request)
+        {
+            var respuesta = await _informeHandler.ObtenerAsync(UsuarioLogueado, request);
+            return Ok(respuesta);
+        }
+
+        [HttpGet("listar")]
+        public async Task<IActionResult> Listar([FromQuery] FiltroInforme request)
+        {
+            var respuesta = await _informeHandler.ListarAsync(UsuarioLogueado, request);
+            return Ok(respuesta);
+        }
+
+        [HttpPost("eliminar")]
+        public async Task<IActionResult> Eliminar([FromBody] InformeIdRequest request)
+        {
+            var respuesta = await _informeHandler.EliminarAsync(UsuarioLogueado, request);
+            return Ok(respuesta);
+        }
+    }
+}

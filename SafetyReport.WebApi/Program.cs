@@ -151,6 +151,8 @@ builder.Services.AddScoped<PedidoHandler>();
 builder.Services.AddScoped<PedidoDAO>();
 builder.Services.AddScoped<AsignacionHandler>();
 builder.Services.AddScoped<AsignacionDAO>();
+builder.Services.AddScoped<InformeHandler>();
+builder.Services.AddScoped<InformeDAO>();
 
 var awsRegion = builder.Configuration["AWS:Region"];
 var awsBucketName = builder.Configuration["AWS:BucketName"];

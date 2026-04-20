@@ -1,0 +1,332 @@
+namespace SafetyReport.Models
+{
+    // ── Child input items ────────────────────────────────────────────────────────
+
+    public class InformeBalanceItem
+    {
+        public DateTime FechaBalance { get; set; }
+        public decimal? TipoCambio { get; set; }
+        public int IdMoneda { get; set; }
+        public int TipoBalance { get; set; }
+    }
+
+    public class InformeBancoItem
+    {
+        public int IdBanco { get; set; }
+        public string? NumeroCuenta { get; set; }
+        public int? IdSector { get; set; }
+        public string? ReferenciaBanco { get; set; }
+    }
+
+    public class InformeCompaniaRelacionadaItem
+    {
+        public int IdCompania { get; set; }
+    }
+
+    public class InformeExportacionImportacionItem
+    {
+        public int Anio { get; set; }
+        public int MesInicio { get; set; }
+        public int MesFin { get; set; }
+        public int IdMoneda { get; set; }
+        public string? Paises { get; set; }
+        public decimal? Monto { get; set; }
+        public string? Productos { get; set; }
+        public int IdTipoOperacion { get; set; }
+        public int? NumOperaciones { get; set; }
+    }
+
+    public class InformeProveedorItem
+    {
+        public int? IdBancoProveedor { get; set; }
+        public int IdTipoPersona { get; set; }
+        public string Nombre { get; set; } = string.Empty;
+        public int? IdPais { get; set; }
+        public int? IdTipoDocumento { get; set; }
+        public string? NumeroDocumento { get; set; }
+        public int? IdMoneda { get; set; }
+        public DateTime? FechaInicio { get; set; }
+        public int? IdLimiteCredito { get; set; }
+        public decimal? PromedioMensual { get; set; }
+        public string? PlazoCredito { get; set; }
+        public string? Productos { get; set; }
+        public int? IdCalificacion { get; set; }
+        public string? Comentarios { get; set; }
+    }
+
+    // ── Create / Edit ────────────────────────────────────────────────────────────
+
+    public class InformeCrear
+    {
+        public int? IdPedido { get; set; }
+        public int? IdTipoPersona { get; set; }
+        public string? Nombre { get; set; }
+        public string? NombreComercial { get; set; }
+        public int? IdPais { get; set; }
+        public int? OperacionesTCMoneda { get; set; }
+        public int? TaxIdType { get; set; }
+        public string? TaxNum { get; set; }
+        public string? Direccion { get; set; }
+        public string? Ubigeo { get; set; }
+        public string? CodigoPostal { get; set; }
+        public string? Telefono { get; set; }
+        public string? Fax { get; set; }
+        public string? Email { get; set; }
+        public string? PaginaWeb { get; set; }
+        public int? IdEstado { get; set; }
+        public string? DatosAdicionales { get; set; }
+        public string? ObservacionesIdentificacion { get; set; }
+        public int? IdTipoEmpresa { get; set; }
+        public DateTime? FechaConstitucion { get; set; }
+        public int? IdCiudadRegistro { get; set; }
+        public string? IdNotaria { get; set; }
+        public string? IdNotario { get; set; }
+        public string? IdRegistro { get; set; }
+        public string? IdPlazo { get; set; }
+        public int? IdOperacionesCambioDivisas { get; set; }
+        public decimal? CapitalInicial { get; set; }
+        public decimal? CapitalPagado { get; set; }
+        public DateTime? FechaUltimoIncremento { get; set; }
+        public int? IdTipoIncremento { get; set; }
+        public decimal? PatrimonioNeto { get; set; }
+        public string? TipoAcciones { get; set; }
+        public decimal? ValorAcciones { get; set; }
+        public bool? CotizaBolsa { get; set; }
+        public decimal? TipoCambio { get; set; }
+        public string? Antecedentes { get; set; }
+        public string? AspectosLegales { get; set; }
+        public string? ComentariosAspectoLegal { get; set; }
+        public int? IdSector { get; set; }
+        public int? IdActividad { get; set; }
+        public int? IdIsicCategoria { get; set; }
+        public int? IdIsicClase { get; set; }
+        public string? ActividadPrincipal { get; set; }
+        public decimal? VentasContado { get; set; }
+        public string? VentasContadoText { get; set; }
+        public decimal? VentasCredito { get; set; }
+        public string? VentasCreditoText { get; set; }
+        public int? IdVentasCreditoTiempo { get; set; }
+        public decimal? VentasNacionales { get; set; }
+        public string? VentasNacionalesText { get; set; }
+        public decimal? VentasInternacionales { get; set; }
+        public string? VentasInternacionalesText { get; set; }
+        public int? NumeroEmpleados { get; set; }
+        public string? NumeroEmpleadosText { get; set; }
+        public string? ComentariosOperaciones { get; set; }
+        public string? ContenidoInformacionFinanciera { get; set; }
+        public string? ComentarioInformacionFinanciera { get; set; }
+        public string? ActivosFijos { get; set; }
+        public string? Seguros { get; set; }
+        public string? ComentarioProveedor { get; set; }
+        public string? ReferenciaBanco { get; set; }
+        public string? Litigios { get; set; }
+        public string? RiesgoPrincipal { get; set; }
+        public string? Superintendecia { get; set; }
+        public string? InformacionGeneral { get; set; }
+        public string? OpinionCredito { get; set; }
+
+        // Child lists (nullable lists treated as empty)
+        public List<InformeBalanceItem> Balances { get; set; } = new();
+        public List<InformeBancoItem> Bancos { get; set; } = new();
+        public List<InformeCompaniaRelacionadaItem> CompaniasRelacionadas { get; set; } = new();
+        public List<InformeExportacionImportacionItem> ExportacionesImportaciones { get; set; } = new();
+        public List<InformeProveedorItem> Proveedores { get; set; } = new();
+    }
+
+    public class InformeEditar : InformeCrear
+    {
+        public int IdInforme { get; set; }
+    }
+
+    // ── Response / Result models ─────────────────────────────────────────────────
+
+    public class InformeCreado
+    {
+        public int IdInforme { get; set; }
+    }
+
+    public class InformeEliminado
+    {
+        public int IdInforme { get; set; }
+    }
+
+    public class InformeIdRequest
+    {
+        public int IdInforme { get; set; }
+    }
+
+    // ── Filters ──────────────────────────────────────────────────────────────────
+
+    public class FiltroInformeObtener
+    {
+        public int IdInforme { get; set; }
+    }
+
+    public class FiltroInforme
+    {
+        public string? Busqueda { get; set; }
+        public int? IdPedido { get; set; }
+        public int? IdEstado { get; set; }
+        public int? NumPag { get; set; }
+    }
+
+    // ── List ─────────────────────────────────────────────────────────────────────
+
+    public class InformeListaConsulta
+    {
+        public int IdInforme { get; set; }
+        public int IdPedido { get; set; }
+        public string? CodigoPedido { get; set; }
+        public string? Nombre { get; set; }
+        public string? NombreComercial { get; set; }
+        public int? IdTipoPersona { get; set; }
+        public string? DescripcionTipoPersona { get; set; }
+        public int? IdEstado { get; set; }
+        public string? DescripcionEstado { get; set; }
+        public string? FechaCreacion { get; set; }
+    }
+
+    public class InformeListaResult
+    {
+        public List<InformeListaConsulta> lstInformes { get; set; } = new();
+        public int TotalRegistros { get; set; }
+        public int TotalPaginas { get; set; }
+    }
+
+    // ── Detail (Obtener) ─────────────────────────────────────────────────────────
+
+    public class InformeBalanceConsulta
+    {
+        public int IdIformeBalance { get; set; }
+        public DateTime FechaBalance { get; set; }
+        public decimal? TipoCambio { get; set; }
+        public int IdMoneda { get; set; }
+        public int TipoBalance { get; set; }
+    }
+
+    public class InformeBancoConsulta
+    {
+        public int IdIformeBanco { get; set; }
+        public int IdBanco { get; set; }
+        public string? NumeroCuenta { get; set; }
+        public int? IdSector { get; set; }
+        public string? ReferenciaBanco { get; set; }
+    }
+
+    public class InformeCompaniaRelacionadaConsulta
+    {
+        public int IdInformeCompaniaRelacionada { get; set; }
+        public int IdCompania { get; set; }
+    }
+
+    public class InformeExportacionImportacionConsulta
+    {
+        public int IdInformeExportacionImportacion { get; set; }
+        public int Anio { get; set; }
+        public int MesInicio { get; set; }
+        public int MesFin { get; set; }
+        public int IdMoneda { get; set; }
+        public string? Paises { get; set; }
+        public decimal? Monto { get; set; }
+        public string? Productos { get; set; }
+        public int IdTipoOperacion { get; set; }
+        public int? NumOperaciones { get; set; }
+    }
+
+    public class InformeProveedorConsulta
+    {
+        public int IdInformeProveedor { get; set; }
+        public int? IdBancoProveedor { get; set; }
+        public int IdTipoPersona { get; set; }
+        public string Nombre { get; set; } = string.Empty;
+        public int? IdPais { get; set; }
+        public int? IdTipoDocumento { get; set; }
+        public string? NumeroDocumento { get; set; }
+        public int? IdMoneda { get; set; }
+        public DateTime? FechaInicio { get; set; }
+        public int? IdLimiteCredito { get; set; }
+        public decimal? PromedioMensual { get; set; }
+        public string? PlazoCredito { get; set; }
+        public string? Productos { get; set; }
+        public int? IdCalificacion { get; set; }
+        public string? Comentarios { get; set; }
+    }
+
+    public class InformeConsulta
+    {
+        public int IdInforme { get; set; }
+        public int IdPedido { get; set; }
+        public int? IdTipoPersona { get; set; }
+        public string? Nombre { get; set; }
+        public string? NombreComercial { get; set; }
+        public int? IdPais { get; set; }
+        public int? OperacionesTCMoneda { get; set; }
+        public int? TaxIdType { get; set; }
+        public string? TaxNum { get; set; }
+        public string? Direccion { get; set; }
+        public string? Ubigeo { get; set; }
+        public string? CodigoPostal { get; set; }
+        public string? Telefono { get; set; }
+        public string? Fax { get; set; }
+        public string? Email { get; set; }
+        public string? PaginaWeb { get; set; }
+        public int? IdEstado { get; set; }
+        public string? DatosAdicionales { get; set; }
+        public string? ObservacionesIdentificacion { get; set; }
+        public int? IdTipoEmpresa { get; set; }
+        public DateTime? FechaConstitucion { get; set; }
+        public int? IdCiudadRegistro { get; set; }
+        public string? IdNotaria { get; set; }
+        public string? IdNotario { get; set; }
+        public string? IdRegistro { get; set; }
+        public string? IdPlazo { get; set; }
+        public int? IdOperacionesCambioDivisas { get; set; }
+        public decimal? CapitalInicial { get; set; }
+        public decimal? CapitalPagado { get; set; }
+        public DateTime? FechaUltimoIncremento { get; set; }
+        public int? IdTipoIncremento { get; set; }
+        public decimal? PatrimonioNeto { get; set; }
+        public string? TipoAcciones { get; set; }
+        public decimal? ValorAcciones { get; set; }
+        public bool? CotizaBolsa { get; set; }
+        public decimal? TipoCambio { get; set; }
+        public string? Antecedentes { get; set; }
+        public string? AspectosLegales { get; set; }
+        public string? ComentariosAspectoLegal { get; set; }
+        public int? IdSector { get; set; }
+        public int? IdActividad { get; set; }
+        public int? IdIsicCategoria { get; set; }
+        public int? IdIsicClase { get; set; }
+        public string? ActividadPrincipal { get; set; }
+        public decimal? VentasContado { get; set; }
+        public string? VentasContadoText { get; set; }
+        public decimal? VentasCredito { get; set; }
+        public string? VentasCreditoText { get; set; }
+        public int? IdVentasCreditoTiempo { get; set; }
+        public decimal? VentasNacionales { get; set; }
+        public string? VentasNacionalesText { get; set; }
+        public decimal? VentasInternacionales { get; set; }
+        public string? VentasInternacionalesText { get; set; }
+        public int? NumeroEmpleados { get; set; }
+        public string? NumeroEmpleadosText { get; set; }
+        public string? ComentariosOperaciones { get; set; }
+        public string? ContenidoInformacionFinanciera { get; set; }
+        public string? ComentarioInformacionFinanciera { get; set; }
+        public string? ActivosFijos { get; set; }
+        public string? Seguros { get; set; }
+        public string? ComentarioProveedor { get; set; }
+        public string? ReferenciaBanco { get; set; }
+        public string? Litigios { get; set; }
+        public string? RiesgoPrincipal { get; set; }
+        public string? Superintendecia { get; set; }
+        public string? InformacionGeneral { get; set; }
+        public string? OpinionCredito { get; set; }
+
+        // Child arrays
+        public List<InformeBalanceConsulta> Balances { get; set; } = new();
+        public List<InformeBancoConsulta> Bancos { get; set; } = new();
+        public List<InformeCompaniaRelacionadaConsulta> CompaniasRelacionadas { get; set; } = new();
+        public List<InformeExportacionImportacionConsulta> ExportacionesImportaciones { get; set; } = new();
+        public List<InformeProveedorConsulta> Proveedores { get; set; } = new();
+    }
+}
