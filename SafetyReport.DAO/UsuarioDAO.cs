@@ -116,14 +116,14 @@ namespace SafetyReport.DAO
 
                 cmd.CommandType = CommandType.StoredProcedure;
                 cmd.Parameters.Add("@intIdUsuario", SqlDbType.Int).Value = usuarioLogueado.IdUsuario;
-                cmd.Parameters.Add("@vchUsuario", SqlDbType.VarChar, 32).Value = usuarioLogueado.Usuario;
+                cmd.Parameters.Add("@vchUsuarioMOD", SqlDbType.VarChar, 32).Value = usuarioLogueado.Usuario;
                 cmd.Parameters.Add("@intIdEmpresa", SqlDbType.Int).Value = usuarioLogueado.IdEmpresa;
                 cmd.Parameters.Add("@intIdRol", SqlDbType.Int).Value = usuarioLogueado.IdRol;
                 cmd.Parameters.Add("@intIdUsuarioEditar", SqlDbType.Int).Value = request.IdUsuario;
                 cmd.Parameters.Add("@vchNombres", SqlDbType.VarChar, 50).Value = request.Nombres;
                 cmd.Parameters.Add("@vchApellidoPaterno", SqlDbType.VarChar, 50).Value = request.ApellidoPaterno;
                 cmd.Parameters.Add("@vchApellidoMaterno", SqlDbType.VarChar, 50).Value = (object?)request.ApellidoMaterno ?? DBNull.Value;
-                cmd.Parameters.Add("@vchCorreo", SqlDbType.VarChar, 100).Value = request.Correo;
+                cmd.Parameters.Add("@intIdEstado", SqlDbType.Int).Value = request.IdEstado;
 
                 var tableRoles = ConstruirTablaListaGeneralNum(request.Roles);
                 var tvpRoles = cmd.Parameters.AddWithValue("@lstRoles", tableRoles);

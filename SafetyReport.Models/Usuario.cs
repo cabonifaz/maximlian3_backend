@@ -33,7 +33,7 @@
         public string Nombres { get; set; } = string.Empty;
         public string ApellidoPaterno { get; set; } = string.Empty;
         public string? ApellidoMaterno { get; set; }
-        public string Correo { get; set; } = string.Empty;
+        public int IdEstado { get; set; }
         public List<int> Roles { get; set; } = new();
         public List<int> Idiomas { get; set; } = new();
     }
