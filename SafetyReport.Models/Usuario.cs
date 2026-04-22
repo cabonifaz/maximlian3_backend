@@ -104,6 +104,7 @@
     {
         public int? numPag { get; set; }
         public string? filtro { get; set; }
+        public int? idEstado { get; set; }
     }
 
     public class UsuarioListaCortaItem

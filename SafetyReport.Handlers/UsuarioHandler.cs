@@ -146,11 +146,11 @@ namespace SafetyReport.Handlers
             }
         }
 
-        public async Task<Respuesta> ListarUsuariosAsync(UsuarioGeneral usuarioLogueado, string? filtro, int? numPag)
+        public async Task<Respuesta> ListarUsuariosAsync(UsuarioGeneral usuarioLogueado, string? filtro, int? idEstado, int? numPag)
         {
             try
             {
-                return await _dao.ListarUsuariosAsync(usuarioLogueado, filtro, numPag);
+                return await _dao.ListarUsuariosAsync(usuarioLogueado, filtro, idEstado, numPag);
             }
             catch (Exception ex)
             {
