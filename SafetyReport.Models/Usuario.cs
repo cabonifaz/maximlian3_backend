@@ -55,6 +55,8 @@
         public string Usuario { get; set; } = string.Empty;
         public List<int> Roles { get; set; } = new();
         public List<int> Idiomas { get; set; } = new();
+        public int IdEstado { get; set; }
+        public string? Estado { get; set; }
     }
 
     public class UsuarioListaResult
