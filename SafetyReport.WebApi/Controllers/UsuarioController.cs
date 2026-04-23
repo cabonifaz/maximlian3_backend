@@ -43,6 +43,7 @@ namespace SafetyReport.WebApi.Controllers
             var respuesta = await _usuarioHandler.ListarUsuariosAsync(
                 UsuarioLogueado,
                 request?.filtro,
+                request?.idEstado,
                 request?.numPag
             );
 

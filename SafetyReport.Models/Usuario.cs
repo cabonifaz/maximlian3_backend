@@ -33,7 +33,7 @@
         public string Nombres { get; set; } = string.Empty;
         public string ApellidoPaterno { get; set; } = string.Empty;
         public string? ApellidoMaterno { get; set; }
-        public string Correo { get; set; } = string.Empty;
+        public int IdEstado { get; set; }
         public List<int> Roles { get; set; } = new();
         public List<int> Idiomas { get; set; } = new();
     }
@@ -55,6 +55,8 @@
         public string Usuario { get; set; } = string.Empty;
         public List<int> Roles { get; set; } = new();
         public List<int> Idiomas { get; set; } = new();
+        public int IdEstado { get; set; }
+        public string? Estado { get; set; }
     }
 
     public class UsuarioListaResult
@@ -102,6 +104,7 @@
     {
         public int? numPag { get; set; }
         public string? filtro { get; set; }
+        public int? idEstado { get; set; }
     }
 
     public class UsuarioListaCortaItem

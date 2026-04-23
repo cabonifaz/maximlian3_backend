@@ -161,8 +161,9 @@ namespace SafetyReport.Models
     public class FiltroPedidoAsignacion
     {
         public string? busqueda { get; set; }
-        public int? idCliente { get; set; }
+        public int? idPedido { get; set; }
         public string? idEstado { get; set; }
+        public int? idEstadoAsignacion { get; set; }
         public int? numPag { get; set; }
     }
 

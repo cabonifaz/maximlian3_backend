@@ -129,14 +129,11 @@ namespace SafetyReport.DAO
                 cmd.Parameters.Add("@vchUsuario", SqlDbType.VarChar, 32).Value = usuarioActual.Usuario;
                 cmd.Parameters.Add("@intIdEmpresa", SqlDbType.Int).Value = usuarioActual.IdEmpresa;
                 cmd.Parameters.Add("@intIdRol", SqlDbType.Int).Value = usuarioActual.IdRol;
-                cmd.Parameters.Add("@intIdUsuarioAsignado", SqlDbType.Int).Value = request.IdUsuarioAsignado;
-                cmd.Parameters.Add("@intIdRolAsignado", SqlDbType.Int).Value = request.IdRolAsignado;
-                cmd.Parameters.Add("@intIdEstado", SqlDbType.Int).Value = request.IdEstado;
-
-                var tableIdsPedido = ConstruirTablaListaGeneralNum(request.IdsPedido);
-                var tvpIdsPedido = cmd.Parameters.AddWithValue("@lstIdsPedido", tableIdsPedido);
-                tvpIdsPedido.SqlDbType = SqlDbType.Structured;
-                tvpIdsPedido.TypeName = "LISTA_GENERAL_NUM";
+                cmd.Parameters.Add("@intIdPedido", SqlDbType.Int).Value = request.IdPedido;
+                var tableAsignados = ConstruirTablaAsignados(request.Asignados);
+                var tvpAsignados = cmd.Parameters.AddWithValue("@lstAsignados", tableAsignados);
+                tvpAsignados.SqlDbType = SqlDbType.Structured;
+                tvpAsignados.TypeName = "LISTA_ASIGNADOS";
 
                 await cn.OpenAsync();
                 return await LeerRespuestaAsync<AsignacionCreada>(cmd);

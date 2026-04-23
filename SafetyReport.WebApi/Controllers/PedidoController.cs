@@ -52,6 +52,13 @@ namespace SafetyReport.WebApi.Controllers
             return Ok(respuesta);
         }
 
+        [HttpPost("cancelar")]
+        public async Task<IActionResult> Cancelar([FromBody] PedidoIdRequest request)
+        {
+            var respuesta = await _pedidoHandler.CancelarAsync(UsuarioLogueado, request);
+            return Ok(respuesta);
+        }
+
         [HttpPost("eliminar")]
         public async Task<IActionResult> Eliminar([FromBody] PedidoIdRequest request)
         {

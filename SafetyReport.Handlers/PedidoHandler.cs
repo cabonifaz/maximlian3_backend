@@ -160,6 +160,23 @@ namespace SafetyReport.Handlers
             }
         }
 
+        public async Task<Respuesta> CancelarAsync(UsuarioGeneral usuarioLogueado, PedidoIdRequest request)
+        {
+            try
+            {
+                return await _dao.CancelarAsync(usuarioLogueado, request.IdPedido);
+            }
+            catch (Exception ex)
+            {
+                return new Respuesta
+                {
+                    IdTipoMensaje = 3,
+                    Mensaje = ex.Message,
+                    Result = new List<PedidoEliminado>()
+                };
+            }
+        }
+
         public async Task<Respuesta> EliminarAsync(UsuarioGeneral usuarioLogueado, PedidoIdRequest request)
         {
             try

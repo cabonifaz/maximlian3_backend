@@ -279,8 +279,9 @@ namespace SafetyReport.DAO
                 cmd.Parameters.Add("@intIdEmpresa", SqlDbType.Int).Value = usuarioLogueado.IdEmpresa;
                 cmd.Parameters.Add("@intIdRol", SqlDbType.Int).Value = usuarioLogueado.IdRol;
                 cmd.Parameters.Add("@vchBusqueda", SqlDbType.VarChar, 255).Value = (object?)request.busqueda ?? DBNull.Value;
-                cmd.Parameters.Add("@intIdCliente", SqlDbType.Int).Value = (object?)request.idCliente ?? DBNull.Value;
+                cmd.Parameters.Add("@intIdPedido", SqlDbType.Int).Value = (object?)request.idPedido ?? DBNull.Value;
                 cmd.Parameters.Add("@vchIdEstado", SqlDbType.VarChar).Value = (object?)request.idEstado ?? DBNull.Value;
+                cmd.Parameters.Add("@IdEstadoAsignacion", SqlDbType.Int).Value = (object?)request.idEstadoAsignacion ?? DBNull.Value;
                 cmd.Parameters.Add("@numPag", SqlDbType.Int).Value = (object?)request.numPag ?? DBNull.Value;
 
                 await cn.OpenAsync();
@@ -319,6 +320,34 @@ namespace SafetyReport.DAO
                     IdTipoMensaje = 3,
                     Mensaje = ex.Message,
                     Result = new PedidoAsignacionListaResult()
+                };
+            }
+        }
+
+        public async Task<Respuesta> CancelarAsync(UsuarioGeneral usuarioLogueado, int idPedido)
+        {
+            try
+            {
+                using SqlConnection cn = new(_dbConfig.ConnectionString);
+                using SqlCommand cmd = new("Pedido_Cancelar", cn);
+
+                cmd.CommandType = CommandType.StoredProcedure;
+                cmd.Parameters.Add("@intIdUsuario", SqlDbType.Int).Value = usuarioLogueado.IdUsuario;
+                cmd.Parameters.Add("@vchUsuario", SqlDbType.VarChar, 32).Value = usuarioLogueado.Usuario;
+                cmd.Parameters.Add("@intIdEmpresa", SqlDbType.Int).Value = usuarioLogueado.IdEmpresa;
+                cmd.Parameters.Add("@intIdRol", SqlDbType.Int).Value = usuarioLogueado.IdRol;
+                cmd.Parameters.Add("@intIdPedido", SqlDbType.Int).Value = idPedido;
+
+                await cn.OpenAsync();
+                return await LeerRespuestaAsync<PedidoEliminado>(cmd);
+            }
+            catch (Exception ex)
+            {
+                return new Respuesta
+                {
+                    IdTipoMensaje = 3,
+                    Mensaje = ex.Message,
+                    Result = new List<PedidoEliminado>()
                 };
             }
         }
