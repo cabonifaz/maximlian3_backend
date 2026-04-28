@@ -50,15 +50,20 @@ namespace SafetyReport.Models
         public DateTime FechaAsignacion { get; set; }
     }
 
+    public class AsignacionPersona
+    {
+        public int? IdAsignacion { get; set; }
+        public string? Nombre { get; set; }
+    }
+
     public class AsignacionListaConsulta
     {
-        public int IdAsignacion { get; set; }
         public int IdPedido { get; set; }
         public string? Cliente { get; set; }
         public string? Investigado { get; set; }
-        public string? Analista { get; set; }
-        public string? Traductor { get; set; }
-        public int IdEstado { get; set; }
+        public AsignacionPersona? Analista { get; set; }
+        public AsignacionPersona? Traductor { get; set; }
+        public int? IdEstado { get; set; }
         public string? DescripcionEstado { get; set; }
         public string? Vigencia { get; set; }
     }
