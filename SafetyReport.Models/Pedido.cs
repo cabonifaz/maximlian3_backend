@@ -126,6 +126,7 @@ namespace SafetyReport.Models
         public int? idCliente { get; set; }
         public int? idTarifario { get; set; }
         public string? nombreInvestigado { get; set; }
+        public string? numRef { get; set; }
         public List<int>? idEstado { get; set; }
     }
 
@@ -149,6 +150,7 @@ namespace SafetyReport.Models
         public string? ColorLetra { get; set; }
         public string? ColorFondo { get; set; }
         public List<PedidoAsignacionResumen>? Asignaciones { get; set; }
+        public string? FechaMod { get; set; }
     }
 
     public class PedidoListaResult
