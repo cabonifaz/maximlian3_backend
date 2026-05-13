@@ -2,12 +2,83 @@ namespace SafetyReport.Models
 {
     // ── Child input items ────────────────────────────────────────────────────────
 
+    public class InformeCuentaBalanceItem
+    {
+        public decimal? TotalCorriente { get; set; }
+        public decimal? TotalNoCorriente { get; set; }
+        public decimal? OtrosActivos { get; set; }
+        public decimal? TotalActivos { get; set; }
+        public decimal? TotalPasivosCorrientes { get; set; }
+        public decimal? TotalPasivosNoCorrientes { get; set; }
+        public decimal? OtrosPasivos { get; set; }
+        public decimal? TotalPasivos { get; set; }
+        public decimal? Patrimonio { get; set; }
+        public decimal? TotalPasivoPatrimonio { get; set; }
+        public decimal? VentasNetas { get; set; }
+        public decimal? UtilidadPerdida { get; set; }
+        public decimal? IndiceLiquidez { get; set; }
+        public decimal? CapitalTrabajo { get; set; }
+        public decimal? RatioEndeudamiento { get; set; }
+        public decimal? RatioRentabilidad { get; set; }
+    }
+
     public class InformeBalanceItem
     {
         public DateTime FechaBalance { get; set; }
         public decimal? TipoCambio { get; set; }
         public int IdMoneda { get; set; }
         public int TipoBalance { get; set; }
+        public InformeCuentaBalanceItem? CuentaBalance { get; set; }
+    }
+
+    public class InformeDirectorioEjecutivoItem
+    {
+        public int? IdTipoPersona { get; set; }
+        public string? NombreCompleto { get; set; }
+        public int? IdPais { get; set; }
+        public string? Direccion { get; set; }
+        public string? Ubigeo { get; set; }
+        public string? CodigoPostal { get; set; }
+        public int? IdTipoDocumento { get; set; }
+        public string? NumeroDocumento { get; set; }
+        public int? TaxIdType { get; set; }
+        public string? TaxNum { get; set; }
+        public int? IdNacionalidad { get; set; }
+        public DateTime? FechaNacimiento { get; set; }
+        public int? IdEstadoCivil { get; set; }
+        public int? IdProfesion { get; set; }
+        public string? Referencias { get; set; }
+        public string? Cargos { get; set; }
+        public string? FormularioVinculado { get; set; }
+        public string? CompaniaAnterior { get; set; }
+        public decimal? Participacion { get; set; }
+        public int? Orden { get; set; }
+        public bool? EsParticipanteDirectiva { get; set; }
+        public bool? ApareceImpresoLista { get; set; }
+        public bool? ImprimeDatosEjecutivos { get; set; }
+    }
+
+    public class InformeLocalImagenItem
+    {
+        public string ImagenURL { get; set; } = string.Empty;
+        public int IdTipoArchivo { get; set; }
+    }
+
+    public class InformeLocalItem
+    {
+        public int? IdTipoLocal { get; set; }
+        public string? Comentario { get; set; }
+        public string? ImagenUrl { get; set; }
+        public List<InformeLocalImagenItem> Imagenes { get; set; } = new();
+    }
+
+    public class InformePedidoItem
+    {
+        public int IdPedido { get; set; }
+        public int IdIdioma { get; set; }
+        public string? DocumentoWord { get; set; }
+        public string? DocumentoExcel { get; set; }
+        public int IdEstado { get; set; }
     }
 
     public class InformeBancoItem
@@ -131,6 +202,9 @@ namespace SafetyReport.Models
         public List<InformeCompaniaRelacionadaItem> CompaniasRelacionadas { get; set; } = new();
         public List<InformeExportacionImportacionItem> ExportacionesImportaciones { get; set; } = new();
         public List<InformeProveedorItem> Proveedores { get; set; } = new();
+        public List<InformeDirectorioEjecutivoItem> DirectoriosEjecutivos { get; set; } = new();
+        public List<InformeLocalItem> Locales { get; set; } = new();
+        public List<InformePedidoItem> Pedidos { get; set; } = new();
     }
 
     public class InformeEditar : InformeCrear
@@ -195,6 +269,27 @@ namespace SafetyReport.Models
 
     // ── Detail (Obtener) ─────────────────────────────────────────────────────────
 
+    public class InformeCuentaBalanceConsulta
+    {
+        public int IdInformeCuentaBalance { get; set; }
+        public decimal? TotalCorriente { get; set; }
+        public decimal? TotalNoCorriente { get; set; }
+        public decimal? OtrosActivos { get; set; }
+        public decimal? TotalActivos { get; set; }
+        public decimal? TotalPasivosCorrientes { get; set; }
+        public decimal? TotalPasivosNoCorrientes { get; set; }
+        public decimal? OtrosPasivos { get; set; }
+        public decimal? TotalPasivos { get; set; }
+        public decimal? Patrimonio { get; set; }
+        public decimal? TotalPasivoPatrimonio { get; set; }
+        public decimal? VentasNetas { get; set; }
+        public decimal? UtilidadPerdida { get; set; }
+        public decimal? IndiceLiquidez { get; set; }
+        public decimal? CapitalTrabajo { get; set; }
+        public decimal? RatioEndeudamiento { get; set; }
+        public decimal? RatioRentabilidad { get; set; }
+    }
+
     public class InformeBalanceConsulta
     {
         public int IdIformeBalance { get; set; }
@@ -202,6 +297,61 @@ namespace SafetyReport.Models
         public decimal? TipoCambio { get; set; }
         public int IdMoneda { get; set; }
         public int TipoBalance { get; set; }
+        public InformeCuentaBalanceConsulta? CuentaBalance { get; set; }
+    }
+
+    public class InformeDirectorioEjecutivoConsulta
+    {
+        public int IdInformeDirectorioEjecutivo { get; set; }
+        public int? IdTipoPersona { get; set; }
+        public string? NombreCompleto { get; set; }
+        public int? IdPais { get; set; }
+        public string? Direccion { get; set; }
+        public string? Ubigeo { get; set; }
+        public string? CodigoPostal { get; set; }
+        public int? IdTipoDocumento { get; set; }
+        public string? NumeroDocumento { get; set; }
+        public int? TaxIdType { get; set; }
+        public string? TaxNum { get; set; }
+        public int? IdNacionalidad { get; set; }
+        public DateTime? FechaNacimiento { get; set; }
+        public int? IdEstadoCivil { get; set; }
+        public int? IdProfesion { get; set; }
+        public string? Referencias { get; set; }
+        public string? Cargos { get; set; }
+        public string? FormularioVinculado { get; set; }
+        public string? CompaniaAnterior { get; set; }
+        public decimal? Participacion { get; set; }
+        public int? Orden { get; set; }
+        public bool? EsParticipanteDirectiva { get; set; }
+        public bool? ApareceImpresoLista { get; set; }
+        public bool? ImprimeDatosEjecutivos { get; set; }
+    }
+
+    public class InformeLocalImagenConsulta
+    {
+        public int IdInformeLocalImagen { get; set; }
+        public string ImagenURL { get; set; } = string.Empty;
+        public int IdTipoArchivo { get; set; }
+    }
+
+    public class InformeLocalConsulta
+    {
+        public int IdInformeLocal { get; set; }
+        public int? IdTipoLocal { get; set; }
+        public string? Comentario { get; set; }
+        public string? ImagenUrl { get; set; }
+        public List<InformeLocalImagenConsulta> Imagenes { get; set; } = new();
+    }
+
+    public class InformePedidoConsulta
+    {
+        public int IdInformePedido { get; set; }
+        public int IdPedido { get; set; }
+        public int IdIdioma { get; set; }
+        public string? DocumentoWord { get; set; }
+        public string? DocumentoExcel { get; set; }
+        public int IdEstado { get; set; }
     }
 
     public class InformeBancoConsulta
@@ -328,5 +478,8 @@ namespace SafetyReport.Models
         public List<InformeCompaniaRelacionadaConsulta> CompaniasRelacionadas { get; set; } = new();
         public List<InformeExportacionImportacionConsulta> ExportacionesImportaciones { get; set; } = new();
         public List<InformeProveedorConsulta> Proveedores { get; set; } = new();
+        public List<InformeDirectorioEjecutivoConsulta> DirectoriosEjecutivos { get; set; } = new();
+        public List<InformeLocalConsulta> Locales { get; set; } = new();
+        public List<InformePedidoConsulta> Pedidos { get; set; } = new();
     }
 }

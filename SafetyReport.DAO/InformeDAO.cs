@@ -108,6 +108,161 @@ namespace SafetyReport.DAO
             return t;
         }
 
+        private static DataTable ConstruirTablaCuentaBalances(List<InformeBalanceItem> items)
+        {
+            var t = new DataTable();
+            t.Columns.Add("ID", typeof(int));
+            t.Columns.Add("TotalCorriente", typeof(decimal));
+            t.Columns.Add("TotalNoCorriente", typeof(decimal));
+            t.Columns.Add("OtrosActivos", typeof(decimal));
+            t.Columns.Add("TotalActivos", typeof(decimal));
+            t.Columns.Add("TotalPasivosCorrientes", typeof(decimal));
+            t.Columns.Add("TotalPasivosNoCorrientes", typeof(decimal));
+            t.Columns.Add("OtrosPasivos", typeof(decimal));
+            t.Columns.Add("TotalPasivos", typeof(decimal));
+            t.Columns.Add("Patrimonio", typeof(decimal));
+            t.Columns.Add("TotalPasivoPatrimonio", typeof(decimal));
+            t.Columns.Add("VentasNetas", typeof(decimal));
+            t.Columns.Add("UtilidadPerdida", typeof(decimal));
+            t.Columns.Add("IndiceLiquidez", typeof(decimal));
+            t.Columns.Add("CapitalTrabajo", typeof(decimal));
+            t.Columns.Add("RatioEndeudamiento", typeof(decimal));
+            t.Columns.Add("RatioRentabilidad", typeof(decimal));
+            int i = 1;
+            foreach (var x in items)
+            {
+                var cb = x.CuentaBalance;
+                if (cb != null)
+                    t.Rows.Add(i,
+                        (object?)cb.TotalCorriente ?? DBNull.Value,
+                        (object?)cb.TotalNoCorriente ?? DBNull.Value,
+                        (object?)cb.OtrosActivos ?? DBNull.Value,
+                        (object?)cb.TotalActivos ?? DBNull.Value,
+                        (object?)cb.TotalPasivosCorrientes ?? DBNull.Value,
+                        (object?)cb.TotalPasivosNoCorrientes ?? DBNull.Value,
+                        (object?)cb.OtrosPasivos ?? DBNull.Value,
+                        (object?)cb.TotalPasivos ?? DBNull.Value,
+                        (object?)cb.Patrimonio ?? DBNull.Value,
+                        (object?)cb.TotalPasivoPatrimonio ?? DBNull.Value,
+                        (object?)cb.VentasNetas ?? DBNull.Value,
+                        (object?)cb.UtilidadPerdida ?? DBNull.Value,
+                        (object?)cb.IndiceLiquidez ?? DBNull.Value,
+                        (object?)cb.CapitalTrabajo ?? DBNull.Value,
+                        (object?)cb.RatioEndeudamiento ?? DBNull.Value,
+                        (object?)cb.RatioRentabilidad ?? DBNull.Value);
+                i++;
+            }
+            return t;
+        }
+
+        private static DataTable ConstruirTablaDirectorioEjecutivo(List<InformeDirectorioEjecutivoItem> items)
+        {
+            var t = new DataTable();
+            t.Columns.Add("ID", typeof(int));
+            t.Columns.Add("IdTipoPersona", typeof(int));
+            t.Columns.Add("NombreCompleto", typeof(string));
+            t.Columns.Add("IdPais", typeof(int));
+            t.Columns.Add("Direccion", typeof(string));
+            t.Columns.Add("Ubigeo", typeof(string));
+            t.Columns.Add("CodigoPostal", typeof(string));
+            t.Columns.Add("IdTipoDocumento", typeof(int));
+            t.Columns.Add("NumeroDocumento", typeof(string));
+            t.Columns.Add("TaxIdType", typeof(int));
+            t.Columns.Add("TaxNum", typeof(string));
+            t.Columns.Add("IdNacionalidad", typeof(int));
+            t.Columns.Add("FechaNacimiento", typeof(DateTime));
+            t.Columns.Add("IdEstadoCivil", typeof(int));
+            t.Columns.Add("IdProfesion", typeof(int));
+            t.Columns.Add("Referencias", typeof(string));
+            t.Columns.Add("Cargos", typeof(string));
+            t.Columns.Add("FormularioVinculado", typeof(string));
+            t.Columns.Add("CompaniaAnterior", typeof(string));
+            t.Columns.Add("Participacion", typeof(decimal));
+            t.Columns.Add("Orden", typeof(int));
+            t.Columns.Add("EsParticipanteDirectiva", typeof(bool));
+            t.Columns.Add("ApareceImpresoLista", typeof(bool));
+            t.Columns.Add("ImprimeDatosEjecutivos", typeof(bool));
+            int i = 1;
+            foreach (var x in items)
+                t.Rows.Add(i++,
+                    (object?)x.IdTipoPersona ?? DBNull.Value,
+                    (object?)x.NombreCompleto ?? DBNull.Value,
+                    (object?)x.IdPais ?? DBNull.Value,
+                    (object?)x.Direccion ?? DBNull.Value,
+                    (object?)x.Ubigeo ?? DBNull.Value,
+                    (object?)x.CodigoPostal ?? DBNull.Value,
+                    (object?)x.IdTipoDocumento ?? DBNull.Value,
+                    (object?)x.NumeroDocumento ?? DBNull.Value,
+                    (object?)x.TaxIdType ?? DBNull.Value,
+                    (object?)x.TaxNum ?? DBNull.Value,
+                    (object?)x.IdNacionalidad ?? DBNull.Value,
+                    (object?)x.FechaNacimiento ?? DBNull.Value,
+                    (object?)x.IdEstadoCivil ?? DBNull.Value,
+                    (object?)x.IdProfesion ?? DBNull.Value,
+                    (object?)x.Referencias ?? DBNull.Value,
+                    (object?)x.Cargos ?? DBNull.Value,
+                    (object?)x.FormularioVinculado ?? DBNull.Value,
+                    (object?)x.CompaniaAnterior ?? DBNull.Value,
+                    (object?)x.Participacion ?? DBNull.Value,
+                    (object?)x.Orden ?? DBNull.Value,
+                    (object?)x.EsParticipanteDirectiva ?? DBNull.Value,
+                    (object?)x.ApareceImpresoLista ?? DBNull.Value,
+                    (object?)x.ImprimeDatosEjecutivos ?? DBNull.Value);
+            return t;
+        }
+
+        private static DataTable ConstruirTablaLocales(List<InformeLocalItem> items)
+        {
+            var t = new DataTable();
+            t.Columns.Add("ID", typeof(int));
+            t.Columns.Add("IdTipoLocal", typeof(int));
+            t.Columns.Add("Comentario", typeof(string));
+            t.Columns.Add("ImagenUrl", typeof(string));
+            int i = 1;
+            foreach (var x in items)
+                t.Rows.Add(i++,
+                    (object?)x.IdTipoLocal ?? DBNull.Value,
+                    (object?)x.Comentario ?? DBNull.Value,
+                    (object?)x.ImagenUrl ?? DBNull.Value);
+            return t;
+        }
+
+        private static DataTable ConstruirTablaLocalImagenes(List<InformeLocalItem> items)
+        {
+            var t = new DataTable();
+            t.Columns.Add("ID", typeof(int));
+            t.Columns.Add("IdLocal", typeof(int));
+            t.Columns.Add("ImagenURL", typeof(string));
+            t.Columns.Add("IdTipoArchivo", typeof(int));
+            int img = 1;
+            int localIdx = 1;
+            foreach (var local in items)
+            {
+                foreach (var imagen in local.Imagenes)
+                    t.Rows.Add(img++, localIdx, imagen.ImagenURL, imagen.IdTipoArchivo);
+                localIdx++;
+            }
+            return t;
+        }
+
+        private static DataTable ConstruirTablaInformePedidos(List<InformePedidoItem> items)
+        {
+            var t = new DataTable();
+            t.Columns.Add("ID", typeof(int));
+            t.Columns.Add("IdPedido", typeof(int));
+            t.Columns.Add("IdIdioma", typeof(int));
+            t.Columns.Add("DocumentoWord", typeof(string));
+            t.Columns.Add("DocumentoExcel", typeof(string));
+            t.Columns.Add("IdEstado", typeof(int));
+            int i = 1;
+            foreach (var x in items)
+                t.Rows.Add(i++, x.IdPedido, x.IdIdioma,
+                    (object?)x.DocumentoWord ?? DBNull.Value,
+                    (object?)x.DocumentoExcel ?? DBNull.Value,
+                    x.IdEstado);
+            return t;
+        }
+
         // ── Reader helper ─────────────────────────────────────────────────────────
 
         private static async Task<Respuesta> LeerRespuestaAsync<T>(SqlCommand cmd)
@@ -222,10 +377,15 @@ namespace SafetyReport.DAO
         private static void AgregarTvpsCampos(SqlCommand cmd, InformeCrear r)
         {
             AgregarTvp(cmd, "@lstBalances", ConstruirTablaBalances(r.Balances), "LISTA_INFORME_BALANCE");
+            AgregarTvp(cmd, "@lstCuentaBalances", ConstruirTablaCuentaBalances(r.Balances), "LISTA_INFORME_CUENTA_BALANCE");
             AgregarTvp(cmd, "@lstBancos", ConstruirTablaBancos(r.Bancos), "LISTA_INFORME_BANCO");
             AgregarTvp(cmd, "@lstCompanias", ConstruirTablaCompanias(r.CompaniasRelacionadas), "LISTA_INFORME_COMPANIA_RELACIONADA");
             AgregarTvp(cmd, "@lstExpImp", ConstruirTablaExpImp(r.ExportacionesImportaciones), "LISTA_INFORME_EXPORTACION_IMPORTACION");
             AgregarTvp(cmd, "@lstProveedores", ConstruirTablaProveedores(r.Proveedores), "LISTA_INFORME_PROVEEDOR");
+            AgregarTvp(cmd, "@lstDirectoriosEjecutivos", ConstruirTablaDirectorioEjecutivo(r.DirectoriosEjecutivos), "LISTA_INFORME_DIRECTORIO_EJECUTIVO");
+            AgregarTvp(cmd, "@lstLocales", ConstruirTablaLocales(r.Locales), "LISTA_INFORME_LOCAL");
+            AgregarTvp(cmd, "@lstLocalImagenes", ConstruirTablaLocalImagenes(r.Locales), "LISTA_INFORME_LOCAL_IMAGEN");
+            AgregarTvp(cmd, "@lstPedidos", ConstruirTablaInformePedidos(r.Pedidos), "LISTA_INFORME_PEDIDO");
         }
 
         // ── CRUD ─────────────────────────────────────────────────────────────────
