@@ -25,6 +25,8 @@ namespace SafetyReport.Models
     public class InformeBalanceItem
     {
         public DateTime FechaBalance { get; set; }
+        public DateTime? FechaHasta { get; set; }
+        public bool FlgActualidad { get; set; }
         public decimal? TipoCambio { get; set; }
         public int IdMoneda { get; set; }
         public int TipoBalance { get; set; }
@@ -294,6 +296,8 @@ namespace SafetyReport.Models
     {
         public int IdIformeBalance { get; set; }
         public DateTime FechaBalance { get; set; }
+        public DateTime? FechaHasta { get; set; }
+        public bool FlgActualidad { get; set; }
         public decimal? TipoCambio { get; set; }
         public int IdMoneda { get; set; }
         public int TipoBalance { get; set; }

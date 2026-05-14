@@ -21,12 +21,18 @@ namespace SafetyReport.DAO
             var t = new DataTable();
             t.Columns.Add("ID", typeof(int));
             t.Columns.Add("FechaBalance", typeof(DateTime));
+            t.Columns.Add("FechaHasta", typeof(DateTime));
+            t.Columns.Add("FlgActualidad", typeof(bool));
             t.Columns.Add("TipoCambio", typeof(decimal));
             t.Columns.Add("IdMoneda", typeof(int));
             t.Columns.Add("TipoBalance", typeof(int));
             int i = 1;
             foreach (var x in items)
-                t.Rows.Add(i++, x.FechaBalance, (object?)x.TipoCambio ?? DBNull.Value, x.IdMoneda, x.TipoBalance);
+                t.Rows.Add(i++, x.FechaBalance,
+                    (object?)x.FechaHasta ?? DBNull.Value,
+                    x.FlgActualidad,
+                    (object?)x.TipoCambio ?? DBNull.Value,
+                    x.IdMoneda, x.TipoBalance);
             return t;
         }
 
