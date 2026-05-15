@@ -47,11 +47,13 @@ namespace SafetyReport.DAO
             t.Columns.Add("IdBanco", typeof(int));
             t.Columns.Add("NumeroCuenta", typeof(string));
             t.Columns.Add("IdSector", typeof(int));
+            t.Columns.Add("Sectorista", typeof(string));
             t.Columns.Add("ReferenciaBanco", typeof(string));
             int i = 1;
             foreach (var x in items)
                 t.Rows.Add(i++, (object?)x.IdInformeBanco ?? DBNull.Value, x.IdBanco,
                     (object?)x.NumeroCuenta ?? DBNull.Value, (object?)x.IdSector ?? DBNull.Value,
+                    (object?)x.Sectorista ?? DBNull.Value,
                     (object?)x.ReferenciaBanco ?? DBNull.Value);
             return t;
         }

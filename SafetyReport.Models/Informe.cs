@@ -94,6 +94,7 @@ namespace SafetyReport.Models
         public int IdBanco { get; set; }
         public string? NumeroCuenta { get; set; }
         public int? IdSector { get; set; }
+        public string? Sectorista { get; set; }
         public string? ReferenciaBanco { get; set; }
     }
 
@@ -373,6 +374,7 @@ namespace SafetyReport.Models
         public int IdBanco { get; set; }
         public string? NumeroCuenta { get; set; }
         public int? IdSector { get; set; }
+        public string? Sectorista { get; set; }
         public string? ReferenciaBanco { get; set; }
     }
 
