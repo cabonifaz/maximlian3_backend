@@ -80,6 +80,23 @@ namespace SafetyReport.Handlers
             }
         }
 
+        public async Task<Respuesta> BandejaAsync(UsuarioGeneral usuarioLogueado, FiltroAsignacionBandeja filtro)
+        {
+            try
+            {
+                return await _dao.BandejaAsync(usuarioLogueado, filtro);
+            }
+            catch (Exception ex)
+            {
+                return new Respuesta
+                {
+                    IdTipoMensaje = 3,
+                    Mensaje = ex.Message,
+                    Result = new AsignacionBandejaResult()
+                };
+            }
+        }
+
         public async Task<Respuesta> EliminarAsync(UsuarioGeneral usuarioLogueado, EliminarAsignacion request)
         {
             try

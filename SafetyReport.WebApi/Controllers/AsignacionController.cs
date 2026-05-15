@@ -45,6 +45,13 @@ namespace SafetyReport.WebApi.Controllers
             return Ok(respuesta);
         }
 
+        [HttpGet("bandeja")]
+        public async Task<IActionResult> Bandeja([FromQuery] FiltroAsignacionBandeja filtro)
+        {
+            var respuesta = await _asignacionHandler.BandejaAsync(UsuarioLogueado, filtro);
+            return Ok(respuesta);
+        }
+
         [HttpPost("eliminar")]
         public async Task<IActionResult> Eliminar([FromBody] EliminarAsignacion request)
         {

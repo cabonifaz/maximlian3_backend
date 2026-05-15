@@ -20,6 +20,7 @@ namespace SafetyReport.DAO
         {
             var t = new DataTable();
             t.Columns.Add("ID", typeof(int));
+            t.Columns.Add("IdInformeBalance", typeof(int));
             t.Columns.Add("FechaBalance", typeof(DateTime));
             t.Columns.Add("FechaHasta", typeof(DateTime));
             t.Columns.Add("FlgActualidad", typeof(bool));
@@ -28,7 +29,9 @@ namespace SafetyReport.DAO
             t.Columns.Add("TipoBalance", typeof(int));
             int i = 1;
             foreach (var x in items)
-                t.Rows.Add(i++, x.FechaBalance,
+                t.Rows.Add(i++,
+                    (object?)x.IdInformeBalance ?? DBNull.Value,
+                    x.FechaBalance,
                     (object?)x.FechaHasta ?? DBNull.Value,
                     x.FlgActualidad,
                     (object?)x.TipoCambio ?? DBNull.Value,
@@ -40,13 +43,16 @@ namespace SafetyReport.DAO
         {
             var t = new DataTable();
             t.Columns.Add("ID", typeof(int));
+            t.Columns.Add("IdInformeBanco", typeof(int));
             t.Columns.Add("IdBanco", typeof(int));
             t.Columns.Add("NumeroCuenta", typeof(string));
             t.Columns.Add("IdSector", typeof(int));
             t.Columns.Add("ReferenciaBanco", typeof(string));
             int i = 1;
             foreach (var x in items)
-                t.Rows.Add(i++, x.IdBanco, (object?)x.NumeroCuenta ?? DBNull.Value, (object?)x.IdSector ?? DBNull.Value, (object?)x.ReferenciaBanco ?? DBNull.Value);
+                t.Rows.Add(i++, (object?)x.IdInformeBanco ?? DBNull.Value, x.IdBanco,
+                    (object?)x.NumeroCuenta ?? DBNull.Value, (object?)x.IdSector ?? DBNull.Value,
+                    (object?)x.ReferenciaBanco ?? DBNull.Value);
             return t;
         }
 
@@ -54,10 +60,11 @@ namespace SafetyReport.DAO
         {
             var t = new DataTable();
             t.Columns.Add("ID", typeof(int));
+            t.Columns.Add("IdInformeCompaniaRelacionada", typeof(int));
             t.Columns.Add("IdCompania", typeof(int));
             int i = 1;
             foreach (var x in items)
-                t.Rows.Add(i++, x.IdCompania);
+                t.Rows.Add(i++, (object?)x.IdInformeCompaniaRelacionada ?? DBNull.Value, x.IdCompania);
             return t;
         }
 
@@ -65,6 +72,7 @@ namespace SafetyReport.DAO
         {
             var t = new DataTable();
             t.Columns.Add("ID", typeof(int));
+            t.Columns.Add("IdInformeExportacionImportacion", typeof(int));
             t.Columns.Add("Anio", typeof(int));
             t.Columns.Add("MesInicio", typeof(int));
             t.Columns.Add("MesFin", typeof(int));
@@ -76,7 +84,9 @@ namespace SafetyReport.DAO
             t.Columns.Add("NumOperaciones", typeof(int));
             int i = 1;
             foreach (var x in items)
-                t.Rows.Add(i++, x.Anio, x.MesInicio, x.MesFin, x.IdMoneda,
+                t.Rows.Add(i++,
+                    (object?)x.IdInformeExportacionImportacion ?? DBNull.Value,
+                    x.Anio, x.MesInicio, x.MesFin, x.IdMoneda,
                     (object?)x.Paises ?? DBNull.Value, (object?)x.Monto ?? DBNull.Value,
                     (object?)x.Productos ?? DBNull.Value, x.IdTipoOperacion,
                     (object?)x.NumOperaciones ?? DBNull.Value);
@@ -87,6 +97,7 @@ namespace SafetyReport.DAO
         {
             var t = new DataTable();
             t.Columns.Add("ID", typeof(int));
+            t.Columns.Add("IdInformeProveedor", typeof(int));
             t.Columns.Add("IdBancoProveedor", typeof(int));
             t.Columns.Add("IdTipoPersona", typeof(int));
             t.Columns.Add("Nombre", typeof(string));
@@ -104,6 +115,7 @@ namespace SafetyReport.DAO
             int i = 1;
             foreach (var x in items)
                 t.Rows.Add(i++,
+                    (object?)x.IdInformeProveedor ?? DBNull.Value,
                     (object?)x.IdBancoProveedor ?? DBNull.Value, x.IdTipoPersona, x.Nombre,
                     (object?)x.IdPais ?? DBNull.Value, (object?)x.IdTipoDocumento ?? DBNull.Value,
                     (object?)x.NumeroDocumento ?? DBNull.Value, (object?)x.IdMoneda ?? DBNull.Value,
@@ -165,6 +177,7 @@ namespace SafetyReport.DAO
         {
             var t = new DataTable();
             t.Columns.Add("ID", typeof(int));
+            t.Columns.Add("IdInformeDirectorioEjecutivo", typeof(int));
             t.Columns.Add("IdTipoPersona", typeof(int));
             t.Columns.Add("NombreCompleto", typeof(string));
             t.Columns.Add("IdPais", typeof(int));
@@ -191,6 +204,7 @@ namespace SafetyReport.DAO
             int i = 1;
             foreach (var x in items)
                 t.Rows.Add(i++,
+                    (object?)x.IdInformeDirectorioEjecutivo ?? DBNull.Value,
                     (object?)x.IdTipoPersona ?? DBNull.Value,
                     (object?)x.NombreCompleto ?? DBNull.Value,
                     (object?)x.IdPais ?? DBNull.Value,
@@ -221,12 +235,14 @@ namespace SafetyReport.DAO
         {
             var t = new DataTable();
             t.Columns.Add("ID", typeof(int));
+            t.Columns.Add("IdInformeLocal", typeof(int));
             t.Columns.Add("IdTipoLocal", typeof(int));
             t.Columns.Add("Comentario", typeof(string));
             t.Columns.Add("ImagenUrl", typeof(string));
             int i = 1;
             foreach (var x in items)
                 t.Rows.Add(i++,
+                    (object?)x.IdInformeLocal ?? DBNull.Value,
                     (object?)x.IdTipoLocal ?? DBNull.Value,
                     (object?)x.Comentario ?? DBNull.Value,
                     (object?)x.ImagenUrl ?? DBNull.Value);
@@ -237,6 +253,7 @@ namespace SafetyReport.DAO
         {
             var t = new DataTable();
             t.Columns.Add("ID", typeof(int));
+            t.Columns.Add("IdInformeLocalImagen", typeof(int));
             t.Columns.Add("IdLocal", typeof(int));
             t.Columns.Add("ImagenURL", typeof(string));
             t.Columns.Add("IdTipoArchivo", typeof(int));
@@ -245,7 +262,8 @@ namespace SafetyReport.DAO
             foreach (var local in items)
             {
                 foreach (var imagen in local.Imagenes)
-                    t.Rows.Add(img++, localIdx, imagen.ImagenURL, imagen.IdTipoArchivo);
+                    t.Rows.Add(img++, (object?)imagen.IdInformeLocalImagen ?? DBNull.Value,
+                        localIdx, imagen.ImagenURL, imagen.IdTipoArchivo);
                 localIdx++;
             }
             return t;
@@ -255,6 +273,7 @@ namespace SafetyReport.DAO
         {
             var t = new DataTable();
             t.Columns.Add("ID", typeof(int));
+            t.Columns.Add("IdInformePedido", typeof(int));
             t.Columns.Add("IdPedido", typeof(int));
             t.Columns.Add("IdIdioma", typeof(int));
             t.Columns.Add("DocumentoWord", typeof(string));
@@ -262,7 +281,7 @@ namespace SafetyReport.DAO
             t.Columns.Add("IdEstado", typeof(int));
             int i = 1;
             foreach (var x in items)
-                t.Rows.Add(i++, x.IdPedido, x.IdIdioma,
+                t.Rows.Add(i++, (object?)x.IdInformePedido ?? DBNull.Value, x.IdPedido, x.IdIdioma,
                     (object?)x.DocumentoWord ?? DBNull.Value,
                     (object?)x.DocumentoExcel ?? DBNull.Value,
                     x.IdEstado);

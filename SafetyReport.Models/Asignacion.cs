@@ -81,4 +81,33 @@ namespace SafetyReport.Models
         public int? idEstado { get; set; }
         public int? numPag { get; set; }
     }
+
+    public class FiltroAsignacionBandeja
+    {
+        public string? Busqueda { get; set; }
+    }
+
+    public class AsignacionBandejaItem
+    {
+        public string? IdPedido { get; set; }
+        public string? Investigado { get; set; }
+        public string? Pais { get; set; }
+        public DateTime FechaAsignacion { get; set; }
+        public string? TipoTramite { get; set; }
+        public string? EstadoAsignacion { get; set; }
+    }
+
+    public class AsignacionBandejaResumen
+    {
+        public int Total { get; set; }
+        public int EnProceso { get; set; }
+        public int Aprobadas { get; set; }
+        public int Rechazadas { get; set; }
+    }
+
+    public class AsignacionBandejaResult
+    {
+        public List<AsignacionBandejaItem> lstAsignaciones { get; set; } = new();
+        public AsignacionBandejaResumen Resumen { get; set; } = new();
+    }
 }

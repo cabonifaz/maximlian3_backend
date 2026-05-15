@@ -24,6 +24,7 @@ namespace SafetyReport.Models
 
     public class InformeBalanceItem
     {
+        public int? IdInformeBalance { get; set; }
         public DateTime FechaBalance { get; set; }
         public DateTime? FechaHasta { get; set; }
         public bool FlgActualidad { get; set; }
@@ -35,6 +36,7 @@ namespace SafetyReport.Models
 
     public class InformeDirectorioEjecutivoItem
     {
+        public int? IdInformeDirectorioEjecutivo { get; set; }
         public int? IdTipoPersona { get; set; }
         public string? NombreCompleto { get; set; }
         public int? IdPais { get; set; }
@@ -62,12 +64,14 @@ namespace SafetyReport.Models
 
     public class InformeLocalImagenItem
     {
+        public int? IdInformeLocalImagen { get; set; }
         public string ImagenURL { get; set; } = string.Empty;
         public int IdTipoArchivo { get; set; }
     }
 
     public class InformeLocalItem
     {
+        public int? IdInformeLocal { get; set; }
         public int? IdTipoLocal { get; set; }
         public string? Comentario { get; set; }
         public string? ImagenUrl { get; set; }
@@ -76,6 +80,7 @@ namespace SafetyReport.Models
 
     public class InformePedidoItem
     {
+        public int? IdInformePedido { get; set; }
         public int IdPedido { get; set; }
         public int IdIdioma { get; set; }
         public string? DocumentoWord { get; set; }
@@ -85,6 +90,7 @@ namespace SafetyReport.Models
 
     public class InformeBancoItem
     {
+        public int? IdInformeBanco { get; set; }
         public int IdBanco { get; set; }
         public string? NumeroCuenta { get; set; }
         public int? IdSector { get; set; }
@@ -93,11 +99,13 @@ namespace SafetyReport.Models
 
     public class InformeCompaniaRelacionadaItem
     {
+        public int? IdInformeCompaniaRelacionada { get; set; }
         public int IdCompania { get; set; }
     }
 
     public class InformeExportacionImportacionItem
     {
+        public int? IdInformeExportacionImportacion { get; set; }
         public int Anio { get; set; }
         public int MesInicio { get; set; }
         public int MesFin { get; set; }
@@ -111,6 +119,7 @@ namespace SafetyReport.Models
 
     public class InformeProveedorItem
     {
+        public int? IdInformeProveedor { get; set; }
         public int? IdBancoProveedor { get; set; }
         public int IdTipoPersona { get; set; }
         public string Nombre { get; set; } = string.Empty;
