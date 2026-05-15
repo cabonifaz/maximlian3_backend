@@ -271,25 +271,6 @@ namespace SafetyReport.DAO
             return t;
         }
 
-        private static DataTable ConstruirTablaInformePedidos(List<InformePedidoItem> items)
-        {
-            var t = new DataTable();
-            t.Columns.Add("ID", typeof(int));
-            t.Columns.Add("IdInformePedido", typeof(int));
-            t.Columns.Add("IdPedido", typeof(int));
-            t.Columns.Add("IdIdioma", typeof(int));
-            t.Columns.Add("DocumentoWord", typeof(string));
-            t.Columns.Add("DocumentoExcel", typeof(string));
-            t.Columns.Add("IdEstado", typeof(int));
-            int i = 1;
-            foreach (var x in items)
-                t.Rows.Add(i++, (object?)x.IdInformePedido ?? DBNull.Value, x.IdPedido, x.IdIdioma,
-                    (object?)x.DocumentoWord ?? DBNull.Value,
-                    (object?)x.DocumentoExcel ?? DBNull.Value,
-                    x.IdEstado);
-            return t;
-        }
-
         // ── Reader helper ─────────────────────────────────────────────────────────
 
         private static async Task<Respuesta> LeerRespuestaAsync<T>(SqlCommand cmd)
@@ -412,7 +393,6 @@ namespace SafetyReport.DAO
             AgregarTvp(cmd, "@lstDirectoriosEjecutivos", ConstruirTablaDirectorioEjecutivo(r.DirectoriosEjecutivos), "LISTA_INFORME_DIRECTORIO_EJECUTIVO");
             AgregarTvp(cmd, "@lstLocales", ConstruirTablaLocales(r.Locales), "LISTA_INFORME_LOCAL");
             AgregarTvp(cmd, "@lstLocalImagenes", ConstruirTablaLocalImagenes(r.Locales), "LISTA_INFORME_LOCAL_IMAGEN");
-            AgregarTvp(cmd, "@lstPedidos", ConstruirTablaInformePedidos(r.Pedidos), "LISTA_INFORME_PEDIDO");
         }
 
         // ── CRUD ─────────────────────────────────────────────────────────────────
