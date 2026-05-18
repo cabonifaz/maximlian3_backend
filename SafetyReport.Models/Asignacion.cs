@@ -95,6 +95,9 @@ namespace SafetyReport.Models
         public DateTime FechaAsignacion { get; set; }
         public string? TipoTramite { get; set; }
         public string? EstadoAsignacion { get; set; }
+        public int? IdInforme { get; set; }
+        public int? IdEstado { get; set; }
+        public int? IdPlantilla { get; set; }
     }
 
     public class AsignacionBandejaResumen
