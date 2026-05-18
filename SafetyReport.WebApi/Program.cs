@@ -181,6 +181,11 @@ builder.Services.AddScoped<PedidoArchivoHandler>();
 builder.Services.AddScoped<PedidoArchivoDAO>();
 builder.Services.AddScoped<CognitoTokenValidator>();
 
+var n8nConfig = builder.Configuration.GetSection("N8n").Get<N8nConfig>()
+    ?? throw new Exception("Falta configuración N8n");
+builder.Services.AddSingleton(n8nConfig);
+builder.Services.AddHttpClient<N8nService>();
+
 var app = builder.Build();
 
 app.UseSwagger();
