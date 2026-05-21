@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Http.Timeouts;
 using Microsoft.AspNetCore.Mvc;
 using SafetyReport.Handlers;
 using SafetyReport.Models;
@@ -55,6 +56,7 @@ namespace SafetyReport.WebApi.Controllers
         }
 
         [HttpPost("autocompletar")]
+        [RequestTimeout(180000)]
         public async Task<IActionResult> Autocompletar([FromBody] InformeAutocompletar request)
         {
             var respuesta = await _informeHandler.AutocompletarAsync(request);

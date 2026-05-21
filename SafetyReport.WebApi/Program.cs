@@ -10,6 +10,7 @@ using SafetyReport.WebApi.Helpers;
 var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddControllers();
+builder.Services.AddRequestTimeouts();
 builder.Services.AddEndpointsApiExplorer();
 
 builder.Services.AddSwaggerGen(c =>
@@ -192,6 +193,7 @@ app.UseSwagger();
 app.UseSwaggerUI();
 
 app.UseCors("LocalDev");
+app.UseRequestTimeouts();
 
 app.UseAuthentication();
 app.UseAuthorization();
