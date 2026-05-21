@@ -207,6 +207,7 @@ namespace SafetyReport.Models
         public string? Superintendecia { get; set; }
         public string? InformacionGeneral { get; set; }
         public string? OpinionCredito { get; set; }
+        public bool? FlgTieneInformacion { get; set; }
 
         // Child lists (nullable lists treated as empty)
         public List<InformeBalanceItem> Balances { get; set; } = new();
@@ -270,6 +271,7 @@ namespace SafetyReport.Models
         public int? IdEstado { get; set; }
         public string? DescripcionEstado { get; set; }
         public string? FechaCreacion { get; set; }
+        public bool? FlgTieneInformacion { get; set; }
     }
 
     public class InformeListaResult
@@ -486,6 +488,7 @@ namespace SafetyReport.Models
         public string? Superintendecia { get; set; }
         public string? InformacionGeneral { get; set; }
         public string? OpinionCredito { get; set; }
+        public bool? FlgTieneInformacion { get; set; }
 
         // Child arrays
         public List<InformeBalanceConsulta> Balances { get; set; } = new();
