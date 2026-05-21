@@ -85,6 +85,7 @@ namespace SafetyReport.Models
     public class FiltroAsignacionBandeja
     {
         public string? Busqueda { get; set; }
+        public int NumPag { get; set; } = 1;
     }
 
     public class AsignacionBandejaItem
@@ -114,5 +115,7 @@ namespace SafetyReport.Models
     {
         public List<AsignacionBandejaItem> lstAsignaciones { get; set; } = new();
         public AsignacionBandejaResumen Resumen { get; set; } = new();
+        public int TotalRegistros { get; set; }
+        public int TotalPaginas { get; set; }
     }
 }
