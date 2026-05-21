@@ -52,7 +52,7 @@ namespace SafetyReport.Handlers
         {
             try
             {
-                return await _dao.ObtenerAsync(usuarioLogueado, request.IdInforme);
+                return await _dao.ObtenerAsync(usuarioLogueado, request.IdPedido);
             }
             catch (Exception ex)
             {

@@ -156,7 +156,8 @@ namespace SafetyReport.Models
         public string? Fax { get; set; }
         public string? Email { get; set; }
         public string? PaginaWeb { get; set; }
-        public int? IdEstado { get; set; }
+        public int IdEstadoManual { get; set; }
+        public int IdEstadoInforme { get; set; }
         public string? DatosAdicionales { get; set; }
         public string? ObservacionesIdentificacion { get; set; }
         public int? IdTipoEmpresa { get; set; }
@@ -246,7 +247,7 @@ namespace SafetyReport.Models
 
     public class FiltroInformeObtener
     {
-        public int IdInforme { get; set; }
+        public int IdPedido { get; set; }
     }
 
     public class FiltroInforme
@@ -437,7 +438,7 @@ namespace SafetyReport.Models
         public string? Fax { get; set; }
         public string? Email { get; set; }
         public string? PaginaWeb { get; set; }
-        public int? IdEstado { get; set; }
+        public int? IdEstadoManual { get; set; }
         public string? DatosAdicionales { get; set; }
         public string? ObservacionesIdentificacion { get; set; }
         public int? IdTipoEmpresa { get; set; }
@@ -489,6 +490,7 @@ namespace SafetyReport.Models
         public string? InformacionGeneral { get; set; }
         public string? OpinionCredito { get; set; }
         public bool? FlgTieneInformacion { get; set; }
+        public int? IdEstadoInforme { get; set; }
 
         // Child arrays
         public List<InformeBalanceConsulta> Balances { get; set; } = new();

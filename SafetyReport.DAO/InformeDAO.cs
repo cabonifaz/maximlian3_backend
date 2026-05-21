@@ -329,7 +329,8 @@ namespace SafetyReport.DAO
             cmd.Parameters.Add("@vchFax", SqlDbType.VarChar, 2560).Value = (object?)r.Fax ?? DBNull.Value;
             cmd.Parameters.Add("@vchEmail", SqlDbType.VarChar, 2560).Value = (object?)r.Email ?? DBNull.Value;
             cmd.Parameters.Add("@vchPaginaWeb", SqlDbType.VarChar, 512).Value = (object?)r.PaginaWeb ?? DBNull.Value;
-            cmd.Parameters.Add("@intIdEstado", SqlDbType.Int).Value = (object?)r.IdEstado ?? DBNull.Value;
+            cmd.Parameters.Add("@intIdEstadoManual", SqlDbType.Int).Value = r.IdEstadoManual;
+            cmd.Parameters.Add("@intIdEstadoInforme", SqlDbType.Int).Value = r.IdEstadoInforme;
             cmd.Parameters.Add("@vchDatosAdicionales", SqlDbType.VarChar, -1).Value = (object?)r.DatosAdicionales ?? DBNull.Value;
             cmd.Parameters.Add("@vchObservacionesIdentificacion", SqlDbType.VarChar, -1).Value = (object?)r.ObservacionesIdentificacion ?? DBNull.Value;
             cmd.Parameters.Add("@intIdTipoEmpresa", SqlDbType.Int).Value = (object?)r.IdTipoEmpresa ?? DBNull.Value;
@@ -435,14 +436,14 @@ namespace SafetyReport.DAO
             }
         }
 
-        public async Task<Respuesta> ObtenerAsync(UsuarioGeneral u, int idInforme)
+        public async Task<Respuesta> ObtenerAsync(UsuarioGeneral u, int idPedido)
         {
             try
             {
                 using SqlConnection cn = new(_dbConfig.ConnectionString);
                 using SqlCommand cmd = new("Informe_Obtener", cn) { CommandType = CommandType.StoredProcedure };
                 AgregarParametrosAuditoria(cmd, u);
-                cmd.Parameters.Add("@intIdInforme", SqlDbType.Int).Value = idInforme;
+                cmd.Parameters.Add("@intIdPedido", SqlDbType.Int).Value = idPedido;
                 await cn.OpenAsync();
 
                 var respuesta = new Respuesta();
