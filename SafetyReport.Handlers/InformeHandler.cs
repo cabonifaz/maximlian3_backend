@@ -100,7 +100,7 @@ namespace SafetyReport.Handlers
 
                 return new Respuesta
                 {
-                    IdTipoMensaje = 1,
+                    IdTipoMensaje = 2,
                     Mensaje = "Autocompletado completado.",
                     Result = JsonSerializer.Deserialize<object>(n8nRespuesta, new JsonSerializerOptions { PropertyNameCaseInsensitive = true })
                 };
@@ -121,7 +121,7 @@ namespace SafetyReport.Handlers
 
                 return Task.FromResult(new Respuesta
                 {
-                    IdTipoMensaje = 1,
+                    IdTipoMensaje = 2,
                     Mensaje = "URL prefirmada generada correctamente.",
                     Result = new InformeUrlPrefirmada
                     {
@@ -142,11 +142,11 @@ namespace SafetyReport.Handlers
             try
             {
                 if (archivo is null || archivo.Length == 0)
-                    return new Respuesta { IdTipoMensaje = 2, Mensaje = "El archivo es requerido.", Result = null };
+                    return new Respuesta { IdTipoMensaje = 1, Mensaje = "El archivo es requerido.", Result = null };
 
                 JsonNode? seccionesJson;
                 try { seccionesJson = JsonNode.Parse(secciones); }
-                catch { return new Respuesta { IdTipoMensaje = 2, Mensaje = "El campo Secciones no es un JSON válido.", Result = null }; }
+                catch { return new Respuesta { IdTipoMensaje = 1, Mensaje = "El campo Secciones no es un JSON válido.", Result = null }; }
 
                 var extension = Path.GetExtension(archivo.FileName);
                 var fileKey = $"autocompletado/{Guid.NewGuid()}{extension}";
@@ -157,7 +157,7 @@ namespace SafetyReport.Handlers
 
                 return new Respuesta
                 {
-                    IdTipoMensaje = 1,
+                    IdTipoMensaje = 2,
                     Mensaje = "Extracción completada.",
                     Result = JsonSerializer.Deserialize<object>(n8nRespuesta, new JsonSerializerOptions { PropertyNameCaseInsensitive = true })
                 };
