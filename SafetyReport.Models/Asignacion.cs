@@ -90,7 +90,8 @@ namespace SafetyReport.Models
 
     public class AsignacionBandejaItem
     {
-        public string? IdPedido { get; set; }
+        public int? IdPedido { get; set; }
+        public string? CodigoPedido { get; set; }
         public string? Investigado { get; set; }
         public string? Pais { get; set; }
         public DateTime? Fecha { get; set; }
