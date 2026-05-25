@@ -29,11 +29,11 @@ namespace SafetyReport.Handlers
             }
         }
 
-        public async Task<Respuesta> ListarInventarioAsync(UsuarioGeneral usuarioLogueado)
+        public async Task<Respuesta> ListarInventarioAsync(UsuarioGeneral usuarioLogueado, int? idMaestro)
         {
             try
             {
-                return await _dao.ListarInventarioAsync(usuarioLogueado);
+                return await _dao.ListarInventarioAsync(usuarioLogueado, idMaestro);
             }
             catch (Exception ex)
             {

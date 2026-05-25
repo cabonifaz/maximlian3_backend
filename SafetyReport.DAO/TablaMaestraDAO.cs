@@ -76,7 +76,7 @@ namespace SafetyReport.DAO
             }
         }
 
-        public async Task<Respuesta> ListarInventarioAsync(UsuarioGeneral usuarioLogueado)
+        public async Task<Respuesta> ListarInventarioAsync(UsuarioGeneral usuarioLogueado, int? idMaestro)
         {
             try
             {
@@ -88,6 +88,7 @@ namespace SafetyReport.DAO
                 cmd.Parameters.Add("@vchUsuario", SqlDbType.VarChar, 32).Value = usuarioLogueado.Usuario;
                 cmd.Parameters.Add("@intIdEmpresa", SqlDbType.Int).Value = usuarioLogueado.IdEmpresa;
                 cmd.Parameters.Add("@intIdRol", SqlDbType.Int).Value = usuarioLogueado.IdRol;
+                cmd.Parameters.Add("@intIdMaestro", SqlDbType.Int).Value = (object?)idMaestro ?? DBNull.Value;
 
                 await cn.OpenAsync();
                 return await LeerRespuestaAsync<InventarioMaestroItem>(cmd);

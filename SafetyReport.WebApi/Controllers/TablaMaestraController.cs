@@ -24,9 +24,9 @@ namespace SafetyReport.WebApi.Controllers
         }
 
         [HttpGet("listar-inventario")]
-        public async Task<IActionResult> ListarInventario([FromQuery] object? request)
+        public async Task<IActionResult> ListarInventario([FromQuery] int? idMaestro)
         {
-            var respuesta = await _tablaMaestraHandler.ListarInventarioAsync(UsuarioLogueado);
+            var respuesta = await _tablaMaestraHandler.ListarInventarioAsync(UsuarioLogueado, idMaestro);
             return Ok(respuesta);
         }
 
