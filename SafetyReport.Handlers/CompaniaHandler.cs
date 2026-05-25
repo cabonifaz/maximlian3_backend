@@ -12,11 +12,11 @@ namespace SafetyReport.Handlers
             _dao = dao;
         }
 
-        public async Task<Respuesta> CrearAsync(UsuarioGeneral usuarioLogueado, CompaniaCrear request)
+        public async Task<Respuesta> CrearAsync(UsuarioGeneral usuarioLogueado, List<CompaniaCrear> lstCompanias)
         {
             try
             {
-                return await _dao.CrearAsync(usuarioLogueado, request);
+                return await _dao.CrearAsync(usuarioLogueado, lstCompanias);
             }
             catch (Exception ex)
             {

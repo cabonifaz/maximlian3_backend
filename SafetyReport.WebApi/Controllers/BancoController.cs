@@ -18,7 +18,7 @@ namespace SafetyReport.WebApi.Controllers
         }
 
         [HttpPost("crear")]
-        public async Task<IActionResult> Crear([FromBody] BancoCrear request)
+        public async Task<IActionResult> Crear([FromBody] List<BancoCrear> request)
         {
             var respuesta = await _bancoHandler.CrearAsync(UsuarioLogueado, request);
             return Ok(respuesta);

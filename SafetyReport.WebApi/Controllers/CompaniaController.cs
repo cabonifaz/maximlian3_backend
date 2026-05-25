@@ -18,7 +18,7 @@ namespace SafetyReport.WebApi.Controllers
         }
 
         [HttpPost("crear")]
-        public async Task<IActionResult> Crear([FromBody] CompaniaCrear request)
+        public async Task<IActionResult> Crear([FromBody] List<CompaniaCrear> request)
         {
             var respuesta = await _companiaHandler.CrearAsync(UsuarioLogueado, request);
             return Ok(respuesta);

@@ -12,20 +12,15 @@ namespace SafetyReport.Handlers
             _dao = dao;
         }
 
-        public async Task<Respuesta> CrearAsync(UsuarioGeneral usuarioLogueado, BancoCrear request)
+        public async Task<Respuesta> CrearAsync(UsuarioGeneral usuarioLogueado, List<BancoCrear> lstBancos)
         {
             try
             {
-                return await _dao.CrearAsync(usuarioLogueado, request);
+                return await _dao.CrearAsync(usuarioLogueado, lstBancos);
             }
             catch (Exception ex)
             {
-                return new Respuesta
-                {
-                    IdTipoMensaje = 3,
-                    Mensaje = ex.Message,
-                    Result = new List<BancoCreado>()
-                };
+                return new Respuesta { IdTipoMensaje = 3, Mensaje = ex.Message, Result = new List<BancoCreado>() };
             }
         }
 
