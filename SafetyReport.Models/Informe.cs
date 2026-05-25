@@ -210,15 +210,15 @@ namespace SafetyReport.Models
         public string? OpinionCredito { get; set; }
         public bool? FlgTieneInformacion { get; set; }
 
-        // Child lists (nullable lists treated as empty)
-        public List<InformeBalanceItem> Balances { get; set; } = new();
-        public List<InformeBancoItem> Bancos { get; set; } = new();
-        public List<InformeCompaniaRelacionadaItem> CompaniasRelacionadas { get; set; } = new();
-        public List<InformeExportacionImportacionItem> ExportacionesImportaciones { get; set; } = new();
-        public List<InformeProveedorItem> Proveedores { get; set; } = new();
-        public List<InformeDirectorioEjecutivoItem> DirectoriosEjecutivos { get; set; } = new();
-        public List<InformeLocalItem> Locales { get; set; } = new();
-        public List<InformePedidoItem> Pedidos { get; set; } = new();
+        // Child lists
+        public List<InformeBalanceItem> lstBalances { get; set; } = new();
+        public List<InformeBancoItem> lstBancos { get; set; } = new();
+        public List<InformeCompaniaRelacionadaItem> lstCompaniasRelacionadas { get; set; } = new();
+        public List<InformeExportacionImportacionItem> lstExportacionesImportaciones { get; set; } = new();
+        public List<InformeProveedorItem> lstProveedores { get; set; } = new();
+        public List<InformeDirectorioEjecutivoItem> lstDirectoriosEjecutivos { get; set; } = new();
+        public List<InformeLocalItem> lstLocales { get; set; } = new();
+        public List<InformePedidoItem> lstPedidos { get; set; } = new();
     }
 
     public class InformeEditar : InformeCrear

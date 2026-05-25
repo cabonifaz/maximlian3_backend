@@ -386,15 +386,15 @@ namespace SafetyReport.DAO
 
         private static void AgregarTvpsCampos(SqlCommand cmd, InformeCrear r)
         {
-            AgregarTvp(cmd, "@lstBalances", ConstruirTablaBalances(r.Balances), "LISTA_INFORME_BALANCE");
-            AgregarTvp(cmd, "@lstCuentaBalances", ConstruirTablaCuentaBalances(r.Balances), "LISTA_INFORME_CUENTA_BALANCE");
-            AgregarTvp(cmd, "@lstBancos", ConstruirTablaBancos(r.Bancos), "LISTA_INFORME_BANCO");
-            AgregarTvp(cmd, "@lstCompanias", ConstruirTablaCompanias(r.CompaniasRelacionadas), "LISTA_INFORME_COMPANIA_RELACIONADA");
-            AgregarTvp(cmd, "@lstExpImp", ConstruirTablaExpImp(r.ExportacionesImportaciones), "LISTA_INFORME_EXPORTACION_IMPORTACION");
-            AgregarTvp(cmd, "@lstProveedores", ConstruirTablaProveedores(r.Proveedores), "LISTA_INFORME_PROVEEDOR");
-            AgregarTvp(cmd, "@lstDirectoriosEjecutivos", ConstruirTablaDirectorioEjecutivo(r.DirectoriosEjecutivos), "LISTA_INFORME_DIRECTORIO_EJECUTIVO");
-            AgregarTvp(cmd, "@lstLocales", ConstruirTablaLocales(r.Locales), "LISTA_INFORME_LOCAL");
-            AgregarTvp(cmd, "@lstLocalImagenes", ConstruirTablaLocalImagenes(r.Locales), "LISTA_INFORME_LOCAL_IMAGEN");
+            AgregarTvp(cmd, "@lstBalances", ConstruirTablaBalances(r.lstBalances), "LISTA_INFORME_BALANCE");
+            AgregarTvp(cmd, "@lstCuentaBalances", ConstruirTablaCuentaBalances(r.lstBalances), "LISTA_INFORME_CUENTA_BALANCE");
+            AgregarTvp(cmd, "@lstBancos", ConstruirTablaBancos(r.lstBancos), "LISTA_INFORME_BANCO");
+            AgregarTvp(cmd, "@lstCompanias", ConstruirTablaCompanias(r.lstCompaniasRelacionadas), "LISTA_INFORME_COMPANIA_RELACIONADA");
+            AgregarTvp(cmd, "@lstExpImp", ConstruirTablaExpImp(r.lstExportacionesImportaciones), "LISTA_INFORME_EXPORTACION_IMPORTACION");
+            AgregarTvp(cmd, "@lstProveedores", ConstruirTablaProveedores(r.lstProveedores), "LISTA_INFORME_PROVEEDOR");
+            AgregarTvp(cmd, "@lstDirectoriosEjecutivos", ConstruirTablaDirectorioEjecutivo(r.lstDirectoriosEjecutivos), "LISTA_INFORME_DIRECTORIO_EJECUTIVO");
+            AgregarTvp(cmd, "@lstLocales", ConstruirTablaLocales(r.lstLocales), "LISTA_INFORME_LOCAL");
+            AgregarTvp(cmd, "@lstLocalImagenes", ConstruirTablaLocalImagenes(r.lstLocales), "LISTA_INFORME_LOCAL_IMAGEN");
         }
 
         // ── CRUD ─────────────────────────────────────────────────────────────────
