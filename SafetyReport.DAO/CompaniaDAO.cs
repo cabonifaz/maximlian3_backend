@@ -39,40 +39,43 @@ namespace SafetyReport.DAO
 
         public async Task<Respuesta> CrearAsync(UsuarioGeneral usuarioLogueado, List<CompaniaCrear> lstCompanias)
         {
-            var lstCreadas = new List<CompaniaCreada>();
             try
             {
                 using SqlConnection cn = new(_dbConfig.ConnectionString);
-                await cn.OpenAsync();
+                using SqlCommand cmd = new("Compania_Insertar", cn) { CommandType = CommandType.StoredProcedure };
+                cmd.Parameters.Add("@intIdUsuario", SqlDbType.Int).Value = usuarioLogueado.IdUsuario;
+                cmd.Parameters.Add("@vchUsuario", SqlDbType.VarChar, 32).Value = usuarioLogueado.Usuario;
+                cmd.Parameters.Add("@intIdEmpresa", SqlDbType.Int).Value = usuarioLogueado.IdEmpresa;
+                cmd.Parameters.Add("@intIdRol", SqlDbType.Int).Value = usuarioLogueado.IdRol;
 
+                var tvp = new DataTable();
+                tvp.Columns.Add("IdTipoPersona", typeof(int));
+                tvp.Columns.Add("IdTipoDocumento", typeof(int));
+                tvp.Columns.Add("NumeroDocumento", typeof(string));
+                tvp.Columns.Add("NombreCompleto", typeof(string));
+                tvp.Columns.Add("IdPais", typeof(int));
+                tvp.Columns.Add("Telefono", typeof(string));
+                tvp.Columns.Add("ExisteInformacion", typeof(bool));
                 foreach (var item in lstCompanias)
-                {
-                    using SqlCommand cmd = new("Compania_Insertar", cn) { CommandType = CommandType.StoredProcedure };
-                    cmd.Parameters.Add("@intIdUsuario", SqlDbType.Int).Value = usuarioLogueado.IdUsuario;
-                    cmd.Parameters.Add("@vchUsuario", SqlDbType.VarChar, 32).Value = usuarioLogueado.Usuario;
-                    cmd.Parameters.Add("@intIdEmpresa", SqlDbType.Int).Value = usuarioLogueado.IdEmpresa;
-                    cmd.Parameters.Add("@intIdRol", SqlDbType.Int).Value = usuarioLogueado.IdRol;
-                    cmd.Parameters.Add("@intIdTipoPersona", SqlDbType.Int).Value = (object?)item.IdTipoPersona ?? DBNull.Value;
-                    cmd.Parameters.Add("@intIdTipoDocumento", SqlDbType.Int).Value = (object?)item.IdTipoDocumento ?? DBNull.Value;
-                    cmd.Parameters.Add("@vchNumeroDocumento", SqlDbType.VarChar, 255).Value = (object?)item.NumeroDocumento ?? DBNull.Value;
-                    cmd.Parameters.Add("@vchNombreCompleto", SqlDbType.VarChar, 255).Value = (object?)item.NombreCompleto ?? DBNull.Value;
-                    cmd.Parameters.Add("@intIdPais", SqlDbType.Int).Value = (object?)item.IdPais ?? DBNull.Value;
-                    cmd.Parameters.Add("@vchTelefono", SqlDbType.VarChar, 128).Value = (object?)item.Telefono ?? DBNull.Value;
-                    cmd.Parameters.Add("@bitExisteInformacion", SqlDbType.Bit).Value = (object?)item.ExisteInformacion ?? DBNull.Value;
+                    tvp.Rows.Add(
+                        (object?)item.IdTipoPersona     ?? DBNull.Value,
+                        (object?)item.IdTipoDocumento   ?? DBNull.Value,
+                        (object?)item.NumeroDocumento   ?? DBNull.Value,
+                        (object?)item.NombreCompleto    ?? DBNull.Value,
+                        (object?)item.IdPais            ?? DBNull.Value,
+                        (object?)item.Telefono          ?? DBNull.Value,
+                        (object?)item.ExisteInformacion ?? DBNull.Value);
 
-                    var respuesta = await LeerRespuestaAsync<CompaniaCreada>(cmd);
-                    if (respuesta.IdTipoMensaje != 2)
-                        return respuesta;
+                var paramTvp = cmd.Parameters.Add("@tvpCompanias", SqlDbType.Structured);
+                paramTvp.TypeName = "LISTA_COMPANIA_INSERTAR";
+                paramTvp.Value = tvp;
 
-                    if (respuesta.Result is List<CompaniaCreada> creadas)
-                        lstCreadas.AddRange(creadas);
-                }
-
-                return new Respuesta { IdTipoMensaje = 2, Mensaje = "Compañías registradas correctamente.", Result = lstCreadas };
+                await cn.OpenAsync();
+                return await LeerRespuestaAsync<CompaniaCreada>(cmd);
             }
             catch (Exception ex)
             {
-                return new Respuesta { IdTipoMensaje = 3, Mensaje = ex.Message, Result = lstCreadas };
+                return new Respuesta { IdTipoMensaje = 3, Mensaje = ex.Message, Result = new List<CompaniaCreada>() };
             }
         }
 

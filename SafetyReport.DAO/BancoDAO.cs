@@ -39,36 +39,32 @@ namespace SafetyReport.DAO
 
         public async Task<Respuesta> CrearAsync(UsuarioGeneral usuarioLogueado, List<BancoCrear> lstBancos)
         {
-            var lstCreados = new List<BancoCreado>();
             try
             {
                 using SqlConnection cn = new(_dbConfig.ConnectionString);
-                await cn.OpenAsync();
+                using SqlCommand cmd = new("Banco_Insertar", cn) { CommandType = CommandType.StoredProcedure };
+                cmd.Parameters.Add("@intIdUsuario", SqlDbType.Int).Value = usuarioLogueado.IdUsuario;
+                cmd.Parameters.Add("@vchUsuario", SqlDbType.VarChar, 32).Value = usuarioLogueado.Usuario;
+                cmd.Parameters.Add("@intIdEmpresa", SqlDbType.Int).Value = usuarioLogueado.IdEmpresa;
+                cmd.Parameters.Add("@intIdRol", SqlDbType.Int).Value = usuarioLogueado.IdRol;
 
+                var tvp = new DataTable();
+                tvp.Columns.Add("IdPais", typeof(int));
+                tvp.Columns.Add("Nombre", typeof(string));
+                tvp.Columns.Add("Telefono", typeof(string));
                 foreach (var item in lstBancos)
-                {
-                    using SqlCommand cmd = new("Banco_Insertar", cn) { CommandType = CommandType.StoredProcedure };
-                    cmd.Parameters.Add("@intIdUsuario", SqlDbType.Int).Value = usuarioLogueado.IdUsuario;
-                    cmd.Parameters.Add("@vchUsuario", SqlDbType.VarChar, 32).Value = usuarioLogueado.Usuario;
-                    cmd.Parameters.Add("@intIdEmpresa", SqlDbType.Int).Value = usuarioLogueado.IdEmpresa;
-                    cmd.Parameters.Add("@intIdRol", SqlDbType.Int).Value = usuarioLogueado.IdRol;
-                    cmd.Parameters.Add("@intIdPais", SqlDbType.Int).Value = item.IdPais;
-                    cmd.Parameters.Add("@vchNombre", SqlDbType.VarChar, 255).Value = item.Nombre;
-                    cmd.Parameters.Add("@vchTelefono", SqlDbType.VarChar, 128).Value = (object?)item.Telefono ?? DBNull.Value;
+                    tvp.Rows.Add(item.IdPais, item.Nombre, (object?)item.Telefono ?? DBNull.Value);
 
-                    var respuesta = await LeerRespuestaAsync<BancoCreado>(cmd);
-                    if (respuesta.IdTipoMensaje != 2)
-                        return respuesta;
+                var paramTvp = cmd.Parameters.Add("@tvpBancos", SqlDbType.Structured);
+                paramTvp.TypeName = "LISTA_BANCO_INSERTAR";
+                paramTvp.Value = tvp;
 
-                    if (respuesta.Result is List<BancoCreado> creados)
-                        lstCreados.AddRange(creados);
-                }
-
-                return new Respuesta { IdTipoMensaje = 2, Mensaje = "Bancos registrados correctamente.", Result = lstCreados };
+                await cn.OpenAsync();
+                return await LeerRespuestaAsync<BancoCreado>(cmd);
             }
             catch (Exception ex)
             {
-                return new Respuesta { IdTipoMensaje = 3, Mensaje = ex.Message, Result = lstCreados };
+                return new Respuesta { IdTipoMensaje = 3, Mensaje = ex.Message, Result = new List<BancoCreado>() };
             }
         }
 
