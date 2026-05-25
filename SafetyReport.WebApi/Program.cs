@@ -154,6 +154,10 @@ builder.Services.AddScoped<AsignacionHandler>();
 builder.Services.AddScoped<AsignacionDAO>();
 builder.Services.AddScoped<InformeHandler>();
 builder.Services.AddScoped<InformeDAO>();
+builder.Services.AddScoped<BancoHandler>();
+builder.Services.AddScoped<BancoDAO>();
+builder.Services.AddScoped<CompaniaHandler>();
+builder.Services.AddScoped<CompaniaDAO>();
 
 var awsRegion = builder.Configuration["AWS:Region"];
 var awsBucketName = builder.Configuration["AWS:BucketName"];
