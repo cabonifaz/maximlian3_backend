@@ -64,40 +64,24 @@ namespace SafetyReport.DAO
                 tvp.Columns.Add("IdEstadoCivil", typeof(int));
                 tvp.Columns.Add("IdProfesion", typeof(int));
                 tvp.Columns.Add("Referencias", typeof(string));
-                tvp.Columns.Add("Cargos", typeof(string));
-                tvp.Columns.Add("FormularioVinculado", typeof(string));
-                tvp.Columns.Add("CompaniaAnterior", typeof(string));
-                tvp.Columns.Add("Participacion", typeof(decimal));
-                tvp.Columns.Add("Orden", typeof(int));
-                tvp.Columns.Add("EsParticipanteDirectiva", typeof(bool));
-                tvp.Columns.Add("ApareceImpresoLista", typeof(bool));
-                tvp.Columns.Add("ImprimeDatosEjecutivos", typeof(bool));
 
                 foreach (var item in lstDirectorios)
                     tvp.Rows.Add(
-                        (object?)item.IdTipoPersona        ?? DBNull.Value,
-                        (object?)item.NombreCompleto        ?? DBNull.Value,
-                        (object?)item.IdPais                ?? DBNull.Value,
-                        (object?)item.Direccion             ?? DBNull.Value,
-                        (object?)item.Ubigeo                ?? DBNull.Value,
-                        (object?)item.CodigoPostal          ?? DBNull.Value,
-                        (object?)item.IdTipoDocumento       ?? DBNull.Value,
-                        (object?)item.NumeroDocumento       ?? DBNull.Value,
-                        (object?)item.TaxIdType             ?? DBNull.Value,
-                        (object?)item.TaxNum                ?? DBNull.Value,
-                        (object?)item.IdNacionalidad        ?? DBNull.Value,
-                        (object?)item.FechaNacimiento       ?? DBNull.Value,
-                        (object?)item.IdEstadoCivil         ?? DBNull.Value,
-                        (object?)item.IdProfesion           ?? DBNull.Value,
-                        (object?)item.Referencias           ?? DBNull.Value,
-                        (object?)item.Cargos                ?? DBNull.Value,
-                        (object?)item.FormularioVinculado   ?? DBNull.Value,
-                        (object?)item.CompaniaAnterior      ?? DBNull.Value,
-                        (object?)item.Participacion         ?? DBNull.Value,
-                        (object?)item.Orden                 ?? DBNull.Value,
-                        (object?)item.EsParticipanteDirectiva  ?? DBNull.Value,
-                        (object?)item.ApareceImpresoLista      ?? DBNull.Value,
-                        (object?)item.ImprimeDatosEjecutivos   ?? DBNull.Value);
+                        (object?)item.IdTipoPersona    ?? DBNull.Value,
+                        (object?)item.NombreCompleto   ?? DBNull.Value,
+                        (object?)item.IdPais           ?? DBNull.Value,
+                        (object?)item.Direccion        ?? DBNull.Value,
+                        (object?)item.Ubigeo           ?? DBNull.Value,
+                        (object?)item.CodigoPostal     ?? DBNull.Value,
+                        (object?)item.IdTipoDocumento  ?? DBNull.Value,
+                        (object?)item.NumeroDocumento  ?? DBNull.Value,
+                        (object?)item.TaxIdType        ?? DBNull.Value,
+                        (object?)item.TaxNum           ?? DBNull.Value,
+                        (object?)item.IdNacionalidad   ?? DBNull.Value,
+                        (object?)item.FechaNacimiento  ?? DBNull.Value,
+                        (object?)item.IdEstadoCivil    ?? DBNull.Value,
+                        (object?)item.IdProfesion      ?? DBNull.Value,
+                        (object?)item.Referencias      ?? DBNull.Value);
 
                 var paramTvp = cmd.Parameters.Add("@tvpDirectorios", SqlDbType.Structured);
                 paramTvp.TypeName = "LISTA_DIRECTORIO_EJECUTIVO_INSERTAR";
@@ -138,14 +122,6 @@ namespace SafetyReport.DAO
                 cmd.Parameters.Add("@intIdEstadoCivil", SqlDbType.Int).Value = (object?)request.IdEstadoCivil ?? DBNull.Value;
                 cmd.Parameters.Add("@intIdProfesion", SqlDbType.Int).Value = (object?)request.IdProfesion ?? DBNull.Value;
                 cmd.Parameters.Add("@vchReferencias", SqlDbType.VarChar, 255).Value = (object?)request.Referencias ?? DBNull.Value;
-                cmd.Parameters.Add("@vchCargos", SqlDbType.VarChar, 255).Value = (object?)request.Cargos ?? DBNull.Value;
-                cmd.Parameters.Add("@vchFormularioVinculado", SqlDbType.VarChar, 255).Value = (object?)request.FormularioVinculado ?? DBNull.Value;
-                cmd.Parameters.Add("@vchCompaniaAnterior", SqlDbType.VarChar, 255).Value = (object?)request.CompaniaAnterior ?? DBNull.Value;
-                cmd.Parameters.Add("@decParticipacion", SqlDbType.Decimal).Value = (object?)request.Participacion ?? DBNull.Value;
-                cmd.Parameters.Add("@intOrden", SqlDbType.Int).Value = (object?)request.Orden ?? DBNull.Value;
-                cmd.Parameters.Add("@bitEsParticipanteDirectiva", SqlDbType.Bit).Value = (object?)request.EsParticipanteDirectiva ?? DBNull.Value;
-                cmd.Parameters.Add("@bitApareceImpresoLista", SqlDbType.Bit).Value = (object?)request.ApareceImpresoLista ?? DBNull.Value;
-                cmd.Parameters.Add("@bitImprimeDatosEjecutivos", SqlDbType.Bit).Value = (object?)request.ImprimeDatosEjecutivos ?? DBNull.Value;
                 await cn.OpenAsync();
                 return await LeerRespuestaAsync<DirectorioEjecutivoCreado>(cmd);
             }

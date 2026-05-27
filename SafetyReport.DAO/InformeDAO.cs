@@ -175,14 +175,33 @@ namespace SafetyReport.DAO
             return t;
         }
 
-        private static DataTable ConstruirTablaIdsDirectorioEjecutivo(List<int> ids)
+        private static DataTable ConstruirTablaDirectoriosEjecutivos(List<InformeDirectorioEjecutivoItem> items)
         {
             var t = new DataTable();
             t.Columns.Add("ID", typeof(int));
-            t.Columns.Add("NUM1", typeof(int));
+            t.Columns.Add("IdInformeDirectorioEjecutivo", typeof(int));
+            t.Columns.Add("IdDirectorioEjecutivo", typeof(int));
+            t.Columns.Add("Cargos", typeof(string));
+            t.Columns.Add("VinculadoDesde", typeof(DateTime));
+            t.Columns.Add("CompaniaAnterior", typeof(string));
+            t.Columns.Add("Participacion", typeof(decimal));
+            t.Columns.Add("Orden", typeof(int));
+            t.Columns.Add("EsParticipanteDirectiva", typeof(bool));
+            t.Columns.Add("ApareceImpresoLista", typeof(bool));
+            t.Columns.Add("ImprimeDatosEjecutivos", typeof(bool));
             int i = 1;
-            foreach (var id in ids)
-                t.Rows.Add(i++, id);
+            foreach (var x in items)
+                t.Rows.Add(i++,
+                    (object?)x.IdInformeDirectorioEjecutivo ?? DBNull.Value,
+                    x.IdDirectorioEjecutivo,
+                    (object?)x.Cargos ?? DBNull.Value,
+                    (object?)x.VinculadoDesde ?? DBNull.Value,
+                    (object?)x.CompaniaAnterior ?? DBNull.Value,
+                    (object?)x.Participacion ?? DBNull.Value,
+                    (object?)x.Orden ?? DBNull.Value,
+                    (object?)x.EsParticipanteDirectiva ?? DBNull.Value,
+                    (object?)x.ApareceImpresoLista ?? DBNull.Value,
+                    (object?)x.ImprimeDatosEjecutivos ?? DBNull.Value);
             return t;
         }
 
@@ -345,7 +364,7 @@ namespace SafetyReport.DAO
             AgregarTvp(cmd, "@lstCompanias", ConstruirTablaCompanias(r.lstCompaniasRelacionadas), "LISTA_INFORME_COMPANIA_RELACIONADA");
             AgregarTvp(cmd, "@lstExpImp", ConstruirTablaExpImp(r.lstExportacionesImportaciones), "LISTA_INFORME_EXPORTACION_IMPORTACION");
             AgregarTvp(cmd, "@lstProveedores", ConstruirTablaProveedores(r.lstProveedores), "LISTA_INFORME_PROVEEDOR");
-            AgregarTvp(cmd, "@lstIdsDirectoriosEjecutivos", ConstruirTablaIdsDirectorioEjecutivo(r.lstIdsDirectoriosEjecutivos), "LISTA_GENERAL_NUM");
+            AgregarTvp(cmd, "@lstDirectoriosEjecutivos", ConstruirTablaDirectoriosEjecutivos(r.lstDirectoriosEjecutivos), "LISTA_INFORME_DIRECTORIO_EJECUTIVO");
             AgregarTvp(cmd, "@lstLocales", ConstruirTablaLocales(r.lstLocales), "LISTA_INFORME_LOCAL");
             AgregarTvp(cmd, "@lstLocalImagenes", ConstruirTablaLocalImagenes(r.lstLocales), "LISTA_INFORME_LOCAL_IMAGEN");
         }

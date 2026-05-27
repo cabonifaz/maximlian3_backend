@@ -109,6 +109,20 @@ namespace SafetyReport.Models
         public string? Comentarios { get; set; }
     }
 
+    public class InformeDirectorioEjecutivoItem
+    {
+        public int? IdInformeDirectorioEjecutivo { get; set; }
+        public int IdDirectorioEjecutivo { get; set; }
+        public string? Cargos { get; set; }
+        public DateTime? VinculadoDesde { get; set; }
+        public string? CompaniaAnterior { get; set; }
+        public decimal? Participacion { get; set; }
+        public int? Orden { get; set; }
+        public bool? EsParticipanteDirectiva { get; set; }
+        public bool? ApareceImpresoLista { get; set; }
+        public bool? ImprimeDatosEjecutivos { get; set; }
+    }
+
     // ── Create / Edit ────────────────────────────────────────────────────────────
 
     public class InformeCrear
@@ -188,7 +202,7 @@ namespace SafetyReport.Models
         public List<InformeCompaniaRelacionadaItem> lstCompaniasRelacionadas { get; set; } = new();
         public List<InformeExportacionImportacionItem> lstExportacionesImportaciones { get; set; } = new();
         public List<InformeProveedorItem> lstProveedores { get; set; } = new();
-        public List<int> lstIdsDirectoriosEjecutivos { get; set; } = new();
+        public List<InformeDirectorioEjecutivoItem> lstDirectoriosEjecutivos { get; set; } = new();
         public List<InformeLocalItem> lstLocales { get; set; } = new();
     }
 
@@ -290,7 +304,18 @@ namespace SafetyReport.Models
 
     public class InformeDirectorioEjecutivoConsulta
     {
+        // De INFORME_DIRECTORIO_EJECUTIVO
         public int IdInformeDirectorioEjecutivo { get; set; }
+        public string? Cargos { get; set; }
+        public DateTime? VinculadoDesde { get; set; }
+        public string? CompaniaAnterior { get; set; }
+        public decimal? Participacion { get; set; }
+        public int? Orden { get; set; }
+        public bool? EsParticipanteDirectiva { get; set; }
+        public bool? ApareceImpresoLista { get; set; }
+        public bool? ImprimeDatosEjecutivos { get; set; }
+        // De DIRECTORIO_EJECUTIVO
+        public int IdDirectorioEjecutivo { get; set; }
         public int? IdTipoPersona { get; set; }
         public string? NombreCompleto { get; set; }
         public int? IdPais { get; set; }
@@ -306,14 +331,6 @@ namespace SafetyReport.Models
         public int? IdEstadoCivil { get; set; }
         public int? IdProfesion { get; set; }
         public string? Referencias { get; set; }
-        public string? Cargos { get; set; }
-        public string? FormularioVinculado { get; set; }
-        public string? CompaniaAnterior { get; set; }
-        public decimal? Participacion { get; set; }
-        public int? Orden { get; set; }
-        public bool? EsParticipanteDirectiva { get; set; }
-        public bool? ApareceImpresoLista { get; set; }
-        public bool? ImprimeDatosEjecutivos { get; set; }
     }
 
     public class InformeLocalImagenConsulta

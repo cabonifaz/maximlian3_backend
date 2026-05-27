@@ -17,14 +17,6 @@ namespace SafetyReport.Models
         public int? IdEstadoCivil { get; set; }
         public int? IdProfesion { get; set; }
         public string? Referencias { get; set; }
-        public string? Cargos { get; set; }
-        public string? FormularioVinculado { get; set; }
-        public string? CompaniaAnterior { get; set; }
-        public decimal? Participacion { get; set; }
-        public int? Orden { get; set; }
-        public bool? EsParticipanteDirectiva { get; set; }
-        public bool? ApareceImpresoLista { get; set; }
-        public bool? ImprimeDatosEjecutivos { get; set; }
     }
 
     public class DirectorioEjecutivoEditar : DirectorioEjecutivoCrear
@@ -78,14 +70,6 @@ namespace SafetyReport.Models
         public int? IdProfesion { get; set; }
         public string? Profesion { get; set; }
         public string? Referencias { get; set; }
-        public string? Cargos { get; set; }
-        public string? FormularioVinculado { get; set; }
-        public string? CompaniaAnterior { get; set; }
-        public decimal? Participacion { get; set; }
-        public int? Orden { get; set; }
-        public bool? EsParticipanteDirectiva { get; set; }
-        public bool? ApareceImpresoLista { get; set; }
-        public bool? ImprimeDatosEjecutivos { get; set; }
     }
 
     public class FiltroDirectorioEjecutivo
