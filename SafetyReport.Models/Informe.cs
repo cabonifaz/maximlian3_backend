@@ -34,34 +34,6 @@ namespace SafetyReport.Models
         public InformeCuentaBalanceItem? CuentaBalance { get; set; }
     }
 
-    public class InformeDirectorioEjecutivoItem
-    {
-        public int? IdInformeDirectorioEjecutivo { get; set; }
-        public int? IdTipoPersona { get; set; }
-        public string? NombreCompleto { get; set; }
-        public int? IdPais { get; set; }
-        public string? Direccion { get; set; }
-        public string? Ubigeo { get; set; }
-        public string? CodigoPostal { get; set; }
-        public int? IdTipoDocumento { get; set; }
-        public string? NumeroDocumento { get; set; }
-        public int? TaxIdType { get; set; }
-        public string? TaxNum { get; set; }
-        public int? IdNacionalidad { get; set; }
-        public DateTime? FechaNacimiento { get; set; }
-        public int? IdEstadoCivil { get; set; }
-        public int? IdProfesion { get; set; }
-        public string? Referencias { get; set; }
-        public string? Cargos { get; set; }
-        public string? FormularioVinculado { get; set; }
-        public string? CompaniaAnterior { get; set; }
-        public decimal? Participacion { get; set; }
-        public int? Orden { get; set; }
-        public bool? EsParticipanteDirectiva { get; set; }
-        public bool? ApareceImpresoLista { get; set; }
-        public bool? ImprimeDatosEjecutivos { get; set; }
-    }
-
     public class InformeLocalImagenItem
     {
         public int? IdInformeLocalImagen { get; set; }
@@ -216,9 +188,8 @@ namespace SafetyReport.Models
         public List<InformeCompaniaRelacionadaItem> lstCompaniasRelacionadas { get; set; } = new();
         public List<InformeExportacionImportacionItem> lstExportacionesImportaciones { get; set; } = new();
         public List<InformeProveedorItem> lstProveedores { get; set; } = new();
-        public List<InformeDirectorioEjecutivoItem> lstDirectoriosEjecutivos { get; set; } = new();
+        public List<int> lstIdsDirectoriosEjecutivos { get; set; } = new();
         public List<InformeLocalItem> lstLocales { get; set; } = new();
-        public List<InformePedidoItem> lstPedidos { get; set; } = new();
     }
 
     public class InformeEditar : InformeCrear
