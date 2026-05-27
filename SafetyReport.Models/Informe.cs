@@ -113,7 +113,7 @@ namespace SafetyReport.Models
     {
         public int? IdInformeDirectorioEjecutivo { get; set; }
         public int IdDirectorioEjecutivo { get; set; }
-        public string? Cargos { get; set; }
+        public int? IdCargo { get; set; }
         public DateTime? VinculadoDesde { get; set; }
         public string? CompaniaAnterior { get; set; }
         public decimal? Participacion { get; set; }
@@ -306,7 +306,7 @@ namespace SafetyReport.Models
     {
         // De INFORME_DIRECTORIO_EJECUTIVO
         public int IdInformeDirectorioEjecutivo { get; set; }
-        public string? Cargos { get; set; }
+        public int? IdCargo { get; set; }
         public DateTime? VinculadoDesde { get; set; }
         public string? CompaniaAnterior { get; set; }
         public decimal? Participacion { get; set; }

@@ -181,7 +181,7 @@ namespace SafetyReport.DAO
             t.Columns.Add("ID", typeof(int));
             t.Columns.Add("IdInformeDirectorioEjecutivo", typeof(int));
             t.Columns.Add("IdDirectorioEjecutivo", typeof(int));
-            t.Columns.Add("Cargos", typeof(string));
+            t.Columns.Add("IdCargo", typeof(string));
             t.Columns.Add("VinculadoDesde", typeof(DateTime));
             t.Columns.Add("CompaniaAnterior", typeof(string));
             t.Columns.Add("Participacion", typeof(decimal));
@@ -194,7 +194,7 @@ namespace SafetyReport.DAO
                 t.Rows.Add(i++,
                     (object?)x.IdInformeDirectorioEjecutivo ?? DBNull.Value,
                     x.IdDirectorioEjecutivo,
-                    (object?)x.Cargos ?? DBNull.Value,
+                    (object?)x.IdCargo ?? DBNull.Value,
                     (object?)x.VinculadoDesde ?? DBNull.Value,
                     (object?)x.CompaniaAnterior ?? DBNull.Value,
                     (object?)x.Participacion ?? DBNull.Value,
