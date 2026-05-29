@@ -50,16 +50,6 @@ namespace SafetyReport.Models
         public List<InformeLocalImagenItem> Imagenes { get; set; } = new();
     }
 
-    public class InformePedidoItem
-    {
-        public int? IdInformePedido { get; set; }
-        public int IdPedido { get; set; }
-        public int IdIdioma { get; set; }
-        public string? DocumentoWord { get; set; }
-        public string? DocumentoExcel { get; set; }
-        public int IdEstado { get; set; }
-    }
-
     public class InformeBancoItem
     {
         public int? IdInformeBanco { get; set; }
@@ -347,16 +337,6 @@ namespace SafetyReport.Models
         public string? Comentario { get; set; }
         public string? ImagenUrl { get; set; }
         public List<InformeLocalImagenConsulta> Imagenes { get; set; } = new();
-    }
-
-    public class InformePedidoConsulta
-    {
-        public int IdInformePedido { get; set; }
-        public int IdPedido { get; set; }
-        public int IdIdioma { get; set; }
-        public string? DocumentoWord { get; set; }
-        public string? DocumentoExcel { get; set; }
-        public int IdEstado { get; set; }
     }
 
     public class InformeBancoConsulta
