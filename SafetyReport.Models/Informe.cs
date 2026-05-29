@@ -488,7 +488,6 @@ namespace SafetyReport.Models
         public List<InformeProveedorConsulta> Proveedores { get; set; } = new();
         public List<InformeDirectorioEjecutivoConsulta> DirectoriosEjecutivos { get; set; } = new();
         public List<InformeLocalConsulta> Locales { get; set; } = new();
-        public List<InformePedidoConsulta> Pedidos { get; set; } = new();
     }
 
     public class InformeUrlPrefirmadaRequest
