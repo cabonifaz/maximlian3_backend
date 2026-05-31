@@ -132,8 +132,8 @@ namespace SafetyReport.Models
         public string? Fax { get; set; }
         public string? Email { get; set; }
         public string? PaginaWeb { get; set; }
-        public int IdEstadoManual { get; set; }
-        public int IdEstadoInforme { get; set; }
+        public int? IdEstadoManual { get; set; }
+        public int? IdEstadoInforme { get; set; }
         public string? DatosAdicionales { get; set; }
         public string? ObservacionesIdentificacion { get; set; }
         public int? IdTipoEmpresa { get; set; }
