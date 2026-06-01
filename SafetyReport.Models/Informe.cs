@@ -50,16 +50,6 @@ namespace SafetyReport.Models
         public List<InformeLocalImagenItem> Imagenes { get; set; } = new();
     }
 
-    public class InformePedidoItem
-    {
-        public int? IdInformePedido { get; set; }
-        public int IdPedido { get; set; }
-        public int IdIdioma { get; set; }
-        public string? DocumentoWord { get; set; }
-        public string? DocumentoExcel { get; set; }
-        public int IdEstado { get; set; }
-    }
-
     public class InformeBancoItem
     {
         public int? IdInformeBanco { get; set; }
@@ -142,8 +132,8 @@ namespace SafetyReport.Models
         public string? Fax { get; set; }
         public string? Email { get; set; }
         public string? PaginaWeb { get; set; }
-        public int IdEstadoManual { get; set; }
-        public int IdEstadoInforme { get; set; }
+        public int? IdEstadoManual { get; set; }
+        public int? IdEstadoInforme { get; set; }
         public string? DatosAdicionales { get; set; }
         public string? ObservacionesIdentificacion { get; set; }
         public int? IdTipoEmpresa { get; set; }
@@ -349,16 +339,6 @@ namespace SafetyReport.Models
         public List<InformeLocalImagenConsulta> Imagenes { get; set; } = new();
     }
 
-    public class InformePedidoConsulta
-    {
-        public int IdInformePedido { get; set; }
-        public int IdPedido { get; set; }
-        public int IdIdioma { get; set; }
-        public string? DocumentoWord { get; set; }
-        public string? DocumentoExcel { get; set; }
-        public int IdEstado { get; set; }
-    }
-
     public class InformeBancoConsulta
     {
         public int IdIformeBanco { get; set; }
@@ -488,7 +468,6 @@ namespace SafetyReport.Models
         public List<InformeProveedorConsulta> Proveedores { get; set; } = new();
         public List<InformeDirectorioEjecutivoConsulta> DirectoriosEjecutivos { get; set; } = new();
         public List<InformeLocalConsulta> Locales { get; set; } = new();
-        public List<InformePedidoConsulta> Pedidos { get; set; } = new();
     }
 
     public class InformeUrlPrefirmadaRequest

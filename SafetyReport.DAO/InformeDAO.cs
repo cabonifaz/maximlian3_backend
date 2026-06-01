@@ -301,8 +301,8 @@ namespace SafetyReport.DAO
             cmd.Parameters.Add("@vchFax", SqlDbType.VarChar, 2560).Value = (object?)r.Fax ?? DBNull.Value;
             cmd.Parameters.Add("@vchEmail", SqlDbType.VarChar, 2560).Value = (object?)r.Email ?? DBNull.Value;
             cmd.Parameters.Add("@vchPaginaWeb", SqlDbType.VarChar, 512).Value = (object?)r.PaginaWeb ?? DBNull.Value;
-            cmd.Parameters.Add("@intIdEstadoManual", SqlDbType.Int).Value = r.IdEstadoManual;
-            cmd.Parameters.Add("@intIdEstadoInforme", SqlDbType.Int).Value = r.IdEstadoInforme;
+            cmd.Parameters.Add("@intIdEstadoManual", SqlDbType.Int).Value = (object?)r.IdEstadoManual ?? DBNull.Value;
+            cmd.Parameters.Add("@intIdEstadoInforme", SqlDbType.Int).Value = (object?)r.IdEstadoInforme ?? DBNull.Value;
             cmd.Parameters.Add("@vchDatosAdicionales", SqlDbType.VarChar, -1).Value = (object?)r.DatosAdicionales ?? DBNull.Value;
             cmd.Parameters.Add("@vchObservacionesIdentificacion", SqlDbType.VarChar, -1).Value = (object?)r.ObservacionesIdentificacion ?? DBNull.Value;
             cmd.Parameters.Add("@intIdTipoEmpresa", SqlDbType.Int).Value = (object?)r.IdTipoEmpresa ?? DBNull.Value;
