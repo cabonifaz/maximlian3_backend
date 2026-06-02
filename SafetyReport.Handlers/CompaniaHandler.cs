@@ -60,6 +60,18 @@ namespace SafetyReport.Handlers
             }
         }
 
+        public async Task<Respuesta> ListarMatchAsync(UsuarioGeneral usuarioLogueado, List<CompaniaMatchItem> lista)
+        {
+            try
+            {
+                return await _dao.ListarMatchAsync(usuarioLogueado, lista);
+            }
+            catch (Exception ex)
+            {
+                return new Respuesta { IdTipoMensaje = 3, Mensaje = ex.Message, Result = new List<CompaniaMatchResultItem>() };
+            }
+        }
+
         public async Task<Respuesta> EliminarAsync(UsuarioGeneral usuarioLogueado, int idCompania)
         {
             try
