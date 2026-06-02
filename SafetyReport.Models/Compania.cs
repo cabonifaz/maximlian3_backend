@@ -72,4 +72,15 @@ namespace SafetyReport.Models
         public int TotalRegistros { get; set; }
         public int TotalPaginas { get; set; }
     }
+
+    public class CompaniaMatchItem
+    {
+        public string? NumeroDocumento { get; set; }
+        public string? NombreCompleto { get; set; }
+    }
+
+    public class CompaniaMatchResultItem
+    {
+        public int? IdCompania { get; set; }
+    }
 }

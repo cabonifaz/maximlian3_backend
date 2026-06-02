@@ -45,6 +45,13 @@ namespace SafetyReport.WebApi.Controllers
             return Ok(respuesta);
         }
 
+        [HttpPost("listarMatch")]
+        public async Task<IActionResult> ListarMatch([FromBody] List<CompaniaMatchItem> request)
+        {
+            var respuesta = await _companiaHandler.ListarMatchAsync(UsuarioLogueado, request);
+            return Ok(respuesta);
+        }
+
         [HttpPost("eliminar")]
         public async Task<IActionResult> Eliminar([FromBody] CompaniaIdRequest request)
         {
