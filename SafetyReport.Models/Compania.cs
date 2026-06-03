@@ -75,7 +75,6 @@ namespace SafetyReport.Models
 
     public class CompaniaMatchItem
     {
-        public string? NumeroDocumento { get; set; }
         public string? NombreCompleto { get; set; }
     }
 
