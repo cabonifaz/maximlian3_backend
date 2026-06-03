@@ -172,7 +172,7 @@ namespace SafetyReport.DAO
             try
             {
                 using SqlConnection cn = new(_dbConfig.ConnectionString);
-                using SqlCommand cmd = new("Compania_ListarMatch", cn) { CommandType = CommandType.StoredProcedure };
+                using SqlCommand cmd = new("Compania_ObtenerCoincidencias", cn) { CommandType = CommandType.StoredProcedure };
                 cmd.Parameters.Add("@intIdUsuario", SqlDbType.Int).Value = usuarioLogueado.IdUsuario;
                 cmd.Parameters.Add("@vchUsuario", SqlDbType.VarChar, 32).Value = usuarioLogueado.Usuario;
                 cmd.Parameters.Add("@intIdEmpresa", SqlDbType.Int).Value = usuarioLogueado.IdEmpresa;

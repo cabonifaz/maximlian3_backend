@@ -191,7 +191,10 @@ builder.Services.AddScoped<CognitoTokenValidator>();
 var n8nConfig = builder.Configuration.GetSection("N8n").Get<N8nConfig>()
     ?? throw new Exception("Falta configuración N8n");
 builder.Services.AddSingleton(n8nConfig);
-builder.Services.AddHttpClient<N8nService>();
+builder.Services.AddHttpClient<N8nService>(client =>
+{
+    client.Timeout = TimeSpan.FromSeconds(300);
+});
 
 var app = builder.Build();
 

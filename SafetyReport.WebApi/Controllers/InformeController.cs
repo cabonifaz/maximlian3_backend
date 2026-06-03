@@ -56,7 +56,7 @@ namespace SafetyReport.WebApi.Controllers
         }
 
         [HttpPost("autocompletar")]
-        [RequestTimeout(180000)]
+        [RequestTimeout(300000)]
         public async Task<IActionResult> Autocompletar([FromBody] InformeAutocompletar request)
         {
             var respuesta = await _informeHandler.AutocompletarAsync(request);
