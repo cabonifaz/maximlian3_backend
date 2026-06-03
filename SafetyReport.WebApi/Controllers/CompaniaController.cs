@@ -45,8 +45,8 @@ namespace SafetyReport.WebApi.Controllers
             return Ok(respuesta);
         }
 
-        [HttpPost("listarMatch")]
-        public async Task<IActionResult> ListarMatch([FromBody] List<CompaniaMatchItem> request)
+        [HttpPost("obtenerCoincidencias")]
+        public async Task<IActionResult> ObtenerCoincidencias([FromBody] List<CompaniaMatchItem> request)
         {
             var respuesta = await _companiaHandler.ListarMatchAsync(UsuarioLogueado, request);
             return Ok(respuesta);
