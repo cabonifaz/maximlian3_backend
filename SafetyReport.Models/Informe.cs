@@ -31,6 +31,7 @@ namespace SafetyReport.Models
         public decimal? TipoCambio { get; set; }
         public int IdMoneda { get; set; }
         public int TipoBalance { get; set; }
+        public int? IdTipoEstadoFinanciero { get; set; }
         public InformeCuentaBalanceItem? CuentaBalance { get; set; }
     }
 
@@ -299,6 +300,7 @@ namespace SafetyReport.Models
         public decimal? TipoCambio { get; set; }
         public int IdMoneda { get; set; }
         public int TipoBalance { get; set; }
+        public int? IdTipoEstadoFinanciero { get; set; }
         public InformeCuentaBalanceConsulta? CuentaBalance { get; set; }
     }
 

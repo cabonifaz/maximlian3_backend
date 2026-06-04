@@ -27,6 +27,7 @@ namespace SafetyReport.DAO
             t.Columns.Add("TipoCambio", typeof(decimal));
             t.Columns.Add("IdMoneda", typeof(int));
             t.Columns.Add("TipoBalance", typeof(int));
+            t.Columns.Add("IdTipoEstadoFinanciero", typeof(int));
             int i = 1;
             foreach (var x in items)
                 t.Rows.Add(i++,
@@ -35,7 +36,8 @@ namespace SafetyReport.DAO
                     (object?)x.FechaHasta ?? DBNull.Value,
                     x.FlgActualidad,
                     (object?)x.TipoCambio ?? DBNull.Value,
-                    x.IdMoneda, x.TipoBalance);
+                    x.IdMoneda, x.TipoBalance,
+                    (object?)x.IdTipoEstadoFinanciero ?? DBNull.Value);
             return t;
         }
 
