@@ -57,4 +57,14 @@ namespace SafetyReport.Models
         public int TotalRegistros { get; set; }
         public int TotalPaginas { get; set; }
     }
+
+    public class BancoMatchItem
+    {
+        public string? Nombre { get; set; }
+    }
+
+    public class BancoMatchResultItem
+    {
+        public int? IdBanco { get; set; }
+    }
 }
