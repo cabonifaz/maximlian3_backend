@@ -326,7 +326,7 @@ namespace SafetyReport.DAO
             cmd.Parameters.Add("@vchAspectosLegales", SqlDbType.VarChar, -1).Value = (object?)r.AspectosLegales ?? DBNull.Value;
             cmd.Parameters.Add("@vchComentariosAspectoLegal", SqlDbType.VarChar, -1).Value = (object?)r.ComentariosAspectoLegal ?? DBNull.Value;
             cmd.Parameters.Add("@intIdSector", SqlDbType.Int).Value = (object?)r.IdSector ?? DBNull.Value;
-            cmd.Parameters.Add("@intIdActividad", SqlDbType.Int).Value = (object?)r.IdActividad ?? DBNull.Value;
+            cmd.Parameters.Add("@vchActividad", SqlDbType.VarChar, 255).Value = (object?)r.Actividad ?? DBNull.Value;
             cmd.Parameters.Add("@intIdIsicCategoria", SqlDbType.Int).Value = (object?)r.IdIsicCategoria ?? DBNull.Value;
             cmd.Parameters.Add("@intIdIsicClase", SqlDbType.Int).Value = (object?)r.IdIsicClase ?? DBNull.Value;
             cmd.Parameters.Add("@vchActividadPrincipal", SqlDbType.VarChar, -1).Value = (object?)r.ActividadPrincipal ?? DBNull.Value;
@@ -334,11 +334,14 @@ namespace SafetyReport.DAO
             cmd.Parameters.Add("@vchVentasContadoText", SqlDbType.VarChar, 50).Value = (object?)r.VentasContadoText ?? DBNull.Value;
             cmd.Parameters.Add("@decVentasCredito", SqlDbType.Decimal).Value = (object?)r.VentasCredito ?? DBNull.Value;
             cmd.Parameters.Add("@vchVentasCreditoText", SqlDbType.VarChar, 50).Value = (object?)r.VentasCreditoText ?? DBNull.Value;
-            cmd.Parameters.Add("@intIdVentasCreditoTiempo", SqlDbType.Int).Value = (object?)r.IdVentasCreditoTiempo ?? DBNull.Value;
-            cmd.Parameters.Add("@decVentasNacionales", SqlDbType.Decimal).Value = (object?)r.VentasNacionales ?? DBNull.Value;
-            cmd.Parameters.Add("@vchVentasNacionalesText", SqlDbType.VarChar, 50).Value = (object?)r.VentasNacionalesText ?? DBNull.Value;
             cmd.Parameters.Add("@decVentasInternacionales", SqlDbType.Decimal).Value = (object?)r.VentasInternacionales ?? DBNull.Value;
             cmd.Parameters.Add("@vchVentasInternacionalesText", SqlDbType.VarChar, 50).Value = (object?)r.VentasInternacionalesText ?? DBNull.Value;
+            cmd.Parameters.Add("@decTerritorioVentas", SqlDbType.Decimal).Value = (object?)r.TerritorioVentas ?? DBNull.Value;
+            cmd.Parameters.Add("@vchTerritorioText", SqlDbType.VarChar, 255).Value = (object?)r.TerritorioText ?? DBNull.Value;
+            cmd.Parameters.Add("@decComprasNacionales", SqlDbType.Decimal).Value = (object?)r.ComprasNacionales ?? DBNull.Value;
+            cmd.Parameters.Add("@vchComprasNacionalesText", SqlDbType.VarChar, 255).Value = (object?)r.ComprasNacionalesText ?? DBNull.Value;
+            cmd.Parameters.Add("@decComprasInternacionales", SqlDbType.Decimal).Value = (object?)r.ComprasInternacionales ?? DBNull.Value;
+            cmd.Parameters.Add("@vchComprasInternacionalesText", SqlDbType.VarChar, 255).Value = (object?)r.ComprasInternacionalesText ?? DBNull.Value;
             cmd.Parameters.Add("@intNumeroEmpleados", SqlDbType.Int).Value = (object?)r.NumeroEmpleados ?? DBNull.Value;
             cmd.Parameters.Add("@vchNumeroEmpleadosText", SqlDbType.VarChar, 50).Value = (object?)r.NumeroEmpleadosText ?? DBNull.Value;
             cmd.Parameters.Add("@vchComentariosOperaciones", SqlDbType.VarChar, -1).Value = (object?)r.ComentariosOperaciones ?? DBNull.Value;
