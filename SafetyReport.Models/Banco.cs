@@ -61,6 +61,7 @@ namespace SafetyReport.Models
     public class BancoMatchItem
     {
         public string? Nombre { get; set; }
+        public string? Pais { get; set; }
     }
 
     public class BancoMatchResultItem
