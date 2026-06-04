@@ -322,6 +322,7 @@ namespace SafetyReport.DAO
             cmd.Parameters.Add("@decValorAcciones", SqlDbType.Decimal).Value = (object?)r.ValorAcciones ?? DBNull.Value;
             cmd.Parameters.Add("@bitCotizaBolsa", SqlDbType.Bit).Value = (object?)r.CotizaBolsa ?? DBNull.Value;
             cmd.Parameters.Add("@decTipoCambio", SqlDbType.Decimal).Value = (object?)r.TipoCambio ?? DBNull.Value;
+            cmd.Parameters.Add("@intIdTipoCambio", SqlDbType.Int).Value = (object?)r.IdTipoCambio ?? DBNull.Value;
             cmd.Parameters.Add("@vchAntecedentes", SqlDbType.VarChar, -1).Value = (object?)r.Antecedentes ?? DBNull.Value;
             cmd.Parameters.Add("@vchAspectosLegales", SqlDbType.VarChar, -1).Value = (object?)r.AspectosLegales ?? DBNull.Value;
             cmd.Parameters.Add("@vchComentariosAspectoLegal", SqlDbType.VarChar, -1).Value = (object?)r.ComentariosAspectoLegal ?? DBNull.Value;

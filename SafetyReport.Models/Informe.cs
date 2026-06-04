@@ -153,6 +153,7 @@ namespace SafetyReport.Models
         public decimal? ValorAcciones { get; set; }
         public bool? CotizaBolsa { get; set; }
         public decimal? TipoCambio { get; set; }
+        public int? IdTipoCambio { get; set; }
         public string? Antecedentes { get; set; }
         public string? AspectosLegales { get; set; }
         public string? ComentariosAspectoLegal { get; set; }
@@ -429,6 +430,7 @@ namespace SafetyReport.Models
         public decimal? ValorAcciones { get; set; }
         public bool? CotizaBolsa { get; set; }
         public decimal? TipoCambio { get; set; }
+        public int? IdTipoCambio { get; set; }
         public string? Antecedentes { get; set; }
         public string? AspectosLegales { get; set; }
         public string? ComentariosAspectoLegal { get; set; }
