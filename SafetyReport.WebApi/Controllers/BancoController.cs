@@ -45,6 +45,13 @@ namespace SafetyReport.WebApi.Controllers
             return Ok(respuesta);
         }
 
+        [HttpPost("obtenerCoincidencias")]
+        public async Task<IActionResult> ObtenerCoincidencias([FromBody] List<BancoMatchItem> request)
+        {
+            var respuesta = await _bancoHandler.ListarMatchAsync(UsuarioLogueado, request);
+            return Ok(respuesta);
+        }
+
         [HttpPost("eliminar")]
         public async Task<IActionResult> Eliminar([FromBody] BancoIdRequest request)
         {
