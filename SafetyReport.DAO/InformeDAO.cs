@@ -114,6 +114,12 @@ namespace SafetyReport.DAO
             t.Columns.Add("Productos", typeof(string));
             t.Columns.Add("IdCalificacion", typeof(int));
             t.Columns.Add("Comentarios", typeof(string));
+            t.Columns.Add("NombreContacto", typeof(string));
+            t.Columns.Add("Telefono", typeof(string));
+            t.Columns.Add("ComienzoNegociaciones", typeof(string));
+            t.Columns.Add("IdPlazoCredito", typeof(int));
+            t.Columns.Add("EsTieneReferenciaComercial", typeof(bool));
+            t.Columns.Add("TipoCambio", typeof(decimal));
             int i = 1;
             foreach (var x in items)
                 t.Rows.Add(i++,
@@ -124,7 +130,13 @@ namespace SafetyReport.DAO
                     (object?)x.FechaInicio ?? DBNull.Value, (object?)x.IdLimiteCredito ?? DBNull.Value,
                     (object?)x.PromedioMensual ?? DBNull.Value, (object?)x.PlazoCredito ?? DBNull.Value,
                     (object?)x.Productos ?? DBNull.Value, (object?)x.IdCalificacion ?? DBNull.Value,
-                    (object?)x.Comentarios ?? DBNull.Value);
+                    (object?)x.Comentarios ?? DBNull.Value,
+                    (object?)x.NombreContacto ?? DBNull.Value,
+                    (object?)x.Telefono ?? DBNull.Value,
+                    (object?)x.ComienzoNegociaciones ?? DBNull.Value,
+                    (object?)x.IdPlazoCredito ?? DBNull.Value,
+                    (object?)x.EsTieneReferenciaComercial ?? DBNull.Value,
+                    (object?)x.TipoCambio ?? DBNull.Value);
             return t;
         }
 

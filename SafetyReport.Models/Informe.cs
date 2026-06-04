@@ -97,6 +97,12 @@ namespace SafetyReport.Models
         public string? Productos { get; set; }
         public int? IdCalificacion { get; set; }
         public string? Comentarios { get; set; }
+        public string? NombreContacto { get; set; }
+        public string? Telefono { get; set; }
+        public string? ComienzoNegociaciones { get; set; }
+        public int? IdPlazoCredito { get; set; }
+        public bool? EsTieneReferenciaComercial { get; set; }
+        public decimal? TipoCambio { get; set; }
     }
 
     public class InformeDirectorioEjecutivoItem
@@ -390,6 +396,12 @@ namespace SafetyReport.Models
         public string? Productos { get; set; }
         public int? IdCalificacion { get; set; }
         public string? Comentarios { get; set; }
+        public string? NombreContacto { get; set; }
+        public string? Telefono { get; set; }
+        public string? ComienzoNegociaciones { get; set; }
+        public int? IdPlazoCredito { get; set; }
+        public bool? EsTieneReferenciaComercial { get; set; }
+        public decimal? TipoCambio { get; set; }
     }
 
     public class InformeConsulta
