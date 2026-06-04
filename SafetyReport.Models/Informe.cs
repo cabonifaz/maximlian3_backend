@@ -30,7 +30,7 @@ namespace SafetyReport.Models
         public bool FlgActualidad { get; set; }
         public decimal? TipoCambio { get; set; }
         public int IdMoneda { get; set; }
-        public int TipoBalance { get; set; }
+        public int IdTipoBalance { get; set; }
         public int? IdTipoEstadoFinanciero { get; set; }
         public InformeCuentaBalanceItem? CuentaBalance { get; set; }
     }
@@ -299,7 +299,7 @@ namespace SafetyReport.Models
         public bool FlgActualidad { get; set; }
         public decimal? TipoCambio { get; set; }
         public int IdMoneda { get; set; }
-        public int TipoBalance { get; set; }
+        public int IdTipoBalance { get; set; }
         public int? IdTipoEstadoFinanciero { get; set; }
         public InformeCuentaBalanceConsulta? CuentaBalance { get; set; }
     }
