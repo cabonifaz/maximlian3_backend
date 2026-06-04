@@ -30,7 +30,8 @@ namespace SafetyReport.Models
         public bool FlgActualidad { get; set; }
         public decimal? TipoCambio { get; set; }
         public int IdMoneda { get; set; }
-        public int TipoBalance { get; set; }
+        public int IdTipoBalance { get; set; }
+        public int? IdTipoEstadoFinanciero { get; set; }
         public InformeCuentaBalanceItem? CuentaBalance { get; set; }
     }
 
@@ -97,6 +98,12 @@ namespace SafetyReport.Models
         public string? Productos { get; set; }
         public int? IdCalificacion { get; set; }
         public string? Comentarios { get; set; }
+        public string? NombreContacto { get; set; }
+        public string? Telefono { get; set; }
+        public string? ComienzoNegociaciones { get; set; }
+        public int? IdPlazoCredito { get; set; }
+        public bool? EsTieneReferenciaComercial { get; set; }
+        public decimal? TipoCambio { get; set; }
     }
 
     public class InformeDirectorioEjecutivoItem
@@ -153,6 +160,7 @@ namespace SafetyReport.Models
         public decimal? ValorAcciones { get; set; }
         public bool? CotizaBolsa { get; set; }
         public decimal? TipoCambio { get; set; }
+        public int? IdTipoCambio { get; set; }
         public string? Antecedentes { get; set; }
         public string? AspectosLegales { get; set; }
         public string? ComentariosAspectoLegal { get; set; }
@@ -291,7 +299,8 @@ namespace SafetyReport.Models
         public bool FlgActualidad { get; set; }
         public decimal? TipoCambio { get; set; }
         public int IdMoneda { get; set; }
-        public int TipoBalance { get; set; }
+        public int IdTipoBalance { get; set; }
+        public int? IdTipoEstadoFinanciero { get; set; }
         public InformeCuentaBalanceConsulta? CuentaBalance { get; set; }
     }
 
@@ -389,6 +398,12 @@ namespace SafetyReport.Models
         public string? Productos { get; set; }
         public int? IdCalificacion { get; set; }
         public string? Comentarios { get; set; }
+        public string? NombreContacto { get; set; }
+        public string? Telefono { get; set; }
+        public string? ComienzoNegociaciones { get; set; }
+        public int? IdPlazoCredito { get; set; }
+        public bool? EsTieneReferenciaComercial { get; set; }
+        public decimal? TipoCambio { get; set; }
     }
 
     public class InformeConsulta
@@ -429,6 +444,7 @@ namespace SafetyReport.Models
         public decimal? ValorAcciones { get; set; }
         public bool? CotizaBolsa { get; set; }
         public decimal? TipoCambio { get; set; }
+        public int? IdTipoCambio { get; set; }
         public string? Antecedentes { get; set; }
         public string? AspectosLegales { get; set; }
         public string? ComentariosAspectoLegal { get; set; }

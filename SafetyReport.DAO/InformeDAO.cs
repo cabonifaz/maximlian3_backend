@@ -26,7 +26,8 @@ namespace SafetyReport.DAO
             t.Columns.Add("FlgActualidad", typeof(bool));
             t.Columns.Add("TipoCambio", typeof(decimal));
             t.Columns.Add("IdMoneda", typeof(int));
-            t.Columns.Add("TipoBalance", typeof(int));
+            t.Columns.Add("IdTipoBalance", typeof(int));
+            t.Columns.Add("IdTipoEstadoFinanciero", typeof(int));
             int i = 1;
             foreach (var x in items)
                 t.Rows.Add(i++,
@@ -35,7 +36,8 @@ namespace SafetyReport.DAO
                     (object?)x.FechaHasta ?? DBNull.Value,
                     x.FlgActualidad,
                     (object?)x.TipoCambio ?? DBNull.Value,
-                    x.IdMoneda, x.TipoBalance);
+                    x.IdMoneda, x.IdTipoBalance,
+                    (object?)x.IdTipoEstadoFinanciero ?? DBNull.Value);
             return t;
         }
 
@@ -114,6 +116,12 @@ namespace SafetyReport.DAO
             t.Columns.Add("Productos", typeof(string));
             t.Columns.Add("IdCalificacion", typeof(int));
             t.Columns.Add("Comentarios", typeof(string));
+            t.Columns.Add("NombreContacto", typeof(string));
+            t.Columns.Add("Telefono", typeof(string));
+            t.Columns.Add("ComienzoNegociaciones", typeof(string));
+            t.Columns.Add("IdPlazoCredito", typeof(int));
+            t.Columns.Add("EsTieneReferenciaComercial", typeof(bool));
+            t.Columns.Add("TipoCambio", typeof(decimal));
             int i = 1;
             foreach (var x in items)
                 t.Rows.Add(i++,
@@ -124,7 +132,13 @@ namespace SafetyReport.DAO
                     (object?)x.FechaInicio ?? DBNull.Value, (object?)x.IdLimiteCredito ?? DBNull.Value,
                     (object?)x.PromedioMensual ?? DBNull.Value, (object?)x.PlazoCredito ?? DBNull.Value,
                     (object?)x.Productos ?? DBNull.Value, (object?)x.IdCalificacion ?? DBNull.Value,
-                    (object?)x.Comentarios ?? DBNull.Value);
+                    (object?)x.Comentarios ?? DBNull.Value,
+                    (object?)x.NombreContacto ?? DBNull.Value,
+                    (object?)x.Telefono ?? DBNull.Value,
+                    (object?)x.ComienzoNegociaciones ?? DBNull.Value,
+                    (object?)x.IdPlazoCredito ?? DBNull.Value,
+                    (object?)x.EsTieneReferenciaComercial ?? DBNull.Value,
+                    (object?)x.TipoCambio ?? DBNull.Value);
             return t;
         }
 
@@ -322,6 +336,7 @@ namespace SafetyReport.DAO
             cmd.Parameters.Add("@decValorAcciones", SqlDbType.Decimal).Value = (object?)r.ValorAcciones ?? DBNull.Value;
             cmd.Parameters.Add("@bitCotizaBolsa", SqlDbType.Bit).Value = (object?)r.CotizaBolsa ?? DBNull.Value;
             cmd.Parameters.Add("@decTipoCambio", SqlDbType.Decimal).Value = (object?)r.TipoCambio ?? DBNull.Value;
+            cmd.Parameters.Add("@intIdTipoCambio", SqlDbType.Int).Value = (object?)r.IdTipoCambio ?? DBNull.Value;
             cmd.Parameters.Add("@vchAntecedentes", SqlDbType.VarChar, -1).Value = (object?)r.Antecedentes ?? DBNull.Value;
             cmd.Parameters.Add("@vchAspectosLegales", SqlDbType.VarChar, -1).Value = (object?)r.AspectosLegales ?? DBNull.Value;
             cmd.Parameters.Add("@vchComentariosAspectoLegal", SqlDbType.VarChar, -1).Value = (object?)r.ComentariosAspectoLegal ?? DBNull.Value;
