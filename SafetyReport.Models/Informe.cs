@@ -157,7 +157,7 @@ namespace SafetyReport.Models
         public string? AspectosLegales { get; set; }
         public string? ComentariosAspectoLegal { get; set; }
         public int? IdSector { get; set; }
-        public int? IdActividad { get; set; }
+        public string? Actividad { get; set; }
         public int? IdIsicCategoria { get; set; }
         public int? IdIsicClase { get; set; }
         public string? ActividadPrincipal { get; set; }
@@ -165,11 +165,14 @@ namespace SafetyReport.Models
         public string? VentasContadoText { get; set; }
         public decimal? VentasCredito { get; set; }
         public string? VentasCreditoText { get; set; }
-        public int? IdVentasCreditoTiempo { get; set; }
-        public decimal? VentasNacionales { get; set; }
-        public string? VentasNacionalesText { get; set; }
         public decimal? VentasInternacionales { get; set; }
         public string? VentasInternacionalesText { get; set; }
+        public decimal? TerritorioVentas { get; set; }
+        public string? TerritorioText { get; set; }
+        public decimal? ComprasNacionales { get; set; }
+        public string? ComprasNacionalesText { get; set; }
+        public decimal? ComprasInternacionales { get; set; }
+        public string? ComprasInternacionalesText { get; set; }
         public int? NumeroEmpleados { get; set; }
         public string? NumeroEmpleadosText { get; set; }
         public string? ComentariosOperaciones { get; set; }
@@ -430,7 +433,7 @@ namespace SafetyReport.Models
         public string? AspectosLegales { get; set; }
         public string? ComentariosAspectoLegal { get; set; }
         public int? IdSector { get; set; }
-        public int? IdActividad { get; set; }
+        public string? Actividad { get; set; }
         public int? IdIsicCategoria { get; set; }
         public int? IdIsicClase { get; set; }
         public string? ActividadPrincipal { get; set; }
@@ -438,11 +441,14 @@ namespace SafetyReport.Models
         public string? VentasContadoText { get; set; }
         public decimal? VentasCredito { get; set; }
         public string? VentasCreditoText { get; set; }
-        public int? IdVentasCreditoTiempo { get; set; }
-        public decimal? VentasNacionales { get; set; }
-        public string? VentasNacionalesText { get; set; }
         public decimal? VentasInternacionales { get; set; }
         public string? VentasInternacionalesText { get; set; }
+        public decimal? TerritorioVentas { get; set; }
+        public string? TerritorioText { get; set; }
+        public decimal? ComprasNacionales { get; set; }
+        public string? ComprasNacionalesText { get; set; }
+        public decimal? ComprasInternacionales { get; set; }
+        public string? ComprasInternacionalesText { get; set; }
         public int? NumeroEmpleados { get; set; }
         public string? NumeroEmpleadosText { get; set; }
         public string? ComentariosOperaciones { get; set; }
