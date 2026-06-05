@@ -351,8 +351,8 @@ namespace SafetyReport.DAO
             cmd.Parameters.Add("@vchVentasCreditoText", SqlDbType.VarChar, 50).Value = (object?)r.VentasCreditoText ?? DBNull.Value;
             cmd.Parameters.Add("@decVentasInternacionales", SqlDbType.Decimal).Value = (object?)r.VentasInternacionales ?? DBNull.Value;
             cmd.Parameters.Add("@vchVentasInternacionalesText", SqlDbType.VarChar, 50).Value = (object?)r.VentasInternacionalesText ?? DBNull.Value;
-            cmd.Parameters.Add("@decTerritorioVentas", SqlDbType.Decimal).Value = (object?)r.TerritorioVentas ?? DBNull.Value;
-            cmd.Parameters.Add("@vchTerritorioText", SqlDbType.VarChar, 255).Value = (object?)r.TerritorioText ?? DBNull.Value;
+            cmd.Parameters.Add("@decVentasNacionales", SqlDbType.Decimal).Value = (object?)r.VentasNacionales ?? DBNull.Value;
+            cmd.Parameters.Add("@vchVentasNacionalesText", SqlDbType.VarChar, 255).Value = (object?)r.VentasNacionalesText ?? DBNull.Value;
             cmd.Parameters.Add("@decComprasNacionales", SqlDbType.Decimal).Value = (object?)r.ComprasNacionales ?? DBNull.Value;
             cmd.Parameters.Add("@vchComprasNacionalesText", SqlDbType.VarChar, 255).Value = (object?)r.ComprasNacionalesText ?? DBNull.Value;
             cmd.Parameters.Add("@decComprasInternacionales", SqlDbType.Decimal).Value = (object?)r.ComprasInternacionales ?? DBNull.Value;

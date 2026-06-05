@@ -175,8 +175,8 @@ namespace SafetyReport.Models
         public string? VentasCreditoText { get; set; }
         public decimal? VentasInternacionales { get; set; }
         public string? VentasInternacionalesText { get; set; }
-        public decimal? TerritorioVentas { get; set; }
-        public string? TerritorioText { get; set; }
+        public decimal? VentasNacionales { get; set; }
+        public string? VentasNacionalesText { get; set; }
         public decimal? ComprasNacionales { get; set; }
         public string? ComprasNacionalesText { get; set; }
         public decimal? ComprasInternacionales { get; set; }
@@ -459,8 +459,8 @@ namespace SafetyReport.Models
         public string? VentasCreditoText { get; set; }
         public decimal? VentasInternacionales { get; set; }
         public string? VentasInternacionalesText { get; set; }
-        public decimal? TerritorioVentas { get; set; }
-        public string? TerritorioText { get; set; }
+        public decimal? VentasNacionales { get; set; }
+        public string? VentasNacionalesText { get; set; }
         public decimal? ComprasNacionales { get; set; }
         public string? ComprasNacionalesText { get; set; }
         public decimal? ComprasInternacionales { get; set; }
