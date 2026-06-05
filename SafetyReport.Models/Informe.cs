@@ -173,6 +173,7 @@ namespace SafetyReport.Models
         public string? VentasContadoText { get; set; }
         public decimal? VentasCredito { get; set; }
         public string? VentasCreditoText { get; set; }
+        public int? IdVentasCreditoTiempo { get; set; }
         public decimal? VentasInternacionales { get; set; }
         public string? VentasInternacionalesText { get; set; }
         public decimal? VentasNacionales { get; set; }
@@ -457,6 +458,7 @@ namespace SafetyReport.Models
         public string? VentasContadoText { get; set; }
         public decimal? VentasCredito { get; set; }
         public string? VentasCreditoText { get; set; }
+        public int? IdVentasCreditoTiempo { get; set; }
         public decimal? VentasInternacionales { get; set; }
         public string? VentasInternacionalesText { get; set; }
         public decimal? VentasNacionales { get; set; }
