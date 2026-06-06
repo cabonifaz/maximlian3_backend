@@ -1,3 +1,5 @@
+using System.Text.Json;
+
 namespace SafetyReport.Models
 {
     // ── Child input items ────────────────────────────────────────────────────────
@@ -466,30 +468,9 @@ namespace SafetyReport.Models
 
     // ── Detail (Obtener) ─────────────────────────────────────────────────────────
 
-    public class InformeCuentaBalanceConsulta
-    {
-        public int IdInformeCuentaBalance { get; set; }
-        public decimal? TotalCorriente { get; set; }
-        public decimal? TotalNoCorriente { get; set; }
-        public decimal? OtrosActivos { get; set; }
-        public decimal? TotalActivos { get; set; }
-        public decimal? TotalPasivosCorrientes { get; set; }
-        public decimal? TotalPasivosNoCorrientes { get; set; }
-        public decimal? OtrosPasivos { get; set; }
-        public decimal? TotalPasivos { get; set; }
-        public decimal? Patrimonio { get; set; }
-        public decimal? TotalPasivoPatrimonio { get; set; }
-        public decimal? VentasNetas { get; set; }
-        public decimal? UtilidadPerdida { get; set; }
-        public decimal? IndiceLiquidez { get; set; }
-        public decimal? CapitalTrabajo { get; set; }
-        public decimal? RatioEndeudamiento { get; set; }
-        public decimal? RatioRentabilidad { get; set; }
-    }
-
     public class InformeBalanceConsulta
     {
-        public int IdIformeBalance { get; set; }
+        public int IdInformeBalance { get; set; }
         public DateTime FechaBalance { get; set; }
         public DateTime? FechaHasta { get; set; }
         public bool FlgActualidad { get; set; }
@@ -497,7 +478,7 @@ namespace SafetyReport.Models
         public int IdMoneda { get; set; }
         public int IdTipoBalance { get; set; }
         public int? IdTipoEstadoFinanciero { get; set; }
-        public InformeCuentaBalanceConsulta? CuentaBalance { get; set; }
+        public JsonElement? CuentaBalance { get; set; }
     }
 
     public class InformeDirectorioEjecutivoConsulta
