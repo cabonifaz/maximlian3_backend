@@ -16,6 +16,7 @@ namespace SafetyReport.Models
 
     public class InformeBalanceDesagregadoItem
     {
+        public int Id { get; set; }
         public decimal? EfectivoEquivalente { get; set; }
         public decimal? OtrosActivosFinancierosCorriente { get; set; }
         public decimal? CuentasCobrarCorriente { get; set; }
@@ -90,6 +91,7 @@ namespace SafetyReport.Models
 
     public class InformeBalanceTotalizadoItem
     {
+        public int Id { get; set; }
         public decimal? TotalActivoCorriente { get; set; }
         public decimal? TotalActivoNoCorriente { get; set; }
         public decimal? TotalActivo { get; set; }
@@ -108,6 +110,7 @@ namespace SafetyReport.Models
 
     public class InformeBalanceBancoItem
     {
+        public int Id { get; set; }
         public decimal? Disponible { get; set; }
         public decimal? FondosInterbancarios { get; set; }
         public decimal? InversionesValorRazonable { get; set; }
@@ -139,6 +142,7 @@ namespace SafetyReport.Models
 
     public class InformeBalanceSeguroItem
     {
+        public int Id { get; set; }
         public decimal? EfectivoDisponible { get; set; }
         public decimal? InversionesFinancieras { get; set; }
         public decimal? PrestamosInteresesNetos { get; set; }
@@ -169,6 +173,7 @@ namespace SafetyReport.Models
 
     public class InformeBalanceTurquiaItem
     {
+        public int Id { get; set; }
         public int? Ano { get; set; }
         public DateTime? FechaBalance { get; set; }
         public int? IdMoneda { get; set; }

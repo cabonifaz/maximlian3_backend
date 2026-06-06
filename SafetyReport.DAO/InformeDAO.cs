@@ -145,6 +145,7 @@ namespace SafetyReport.DAO
         private static DataTable ConstruirTablaBalancesDesagregado(List<InformeBalanceDesagregadoItem> items)
         {
             var t = new DataTable();
+            t.Columns.Add("ID", typeof(int));
             t.Columns.Add("EfectivoEquivalente", typeof(decimal));
             t.Columns.Add("OtrosActivosFinancierosCorriente", typeof(decimal));
             t.Columns.Add("CuentasCobrarCorriente", typeof(decimal));
@@ -217,6 +218,7 @@ namespace SafetyReport.DAO
             t.Columns.Add("RatioRentabilidad", typeof(decimal));
             foreach (var x in items)
                 t.Rows.Add(
+                    x.Id,
                     (object?)x.EfectivoEquivalente ?? DBNull.Value,
                     (object?)x.OtrosActivosFinancierosCorriente ?? DBNull.Value,
                     (object?)x.CuentasCobrarCorriente ?? DBNull.Value,
@@ -293,6 +295,7 @@ namespace SafetyReport.DAO
         private static DataTable ConstruirTablaBalancesTotalizado(List<InformeBalanceTotalizadoItem> items)
         {
             var t = new DataTable();
+            t.Columns.Add("ID", typeof(int));
             t.Columns.Add("TotalActivoCorriente", typeof(decimal));
             t.Columns.Add("TotalActivoNoCorriente", typeof(decimal));
             t.Columns.Add("TotalActivo", typeof(decimal));
@@ -309,6 +312,7 @@ namespace SafetyReport.DAO
             t.Columns.Add("RatioRentabilidad", typeof(decimal));
             foreach (var x in items)
                 t.Rows.Add(
+                    x.Id,
                     (object?)x.TotalActivoCorriente ?? DBNull.Value,
                     (object?)x.TotalActivoNoCorriente ?? DBNull.Value,
                     (object?)x.TotalActivo ?? DBNull.Value,
@@ -329,6 +333,7 @@ namespace SafetyReport.DAO
         private static DataTable ConstruirTablaBalancesBanco(List<InformeBalanceBancoItem> items)
         {
             var t = new DataTable();
+            t.Columns.Add("ID", typeof(int));
             t.Columns.Add("Disponible", typeof(decimal));
             t.Columns.Add("FondosInterbancarios", typeof(decimal));
             t.Columns.Add("InversionesValorRazonable", typeof(decimal));
@@ -358,6 +363,7 @@ namespace SafetyReport.DAO
             t.Columns.Add("UtilidadEjercicio", typeof(decimal));
             foreach (var x in items)
                 t.Rows.Add(
+                    x.Id,
                     (object?)x.Disponible ?? DBNull.Value,
                     (object?)x.FondosInterbancarios ?? DBNull.Value,
                     (object?)x.InversionesValorRazonable ?? DBNull.Value,
@@ -391,6 +397,7 @@ namespace SafetyReport.DAO
         private static DataTable ConstruirTablaBalancesSeguro(List<InformeBalanceSeguroItem> items)
         {
             var t = new DataTable();
+            t.Columns.Add("ID", typeof(int));
             t.Columns.Add("EfectivoDisponible", typeof(decimal));
             t.Columns.Add("InversionesFinancieras", typeof(decimal));
             t.Columns.Add("PrestamosInteresesNetos", typeof(decimal));
@@ -419,6 +426,7 @@ namespace SafetyReport.DAO
             t.Columns.Add("UtilidadNeta", typeof(decimal));
             foreach (var x in items)
                 t.Rows.Add(
+                    x.Id,
                     (object?)x.EfectivoDisponible ?? DBNull.Value,
                     (object?)x.InversionesFinancieras ?? DBNull.Value,
                     (object?)x.PrestamosInteresesNetos ?? DBNull.Value,
@@ -451,6 +459,7 @@ namespace SafetyReport.DAO
         private static DataTable ConstruirTablaBalancesTurquia(List<InformeBalanceTurquiaItem> items)
         {
             var t = new DataTable();
+            t.Columns.Add("ID", typeof(int));
             t.Columns.Add("Ano", typeof(int));
             t.Columns.Add("FechaBalance", typeof(DateTime));
             t.Columns.Add("IdMoneda", typeof(int));
@@ -502,6 +511,7 @@ namespace SafetyReport.DAO
             t.Columns.Add("RatioRentabilidad", typeof(decimal));
             foreach (var x in items)
                 t.Rows.Add(
+                    x.Id,
                     (object?)x.Ano ?? DBNull.Value,
                     (object?)x.FechaBalance ?? DBNull.Value,
                     (object?)x.IdMoneda ?? DBNull.Value,
