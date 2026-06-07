@@ -866,6 +866,28 @@ namespace SafetyReport.DAO
             }
         }
 
+        public async Task<Respuesta> ObtenerUrlsImagenesAsync(UsuarioGeneral u, List<int> ids)
+        {
+            try
+            {
+                var t = new DataTable();
+                t.Columns.Add("IdInformeLocalImagen", typeof(int));
+                foreach (var id in ids)
+                    t.Rows.Add(id);
+
+                using SqlConnection cn = new(_dbConfig.ConnectionString);
+                using SqlCommand cmd = new("InformeLocalImagen_ObtenerUrls", cn) { CommandType = CommandType.StoredProcedure };
+                AgregarParametrosAuditoria(cmd, u);
+                AgregarTvp(cmd, "@lstIds", t, "LISTA_INFORME_LOCAL_IMAGEN_ID");
+                await cn.OpenAsync();
+                return await LeerRespuestaAsync<InformeLocalImagenUrl>(cmd);
+            }
+            catch (Exception ex)
+            {
+                return new Respuesta { IdTipoMensaje = 3, Mensaje = ex.Message, Result = new List<InformeLocalImagenUrl>() };
+            }
+        }
+
         public async Task<Respuesta> ObtenerAsync(UsuarioGeneral u, int idPedido)
         {
             try

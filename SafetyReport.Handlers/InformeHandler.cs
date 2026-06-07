@@ -102,6 +102,31 @@ namespace SafetyReport.Handlers
             return null;
         }
 
+        public async Task<Respuesta> ObtenerUrlsImagenesAsync(UsuarioGeneral usuarioLogueado, InformeLocalImagenEstadoCargaRequest request)
+        {
+            try
+            {
+                var respuesta = await _dao.ObtenerUrlsImagenesAsync(usuarioLogueado, request.Ids);
+
+                if (respuesta.IdTipoMensaje == 2 && respuesta.Result is List<InformeLocalImagenUrl> imagenes && imagenes.Count > 0)
+                {
+                    var urls = _s3.GenerarDownloadUrlsBatch(imagenes.Select(i => i.ImagenURL).ToList());
+                    for (int i = 0; i < imagenes.Count; i++)
+                    {
+                        imagenes[i].S3Key      = imagenes[i].ImagenURL;
+                        imagenes[i].DownloadUrl = urls[i];
+                        imagenes[i].ImagenURL   = string.Empty;
+                    }
+                }
+
+                return respuesta;
+            }
+            catch (Exception ex)
+            {
+                return new Respuesta { IdTipoMensaje = 3, Mensaje = ex.Message, Result = new List<InformeLocalImagenUrl>() };
+            }
+        }
+
         public async Task<Respuesta> ActualizarEstadoCargaAsync(UsuarioGeneral usuarioLogueado, InformeLocalImagenEstadoCargaRequest request)
         {
             try

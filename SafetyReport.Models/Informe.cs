@@ -442,6 +442,15 @@ namespace SafetyReport.Models
         public List<int> Ids { get; set; } = new();
     }
 
+    public class InformeLocalImagenUrl
+    {
+        public int IdInformeLocalImagen { get; set; }
+        public string Nombre { get; set; } = string.Empty;
+        public string DownloadUrl { get; set; } = string.Empty;
+        [System.Text.Json.Serialization.JsonIgnore]
+        public string S3Key { get; set; } = string.Empty;
+    }
+
     // ── Filters ──────────────────────────────────────────────────────────────────
 
     public class FiltroInformeObtener
