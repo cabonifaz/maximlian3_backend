@@ -28,6 +28,7 @@ namespace SafetyReport.Handlers
         {
             try
             {
+                AsignarRutasLocalImagenes(request.lstLocales, request.IdPedido ?? 0);
                 return await _dao.InsertarAsync(usuarioLogueado, request);
             }
             catch (Exception ex)
@@ -40,12 +41,25 @@ namespace SafetyReport.Handlers
         {
             try
             {
+                AsignarRutasLocalImagenes(request.lstLocales, request.IdInforme);
                 return await _dao.ActualizarAsync(usuarioLogueado, request);
             }
             catch (Exception ex)
             {
                 return new Respuesta { IdTipoMensaje = 3, Mensaje = ex.Message, Result = new List<InformeCreado>() };
             }
+        }
+
+        private static void AsignarRutasLocalImagenes(List<InformeLocalItem> locales, int id)
+        {
+            foreach (var local in locales)
+                foreach (var imagen in local.Imagenes)
+                    if (imagen.IdInformeLocalImagen is null or 0)
+                    {
+                        var ext = Path.GetExtension(imagen.Nombre);
+                        var nombre = Path.GetFileNameWithoutExtension(imagen.Nombre);
+                        imagen.ImagenURL = $"informes/pedido-{id}/locales/{nombre}-{DateTimeOffset.UtcNow.ToUnixTimeMilliseconds()}{ext}";
+                    }
         }
 
         public async Task<Respuesta> ObtenerAsync(UsuarioGeneral usuarioLogueado, FiltroInformeObtener request)

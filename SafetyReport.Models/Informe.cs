@@ -230,9 +230,9 @@ namespace SafetyReport.Models
     public class InformeLocalImagenItem
     {
         public int? IdInformeLocalImagen { get; set; }
-        public string ImagenURL { get; set; } = string.Empty;
         public int IdTipoArchivo { get; set; }
         public string? Nombre { get; set; }
+        public string ImagenURL { get; set; } = string.Empty;
     }
 
     public class InformeLocalItem

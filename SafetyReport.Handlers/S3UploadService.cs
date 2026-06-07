@@ -62,6 +62,31 @@ public class S3UploadService : IS3UploadService
         return _s3Client.GetPreSignedURL(request);
     }
 
+    public List<string> GenerarUploadUrlsBatch(List<string> sufijos, string formatoArchivo)
+    {
+        var expiry = DateTime.UtcNow.AddMinutes(_s3ExpirationMinutes);
+        return sufijos.Select(sufijo => _s3Client.GetPreSignedURL(new GetPreSignedUrlRequest
+        {
+            BucketName  = _bucketName,
+            Key         = sufijo,
+            Verb        = HttpVerb.PUT,
+            Expires     = expiry,
+            ContentType = formatoArchivo
+        })).ToList();
+    }
+
+    public List<string> GenerarDownloadUrlsBatch(List<string> sufijos)
+    {
+        var expiry = DateTime.UtcNow.AddMinutes(_s3ExpirationMinutes);
+        return sufijos.Select(sufijo => _s3Client.GetPreSignedURL(new GetPreSignedUrlRequest
+        {
+            BucketName = _bucketName,
+            Key        = sufijo,
+            Verb       = HttpVerb.GET,
+            Expires    = expiry
+        })).ToList();
+    }
+
     public async Task UploadFileAsync(string rutaArchivo, IFormFile file)
     {
         if (file is null || file.Length == 0)
