@@ -232,6 +232,8 @@ namespace SafetyReport.Models
         public int? IdInformeLocalImagen { get; set; }
         public string ImagenURL { get; set; } = string.Empty;
         public int IdTipoArchivo { get; set; }
+        public string? Nombre { get; set; }
+        public byte? EstadoCarga { get; set; }
     }
 
     public class InformeLocalItem
@@ -239,7 +241,6 @@ namespace SafetyReport.Models
         public int? IdInformeLocal { get; set; }
         public int? IdTipoLocal { get; set; }
         public string? Comentario { get; set; }
-        public string? ImagenUrl { get; set; }
         public List<InformeLocalImagenItem> Imagenes { get; set; } = new();
     }
 
@@ -517,6 +518,7 @@ namespace SafetyReport.Models
         public int IdInformeLocalImagen { get; set; }
         public string ImagenURL { get; set; } = string.Empty;
         public int IdTipoArchivo { get; set; }
+        public string? Nombre { get; set; }
     }
 
     public class InformeLocalConsulta
@@ -524,7 +526,6 @@ namespace SafetyReport.Models
         public int IdInformeLocal { get; set; }
         public int? IdTipoLocal { get; set; }
         public string? Comentario { get; set; }
-        public string? ImagenUrl { get; set; }
         public List<InformeLocalImagenConsulta> Imagenes { get; set; } = new();
     }
 
