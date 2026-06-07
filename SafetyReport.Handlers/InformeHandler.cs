@@ -102,11 +102,41 @@ namespace SafetyReport.Handlers
             return null;
         }
 
+        public async Task<Respuesta> ActualizarEstadoCargaAsync(UsuarioGeneral usuarioLogueado, InformeLocalImagenEstadoCargaRequest request)
+        {
+            try
+            {
+                return await _dao.ActualizarEstadoCargaAsync(usuarioLogueado, request.Ids);
+            }
+            catch (Exception ex)
+            {
+                return new Respuesta { IdTipoMensaje = 3, Mensaje = ex.Message, Result = new List<object>() };
+            }
+        }
+
         public async Task<Respuesta> ObtenerAsync(UsuarioGeneral usuarioLogueado, FiltroInformeObtener request)
         {
             try
             {
-                return await _dao.ObtenerAsync(usuarioLogueado, request.IdPedido);
+                var respuesta = await _dao.ObtenerAsync(usuarioLogueado, request.IdPedido);
+
+                if (respuesta.IdTipoMensaje == 2 && respuesta.Result is List<InformeConsulta> informes)
+                {
+                    var imagenes = informes
+                        .SelectMany(i => i.Locales)
+                        .SelectMany(l => l.Imagenes)
+                        .Where(img => !string.IsNullOrWhiteSpace(img.ImagenURL))
+                        .ToList();
+
+                    if (imagenes.Count > 0)
+                    {
+                        var urls = _s3.GenerarDownloadUrlsBatch(imagenes.Select(img => img.ImagenURL).ToList());
+                        for (int i = 0; i < imagenes.Count; i++)
+                            imagenes[i].ImagenURL = urls[i];
+                    }
+                }
+
+                return respuesta;
             }
             catch (Exception ex)
             {

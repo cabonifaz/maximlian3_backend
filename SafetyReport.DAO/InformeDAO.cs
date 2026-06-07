@@ -844,6 +844,28 @@ namespace SafetyReport.DAO
             }
         }
 
+        public async Task<Respuesta> ActualizarEstadoCargaAsync(UsuarioGeneral u, List<int> ids)
+        {
+            try
+            {
+                var t = new DataTable();
+                t.Columns.Add("IdInformeLocalImagen", typeof(int));
+                foreach (var id in ids)
+                    t.Rows.Add(id);
+
+                using SqlConnection cn = new(_dbConfig.ConnectionString);
+                using SqlCommand cmd = new("InformeLocalImagen_ActualizarEstadoCarga", cn) { CommandType = CommandType.StoredProcedure };
+                AgregarParametrosAuditoria(cmd, u);
+                AgregarTvp(cmd, "@lstIds", t, "LISTA_INFORME_LOCAL_IMAGEN_ID");
+                await cn.OpenAsync();
+                return await LeerRespuestaAsync<object>(cmd);
+            }
+            catch (Exception ex)
+            {
+                return new Respuesta { IdTipoMensaje = 3, Mensaje = ex.Message, Result = new List<object>() };
+            }
+        }
+
         public async Task<Respuesta> ObtenerAsync(UsuarioGeneral u, int idPedido)
         {
             try

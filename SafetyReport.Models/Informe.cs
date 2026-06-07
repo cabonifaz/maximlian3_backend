@@ -437,6 +437,11 @@ namespace SafetyReport.Models
         public int IdInforme { get; set; }
     }
 
+    public class InformeLocalImagenEstadoCargaRequest
+    {
+        public List<int> Ids { get; set; } = new();
+    }
+
     // ── Filters ──────────────────────────────────────────────────────────────────
 
     public class FiltroInformeObtener
