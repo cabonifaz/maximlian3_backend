@@ -142,50 +142,425 @@ namespace SafetyReport.DAO
             return t;
         }
 
-        private static DataTable ConstruirTablaCuentaBalances(List<InformeBalanceItem> items)
+        private static DataTable ConstruirTablaBalancesDesagregado(List<InformeBalanceDesagregadoItem> items)
         {
             var t = new DataTable();
             t.Columns.Add("ID", typeof(int));
-            t.Columns.Add("TotalCorriente", typeof(decimal));
-            t.Columns.Add("TotalNoCorriente", typeof(decimal));
-            t.Columns.Add("OtrosActivos", typeof(decimal));
-            t.Columns.Add("TotalActivos", typeof(decimal));
-            t.Columns.Add("TotalPasivosCorrientes", typeof(decimal));
-            t.Columns.Add("TotalPasivosNoCorrientes", typeof(decimal));
-            t.Columns.Add("OtrosPasivos", typeof(decimal));
+            t.Columns.Add("EfectivoEquivalente", typeof(decimal));
+            t.Columns.Add("OtrosActivosFinancierosCorriente", typeof(decimal));
+            t.Columns.Add("CuentasCobrarCorriente", typeof(decimal));
+            t.Columns.Add("InventariosCorriente", typeof(decimal));
+            t.Columns.Add("ActivosBiologicosCorriente", typeof(decimal));
+            t.Columns.Add("ActivosImpuestosGanancias", typeof(decimal));
+            t.Columns.Add("OtrosActivosNoFinancierosCorriente", typeof(decimal));
+            t.Columns.Add("TotalActivoCorriente", typeof(decimal));
+            t.Columns.Add("OtrosActivosFinancierosNoCorriente", typeof(decimal));
+            t.Columns.Add("InversionesSubsidiarias", typeof(decimal));
+            t.Columns.Add("CuentasCobrarNoCorriente", typeof(decimal));
+            t.Columns.Add("InventariosNoCorriente", typeof(decimal));
+            t.Columns.Add("ActivosBiologicosNoCorriente", typeof(decimal));
+            t.Columns.Add("PropiedadesInversion", typeof(decimal));
+            t.Columns.Add("PropiedadesPlantaEquipo", typeof(decimal));
+            t.Columns.Add("Intangibles", typeof(decimal));
+            t.Columns.Add("ActivosImpuestosDiferidos", typeof(decimal));
+            t.Columns.Add("ActivosImpuestosCorrientes", typeof(decimal));
+            t.Columns.Add("Plusvalia", typeof(decimal));
+            t.Columns.Add("OtrosActivosNoFinancierosNoCorriente", typeof(decimal));
+            t.Columns.Add("TotalActivoNoCorriente", typeof(decimal));
+            t.Columns.Add("TotalActivo", typeof(decimal));
+            t.Columns.Add("OtrosPasivosFinancierosCorriente", typeof(decimal));
+            t.Columns.Add("CuentasPagarCorriente", typeof(decimal));
+            t.Columns.Add("BeneficiosEmpleadosCorriente", typeof(decimal));
+            t.Columns.Add("OtrasProvisionesCorriente", typeof(decimal));
+            t.Columns.Add("ImpuestosGananciasCorriente", typeof(decimal));
+            t.Columns.Add("OtrosPasivosNoFinancierosCorriente", typeof(decimal));
+            t.Columns.Add("TotalPasivoCorriente", typeof(decimal));
+            t.Columns.Add("OtrosPasivosFinancierosNoCorriente", typeof(decimal));
+            t.Columns.Add("CuentasPagarNoCorriente", typeof(decimal));
+            t.Columns.Add("BeneficiosEmpleadosNoCorriente", typeof(decimal));
+            t.Columns.Add("OtrasProvisionesNoCorriente", typeof(decimal));
+            t.Columns.Add("ImpuestosDiferidosNoCorriente", typeof(decimal));
+            t.Columns.Add("ImpuestosCorrientesNoCorriente", typeof(decimal));
+            t.Columns.Add("OtrosPasivosNoFinancierosNoCorriente", typeof(decimal));
+            t.Columns.Add("TotalPasivoNoCorriente", typeof(decimal));
             t.Columns.Add("TotalPasivos", typeof(decimal));
-            t.Columns.Add("Patrimonio", typeof(decimal));
+            t.Columns.Add("CapitalEmitido", typeof(decimal));
+            t.Columns.Add("PrimasEmision", typeof(decimal));
+            t.Columns.Add("AccionesInversion", typeof(decimal));
+            t.Columns.Add("AccionesCartera", typeof(decimal));
+            t.Columns.Add("OtrasReservasCapital", typeof(decimal));
+            t.Columns.Add("ResultadosAcumulados", typeof(decimal));
+            t.Columns.Add("OtrasReservasPatrimonio", typeof(decimal));
+            t.Columns.Add("TotalPatrimonio", typeof(decimal));
             t.Columns.Add("TotalPasivoPatrimonio", typeof(decimal));
-            t.Columns.Add("VentasNetas", typeof(decimal));
-            t.Columns.Add("UtilidadPerdida", typeof(decimal));
+            t.Columns.Add("IngresosOrdinarios", typeof(decimal));
+            t.Columns.Add("CostoVentas", typeof(decimal));
+            t.Columns.Add("GananciaBruta", typeof(decimal));
+            t.Columns.Add("GastosVentas", typeof(decimal));
+            t.Columns.Add("GastosAdministracion", typeof(decimal));
+            t.Columns.Add("OtrosIngresosOperativos", typeof(decimal));
+            t.Columns.Add("OtrosGastosOperativos", typeof(decimal));
+            t.Columns.Add("OtrasGananciasPerdidas", typeof(decimal));
+            t.Columns.Add("GananciaOperativa", typeof(decimal));
+            t.Columns.Add("IngresosFinancieros", typeof(decimal));
+            t.Columns.Add("IngresosIntereses", typeof(decimal));
+            t.Columns.Add("GastosFinancieros", typeof(decimal));
+            t.Columns.Add("DeterioroValor", typeof(decimal));
+            t.Columns.Add("OtrosIngresosSubsidiarias", typeof(decimal));
+            t.Columns.Add("DiferenciasCambio", typeof(decimal));
+            t.Columns.Add("GananciaAntesImpuestos", typeof(decimal));
+            t.Columns.Add("IngresoGastoImpuesto", typeof(decimal));
+            t.Columns.Add("OperacionesDescontinuadas", typeof(decimal));
+            t.Columns.Add("GananciaNeta", typeof(decimal));
             t.Columns.Add("IndiceLiquidez", typeof(decimal));
             t.Columns.Add("CapitalTrabajo", typeof(decimal));
             t.Columns.Add("RatioEndeudamiento", typeof(decimal));
             t.Columns.Add("RatioRentabilidad", typeof(decimal));
-            int i = 1;
             foreach (var x in items)
-            {
-                var cb = x.CuentaBalance;
-                if (cb != null)
-                    t.Rows.Add(i,
-                        (object?)cb.TotalCorriente ?? DBNull.Value,
-                        (object?)cb.TotalNoCorriente ?? DBNull.Value,
-                        (object?)cb.OtrosActivos ?? DBNull.Value,
-                        (object?)cb.TotalActivos ?? DBNull.Value,
-                        (object?)cb.TotalPasivosCorrientes ?? DBNull.Value,
-                        (object?)cb.TotalPasivosNoCorrientes ?? DBNull.Value,
-                        (object?)cb.OtrosPasivos ?? DBNull.Value,
-                        (object?)cb.TotalPasivos ?? DBNull.Value,
-                        (object?)cb.Patrimonio ?? DBNull.Value,
-                        (object?)cb.TotalPasivoPatrimonio ?? DBNull.Value,
-                        (object?)cb.VentasNetas ?? DBNull.Value,
-                        (object?)cb.UtilidadPerdida ?? DBNull.Value,
-                        (object?)cb.IndiceLiquidez ?? DBNull.Value,
-                        (object?)cb.CapitalTrabajo ?? DBNull.Value,
-                        (object?)cb.RatioEndeudamiento ?? DBNull.Value,
-                        (object?)cb.RatioRentabilidad ?? DBNull.Value);
-                i++;
-            }
+                t.Rows.Add(
+                    x.Id,
+                    (object?)x.EfectivoEquivalente ?? DBNull.Value,
+                    (object?)x.OtrosActivosFinancierosCorriente ?? DBNull.Value,
+                    (object?)x.CuentasCobrarCorriente ?? DBNull.Value,
+                    (object?)x.InventariosCorriente ?? DBNull.Value,
+                    (object?)x.ActivosBiologicosCorriente ?? DBNull.Value,
+                    (object?)x.ActivosImpuestosGanancias ?? DBNull.Value,
+                    (object?)x.OtrosActivosNoFinancierosCorriente ?? DBNull.Value,
+                    (object?)x.TotalActivoCorriente ?? DBNull.Value,
+                    (object?)x.OtrosActivosFinancierosNoCorriente ?? DBNull.Value,
+                    (object?)x.InversionesSubsidiarias ?? DBNull.Value,
+                    (object?)x.CuentasCobrarNoCorriente ?? DBNull.Value,
+                    (object?)x.InventariosNoCorriente ?? DBNull.Value,
+                    (object?)x.ActivosBiologicosNoCorriente ?? DBNull.Value,
+                    (object?)x.PropiedadesInversion ?? DBNull.Value,
+                    (object?)x.PropiedadesPlantaEquipo ?? DBNull.Value,
+                    (object?)x.Intangibles ?? DBNull.Value,
+                    (object?)x.ActivosImpuestosDiferidos ?? DBNull.Value,
+                    (object?)x.ActivosImpuestosCorrientes ?? DBNull.Value,
+                    (object?)x.Plusvalia ?? DBNull.Value,
+                    (object?)x.OtrosActivosNoFinancierosNoCorriente ?? DBNull.Value,
+                    (object?)x.TotalActivoNoCorriente ?? DBNull.Value,
+                    (object?)x.TotalActivo ?? DBNull.Value,
+                    (object?)x.OtrosPasivosFinancierosCorriente ?? DBNull.Value,
+                    (object?)x.CuentasPagarCorriente ?? DBNull.Value,
+                    (object?)x.BeneficiosEmpleadosCorriente ?? DBNull.Value,
+                    (object?)x.OtrasProvisionesCorriente ?? DBNull.Value,
+                    (object?)x.ImpuestosGananciasCorriente ?? DBNull.Value,
+                    (object?)x.OtrosPasivosNoFinancierosCorriente ?? DBNull.Value,
+                    (object?)x.TotalPasivoCorriente ?? DBNull.Value,
+                    (object?)x.OtrosPasivosFinancierosNoCorriente ?? DBNull.Value,
+                    (object?)x.CuentasPagarNoCorriente ?? DBNull.Value,
+                    (object?)x.BeneficiosEmpleadosNoCorriente ?? DBNull.Value,
+                    (object?)x.OtrasProvisionesNoCorriente ?? DBNull.Value,
+                    (object?)x.ImpuestosDiferidosNoCorriente ?? DBNull.Value,
+                    (object?)x.ImpuestosCorrientesNoCorriente ?? DBNull.Value,
+                    (object?)x.OtrosPasivosNoFinancierosNoCorriente ?? DBNull.Value,
+                    (object?)x.TotalPasivoNoCorriente ?? DBNull.Value,
+                    (object?)x.TotalPasivos ?? DBNull.Value,
+                    (object?)x.CapitalEmitido ?? DBNull.Value,
+                    (object?)x.PrimasEmision ?? DBNull.Value,
+                    (object?)x.AccionesInversion ?? DBNull.Value,
+                    (object?)x.AccionesCartera ?? DBNull.Value,
+                    (object?)x.OtrasReservasCapital ?? DBNull.Value,
+                    (object?)x.ResultadosAcumulados ?? DBNull.Value,
+                    (object?)x.OtrasReservasPatrimonio ?? DBNull.Value,
+                    (object?)x.TotalPatrimonio ?? DBNull.Value,
+                    (object?)x.TotalPasivoPatrimonio ?? DBNull.Value,
+                    (object?)x.IngresosOrdinarios ?? DBNull.Value,
+                    (object?)x.CostoVentas ?? DBNull.Value,
+                    (object?)x.GananciaBruta ?? DBNull.Value,
+                    (object?)x.GastosVentas ?? DBNull.Value,
+                    (object?)x.GastosAdministracion ?? DBNull.Value,
+                    (object?)x.OtrosIngresosOperativos ?? DBNull.Value,
+                    (object?)x.OtrosGastosOperativos ?? DBNull.Value,
+                    (object?)x.OtrasGananciasPerdidas ?? DBNull.Value,
+                    (object?)x.GananciaOperativa ?? DBNull.Value,
+                    (object?)x.IngresosFinancieros ?? DBNull.Value,
+                    (object?)x.IngresosIntereses ?? DBNull.Value,
+                    (object?)x.GastosFinancieros ?? DBNull.Value,
+                    (object?)x.DeterioroValor ?? DBNull.Value,
+                    (object?)x.OtrosIngresosSubsidiarias ?? DBNull.Value,
+                    (object?)x.DiferenciasCambio ?? DBNull.Value,
+                    (object?)x.GananciaAntesImpuestos ?? DBNull.Value,
+                    (object?)x.IngresoGastoImpuesto ?? DBNull.Value,
+                    (object?)x.OperacionesDescontinuadas ?? DBNull.Value,
+                    (object?)x.GananciaNeta ?? DBNull.Value,
+                    (object?)x.IndiceLiquidez ?? DBNull.Value,
+                    (object?)x.CapitalTrabajo ?? DBNull.Value,
+                    (object?)x.RatioEndeudamiento ?? DBNull.Value,
+                    (object?)x.RatioRentabilidad ?? DBNull.Value);
+            return t;
+        }
+
+        private static DataTable ConstruirTablaBalancesTotalizado(List<InformeBalanceTotalizadoItem> items)
+        {
+            var t = new DataTable();
+            t.Columns.Add("ID", typeof(int));
+            t.Columns.Add("TotalActivoCorriente", typeof(decimal));
+            t.Columns.Add("TotalActivoNoCorriente", typeof(decimal));
+            t.Columns.Add("TotalActivo", typeof(decimal));
+            t.Columns.Add("TotalPasivoCorriente", typeof(decimal));
+            t.Columns.Add("TotalPasivoNoCorriente", typeof(decimal));
+            t.Columns.Add("TotalPasivos", typeof(decimal));
+            t.Columns.Add("TotalPatrimonio", typeof(decimal));
+            t.Columns.Add("TotalPasivoPatrimonio", typeof(decimal));
+            t.Columns.Add("IngresosOrdinarios", typeof(decimal));
+            t.Columns.Add("GananciaNeta", typeof(decimal));
+            t.Columns.Add("IndiceLiquidez", typeof(decimal));
+            t.Columns.Add("CapitalTrabajo", typeof(decimal));
+            t.Columns.Add("RatioEndeudamiento", typeof(decimal));
+            t.Columns.Add("RatioRentabilidad", typeof(decimal));
+            foreach (var x in items)
+                t.Rows.Add(
+                    x.Id,
+                    (object?)x.TotalActivoCorriente ?? DBNull.Value,
+                    (object?)x.TotalActivoNoCorriente ?? DBNull.Value,
+                    (object?)x.TotalActivo ?? DBNull.Value,
+                    (object?)x.TotalPasivoCorriente ?? DBNull.Value,
+                    (object?)x.TotalPasivoNoCorriente ?? DBNull.Value,
+                    (object?)x.TotalPasivos ?? DBNull.Value,
+                    (object?)x.TotalPatrimonio ?? DBNull.Value,
+                    (object?)x.TotalPasivoPatrimonio ?? DBNull.Value,
+                    (object?)x.IngresosOrdinarios ?? DBNull.Value,
+                    (object?)x.GananciaNeta ?? DBNull.Value,
+                    (object?)x.IndiceLiquidez ?? DBNull.Value,
+                    (object?)x.CapitalTrabajo ?? DBNull.Value,
+                    (object?)x.RatioEndeudamiento ?? DBNull.Value,
+                    (object?)x.RatioRentabilidad ?? DBNull.Value);
+            return t;
+        }
+
+        private static DataTable ConstruirTablaBalancesBanco(List<InformeBalanceBancoItem> items)
+        {
+            var t = new DataTable();
+            t.Columns.Add("ID", typeof(int));
+            t.Columns.Add("Disponible", typeof(decimal));
+            t.Columns.Add("FondosInterbancarios", typeof(decimal));
+            t.Columns.Add("InversionesValorRazonable", typeof(decimal));
+            t.Columns.Add("CarteraCreditos", typeof(decimal));
+            t.Columns.Add("DerivadosNegociacionActivo", typeof(decimal));
+            t.Columns.Add("DerivadosCoberturaActivo", typeof(decimal));
+            t.Columns.Add("BienesRealizables", typeof(decimal));
+            t.Columns.Add("ParticipacionesSubsidiarias", typeof(decimal));
+            t.Columns.Add("InmuebleMobiliarioEquipo", typeof(decimal));
+            t.Columns.Add("ImpuestoRentaDiferido", typeof(decimal));
+            t.Columns.Add("OtrosActivos", typeof(decimal));
+            t.Columns.Add("TotalActivos", typeof(decimal));
+            t.Columns.Add("ObligacionesPublico", typeof(decimal));
+            t.Columns.Add("FondosInterbancariosPasivo", typeof(decimal));
+            t.Columns.Add("AdeudosFinancieras", typeof(decimal));
+            t.Columns.Add("DerivadosNegociacionPasivo", typeof(decimal));
+            t.Columns.Add("DerivadosCoberturaPasivo", typeof(decimal));
+            t.Columns.Add("CuentasPagarProvisiones", typeof(decimal));
+            t.Columns.Add("TotalPasivo", typeof(decimal));
+            t.Columns.Add("CapitalSocial", typeof(decimal));
+            t.Columns.Add("Reservas", typeof(decimal));
+            t.Columns.Add("ResultadosNoRealizados", typeof(decimal));
+            t.Columns.Add("ResultadoEjercicio", typeof(decimal));
+            t.Columns.Add("TotalPatrimonio", typeof(decimal));
+            t.Columns.Add("TotalPasivoPatrimonio", typeof(decimal));
+            t.Columns.Add("IngresosIntereses", typeof(decimal));
+            t.Columns.Add("UtilidadEjercicio", typeof(decimal));
+            foreach (var x in items)
+                t.Rows.Add(
+                    x.Id,
+                    (object?)x.Disponible ?? DBNull.Value,
+                    (object?)x.FondosInterbancarios ?? DBNull.Value,
+                    (object?)x.InversionesValorRazonable ?? DBNull.Value,
+                    (object?)x.CarteraCreditos ?? DBNull.Value,
+                    (object?)x.DerivadosNegociacionActivo ?? DBNull.Value,
+                    (object?)x.DerivadosCoberturaActivo ?? DBNull.Value,
+                    (object?)x.BienesRealizables ?? DBNull.Value,
+                    (object?)x.ParticipacionesSubsidiarias ?? DBNull.Value,
+                    (object?)x.InmuebleMobiliarioEquipo ?? DBNull.Value,
+                    (object?)x.ImpuestoRentaDiferido ?? DBNull.Value,
+                    (object?)x.OtrosActivos ?? DBNull.Value,
+                    (object?)x.TotalActivos ?? DBNull.Value,
+                    (object?)x.ObligacionesPublico ?? DBNull.Value,
+                    (object?)x.FondosInterbancariosPasivo ?? DBNull.Value,
+                    (object?)x.AdeudosFinancieras ?? DBNull.Value,
+                    (object?)x.DerivadosNegociacionPasivo ?? DBNull.Value,
+                    (object?)x.DerivadosCoberturaPasivo ?? DBNull.Value,
+                    (object?)x.CuentasPagarProvisiones ?? DBNull.Value,
+                    (object?)x.TotalPasivo ?? DBNull.Value,
+                    (object?)x.CapitalSocial ?? DBNull.Value,
+                    (object?)x.Reservas ?? DBNull.Value,
+                    (object?)x.ResultadosNoRealizados ?? DBNull.Value,
+                    (object?)x.ResultadoEjercicio ?? DBNull.Value,
+                    (object?)x.TotalPatrimonio ?? DBNull.Value,
+                    (object?)x.TotalPasivoPatrimonio ?? DBNull.Value,
+                    (object?)x.IngresosIntereses ?? DBNull.Value,
+                    (object?)x.UtilidadEjercicio ?? DBNull.Value);
+            return t;
+        }
+
+        private static DataTable ConstruirTablaBalancesSeguro(List<InformeBalanceSeguroItem> items)
+        {
+            var t = new DataTable();
+            t.Columns.Add("ID", typeof(int));
+            t.Columns.Add("EfectivoDisponible", typeof(decimal));
+            t.Columns.Add("InversionesFinancieras", typeof(decimal));
+            t.Columns.Add("PrestamosInteresesNetos", typeof(decimal));
+            t.Columns.Add("PrimasCobrar", typeof(decimal));
+            t.Columns.Add("DeudasReaseguradores", typeof(decimal));
+            t.Columns.Add("ActivosVenta", typeof(decimal));
+            t.Columns.Add("PropiedadesInversion", typeof(decimal));
+            t.Columns.Add("PropiedadPlantaEquipo", typeof(decimal));
+            t.Columns.Add("OtrosActivos", typeof(decimal));
+            t.Columns.Add("TotalActivos", typeof(decimal));
+            t.Columns.Add("ObligacionesAsegurados", typeof(decimal));
+            t.Columns.Add("ReservasSiniestros", typeof(decimal));
+            t.Columns.Add("ReservasTecnicas", typeof(decimal));
+            t.Columns.Add("ObligacionesReaseguradores", typeof(decimal));
+            t.Columns.Add("ObligacionesFinancieras", typeof(decimal));
+            t.Columns.Add("CuentasPagar", typeof(decimal));
+            t.Columns.Add("OtrosPasivos", typeof(decimal));
+            t.Columns.Add("TotalPasivo", typeof(decimal));
+            t.Columns.Add("CapitalSocial", typeof(decimal));
+            t.Columns.Add("AportesCapitalNoCapitalizados", typeof(decimal));
+            t.Columns.Add("ResultadosAcumulados", typeof(decimal));
+            t.Columns.Add("PatrimonioRestringido", typeof(decimal));
+            t.Columns.Add("TotalPatrimonio", typeof(decimal));
+            t.Columns.Add("TotalPasivoPatrimonio", typeof(decimal));
+            t.Columns.Add("PrimasGanadasNetas", typeof(decimal));
+            t.Columns.Add("UtilidadNeta", typeof(decimal));
+            foreach (var x in items)
+                t.Rows.Add(
+                    x.Id,
+                    (object?)x.EfectivoDisponible ?? DBNull.Value,
+                    (object?)x.InversionesFinancieras ?? DBNull.Value,
+                    (object?)x.PrestamosInteresesNetos ?? DBNull.Value,
+                    (object?)x.PrimasCobrar ?? DBNull.Value,
+                    (object?)x.DeudasReaseguradores ?? DBNull.Value,
+                    (object?)x.ActivosVenta ?? DBNull.Value,
+                    (object?)x.PropiedadesInversion ?? DBNull.Value,
+                    (object?)x.PropiedadPlantaEquipo ?? DBNull.Value,
+                    (object?)x.OtrosActivos ?? DBNull.Value,
+                    (object?)x.TotalActivos ?? DBNull.Value,
+                    (object?)x.ObligacionesAsegurados ?? DBNull.Value,
+                    (object?)x.ReservasSiniestros ?? DBNull.Value,
+                    (object?)x.ReservasTecnicas ?? DBNull.Value,
+                    (object?)x.ObligacionesReaseguradores ?? DBNull.Value,
+                    (object?)x.ObligacionesFinancieras ?? DBNull.Value,
+                    (object?)x.CuentasPagar ?? DBNull.Value,
+                    (object?)x.OtrosPasivos ?? DBNull.Value,
+                    (object?)x.TotalPasivo ?? DBNull.Value,
+                    (object?)x.CapitalSocial ?? DBNull.Value,
+                    (object?)x.AportesCapitalNoCapitalizados ?? DBNull.Value,
+                    (object?)x.ResultadosAcumulados ?? DBNull.Value,
+                    (object?)x.PatrimonioRestringido ?? DBNull.Value,
+                    (object?)x.TotalPatrimonio ?? DBNull.Value,
+                    (object?)x.TotalPasivoPatrimonio ?? DBNull.Value,
+                    (object?)x.PrimasGanadasNetas ?? DBNull.Value,
+                    (object?)x.UtilidadNeta ?? DBNull.Value);
+            return t;
+        }
+
+        private static DataTable ConstruirTablaBalancesTurquia(List<InformeBalanceTurquiaItem> items)
+        {
+            var t = new DataTable();
+            t.Columns.Add("ID", typeof(int));
+            t.Columns.Add("Ano", typeof(int));
+            t.Columns.Add("FechaBalance", typeof(DateTime));
+            t.Columns.Add("IdMoneda", typeof(int));
+            t.Columns.Add("DuracionPeriodo", typeof(int));
+            t.Columns.Add("IdNivelConfiabilidad", typeof(int));
+            t.Columns.Add("TipoCambio", typeof(decimal));
+            t.Columns.Add("Efectivo", typeof(decimal));
+            t.Columns.Add("Existencias", typeof(decimal));
+            t.Columns.Add("Deudores", typeof(decimal));
+            t.Columns.Add("TotalCorriente", typeof(decimal));
+            t.Columns.Add("BienesTongibles", typeof(decimal));
+            t.Columns.Add("ActivosIntangibles", typeof(decimal));
+            t.Columns.Add("ActivoFijoNeto", typeof(decimal));
+            t.Columns.Add("TotalActivos", typeof(decimal));
+            t.Columns.Add("Prestamos", typeof(decimal));
+            t.Columns.Add("Acreedores", typeof(decimal));
+            t.Columns.Add("PasivosCorrientes", typeof(decimal));
+            t.Columns.Add("PasivosNoCorrientes", typeof(decimal));
+            t.Columns.Add("PasivosLargoPlazo", typeof(decimal));
+            t.Columns.Add("TotalPasivosNoCorrientes", typeof(decimal));
+            t.Columns.Add("TotalPasivos", typeof(decimal));
+            t.Columns.Add("Capital", typeof(decimal));
+            t.Columns.Add("Patrimonio", typeof(decimal));
+            t.Columns.Add("TotalPatrimonio", typeof(decimal));
+            t.Columns.Add("TotalPasivosPatrimonio", typeof(decimal));
+            t.Columns.Add("VentasNetas", typeof(decimal));
+            t.Columns.Add("CostoVentas", typeof(decimal));
+            t.Columns.Add("CostoMateriales", typeof(decimal));
+            t.Columns.Add("GananciaBruta", typeof(decimal));
+            t.Columns.Add("OtrosGastosOperativos", typeof(decimal));
+            t.Columns.Add("CostoEmpleados", typeof(decimal));
+            t.Columns.Add("Depreciacion", typeof(decimal));
+            t.Columns.Add("IngresosFinancieros", typeof(decimal));
+            t.Columns.Add("GastosFinancieros", typeof(decimal));
+            t.Columns.Add("InteresesPagados", typeof(decimal));
+            t.Columns.Add("PlFinanciero", typeof(decimal));
+            t.Columns.Add("IngresosExtraordinarios", typeof(decimal));
+            t.Columns.Add("GastosExtraordinarios", typeof(decimal));
+            t.Columns.Add("PlExtraordinario", typeof(decimal));
+            t.Columns.Add("GananciaAntesImpuestos", typeof(decimal));
+            t.Columns.Add("Impuestos", typeof(decimal));
+            t.Columns.Add("GananciaNeta", typeof(decimal));
+            t.Columns.Add("Ebit", typeof(decimal));
+            t.Columns.Add("Ebitda", typeof(decimal));
+            t.Columns.Add("Ganancia", typeof(decimal));
+            t.Columns.Add("IndiceLiquidez", typeof(decimal));
+            t.Columns.Add("CapitalTrabajo", typeof(decimal));
+            t.Columns.Add("RatioEndeudamiento", typeof(decimal));
+            t.Columns.Add("RatioRentabilidad", typeof(decimal));
+            foreach (var x in items)
+                t.Rows.Add(
+                    x.Id,
+                    (object?)x.Ano ?? DBNull.Value,
+                    (object?)x.FechaBalance ?? DBNull.Value,
+                    (object?)x.IdMoneda ?? DBNull.Value,
+                    (object?)x.DuracionPeriodo ?? DBNull.Value,
+                    (object?)x.IdNivelConfiabilidad ?? DBNull.Value,
+                    (object?)x.TipoCambio ?? DBNull.Value,
+                    (object?)x.Efectivo ?? DBNull.Value,
+                    (object?)x.Existencias ?? DBNull.Value,
+                    (object?)x.Deudores ?? DBNull.Value,
+                    (object?)x.TotalCorriente ?? DBNull.Value,
+                    (object?)x.BienesTongibles ?? DBNull.Value,
+                    (object?)x.ActivosIntangibles ?? DBNull.Value,
+                    (object?)x.ActivoFijoNeto ?? DBNull.Value,
+                    (object?)x.TotalActivos ?? DBNull.Value,
+                    (object?)x.Prestamos ?? DBNull.Value,
+                    (object?)x.Acreedores ?? DBNull.Value,
+                    (object?)x.PasivosCorrientes ?? DBNull.Value,
+                    (object?)x.PasivosNoCorrientes ?? DBNull.Value,
+                    (object?)x.PasivosLargoPlazo ?? DBNull.Value,
+                    (object?)x.TotalPasivosNoCorrientes ?? DBNull.Value,
+                    (object?)x.TotalPasivos ?? DBNull.Value,
+                    (object?)x.Capital ?? DBNull.Value,
+                    (object?)x.Patrimonio ?? DBNull.Value,
+                    (object?)x.TotalPatrimonio ?? DBNull.Value,
+                    (object?)x.TotalPasivosPatrimonio ?? DBNull.Value,
+                    (object?)x.VentasNetas ?? DBNull.Value,
+                    (object?)x.CostoVentas ?? DBNull.Value,
+                    (object?)x.CostoMateriales ?? DBNull.Value,
+                    (object?)x.GananciaBruta ?? DBNull.Value,
+                    (object?)x.OtrosGastosOperativos ?? DBNull.Value,
+                    (object?)x.CostoEmpleados ?? DBNull.Value,
+                    (object?)x.Depreciacion ?? DBNull.Value,
+                    (object?)x.IngresosFinancieros ?? DBNull.Value,
+                    (object?)x.GastosFinancieros ?? DBNull.Value,
+                    (object?)x.InteresesPagados ?? DBNull.Value,
+                    (object?)x.PlFinanciero ?? DBNull.Value,
+                    (object?)x.IngresosExtraordinarios ?? DBNull.Value,
+                    (object?)x.GastosExtraordinarios ?? DBNull.Value,
+                    (object?)x.PlExtraordinario ?? DBNull.Value,
+                    (object?)x.GananciaAntesImpuestos ?? DBNull.Value,
+                    (object?)x.Impuestos ?? DBNull.Value,
+                    (object?)x.GananciaNeta ?? DBNull.Value,
+                    (object?)x.Ebit ?? DBNull.Value,
+                    (object?)x.Ebitda ?? DBNull.Value,
+                    (object?)x.Ganancia ?? DBNull.Value,
+                    (object?)x.IndiceLiquidez ?? DBNull.Value,
+                    (object?)x.CapitalTrabajo ?? DBNull.Value,
+                    (object?)x.RatioEndeudamiento ?? DBNull.Value,
+                    (object?)x.RatioRentabilidad ?? DBNull.Value);
             return t;
         }
 
@@ -226,14 +601,12 @@ namespace SafetyReport.DAO
             t.Columns.Add("IdInformeLocal", typeof(int));
             t.Columns.Add("IdTipoLocal", typeof(int));
             t.Columns.Add("Comentario", typeof(string));
-            t.Columns.Add("ImagenUrl", typeof(string));
             int i = 1;
             foreach (var x in items)
                 t.Rows.Add(i++,
                     (object?)x.IdInformeLocal ?? DBNull.Value,
                     (object?)x.IdTipoLocal ?? DBNull.Value,
-                    (object?)x.Comentario ?? DBNull.Value,
-                    (object?)x.ImagenUrl ?? DBNull.Value);
+                    (object?)x.Comentario ?? DBNull.Value);
             return t;
         }
 
@@ -245,13 +618,15 @@ namespace SafetyReport.DAO
             t.Columns.Add("IdLocal", typeof(int));
             t.Columns.Add("ImagenURL", typeof(string));
             t.Columns.Add("IdTipoArchivo", typeof(int));
+            t.Columns.Add("Nombre", typeof(string));
             int img = 1;
             int localIdx = 1;
             foreach (var local in items)
             {
                 foreach (var imagen in local.Imagenes)
                     t.Rows.Add(img++, (object?)imagen.IdInformeLocalImagen ?? DBNull.Value,
-                        localIdx, imagen.ImagenURL, imagen.IdTipoArchivo);
+                        localIdx, imagen.ImagenURL, imagen.IdTipoArchivo,
+                        (object?)imagen.Nombre ?? DBNull.Value);
                 localIdx++;
             }
             return t;
@@ -349,10 +724,11 @@ namespace SafetyReport.DAO
             cmd.Parameters.Add("@vchVentasContadoText", SqlDbType.VarChar, 50).Value = (object?)r.VentasContadoText ?? DBNull.Value;
             cmd.Parameters.Add("@decVentasCredito", SqlDbType.Decimal).Value = (object?)r.VentasCredito ?? DBNull.Value;
             cmd.Parameters.Add("@vchVentasCreditoText", SqlDbType.VarChar, 50).Value = (object?)r.VentasCreditoText ?? DBNull.Value;
+            cmd.Parameters.Add("@intIdVentasCreditoTiempo", SqlDbType.Int).Value = (object?)r.IdVentasCreditoTiempo ?? DBNull.Value;
             cmd.Parameters.Add("@decVentasInternacionales", SqlDbType.Decimal).Value = (object?)r.VentasInternacionales ?? DBNull.Value;
             cmd.Parameters.Add("@vchVentasInternacionalesText", SqlDbType.VarChar, 50).Value = (object?)r.VentasInternacionalesText ?? DBNull.Value;
-            cmd.Parameters.Add("@decTerritorioVentas", SqlDbType.Decimal).Value = (object?)r.TerritorioVentas ?? DBNull.Value;
-            cmd.Parameters.Add("@vchTerritorioText", SqlDbType.VarChar, 255).Value = (object?)r.TerritorioText ?? DBNull.Value;
+            cmd.Parameters.Add("@decVentasNacionales", SqlDbType.Decimal).Value = (object?)r.VentasNacionales ?? DBNull.Value;
+            cmd.Parameters.Add("@vchVentasNacionalesText", SqlDbType.VarChar, 255).Value = (object?)r.VentasNacionalesText ?? DBNull.Value;
             cmd.Parameters.Add("@decComprasNacionales", SqlDbType.Decimal).Value = (object?)r.ComprasNacionales ?? DBNull.Value;
             cmd.Parameters.Add("@vchComprasNacionalesText", SqlDbType.VarChar, 255).Value = (object?)r.ComprasNacionalesText ?? DBNull.Value;
             cmd.Parameters.Add("@decComprasInternacionales", SqlDbType.Decimal).Value = (object?)r.ComprasInternacionales ?? DBNull.Value;
@@ -377,7 +753,11 @@ namespace SafetyReport.DAO
         private static void AgregarTvpsCampos(SqlCommand cmd, InformeCrear r)
         {
             AgregarTvp(cmd, "@lstBalances", ConstruirTablaBalances(r.lstBalances), "LISTA_INFORME_BALANCE");
-            AgregarTvp(cmd, "@lstCuentaBalances", ConstruirTablaCuentaBalances(r.lstBalances), "LISTA_INFORME_CUENTA_BALANCE");
+            AgregarTvp(cmd, "@lstBalancesDesagregado", ConstruirTablaBalancesDesagregado(r.lstBalancesDesagregado), "LISTA_INFORME_BALANCE_DESAGREGADO");
+            AgregarTvp(cmd, "@lstBalancesTotalizado", ConstruirTablaBalancesTotalizado(r.lstBalancesTotalizado), "LISTA_INFORME_BALANCE_TOTALIZADO");
+            AgregarTvp(cmd, "@lstBalancesBanco", ConstruirTablaBalancesBanco(r.lstBalancesBanco), "LISTA_INFORME_BALANCE_BANCO");
+            AgregarTvp(cmd, "@lstBalancesSeguro", ConstruirTablaBalancesSeguro(r.lstBalancesSeguro), "LISTA_INFORME_BALANCE_SEGURO");
+            AgregarTvp(cmd, "@lstBalancesTurquia", ConstruirTablaBalancesTurquia(r.lstBalancesTurquia), "LISTA_INFORME_BALANCE_TURQUIA");
             AgregarTvp(cmd, "@lstBancos", ConstruirTablaBancos(r.lstBancos), "LISTA_INFORME_BANCO");
             AgregarTvp(cmd, "@lstCompanias", ConstruirTablaCompanias(r.lstCompaniasRelacionadas), "LISTA_INFORME_COMPANIA_RELACIONADA");
             AgregarTvp(cmd, "@lstExpImp", ConstruirTablaExpImp(r.lstExportacionesImportaciones), "LISTA_INFORME_EXPORTACION_IMPORTACION");
