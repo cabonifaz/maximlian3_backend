@@ -619,7 +619,6 @@ namespace SafetyReport.DAO
             t.Columns.Add("ImagenURL", typeof(string));
             t.Columns.Add("IdTipoArchivo", typeof(int));
             t.Columns.Add("Nombre", typeof(string));
-            t.Columns.Add("EstadoCarga", typeof(byte));
             int img = 1;
             int localIdx = 1;
             foreach (var local in items)
@@ -627,8 +626,7 @@ namespace SafetyReport.DAO
                 foreach (var imagen in local.Imagenes)
                     t.Rows.Add(img++, (object?)imagen.IdInformeLocalImagen ?? DBNull.Value,
                         localIdx, imagen.ImagenURL, imagen.IdTipoArchivo,
-                        (object?)imagen.Nombre ?? DBNull.Value,
-                        (object?)imagen.EstadoCarga ?? DBNull.Value);
+                        (object?)imagen.Nombre ?? DBNull.Value);
                 localIdx++;
             }
             return t;

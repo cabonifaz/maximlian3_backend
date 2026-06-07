@@ -233,7 +233,6 @@ namespace SafetyReport.Models
         public string ImagenURL { get; set; } = string.Empty;
         public int IdTipoArchivo { get; set; }
         public string? Nombre { get; set; }
-        public byte? EstadoCarga { get; set; }
     }
 
     public class InformeLocalItem
