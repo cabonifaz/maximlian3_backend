@@ -24,12 +24,20 @@ namespace SafetyReport.Handlers
             _s3ExpirationMinutes = int.TryParse(configuration["AWS:S3ExpirationTime"], out var exp) ? exp : 15;
         }
 
+        private static readonly HashSet<string> _extensionesImagenPermitidas =
+            new(StringComparer.OrdinalIgnoreCase) { ".jpg", ".jpeg", ".png", ".gif", ".webp", ".bmp", ".tiff" };
+
         public async Task<Respuesta> InsertarAsync(UsuarioGeneral usuarioLogueado, InformeCrear request)
         {
             try
             {
-                AsignarRutasLocalImagenes(request.lstLocales, request.IdPedido ?? 0);
-                return await _dao.InsertarAsync(usuarioLogueado, request);
+                var error = AsignarRutasLocalImagenes(request.lstLocales, request.IdPedido ?? 0);
+                if (error != null)
+                    return new Respuesta { IdTipoMensaje = 1, Mensaje = error, Result = new List<InformeCreado>() };
+
+                var (respuesta, imagenes) = await _dao.InsertarAsync(usuarioLogueado, request);
+                AgregarUrlsPrefirmadas(respuesta, imagenes);
+                return respuesta;
             }
             catch (Exception ex)
             {
@@ -41,8 +49,13 @@ namespace SafetyReport.Handlers
         {
             try
             {
-                AsignarRutasLocalImagenes(request.lstLocales, request.IdInforme);
-                return await _dao.ActualizarAsync(usuarioLogueado, request);
+                var error = AsignarRutasLocalImagenes(request.lstLocales, request.IdInforme);
+                if (error != null)
+                    return new Respuesta { IdTipoMensaje = 1, Mensaje = error, Result = new List<InformeCreado>() };
+
+                var (respuesta, imagenes) = await _dao.ActualizarAsync(usuarioLogueado, request);
+                AgregarUrlsPrefirmadas(respuesta, imagenes);
+                return respuesta;
             }
             catch (Exception ex)
             {
@@ -50,16 +63,43 @@ namespace SafetyReport.Handlers
             }
         }
 
-        private static void AsignarRutasLocalImagenes(List<InformeLocalItem> locales, int id)
+        private void AgregarUrlsPrefirmadas(Respuesta respuesta, List<InformeLocalImagenPendiente> imagenes)
+        {
+            if (respuesta.IdTipoMensaje != 2 || imagenes.Count == 0) return;
+
+            var sufijos = imagenes.Select(i => i.Nombre).ToList();
+            var extensionMime = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
+            {
+                { ".jpg", "image/jpeg" }, { ".jpeg", "image/jpeg" }, { ".png", "image/png" },
+                { ".gif", "image/gif" }, { ".webp", "image/webp" }, { ".bmp", "image/bmp" }, { ".tiff", "image/tiff" }
+            };
+
+            if (respuesta.Result is List<InformeCreado> creados && creados.Count > 0)
+            {
+                var creado = creados[0];
+                creado.ImagenesPendientes = imagenes.Select(img =>
+                {
+                    var ext = Path.GetExtension(img.Nombre);
+                    var mime = extensionMime.GetValueOrDefault(ext, "application/octet-stream");
+                    img.UploadUrl = _s3.GenerarUploadUrl(img.S3Key, mime);
+                    return img;
+                }).ToList();
+            }
+        }
+
+        private static string? AsignarRutasLocalImagenes(List<InformeLocalItem> locales, int id)
         {
             foreach (var local in locales)
                 foreach (var imagen in local.Imagenes)
                     if (imagen.IdInformeLocalImagen is null or 0)
                     {
                         var ext = Path.GetExtension(imagen.Nombre);
+                        if (!_extensionesImagenPermitidas.Contains(ext))
+                            return $"El archivo '{imagen.Nombre}' no es una imagen válida. Extensiones permitidas: {string.Join(", ", _extensionesImagenPermitidas)}.";
                         var nombre = Path.GetFileNameWithoutExtension(imagen.Nombre);
                         imagen.ImagenURL = $"informes/pedido-{id}/locales/{nombre}-{DateTimeOffset.UtcNow.ToUnixTimeMilliseconds()}{ext}";
                     }
+            return null;
         }
 
         public async Task<Respuesta> ObtenerAsync(UsuarioGeneral usuarioLogueado, FiltroInformeObtener request)

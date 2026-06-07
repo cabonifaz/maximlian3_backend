@@ -412,9 +412,19 @@ namespace SafetyReport.Models
 
     // ── Response / Result models ─────────────────────────────────────────────────
 
+    public class InformeLocalImagenPendiente
+    {
+        public int IdInformeLocalImagen { get; set; }
+        public string Nombre { get; set; } = string.Empty;
+        public string UploadUrl { get; set; } = string.Empty;
+        [System.Text.Json.Serialization.JsonIgnore]
+        public string S3Key { get; set; } = string.Empty;
+    }
+
     public class InformeCreado
     {
         public int IdInforme { get; set; }
+        public List<InformeLocalImagenPendiente> ImagenesPendientes { get; set; } = new();
     }
 
     public class InformeEliminado

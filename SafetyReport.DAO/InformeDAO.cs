@@ -656,6 +656,44 @@ namespace SafetyReport.DAO
             return respuesta;
         }
 
+        private static async Task<(Respuesta respuesta, List<InformeLocalImagenPendiente> imagenes)> LeerRespuestaConImagenesAsync<T>(SqlCommand cmd)
+        {
+            var imagenes = new List<InformeLocalImagenPendiente>();
+            var respuesta = new Respuesta();
+
+            using var dr = await cmd.ExecuteReaderAsync();
+            do
+            {
+                var columnas = Enumerable.Range(0, dr.FieldCount).Select(dr.GetName).ToHashSet(StringComparer.OrdinalIgnoreCase);
+
+                if (columnas.Contains("IdTipoMensaje"))
+                {
+                    if (await dr.ReadAsync())
+                    {
+                        respuesta.IdTipoMensaje = Convert.ToInt32(dr["IdTipoMensaje"]);
+                        respuesta.Mensaje = dr["Mensaje"]?.ToString() ?? string.Empty;
+                        var json = dr["Result"]?.ToString();
+                        respuesta.Result = !string.IsNullOrWhiteSpace(json)
+                            ? JsonSerializer.Deserialize<List<T>>(json, new JsonSerializerOptions { PropertyNameCaseInsensitive = true }) ?? new List<T>()
+                            : new List<T>();
+                    }
+                }
+                else if (columnas.Contains("ImagenURL"))
+                {
+                    while (await dr.ReadAsync())
+                        imagenes.Add(new InformeLocalImagenPendiente
+                        {
+                            IdInformeLocalImagen = Convert.ToInt32(dr["IdInformeLocalImagen"]),
+                            Nombre               = dr["Nombre"]?.ToString() ?? string.Empty,
+                            S3Key                = dr["ImagenURL"]?.ToString() ?? string.Empty
+                        });
+                }
+            }
+            while (await dr.NextResultAsync());
+
+            return (respuesta, imagenes);
+        }
+
         // ── Helpers para agregar TVPs ─────────────────────────────────────────────
 
         private static void AgregarTvp(SqlCommand cmd, string paramName, DataTable table, string typeName)
@@ -769,7 +807,7 @@ namespace SafetyReport.DAO
 
         // ── CRUD ─────────────────────────────────────────────────────────────────
 
-        public async Task<Respuesta> InsertarAsync(UsuarioGeneral u, InformeCrear request)
+        public async Task<(Respuesta respuesta, List<InformeLocalImagenPendiente> imagenes)> InsertarAsync(UsuarioGeneral u, InformeCrear request)
         {
             try
             {
@@ -779,15 +817,15 @@ namespace SafetyReport.DAO
                 AgregarParametrosCampos(cmd, request);
                 AgregarTvpsCampos(cmd, request);
                 await cn.OpenAsync();
-                return await LeerRespuestaAsync<InformeCreado>(cmd);
+                return await LeerRespuestaConImagenesAsync<InformeCreado>(cmd);
             }
             catch (Exception ex)
             {
-                return new Respuesta { IdTipoMensaje = 3, Mensaje = ex.Message, Result = new List<InformeCreado>() };
+                return (new Respuesta { IdTipoMensaje = 3, Mensaje = ex.Message, Result = new List<InformeCreado>() }, new());
             }
         }
 
-        public async Task<Respuesta> ActualizarAsync(UsuarioGeneral u, InformeEditar request)
+        public async Task<(Respuesta respuesta, List<InformeLocalImagenPendiente> imagenes)> ActualizarAsync(UsuarioGeneral u, InformeEditar request)
         {
             try
             {
@@ -798,11 +836,11 @@ namespace SafetyReport.DAO
                 AgregarParametrosCampos(cmd, request);
                 AgregarTvpsCampos(cmd, request);
                 await cn.OpenAsync();
-                return await LeerRespuestaAsync<InformeCreado>(cmd);
+                return await LeerRespuestaConImagenesAsync<InformeCreado>(cmd);
             }
             catch (Exception ex)
             {
-                return new Respuesta { IdTipoMensaje = 3, Mensaje = ex.Message, Result = new List<InformeCreado>() };
+                return (new Respuesta { IdTipoMensaje = 3, Mensaje = ex.Message, Result = new List<InformeCreado>() }, new());
             }
         }
 
