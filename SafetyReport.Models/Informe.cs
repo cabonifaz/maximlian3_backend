@@ -446,9 +446,8 @@ namespace SafetyReport.Models
     {
         public int IdInformeLocalImagen { get; set; }
         public string Nombre { get; set; } = string.Empty;
+        public string ImagenURL { get; set; } = string.Empty;
         public string DownloadUrl { get; set; } = string.Empty;
-        [System.Text.Json.Serialization.JsonIgnore]
-        public string S3Key { get; set; } = string.Empty;
     }
 
     // ── Filters ──────────────────────────────────────────────────────────────────

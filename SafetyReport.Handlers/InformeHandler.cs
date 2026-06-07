@@ -113,7 +113,6 @@ namespace SafetyReport.Handlers
                     var urls = _s3.GenerarDownloadUrlsBatch(imagenes.Select(i => i.ImagenURL).ToList());
                     for (int i = 0; i < imagenes.Count; i++)
                     {
-                        imagenes[i].S3Key      = imagenes[i].ImagenURL;
                         imagenes[i].DownloadUrl = urls[i];
                         imagenes[i].ImagenURL   = string.Empty;
                     }
