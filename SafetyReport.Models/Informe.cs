@@ -536,15 +536,12 @@ namespace SafetyReport.Models
     {
         public int IdInforme { get; set; }
         public int IdPedido { get; set; }
-        public string? CodigoPedido { get; set; }
-        public string? Nombre { get; set; }
-        public string? NombreComercial { get; set; }
-        public int? IdTipoPersona { get; set; }
-        public string? DescripcionTipoPersona { get; set; }
-        public int? IdEstado { get; set; }
-        public string? DescripcionEstado { get; set; }
+        public string? EstadoInforme { get; set; }
         public string? FechaCreacion { get; set; }
         public bool? FlgTieneInformacion { get; set; }
+        public string? Investigado { get; set; }
+        public string? Vigencia { get; set; }
+        public string? TipoTramite { get; set; }
     }
 
     public class InformeListaResult
