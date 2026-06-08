@@ -20,7 +20,7 @@ namespace SafetyReport.Handlers
             }
             catch (Exception ex)
             {
-                return new Respuesta { IdTipoMensaje = 3, Mensaje = ex.Message, Result = new List<DirectorioEjecutivoCreado>() };
+                return new Respuesta { IdTipoMensaje = 3, Mensaje = "Error interno del servidor.", Result = new List<DirectorioEjecutivoCreado>() };
             }
         }
 
@@ -32,7 +32,7 @@ namespace SafetyReport.Handlers
             }
             catch (Exception ex)
             {
-                return new Respuesta { IdTipoMensaje = 3, Mensaje = ex.Message, Result = new List<DirectorioEjecutivoCreado>() };
+                return new Respuesta { IdTipoMensaje = 3, Mensaje = "Error interno del servidor.", Result = new List<DirectorioEjecutivoCreado>() };
             }
         }
 
@@ -44,7 +44,7 @@ namespace SafetyReport.Handlers
             }
             catch (Exception ex)
             {
-                return new Respuesta { IdTipoMensaje = 3, Mensaje = ex.Message, Result = new List<DirectorioEjecutivoConsulta>() };
+                return new Respuesta { IdTipoMensaje = 3, Mensaje = "Error interno del servidor.", Result = new List<DirectorioEjecutivoConsulta>() };
             }
         }
 
@@ -56,7 +56,7 @@ namespace SafetyReport.Handlers
             }
             catch (Exception ex)
             {
-                return new Respuesta { IdTipoMensaje = 3, Mensaje = ex.Message, Result = new DirectorioEjecutivoListaResult() };
+                return new Respuesta { IdTipoMensaje = 3, Mensaje = "Error interno del servidor.", Result = new DirectorioEjecutivoListaResult() };
             }
         }
 
@@ -68,7 +68,7 @@ namespace SafetyReport.Handlers
             }
             catch (Exception ex)
             {
-                return new Respuesta { IdTipoMensaje = 3, Mensaje = ex.Message, Result = new List<DirectorioEjecutivoEliminado>() };
+                return new Respuesta { IdTipoMensaje = 3, Mensaje = "Error interno del servidor.", Result = new List<DirectorioEjecutivoEliminado>() };
             }
         }
     }
