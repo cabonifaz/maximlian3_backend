@@ -470,7 +470,6 @@ namespace SafetyReport.Models
     {
         public int IdInformeArchivo { get; set; }
         public string? Nombre { get; set; }
-        public string? ArchivoUrl { get; set; }
         public string? Extension { get; set; }
         public long? TamanoBytes { get; set; }
         public int? IdTipoArchivo { get; set; }

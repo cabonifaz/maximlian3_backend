@@ -914,7 +914,7 @@ namespace SafetyReport.DAO
                 AgregarParametrosAuditoria(cmd, u);
                 cmd.Parameters.Add("@intIdInformeArchivo", SqlDbType.Int).Value = r.IdInformeArchivo;
                 cmd.Parameters.Add("@vchNombre",          SqlDbType.VarChar, 255).Value  = (object?)r.Nombre          ?? DBNull.Value;
-                cmd.Parameters.Add("@vchArchivoUrl",      SqlDbType.VarChar, 255).Value  = (object?)r.ArchivoUrl      ?? DBNull.Value;
+                cmd.Parameters.Add("@vchArchivoUrl",      SqlDbType.VarChar, 255).Value  = DBNull.Value;
                 cmd.Parameters.Add("@vchExtension",       SqlDbType.VarChar, 20).Value   = (object?)r.Extension       ?? DBNull.Value;
                 cmd.Parameters.Add("@intTamanoBytes",     SqlDbType.BigInt).Value         = (object?)r.TamanoBytes     ?? DBNull.Value;
                 cmd.Parameters.Add("@intIdTipoArchivo",   SqlDbType.Int).Value            = (object?)r.IdTipoArchivo   ?? DBNull.Value;
