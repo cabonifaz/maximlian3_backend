@@ -491,6 +491,16 @@ namespace SafetyReport.Models
         public string DownloadUrl { get; set; } = string.Empty;
     }
 
+    public class InformeArchivoResumen
+    {
+        public int IdInformeArchivo { get; set; }
+        public string Nombre { get; set; } = string.Empty;
+        public string Extension { get; set; } = string.Empty;
+        public long TamanoBytes { get; set; }
+        public int IdTipoArchivo { get; set; }
+        public int IdFaseEvidencia { get; set; }
+    }
+
     public class InformeArchivoUrlRequest
     {
         public int IdPedido { get; set; }
@@ -745,6 +755,7 @@ namespace SafetyReport.Models
         public List<InformeProveedorConsulta> Proveedores { get; set; } = new();
         public List<InformeDirectorioEjecutivoConsulta> DirectoriosEjecutivos { get; set; } = new();
         public List<InformeLocalConsulta> Locales { get; set; } = new();
+        public List<InformeArchivoResumen> Archivos { get; set; } = new();
     }
 
     public class InformeUrlPrefirmadaRequest
