@@ -941,12 +941,11 @@ namespace SafetyReport.DAO
             }
         }
 
-        public async Task<Respuesta> InsertarArchivoLoteAsync(UsuarioGeneral u, List<InformeArchivoItem> archivos)
+        public async Task<Respuesta> InsertarArchivoLoteAsync(UsuarioGeneral u, int idInforme, int idPedido, List<InformeArchivoItem> archivos)
         {
             try
             {
                 var t = new DataTable();
-                t.Columns.Add("IdInforme", typeof(int));
                 t.Columns.Add("Nombre", typeof(string));
                 t.Columns.Add("ArchivoUrl", typeof(string));
                 t.Columns.Add("Extension", typeof(string));
@@ -954,11 +953,13 @@ namespace SafetyReport.DAO
                 t.Columns.Add("IdTipoArchivo", typeof(int));
                 t.Columns.Add("IdFaseEvidencia", typeof(int));
                 foreach (var a in archivos)
-                    t.Rows.Add(a.IdInforme, a.Nombre, a.ArchivoUrl, a.Extension, a.TamanoBytes, a.IdTipoArchivo, a.IdFaseEvidencia);
+                    t.Rows.Add(a.Nombre, a.ArchivoUrl, a.Extension, a.TamanoBytes, a.IdTipoArchivo, a.IdFaseEvidencia);
 
                 using SqlConnection cn = new(_dbConfig.ConnectionString);
                 using SqlCommand cmd = new("InformeArchivo_InsertarLote", cn) { CommandType = CommandType.StoredProcedure };
                 AgregarParametrosAuditoria(cmd, u);
+                cmd.Parameters.Add("@intIdInforme", SqlDbType.Int).Value = idInforme;
+                cmd.Parameters.Add("@intIdPedido",  SqlDbType.Int).Value = idPedido;
                 AgregarTvp(cmd, "@lstArchivos", t, "LISTA_INFORME_ARCHIVO");
                 await cn.OpenAsync();
                 return await LeerRespuestaAsync<object>(cmd);

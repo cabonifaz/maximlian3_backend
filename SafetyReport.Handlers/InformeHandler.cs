@@ -220,7 +220,7 @@ namespace SafetyReport.Handlers
         {
             try
             {
-                return await _dao.InsertarArchivoLoteAsync(usuarioLogueado, request.Archivos);
+                return await _dao.InsertarArchivoLoteAsync(usuarioLogueado, request.IdInforme, request.IdPedido, request.Archivos);
             }
             catch (Exception ex)
             {

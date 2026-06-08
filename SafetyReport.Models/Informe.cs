@@ -452,7 +452,6 @@ namespace SafetyReport.Models
 
     public class InformeArchivoItem
     {
-        public int IdInforme { get; set; }
         public string Nombre { get; set; } = string.Empty;
         public string ArchivoUrl { get; set; } = string.Empty;
         public string Extension { get; set; } = string.Empty;
@@ -463,6 +462,8 @@ namespace SafetyReport.Models
 
     public class InformeArchivoInsertarRequest
     {
+        public int IdInforme { get; set; }
+        public int IdPedido { get; set; }
         public List<InformeArchivoItem> Archivos { get; set; } = new();
     }
 
