@@ -69,6 +69,13 @@ namespace SafetyReport.WebApi.Controllers
             return Ok(respuesta);
         }
 
+        [HttpPost("eliminarArchivo")]
+        public async Task<IActionResult> EliminarArchivo([FromBody] InformeArchivoIdRequest request)
+        {
+            var respuesta = await _informeHandler.EliminarArchivoAsync(UsuarioLogueado, request);
+            return Ok(respuesta);
+        }
+
         [HttpPost("actualizarArchivo")]
         public async Task<IActionResult> ActualizarArchivo([FromBody] InformeArchivoActualizarRequest request)
         {

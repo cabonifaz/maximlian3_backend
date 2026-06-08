@@ -185,6 +185,25 @@ namespace SafetyReport.Handlers
             }
         }
 
+        public async Task<Respuesta> EliminarArchivoAsync(UsuarioGeneral usuarioLogueado, InformeArchivoIdRequest request)
+        {
+            try
+            {
+                var obtener = await _dao.ObtenerArchivoAsync(usuarioLogueado, request.IdInformeArchivo);
+                if (obtener.IdTipoMensaje != 2)
+                    return obtener;
+
+                if (obtener.Result is List<InformeArchivoConsulta> archivos && archivos.Count > 0)
+                    await _s3.DeleteFileAsync(archivos[0].ArchivoUrl);
+
+                return await _dao.EliminarArchivoAsync(usuarioLogueado, request.IdInformeArchivo);
+            }
+            catch (Exception ex)
+            {
+                return new Respuesta { IdTipoMensaje = 3, Mensaje = ex.Message, Result = new List<object>() };
+            }
+        }
+
         public async Task<Respuesta> ActualizarArchivoAsync(UsuarioGeneral usuarioLogueado, InformeArchivoActualizarRequest request)
         {
             try
