@@ -953,7 +953,7 @@ namespace SafetyReport.DAO
                 t.Columns.Add("IdTipoArchivo", typeof(int));
                 t.Columns.Add("IdFaseEvidencia", typeof(int));
                 foreach (var a in archivos)
-                    t.Rows.Add(a.Nombre, a.ArchivoUrl, a.Extension, a.TamanoBytes, a.IdTipoArchivo, a.IdFaseEvidencia);
+                    t.Rows.Add(a.Nombre, a.ArchivoUrl, a.Extension, a.TamanoBytes, a.IdTipoArchivo, (object?)a.IdFaseEvidencia ?? DBNull.Value);
 
                 using SqlConnection cn = new(_dbConfig.ConnectionString);
                 using SqlCommand cmd = new("InformeArchivo_InsertarLote", cn) { CommandType = CommandType.StoredProcedure };
