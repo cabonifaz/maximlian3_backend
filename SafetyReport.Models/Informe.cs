@@ -537,8 +537,6 @@ namespace SafetyReport.Models
         public int IdInforme { get; set; }
         public int IdPedido { get; set; }
         public string? EstadoInforme { get; set; }
-        public string? FechaCreacion { get; set; }
-        public bool? FlgTieneInformacion { get; set; }
         public string? Investigado { get; set; }
         public string? Vigencia { get; set; }
         public string? TipoTramite { get; set; }
