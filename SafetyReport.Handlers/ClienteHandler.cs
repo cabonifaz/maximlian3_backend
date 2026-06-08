@@ -23,7 +23,7 @@ namespace SafetyReport.Handlers
                 return new Respuesta
                 {
                     IdTipoMensaje = 3,
-                    Mensaje = ex.Message,
+                    Mensaje = "Error interno del servidor.",
                     Result = new List<ClienteCreado>()
                 };
             }
@@ -40,7 +40,7 @@ namespace SafetyReport.Handlers
                 return new Respuesta
                 {
                     IdTipoMensaje = 3,
-                    Mensaje = ex.Message,
+                    Mensaje = "Error interno del servidor.",
                     Result = new List<ClienteCreado>()
                 };
             }
@@ -57,7 +57,7 @@ namespace SafetyReport.Handlers
                 return new Respuesta
                 {
                     IdTipoMensaje = 3,
-                    Mensaje = ex.Message,
+                    Mensaje = "Error interno del servidor.",
                     Result = new List<ClienteConsulta>()
                 };
             }
@@ -74,7 +74,7 @@ namespace SafetyReport.Handlers
                 return new Respuesta
                 {
                     IdTipoMensaje = 3,
-                    Mensaje = ex.Message,
+                    Mensaje = "Error interno del servidor.",
                     Result = new ClienteListaResult()
                 };
             }
@@ -91,7 +91,7 @@ namespace SafetyReport.Handlers
                 return new Respuesta
                 {
                     IdTipoMensaje = 3,
-                    Mensaje = ex.Message,
+                    Mensaje = "Error interno del servidor.",
                     Result = new List<ClienteEliminado>()
                 };
             }
@@ -108,7 +108,7 @@ namespace SafetyReport.Handlers
                 return new Respuesta
                 {
                     IdTipoMensaje = 3,
-                    Mensaje = ex.Message,
+                    Mensaje = "Error interno del servidor.",
                     Result = new List<ClienteListaCorta>()
                 };
             }

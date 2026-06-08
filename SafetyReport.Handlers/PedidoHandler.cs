@@ -86,7 +86,7 @@ namespace SafetyReport.Handlers
                 return new Respuesta
                 {
                     IdTipoMensaje = 3,
-                    Mensaje = ex.Message,
+                    Mensaje = "Error interno del servidor.",
                     Result = new List<PedidoCreadoConArchivos>()
                 };
             }
@@ -103,7 +103,7 @@ namespace SafetyReport.Handlers
                 return new Respuesta
                 {
                     IdTipoMensaje = 3,
-                    Mensaje = ex.Message,
+                    Mensaje = "Error interno del servidor.",
                     Result = new List<PedidoCreado>()
                 };
             }
@@ -120,7 +120,7 @@ namespace SafetyReport.Handlers
                 return new Respuesta
                 {
                     IdTipoMensaje = 3,
-                    Mensaje = ex.Message,
+                    Mensaje = "Error interno del servidor.",
                     Result = new List<PedidoConsulta>()
                 };
             }
@@ -137,7 +137,7 @@ namespace SafetyReport.Handlers
                 return new Respuesta
                 {
                     IdTipoMensaje = 3,
-                    Mensaje = ex.Message,
+                    Mensaje = "Error interno del servidor.",
                     Result = new PedidoListaResult()
                 };
             }
@@ -154,7 +154,7 @@ namespace SafetyReport.Handlers
                 return new Respuesta
                 {
                     IdTipoMensaje = 3,
-                    Mensaje = ex.Message,
+                    Mensaje = "Error interno del servidor.",
                     Result = new PedidoAsignacionListaResult()
                 };
             }
@@ -171,7 +171,7 @@ namespace SafetyReport.Handlers
                 return new Respuesta
                 {
                     IdTipoMensaje = 3,
-                    Mensaje = ex.Message,
+                    Mensaje = "Error interno del servidor.",
                     Result = new List<PedidoEliminado>()
                 };
             }
@@ -188,7 +188,7 @@ namespace SafetyReport.Handlers
                 return new Respuesta
                 {
                     IdTipoMensaje = 3,
-                    Mensaje = ex.Message,
+                    Mensaje = "Error interno del servidor.",
                     Result = new List<PedidoEliminado>()
                 };
             }

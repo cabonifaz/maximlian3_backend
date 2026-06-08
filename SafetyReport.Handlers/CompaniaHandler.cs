@@ -20,7 +20,7 @@ namespace SafetyReport.Handlers
             }
             catch (Exception ex)
             {
-                return new Respuesta { IdTipoMensaje = 3, Mensaje = ex.Message, Result = new List<CompaniaCreada>() };
+                return new Respuesta { IdTipoMensaje = 3, Mensaje = "Error interno del servidor.", Result = new List<CompaniaCreada>() };
             }
         }
 
@@ -32,7 +32,7 @@ namespace SafetyReport.Handlers
             }
             catch (Exception ex)
             {
-                return new Respuesta { IdTipoMensaje = 3, Mensaje = ex.Message, Result = new List<CompaniaCreada>() };
+                return new Respuesta { IdTipoMensaje = 3, Mensaje = "Error interno del servidor.", Result = new List<CompaniaCreada>() };
             }
         }
 
@@ -44,7 +44,7 @@ namespace SafetyReport.Handlers
             }
             catch (Exception ex)
             {
-                return new Respuesta { IdTipoMensaje = 3, Mensaje = ex.Message, Result = new List<CompaniaConsulta>() };
+                return new Respuesta { IdTipoMensaje = 3, Mensaje = "Error interno del servidor.", Result = new List<CompaniaConsulta>() };
             }
         }
 
@@ -56,7 +56,7 @@ namespace SafetyReport.Handlers
             }
             catch (Exception ex)
             {
-                return new Respuesta { IdTipoMensaje = 3, Mensaje = ex.Message, Result = new CompaniaListaResult() };
+                return new Respuesta { IdTipoMensaje = 3, Mensaje = "Error interno del servidor.", Result = new CompaniaListaResult() };
             }
         }
 
@@ -68,7 +68,7 @@ namespace SafetyReport.Handlers
             }
             catch (Exception ex)
             {
-                return new Respuesta { IdTipoMensaje = 3, Mensaje = ex.Message, Result = new List<CompaniaMatchResultItem>() };
+                return new Respuesta { IdTipoMensaje = 3, Mensaje = "Error interno del servidor.", Result = new List<CompaniaMatchResultItem>() };
             }
         }
 
@@ -80,7 +80,7 @@ namespace SafetyReport.Handlers
             }
             catch (Exception ex)
             {
-                return new Respuesta { IdTipoMensaje = 3, Mensaje = ex.Message, Result = new List<CompaniaEliminada>() };
+                return new Respuesta { IdTipoMensaje = 3, Mensaje = "Error interno del servidor.", Result = new List<CompaniaEliminada>() };
             }
         }
     }

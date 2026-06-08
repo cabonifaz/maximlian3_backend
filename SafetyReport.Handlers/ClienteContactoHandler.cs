@@ -23,7 +23,7 @@ namespace SafetyReport.Handlers
                 return new Respuesta
                 {
                     IdTipoMensaje = 3,
-                    Mensaje = ex.Message,
+                    Mensaje = "Error interno del servidor.",
                     Result = new List<ClienteContactoCreado>()
                 };
             }
@@ -40,7 +40,7 @@ namespace SafetyReport.Handlers
                 return new Respuesta
                 {
                     IdTipoMensaje = 3,
-                    Mensaje = ex.Message,
+                    Mensaje = "Error interno del servidor.",
                     Result = new ClienteContactoListaResult()
                 };
             }
@@ -57,7 +57,7 @@ namespace SafetyReport.Handlers
                 return new Respuesta
                 {
                     IdTipoMensaje = 3,
-                    Mensaje = ex.Message,
+                    Mensaje = "Error interno del servidor.",
                     Result = new List<ClienteContactoSeleccionado>()
                 };
             }
@@ -74,7 +74,7 @@ namespace SafetyReport.Handlers
                 return new Respuesta
                 {
                     IdTipoMensaje = 3,
-                    Mensaje = ex.Message,
+                    Mensaje = "Error interno del servidor.",
                     Result = new List<ClienteContactoCreado>()
                 };
             }
@@ -91,7 +91,7 @@ namespace SafetyReport.Handlers
                 return new Respuesta
                 {
                     IdTipoMensaje = 3,
-                    Mensaje = ex.Message,
+                    Mensaje = "Error interno del servidor.",
                     Result = new List<ClienteContactoEliminado>()
                 };
             }

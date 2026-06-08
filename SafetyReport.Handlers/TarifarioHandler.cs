@@ -23,7 +23,7 @@ namespace SafetyReport.Handlers
                 return new Respuesta
                 {
                     IdTipoMensaje = 3,
-                    Mensaje = ex.Message,
+                    Mensaje = "Error interno del servidor.",
                     Result = new List<TarifarioCreado>()
                 };
             }
@@ -40,7 +40,7 @@ namespace SafetyReport.Handlers
                 return new Respuesta
                 {
                     IdTipoMensaje = 3,
-                    Mensaje = ex.Message,
+                    Mensaje = "Error interno del servidor.",
                     Result = new TarifarioListaResult()
                 };
             }
@@ -57,7 +57,7 @@ namespace SafetyReport.Handlers
                 return new Respuesta
                 {
                     IdTipoMensaje = 3,
-                    Mensaje = ex.Message,
+                    Mensaje = "Error interno del servidor.",
                     Result = new List<TarifarioConsulta>()
                 };
             }
@@ -74,7 +74,7 @@ namespace SafetyReport.Handlers
                 return new Respuesta
                 {
                     IdTipoMensaje = 3,
-                    Mensaje = ex.Message,
+                    Mensaje = "Error interno del servidor.",
                     Result = new List<TarifarioCreado>()
                 };
             }
@@ -91,7 +91,7 @@ namespace SafetyReport.Handlers
                 return new Respuesta
                 {
                     IdTipoMensaje = 3,
-                    Mensaje = ex.Message,
+                    Mensaje = "Error interno del servidor.",
                     Result = new List<TarifarioEliminado>()
                 };
             }
@@ -107,7 +107,7 @@ namespace SafetyReport.Handlers
                 return new Respuesta
                 {
                     IdTipoMensaje = 3,
-                    Mensaje = ex.Message,
+                    Mensaje = "Error interno del servidor.",
                     Result = new TarifarioListaCortaResult()
                 };
             }
