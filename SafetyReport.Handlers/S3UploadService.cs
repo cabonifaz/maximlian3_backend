@@ -55,8 +55,7 @@ public class S3UploadService : IS3UploadService
             BucketName = _bucketName,
             Key = rutaArchivo,
             Verb = HttpVerb.PUT,
-            Expires = DateTime.UtcNow.AddMinutes(_s3ExpirationMinutes),
-            ContentType = formatoArchivo
+            Expires = DateTime.UtcNow.AddMinutes(_s3ExpirationMinutes)
         };
 
         return _s3Client.GetPreSignedURL(request);
@@ -67,11 +66,10 @@ public class S3UploadService : IS3UploadService
         var expiry = DateTime.UtcNow.AddMinutes(_s3ExpirationMinutes);
         return sufijos.Select(sufijo => _s3Client.GetPreSignedURL(new GetPreSignedUrlRequest
         {
-            BucketName  = _bucketName,
-            Key         = sufijo,
-            Verb        = HttpVerb.PUT,
-            Expires     = expiry,
-            ContentType = formatoArchivo
+            BucketName = _bucketName,
+            Key        = sufijo,
+            Verb       = HttpVerb.PUT,
+            Expires    = expiry
         })).ToList();
     }
 

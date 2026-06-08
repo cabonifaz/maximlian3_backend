@@ -55,6 +55,41 @@ namespace SafetyReport.WebApi.Controllers
             return Ok(respuesta);
         }
 
+        [HttpPost("generarUrlsArchivo")]
+        public IActionResult GenerarUrlsArchivo([FromBody] InformeArchivoUrlRequest request)
+        {
+            var respuesta = _informeHandler.GenerarUrlsArchivoAsync(request);
+            return Ok(respuesta);
+        }
+
+        [HttpPost("obtenerArchivo")]
+        public async Task<IActionResult> ObtenerArchivo([FromBody] InformeArchivoIdRequest request)
+        {
+            var respuesta = await _informeHandler.ObtenerArchivoAsync(UsuarioLogueado, request);
+            return Ok(respuesta);
+        }
+
+        [HttpPost("eliminarArchivo")]
+        public async Task<IActionResult> EliminarArchivo([FromBody] InformeArchivoIdRequest request)
+        {
+            var respuesta = await _informeHandler.EliminarArchivoAsync(UsuarioLogueado, request);
+            return Ok(respuesta);
+        }
+
+        [HttpPost("actualizarArchivo")]
+        public async Task<IActionResult> ActualizarArchivo([FromBody] InformeArchivoActualizarRequest request)
+        {
+            var respuesta = await _informeHandler.ActualizarArchivoAsync(UsuarioLogueado, request);
+            return Ok(respuesta);
+        }
+
+        [HttpPost("insertarArchivoLote")]
+        public async Task<IActionResult> InsertarArchivoLote([FromBody] InformeArchivoInsertarRequest request)
+        {
+            var respuesta = await _informeHandler.InsertarArchivoLoteAsync(UsuarioLogueado, request);
+            return Ok(respuesta);
+        }
+
         [HttpPost("eliminar")]
         public async Task<IActionResult> Eliminar([FromBody] InformeIdRequest request)
         {
