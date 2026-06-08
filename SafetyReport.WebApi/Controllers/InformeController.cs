@@ -41,6 +41,20 @@ namespace SafetyReport.WebApi.Controllers
             return Ok(respuesta);
         }
 
+        [HttpPost("obtenerUrlsImagenes")]
+        public async Task<IActionResult> ObtenerUrlsImagenes([FromBody] InformeLocalImagenEstadoCargaRequest request)
+        {
+            var respuesta = await _informeHandler.ObtenerUrlsImagenesAsync(UsuarioLogueado, request);
+            return Ok(respuesta);
+        }
+
+        [HttpPost("actualizarEstadoCargaImagenes")]
+        public async Task<IActionResult> ActualizarEstadoCargaImagenes([FromBody] InformeLocalImagenEstadoCargaRequest request)
+        {
+            var respuesta = await _informeHandler.ActualizarEstadoCargaAsync(UsuarioLogueado, request);
+            return Ok(respuesta);
+        }
+
         [HttpPost("eliminar")]
         public async Task<IActionResult> Eliminar([FromBody] InformeIdRequest request)
         {
