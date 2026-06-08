@@ -888,6 +888,74 @@ namespace SafetyReport.DAO
             }
         }
 
+        public async Task<Respuesta> ObtenerArchivoAsync(UsuarioGeneral u, int idInformeArchivo)
+        {
+            try
+            {
+                using SqlConnection cn = new(_dbConfig.ConnectionString);
+                using SqlCommand cmd = new("InformeArchivo_Obtener", cn) { CommandType = CommandType.StoredProcedure };
+                AgregarParametrosAuditoria(cmd, u);
+                cmd.Parameters.Add("@intIdInformeArchivo", SqlDbType.Int).Value = idInformeArchivo;
+                await cn.OpenAsync();
+                return await LeerRespuestaAsync<InformeArchivoConsulta>(cmd);
+            }
+            catch (Exception ex)
+            {
+                return new Respuesta { IdTipoMensaje = 3, Mensaje = ex.Message, Result = new List<InformeArchivoConsulta>() };
+            }
+        }
+
+        public async Task<Respuesta> ActualizarArchivoAsync(UsuarioGeneral u, InformeArchivoActualizarRequest r)
+        {
+            try
+            {
+                using SqlConnection cn = new(_dbConfig.ConnectionString);
+                using SqlCommand cmd = new("InformeArchivo_Actualizar", cn) { CommandType = CommandType.StoredProcedure };
+                AgregarParametrosAuditoria(cmd, u);
+                cmd.Parameters.Add("@intIdInformeArchivo", SqlDbType.Int).Value = r.IdInformeArchivo;
+                cmd.Parameters.Add("@vchNombre",          SqlDbType.VarChar, 255).Value  = (object?)r.Nombre          ?? DBNull.Value;
+                cmd.Parameters.Add("@vchArchivoUrl",      SqlDbType.VarChar, 255).Value  = (object?)r.ArchivoUrl      ?? DBNull.Value;
+                cmd.Parameters.Add("@vchExtension",       SqlDbType.VarChar, 20).Value   = (object?)r.Extension       ?? DBNull.Value;
+                cmd.Parameters.Add("@intTamanoBytes",     SqlDbType.BigInt).Value         = (object?)r.TamanoBytes     ?? DBNull.Value;
+                cmd.Parameters.Add("@intIdTipoArchivo",   SqlDbType.Int).Value            = (object?)r.IdTipoArchivo   ?? DBNull.Value;
+                cmd.Parameters.Add("@intIdFaseEvidencia", SqlDbType.Int).Value            = (object?)r.IdFaseEvidencia ?? DBNull.Value;
+                await cn.OpenAsync();
+                return await LeerRespuestaAsync<object>(cmd);
+            }
+            catch (Exception ex)
+            {
+                return new Respuesta { IdTipoMensaje = 3, Mensaje = ex.Message, Result = new List<object>() };
+            }
+        }
+
+        public async Task<Respuesta> InsertarArchivoLoteAsync(UsuarioGeneral u, List<InformeArchivoItem> archivos)
+        {
+            try
+            {
+                var t = new DataTable();
+                t.Columns.Add("IdInforme", typeof(int));
+                t.Columns.Add("Nombre", typeof(string));
+                t.Columns.Add("ArchivoUrl", typeof(string));
+                t.Columns.Add("Extension", typeof(string));
+                t.Columns.Add("TamanoBytes", typeof(long));
+                t.Columns.Add("IdTipoArchivo", typeof(int));
+                t.Columns.Add("IdFaseEvidencia", typeof(int));
+                foreach (var a in archivos)
+                    t.Rows.Add(a.IdInforme, a.Nombre, a.ArchivoUrl, a.Extension, a.TamanoBytes, a.IdTipoArchivo, a.IdFaseEvidencia);
+
+                using SqlConnection cn = new(_dbConfig.ConnectionString);
+                using SqlCommand cmd = new("InformeArchivo_InsertarLote", cn) { CommandType = CommandType.StoredProcedure };
+                AgregarParametrosAuditoria(cmd, u);
+                AgregarTvp(cmd, "@lstArchivos", t, "LISTA_INFORME_ARCHIVO");
+                await cn.OpenAsync();
+                return await LeerRespuestaAsync<object>(cmd);
+            }
+            catch (Exception ex)
+            {
+                return new Respuesta { IdTipoMensaje = 3, Mensaje = ex.Message, Result = new List<object>() };
+            }
+        }
+
         public async Task<Respuesta> ObtenerAsync(UsuarioGeneral u, int idPedido)
         {
             try

@@ -126,6 +126,89 @@ namespace SafetyReport.Handlers
             }
         }
 
+        private static readonly Dictionary<string, string> _mimeTypes = new(StringComparer.OrdinalIgnoreCase)
+        {
+            { ".jpg", "image/jpeg" }, { ".jpeg", "image/jpeg" }, { ".png", "image/png" },
+            { ".gif", "image/gif" }, { ".webp", "image/webp" }, { ".bmp", "image/bmp" }, { ".tiff", "image/tiff" },
+            { ".pdf", "application/pdf" }, { ".doc", "application/msword" },
+            { ".docx", "application/vnd.openxmlformats-officedocument.wordprocessingml.document" },
+            { ".xls", "application/vnd.ms-excel" },
+            { ".xlsx", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" },
+            { ".ppt", "application/vnd.ms-powerpoint" },
+            { ".pptx", "application/vnd.openxmlformats-officedocument.presentationml.presentation" },
+            { ".zip", "application/zip" }, { ".txt", "text/plain" }
+        };
+
+        public Respuesta GenerarUrlsArchivoAsync(InformeArchivoUrlRequest request)
+        {
+            try
+            {
+                var pendientes = new List<InformeArchivoPendiente>();
+                foreach (var nombre in request.Nombres)
+                {
+                    var ext = Path.GetExtension(nombre);
+                    var nombreSinExt = Path.GetFileNameWithoutExtension(nombre);
+                    var s3Key = $"informes/pedido-{request.IdPedido}/adjunto/{nombreSinExt}-{DateTimeOffset.UtcNow.ToUnixTimeMilliseconds()}{ext}";
+                    var mime = _mimeTypes.GetValueOrDefault(ext, "application/octet-stream");
+                    pendientes.Add(new InformeArchivoPendiente
+                    {
+                        Nombre = nombre,
+                        ArchivoUrl = s3Key,
+                        UploadUrl = _s3.GenerarUploadUrl(s3Key, mime)
+                    });
+                }
+
+                return new Respuesta { IdTipoMensaje = 2, Mensaje = "URLs generadas correctamente.", Result = pendientes };
+            }
+            catch (Exception ex)
+            {
+                return new Respuesta { IdTipoMensaje = 3, Mensaje = ex.Message, Result = new List<InformeArchivoPendiente>() };
+            }
+        }
+
+        public async Task<Respuesta> ObtenerArchivoAsync(UsuarioGeneral usuarioLogueado, InformeArchivoIdRequest request)
+        {
+            try
+            {
+                var respuesta = await _dao.ObtenerArchivoAsync(usuarioLogueado, request.IdInformeArchivo);
+                if (respuesta.IdTipoMensaje == 2 && respuesta.Result is List<InformeArchivoConsulta> archivos && archivos.Count > 0)
+                {
+                    var archivo = archivos[0];
+                    archivo.DownloadUrl = _s3.GenerarDownloadUrl(archivo.ArchivoUrl);
+                    archivo.ArchivoUrl = string.Empty;
+                }
+                return respuesta;
+            }
+            catch (Exception ex)
+            {
+                return new Respuesta { IdTipoMensaje = 3, Mensaje = ex.Message, Result = new List<InformeArchivoConsulta>() };
+            }
+        }
+
+        public async Task<Respuesta> ActualizarArchivoAsync(UsuarioGeneral usuarioLogueado, InformeArchivoActualizarRequest request)
+        {
+            try
+            {
+                return await _dao.ActualizarArchivoAsync(usuarioLogueado, request);
+            }
+            catch (Exception ex)
+            {
+                return new Respuesta { IdTipoMensaje = 3, Mensaje = ex.Message, Result = new List<object>() };
+            }
+        }
+
+        public async Task<Respuesta> InsertarArchivoLoteAsync(UsuarioGeneral usuarioLogueado, InformeArchivoInsertarRequest request)
+        {
+            try
+            {
+                return await _dao.InsertarArchivoLoteAsync(usuarioLogueado, request.Archivos);
+            }
+            catch (Exception ex)
+            {
+                return new Respuesta { IdTipoMensaje = 3, Mensaje = ex.Message, Result = new List<object>() };
+            }
+        }
+
         public async Task<Respuesta> ActualizarEstadoCargaAsync(UsuarioGeneral usuarioLogueado, InformeLocalImagenEstadoCargaRequest request)
         {
             try
