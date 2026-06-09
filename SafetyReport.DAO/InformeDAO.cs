@@ -771,6 +771,16 @@ namespace SafetyReport.DAO
             cmd.Parameters.Add("@vchComprasNacionalesText", SqlDbType.VarChar, 255).Value = (object?)r.ComprasNacionalesText ?? DBNull.Value;
             cmd.Parameters.Add("@decComprasInternacionales", SqlDbType.Decimal).Value = (object?)r.ComprasInternacionales ?? DBNull.Value;
             cmd.Parameters.Add("@vchComprasInternacionalesText", SqlDbType.VarChar, 255).Value = (object?)r.ComprasInternacionalesText ?? DBNull.Value;
+            cmd.Parameters.Add("@decComprasContadoNacionales", SqlDbType.Decimal).Value = (object?)r.ComprasContadoNacionales ?? DBNull.Value;
+            cmd.Parameters.Add("@vchComprasContadoNacionalesText", SqlDbType.VarChar, 50).Value = (object?)r.ComprasContadoNacionalesText ?? DBNull.Value;
+            cmd.Parameters.Add("@decComprasCreditoNacionales", SqlDbType.Decimal).Value = (object?)r.ComprasCreditoNacionales ?? DBNull.Value;
+            cmd.Parameters.Add("@vchComprasCreditoNacionalesText", SqlDbType.VarChar, 50).Value = (object?)r.ComprasCreditoNacionalesText ?? DBNull.Value;
+            cmd.Parameters.Add("@intIdComprasCreditoNacionalesTiempo", SqlDbType.Int).Value = (object?)r.IdComprasCreditoNacionalesTiempo ?? DBNull.Value;
+            cmd.Parameters.Add("@decComprasContadoInternacionales", SqlDbType.Decimal).Value = (object?)r.ComprasContadoInternacionales ?? DBNull.Value;
+            cmd.Parameters.Add("@vchComprasContadoInternacionalesText", SqlDbType.VarChar, 50).Value = (object?)r.ComprasContadoInternacionalesText ?? DBNull.Value;
+            cmd.Parameters.Add("@decComprasCreditoInternacionales", SqlDbType.Decimal).Value = (object?)r.ComprasCreditoInternacionales ?? DBNull.Value;
+            cmd.Parameters.Add("@vchComprasCreditoInternacionalesText", SqlDbType.VarChar, 50).Value = (object?)r.ComprasCreditoInternacionalesText ?? DBNull.Value;
+            cmd.Parameters.Add("@intIdComprasCreditoInternacionalesTiempo", SqlDbType.Int).Value = (object?)r.IdComprasCreditoInternacionalesTiempo ?? DBNull.Value;
             cmd.Parameters.Add("@intNumeroEmpleados", SqlDbType.Int).Value = (object?)r.NumeroEmpleados ?? DBNull.Value;
             cmd.Parameters.Add("@vchNumeroEmpleadosText", SqlDbType.VarChar, 50).Value = (object?)r.NumeroEmpleadosText ?? DBNull.Value;
             cmd.Parameters.Add("@vchComentariosOperaciones", SqlDbType.VarChar, -1).Value = (object?)r.ComentariosOperaciones ?? DBNull.Value;
