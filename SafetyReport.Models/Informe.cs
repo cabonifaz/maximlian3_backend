@@ -374,6 +374,16 @@ namespace SafetyReport.Models
         public string? ComprasNacionalesText { get; set; }
         public decimal? ComprasInternacionales { get; set; }
         public string? ComprasInternacionalesText { get; set; }
+        public decimal? ComprasContadoNacionales { get; set; }
+        public string? ComprasContadoNacionalesText { get; set; }
+        public decimal? ComprasCreditoNacionales { get; set; }
+        public string? ComprasCreditoNacionalesText { get; set; }
+        public int? IdComprasCreditoNacionalesTiempo { get; set; }
+        public decimal? ComprasContadoInternacionales { get; set; }
+        public string? ComprasContadoInternacionalesText { get; set; }
+        public decimal? ComprasCreditoInternacionales { get; set; }
+        public string? ComprasCreditoInternacionalesText { get; set; }
+        public int? IdComprasCreditoInternacionalesTiempo { get; set; }
         public int? NumeroEmpleados { get; set; }
         public string? NumeroEmpleadosText { get; set; }
         public string? ComentariosOperaciones { get; set; }
@@ -726,6 +736,16 @@ namespace SafetyReport.Models
         public string? ComprasNacionalesText { get; set; }
         public decimal? ComprasInternacionales { get; set; }
         public string? ComprasInternacionalesText { get; set; }
+        public decimal? ComprasContadoNacionales { get; set; }
+        public string? ComprasContadoNacionalesText { get; set; }
+        public decimal? ComprasCreditoNacionales { get; set; }
+        public string? ComprasCreditoNacionalesText { get; set; }
+        public int? IdComprasCreditoNacionalesTiempo { get; set; }
+        public decimal? ComprasContadoInternacionales { get; set; }
+        public string? ComprasContadoInternacionalesText { get; set; }
+        public decimal? ComprasCreditoInternacionales { get; set; }
+        public string? ComprasCreditoInternacionalesText { get; set; }
+        public int? IdComprasCreditoInternacionalesTiempo { get; set; }
         public int? NumeroEmpleados { get; set; }
         public string? NumeroEmpleadosText { get; set; }
         public string? ComentariosOperaciones { get; set; }
