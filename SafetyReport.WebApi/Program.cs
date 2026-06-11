@@ -5,11 +5,13 @@ using Microsoft.OpenApi;
 using SafetyReport.DAO;
 using SafetyReport.Handlers;
 using SafetyReport.Models;
+using SafetyReport.WebApi.Filters;
 using SafetyReport.WebApi.Helpers;
 
 var builder = WebApplication.CreateBuilder(args);
 
-builder.Services.AddControllers();
+builder.Services.AddControllers(options =>
+    options.Filters.Add<SanitizeErrorFilter>());
 builder.Services.AddRequestTimeouts();
 builder.Services.AddEndpointsApiExplorer();
 
