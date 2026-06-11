@@ -624,6 +624,57 @@ namespace SafetyReport.Models
         public decimal TotalPasivoPatrimonio { get; set; }
     }
 
+    public class InformeBalanceTurquiaCalcularRequest
+    {
+        public decimal? Efectivo { get; set; }
+        public decimal? Existencias { get; set; }
+        public decimal? Deudores { get; set; }
+        public decimal? BienesTongibles { get; set; }
+        public decimal? ActivosIntangibles { get; set; }
+        public decimal? Prestamos { get; set; }
+        public decimal? Acreedores { get; set; }
+        public decimal? PasivosNoCorrientes { get; set; }
+        public decimal? PasivosLargoPlazo { get; set; }
+        public decimal? Patrimonio { get; set; }
+        public decimal? VentasNetas { get; set; }
+        public decimal? CostoVentas { get; set; }
+        public decimal? OtrosGastosOperativos { get; set; }
+        public decimal? CostoEmpleados { get; set; }
+        public decimal? Depreciacion { get; set; }
+        public decimal? IngresosFinancieros { get; set; }
+        public decimal? GastosFinancieros { get; set; }
+        public decimal? IngresosExtraordinarios { get; set; }
+        public decimal? GastosExtraordinarios { get; set; }
+        public decimal? Impuestos { get; set; }
+        public decimal? CostoMateriales { get; set; }
+        public decimal? InteresesPagados { get; set; }
+        public decimal? Capital { get; set; }
+        public decimal? Ebit { get; set; }
+        public decimal? Ebitda { get; set; }
+        public decimal? Ganancia { get; set; }
+    }
+
+    public class InformeBalanceTurquiaCalculado
+    {
+        public decimal? TotalCorriente { get; set; }
+        public decimal? ActivoFijoNeto { get; set; }
+        public decimal? TotalActivos { get; set; }
+        public decimal? PasivosCorrientes { get; set; }
+        public decimal? TotalPasivosNoCorrientes { get; set; }
+        public decimal? TotalPasivos { get; set; }
+        public decimal? TotalPatrimonio { get; set; }
+        public decimal? TotalPasivosPatrimonio { get; set; }
+        public decimal? GananciaBruta { get; set; }
+        public decimal? PlFinanciero { get; set; }
+        public decimal? PlExtraordinario { get; set; }
+        public decimal? GananciaAntesImpuestos { get; set; }
+        public decimal? GananciaNeta { get; set; }
+        public decimal? IndiceLiquidez { get; set; }
+        public decimal? CapitalTrabajo { get; set; }
+        public decimal? RatioEndeudamiento { get; set; }
+        public decimal? RatioRentabilidad { get; set; }
+    }
+
     public class InformeLocalImagenEstadoCargaRequest
     {
         public List<int> Ids { get; set; } = new();

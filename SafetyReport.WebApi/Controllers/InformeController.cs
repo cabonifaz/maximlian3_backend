@@ -104,6 +104,13 @@ namespace SafetyReport.WebApi.Controllers
             return Ok(respuesta);
         }
 
+        [HttpPost("calcularBalanceTurquia")]
+        public async Task<IActionResult> CalcularBalanceTurquia([FromBody] InformeBalanceTurquiaCalcularRequest request)
+        {
+            var respuesta = await _informeHandler.CalcularBalanceTurquiaAsync(UsuarioLogueado, request);
+            return Ok(respuesta);
+        }
+
         [HttpPost("calcularBalanceDesagregado")]
         public async Task<IActionResult> CalcularBalanceDesagregado([FromBody] InformeBalanceDesagregadoCalcularRequest request)
         {
