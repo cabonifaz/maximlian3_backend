@@ -73,7 +73,7 @@ namespace SafetyReport.Handlers
                     Result = archivosPresignados
                 };
             }
-            catch (Exception ex)
+            catch (Exception)
             {
                 return new Respuesta
                 {
@@ -147,7 +147,7 @@ namespace SafetyReport.Handlers
 
                 return daoRespuesta;
             }
-            catch (Exception ex)
+            catch (Exception)
             {
                 return new Respuesta
                 {
@@ -175,7 +175,7 @@ namespace SafetyReport.Handlers
 
                 return daoRespuesta;
             }
-            catch (Exception ex)
+            catch (Exception)
             {
                 return new Respuesta
                 {
@@ -192,7 +192,7 @@ namespace SafetyReport.Handlers
             {
                 return await _dao.ListarAsync(usuarioLogueado, request);
             }
-            catch (Exception ex)
+            catch (Exception)
             {
                 return new Respuesta
                 {
@@ -230,7 +230,7 @@ namespace SafetyReport.Handlers
 
                 return daoRespuesta;
             }
-            catch (Exception ex)
+            catch (Exception)
             {
                 return new Respuesta
                 {
