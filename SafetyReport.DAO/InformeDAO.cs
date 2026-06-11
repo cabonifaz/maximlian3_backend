@@ -632,6 +632,12 @@ namespace SafetyReport.DAO
             return t;
         }
 
+        // ── Decimal rounding helpers (match SQL TVP column precision) ────────────
+
+        private static object D2(decimal? v) => v.HasValue ? (object)Math.Round(v.Value, 2, MidpointRounding.AwayFromZero) : DBNull.Value;
+        private static object D4(decimal? v) => v.HasValue ? (object)Math.Round(v.Value, 4, MidpointRounding.AwayFromZero) : DBNull.Value;
+        private static object D6(decimal? v) => v.HasValue ? (object)Math.Round(v.Value, 6, MidpointRounding.AwayFromZero) : DBNull.Value;
+
         // ── Reader helper ─────────────────────────────────────────────────────────
 
         private static async Task<Respuesta> LeerRespuestaAsync<T>(SqlCommand cmd)
@@ -1050,6 +1056,79 @@ namespace SafetyReport.DAO
             catch (Exception ex)
             {
                 return new Respuesta { IdTipoMensaje = 3, Mensaje = ex.Message, Result = new InformeListaResult() };
+            }
+        }
+
+        public async Task<Respuesta> CalcularBalanceDesagregadoAsync(UsuarioGeneral u, InformeBalanceDesagregadoCalcularRequest r)
+        {
+            try
+            {
+                using SqlConnection cn = new(_dbConfig.ConnectionString);
+                using SqlCommand cmd = new("Informe_Balance_Desagregado_Calcular", cn) { CommandType = CommandType.StoredProcedure };
+                cmd.Parameters.Add("@intIdUsuario",                              SqlDbType.Int).Value     = u.IdUsuario;
+                cmd.Parameters.Add("@vchUsuario",                                SqlDbType.VarChar, 32).Value = u.Usuario;
+                cmd.Parameters.Add("@intIdEmpresa",                              SqlDbType.Int).Value     = u.IdEmpresa;
+                cmd.Parameters.Add("@intIdRol",                                  SqlDbType.Int).Value     = u.IdRol;
+                cmd.Parameters.Add("@decEfectivoEquivalente",                    SqlDbType.Decimal).Value = D2(r.EfectivoEquivalente);
+                cmd.Parameters.Add("@decOtrosActivosFinancierosCorriente",       SqlDbType.Decimal).Value = D2(r.OtrosActivosFinancierosCorriente);
+                cmd.Parameters.Add("@decCuentasCobrarCorriente",                 SqlDbType.Decimal).Value = D2(r.CuentasCobrarCorriente);
+                cmd.Parameters.Add("@decInventariosCorriente",                   SqlDbType.Decimal).Value = D2(r.InventariosCorriente);
+                cmd.Parameters.Add("@decActivosBiologicosCorriente",             SqlDbType.Decimal).Value = D2(r.ActivosBiologicosCorriente);
+                cmd.Parameters.Add("@decActivosImpuestosGanancias",              SqlDbType.Decimal).Value = D2(r.ActivosImpuestosGanancias);
+                cmd.Parameters.Add("@decOtrosActivosNoFinancierosCorriente",     SqlDbType.Decimal).Value = D2(r.OtrosActivosNoFinancierosCorriente);
+                cmd.Parameters.Add("@decOtrosActivosFinancierosNoCorriente",     SqlDbType.Decimal).Value = D2(r.OtrosActivosFinancierosNoCorriente);
+                cmd.Parameters.Add("@decInversionesSubsidiarias",                SqlDbType.Decimal).Value = D2(r.InversionesSubsidiarias);
+                cmd.Parameters.Add("@decCuentasCobrarNoCorriente",               SqlDbType.Decimal).Value = D2(r.CuentasCobrarNoCorriente);
+                cmd.Parameters.Add("@decInventariosNoCorriente",                 SqlDbType.Decimal).Value = D2(r.InventariosNoCorriente);
+                cmd.Parameters.Add("@decActivosBiologicosNoCorriente",           SqlDbType.Decimal).Value = D2(r.ActivosBiologicosNoCorriente);
+                cmd.Parameters.Add("@decPropiedadesInversion",                   SqlDbType.Decimal).Value = D2(r.PropiedadesInversion);
+                cmd.Parameters.Add("@decPropiedadesPlantaEquipo",                SqlDbType.Decimal).Value = D2(r.PropiedadesPlantaEquipo);
+                cmd.Parameters.Add("@decIntangibles",                            SqlDbType.Decimal).Value = D2(r.Intangibles);
+                cmd.Parameters.Add("@decActivosImpuestosDiferidos",              SqlDbType.Decimal).Value = D2(r.ActivosImpuestosDiferidos);
+                cmd.Parameters.Add("@decActivosImpuestosCorrientes",             SqlDbType.Decimal).Value = D2(r.ActivosImpuestosCorrientes);
+                cmd.Parameters.Add("@decPlusvalia",                              SqlDbType.Decimal).Value = D2(r.Plusvalia);
+                cmd.Parameters.Add("@decOtrosActivosNoFinancierosNoCorriente",   SqlDbType.Decimal).Value = D2(r.OtrosActivosNoFinancierosNoCorriente);
+                cmd.Parameters.Add("@decOtrosPasivosFinancierosCorriente",       SqlDbType.Decimal).Value = D2(r.OtrosPasivosFinancierosCorriente);
+                cmd.Parameters.Add("@decCuentasPagarCorriente",                  SqlDbType.Decimal).Value = D2(r.CuentasPagarCorriente);
+                cmd.Parameters.Add("@decBeneficiosEmpleadosCorriente",           SqlDbType.Decimal).Value = D2(r.BeneficiosEmpleadosCorriente);
+                cmd.Parameters.Add("@decOtrasProvisionesCorriente",              SqlDbType.Decimal).Value = D2(r.OtrasProvisionesCorriente);
+                cmd.Parameters.Add("@decImpuestosGananciasCorriente",            SqlDbType.Decimal).Value = D2(r.ImpuestosGananciasCorriente);
+                cmd.Parameters.Add("@decOtrosPasivosNoFinancierosCorriente",     SqlDbType.Decimal).Value = D2(r.OtrosPasivosNoFinancierosCorriente);
+                cmd.Parameters.Add("@decOtrosPasivosFinancierosNoCorriente",     SqlDbType.Decimal).Value = D2(r.OtrosPasivosFinancierosNoCorriente);
+                cmd.Parameters.Add("@decCuentasPagarNoCorriente",                SqlDbType.Decimal).Value = D2(r.CuentasPagarNoCorriente);
+                cmd.Parameters.Add("@decBeneficiosEmpleadosNoCorriente",         SqlDbType.Decimal).Value = D2(r.BeneficiosEmpleadosNoCorriente);
+                cmd.Parameters.Add("@decOtrasProvisionesNoCorriente",            SqlDbType.Decimal).Value = D2(r.OtrasProvisionesNoCorriente);
+                cmd.Parameters.Add("@decImpuestosDiferidosNoCorriente",          SqlDbType.Decimal).Value = D2(r.ImpuestosDiferidosNoCorriente);
+                cmd.Parameters.Add("@decImpuestosCorrientesNoCorriente",         SqlDbType.Decimal).Value = D2(r.ImpuestosCorrientesNoCorriente);
+                cmd.Parameters.Add("@decOtrosPasivosNoFinancierosNoCorriente",   SqlDbType.Decimal).Value = D2(r.OtrosPasivosNoFinancierosNoCorriente);
+                cmd.Parameters.Add("@decCapitalEmitido",                         SqlDbType.Decimal).Value = D2(r.CapitalEmitido);
+                cmd.Parameters.Add("@decPrimasEmision",                          SqlDbType.Decimal).Value = D2(r.PrimasEmision);
+                cmd.Parameters.Add("@decAccionesInversion",                      SqlDbType.Decimal).Value = D2(r.AccionesInversion);
+                cmd.Parameters.Add("@decAccionesCartera",                        SqlDbType.Decimal).Value = D2(r.AccionesCartera);
+                cmd.Parameters.Add("@decOtrasReservasCapital",                   SqlDbType.Decimal).Value = D2(r.OtrasReservasCapital);
+                cmd.Parameters.Add("@decResultadosAcumulados",                   SqlDbType.Decimal).Value = D2(r.ResultadosAcumulados);
+                cmd.Parameters.Add("@decOtrasReservasPatrimonio",                SqlDbType.Decimal).Value = D2(r.OtrasReservasPatrimonio);
+                cmd.Parameters.Add("@decIngresosOrdinarios",                     SqlDbType.Decimal).Value = D2(r.IngresosOrdinarios);
+                cmd.Parameters.Add("@decCostoVentas",                            SqlDbType.Decimal).Value = D2(r.CostoVentas);
+                cmd.Parameters.Add("@decGastosVentas",                           SqlDbType.Decimal).Value = D2(r.GastosVentas);
+                cmd.Parameters.Add("@decGastosAdministracion",                   SqlDbType.Decimal).Value = D2(r.GastosAdministracion);
+                cmd.Parameters.Add("@decOtrosIngresosOperativos",                SqlDbType.Decimal).Value = D2(r.OtrosIngresosOperativos);
+                cmd.Parameters.Add("@decOtrosGastosOperativos",                  SqlDbType.Decimal).Value = D2(r.OtrosGastosOperativos);
+                cmd.Parameters.Add("@decOtrasGananciasPerdidas",                 SqlDbType.Decimal).Value = D2(r.OtrasGananciasPerdidas);
+                cmd.Parameters.Add("@decIngresosFinancieros",                    SqlDbType.Decimal).Value = D2(r.IngresosFinancieros);
+                cmd.Parameters.Add("@decIngresosIntereses",                      SqlDbType.Decimal).Value = D2(r.IngresosIntereses);
+                cmd.Parameters.Add("@decGastosFinancieros",                      SqlDbType.Decimal).Value = D2(r.GastosFinancieros);
+                cmd.Parameters.Add("@decDeterioroValor",                         SqlDbType.Decimal).Value = D2(r.DeterioroValor);
+                cmd.Parameters.Add("@decOtrosIngresosSubsidiarias",              SqlDbType.Decimal).Value = D2(r.OtrosIngresosSubsidiarias);
+                cmd.Parameters.Add("@decDiferenciasCambio",                      SqlDbType.Decimal).Value = D2(r.DiferenciasCambio);
+                cmd.Parameters.Add("@decIngresoGastoImpuesto",                   SqlDbType.Decimal).Value = D2(r.IngresoGastoImpuesto);
+                cmd.Parameters.Add("@decOperacionesDescontinuadas",              SqlDbType.Decimal).Value = D2(r.OperacionesDescontinuadas);
+                await cn.OpenAsync();
+                return await LeerRespuestaAsync<InformeBalanceDesagregadoCalculado>(cmd);
+            }
+            catch (Exception ex)
+            {
+                return new Respuesta { IdTipoMensaje = 3, Mensaje = ex.Message, Result = new List<InformeBalanceDesagregadoCalculado>() };
             }
         }
 

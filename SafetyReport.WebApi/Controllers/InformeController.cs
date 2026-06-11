@@ -90,6 +90,13 @@ namespace SafetyReport.WebApi.Controllers
             return Ok(respuesta);
         }
 
+        [HttpPost("calcularBalanceDesagregado")]
+        public async Task<IActionResult> CalcularBalanceDesagregado([FromBody] InformeBalanceDesagregadoCalcularRequest request)
+        {
+            var respuesta = await _informeHandler.CalcularBalanceDesagregadoAsync(UsuarioLogueado, request);
+            return Ok(respuesta);
+        }
+
         [HttpPost("calcularBalanceTotalizado")]
         public async Task<IActionResult> CalcularBalanceTotalizado([FromBody] InformeBalanceTotalizadoCalcularRequest request)
         {

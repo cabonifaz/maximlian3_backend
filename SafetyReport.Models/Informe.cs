@@ -469,6 +469,90 @@ namespace SafetyReport.Models
         public decimal? RatioRentabilidad { get; set; }
     }
 
+    public class InformeBalanceDesagregadoCalcularRequest
+    {
+        // Activo Corriente
+        public decimal? EfectivoEquivalente { get; set; }
+        public decimal? OtrosActivosFinancierosCorriente { get; set; }
+        public decimal? CuentasCobrarCorriente { get; set; }
+        public decimal? InventariosCorriente { get; set; }
+        public decimal? ActivosBiologicosCorriente { get; set; }
+        public decimal? ActivosImpuestosGanancias { get; set; }
+        public decimal? OtrosActivosNoFinancierosCorriente { get; set; }
+        // Activo No Corriente
+        public decimal? OtrosActivosFinancierosNoCorriente { get; set; }
+        public decimal? InversionesSubsidiarias { get; set; }
+        public decimal? CuentasCobrarNoCorriente { get; set; }
+        public decimal? InventariosNoCorriente { get; set; }
+        public decimal? ActivosBiologicosNoCorriente { get; set; }
+        public decimal? PropiedadesInversion { get; set; }
+        public decimal? PropiedadesPlantaEquipo { get; set; }
+        public decimal? Intangibles { get; set; }
+        public decimal? ActivosImpuestosDiferidos { get; set; }
+        public decimal? ActivosImpuestosCorrientes { get; set; }
+        public decimal? Plusvalia { get; set; }
+        public decimal? OtrosActivosNoFinancierosNoCorriente { get; set; }
+        // Pasivo Corriente
+        public decimal? OtrosPasivosFinancierosCorriente { get; set; }
+        public decimal? CuentasPagarCorriente { get; set; }
+        public decimal? BeneficiosEmpleadosCorriente { get; set; }
+        public decimal? OtrasProvisionesCorriente { get; set; }
+        public decimal? ImpuestosGananciasCorriente { get; set; }
+        public decimal? OtrosPasivosNoFinancierosCorriente { get; set; }
+        // Pasivo No Corriente
+        public decimal? OtrosPasivosFinancierosNoCorriente { get; set; }
+        public decimal? CuentasPagarNoCorriente { get; set; }
+        public decimal? BeneficiosEmpleadosNoCorriente { get; set; }
+        public decimal? OtrasProvisionesNoCorriente { get; set; }
+        public decimal? ImpuestosDiferidosNoCorriente { get; set; }
+        public decimal? ImpuestosCorrientesNoCorriente { get; set; }
+        public decimal? OtrosPasivosNoFinancierosNoCorriente { get; set; }
+        // Patrimonio
+        public decimal? CapitalEmitido { get; set; }
+        public decimal? PrimasEmision { get; set; }
+        public decimal? AccionesInversion { get; set; }
+        public decimal? AccionesCartera { get; set; }
+        public decimal? OtrasReservasCapital { get; set; }
+        public decimal? ResultadosAcumulados { get; set; }
+        public decimal? OtrasReservasPatrimonio { get; set; }
+        // Estado de Resultados
+        public decimal? IngresosOrdinarios { get; set; }
+        public decimal? CostoVentas { get; set; }
+        public decimal? GastosVentas { get; set; }
+        public decimal? GastosAdministracion { get; set; }
+        public decimal? OtrosIngresosOperativos { get; set; }
+        public decimal? OtrosGastosOperativos { get; set; }
+        public decimal? OtrasGananciasPerdidas { get; set; }
+        public decimal? IngresosFinancieros { get; set; }
+        public decimal? IngresosIntereses { get; set; }
+        public decimal? GastosFinancieros { get; set; }
+        public decimal? DeterioroValor { get; set; }
+        public decimal? OtrosIngresosSubsidiarias { get; set; }
+        public decimal? DiferenciasCambio { get; set; }
+        public decimal? IngresoGastoImpuesto { get; set; }
+        public decimal? OperacionesDescontinuadas { get; set; }
+    }
+
+    public class InformeBalanceDesagregadoCalculado
+    {
+        public decimal TotalActivoCorriente { get; set; }
+        public decimal TotalActivoNoCorriente { get; set; }
+        public decimal TotalActivo { get; set; }
+        public decimal TotalPasivoCorriente { get; set; }
+        public decimal TotalPasivoNoCorriente { get; set; }
+        public decimal TotalPasivos { get; set; }
+        public decimal TotalPatrimonio { get; set; }
+        public decimal TotalPasivoPatrimonio { get; set; }
+        public decimal GananciaBruta { get; set; }
+        public decimal GananciaOperativa { get; set; }
+        public decimal GananciaAntesImpuestos { get; set; }
+        public decimal GananciaNeta { get; set; }
+        public decimal? IndiceLiquidez { get; set; }
+        public decimal CapitalTrabajo { get; set; }
+        public decimal? RatioEndeudamiento { get; set; }
+        public decimal? RatioRentabilidad { get; set; }
+    }
+
     public class InformeLocalImagenEstadoCargaRequest
     {
         public List<int> Ids { get; set; } = new();
