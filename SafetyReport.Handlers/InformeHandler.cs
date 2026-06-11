@@ -39,7 +39,7 @@ namespace SafetyReport.Handlers
                 AgregarUrlsPrefirmadas(respuesta, imagenes);
                 return respuesta;
             }
-            catch (Exception ex)
+            catch (Exception)
             {
                 return new Respuesta { IdTipoMensaje = 3, Mensaje = "Error interno del servidor.", Result = new List<InformeCreado>() };
             }
@@ -57,7 +57,7 @@ namespace SafetyReport.Handlers
                 AgregarUrlsPrefirmadas(respuesta, imagenes);
                 return respuesta;
             }
-            catch (Exception ex)
+            catch (Exception)
             {
                 return new Respuesta { IdTipoMensaje = 3, Mensaje = "Error interno del servidor.", Result = new List<InformeCreado>() };
             }
@@ -120,7 +120,7 @@ namespace SafetyReport.Handlers
 
                 return respuesta;
             }
-            catch (Exception ex)
+            catch (Exception)
             {
                 return new Respuesta { IdTipoMensaje = 3, Mensaje = "Error interno del servidor.", Result = new List<InformeLocalImagenUrl>() };
             }
@@ -146,7 +146,7 @@ namespace SafetyReport.Handlers
 
                 return new Respuesta { IdTipoMensaje = 2, Mensaje = "URLs generadas correctamente.", Result = pendientes };
             }
-            catch (Exception ex)
+            catch (Exception)
             {
                 return new Respuesta { IdTipoMensaje = 3, Mensaje = "Error interno del servidor.", Result = new List<InformeArchivoPendiente>() };
             }
@@ -165,7 +165,7 @@ namespace SafetyReport.Handlers
                 }
                 return respuesta;
             }
-            catch (Exception ex)
+            catch (Exception)
             {
                 return new Respuesta { IdTipoMensaje = 3, Mensaje = "Error interno del servidor.", Result = new List<InformeArchivoConsulta>() };
             }
@@ -184,7 +184,7 @@ namespace SafetyReport.Handlers
 
                 return await _dao.EliminarArchivoAsync(usuarioLogueado, request.IdInformeArchivo);
             }
-            catch (Exception ex)
+            catch (Exception)
             {
                 return new Respuesta { IdTipoMensaje = 3, Mensaje = "Error interno del servidor.", Result = new List<object>() };
             }
@@ -196,7 +196,7 @@ namespace SafetyReport.Handlers
             {
                 return await _dao.ActualizarArchivoAsync(usuarioLogueado, request);
             }
-            catch (Exception ex)
+            catch (Exception)
             {
                 return new Respuesta { IdTipoMensaje = 3, Mensaje = "Error interno del servidor.", Result = new List<object>() };
             }
@@ -208,7 +208,7 @@ namespace SafetyReport.Handlers
             {
                 return await _dao.InsertarArchivoLoteAsync(usuarioLogueado, request.IdInforme, request.IdPedido, request.Archivos);
             }
-            catch (Exception ex)
+            catch (Exception)
             {
                 return new Respuesta { IdTipoMensaje = 3, Mensaje = "Error interno del servidor.", Result = new List<object>() };
             }
@@ -220,7 +220,7 @@ namespace SafetyReport.Handlers
             {
                 return await _dao.ActualizarEstadoCargaAsync(usuarioLogueado, request.Ids);
             }
-            catch (Exception ex)
+            catch (Exception)
             {
                 return new Respuesta { IdTipoMensaje = 3, Mensaje = "Error interno del servidor.", Result = new List<object>() };
             }
@@ -250,7 +250,7 @@ namespace SafetyReport.Handlers
 
                 return respuesta;
             }
-            catch (Exception ex)
+            catch (Exception)
             {
                 return new Respuesta { IdTipoMensaje = 3, Mensaje = "Error interno del servidor.", Result = new List<InformeConsulta>() };
             }
@@ -262,9 +262,69 @@ namespace SafetyReport.Handlers
             {
                 return await _dao.ListarAsync(usuarioLogueado, request);
             }
-            catch (Exception ex)
+            catch (Exception)
             {
                 return new Respuesta { IdTipoMensaje = 3, Mensaje = "Error interno del servidor.", Result = new InformeListaResult() };
+            }
+        }
+
+        public async Task<Respuesta> CalcularBalanceDesagregadoAsync(UsuarioGeneral usuarioLogueado, InformeBalanceDesagregadoCalcularRequest request)
+        {
+            try
+            {
+                return await _dao.CalcularBalanceDesagregadoAsync(usuarioLogueado, request);
+            }
+            catch (Exception)
+            {
+                return new Respuesta { IdTipoMensaje = 3, Mensaje = "Error interno del servidor.", Result = new List<InformeBalanceDesagregadoCalculado>() };
+            }
+        }
+
+        public async Task<Respuesta> CalcularBalanceSeguroAsync(UsuarioGeneral usuarioLogueado, InformeBalanceSeguroCalcularRequest request)
+        {
+            try
+            {
+                return await _dao.CalcularBalanceSeguroAsync(usuarioLogueado, request);
+            }
+            catch (Exception)
+            {
+                return new Respuesta { IdTipoMensaje = 3, Mensaje = "Error interno del servidor.", Result = new List<InformeBalanceSeguroCalculado>() };
+            }
+        }
+
+        public async Task<Respuesta> CalcularBalanceBancoAsync(UsuarioGeneral usuarioLogueado, InformeBalanceBancoCalcularRequest request)
+        {
+            try
+            {
+                return await _dao.CalcularBalanceBancoAsync(usuarioLogueado, request);
+            }
+            catch (Exception)
+            {
+                return new Respuesta { IdTipoMensaje = 3, Mensaje = "Error interno del servidor.", Result = new List<InformeBalanceBancoCalculado>() };
+            }
+        }
+
+        public async Task<Respuesta> CalcularBalanceTurquiaAsync(UsuarioGeneral usuarioLogueado, InformeBalanceTurquiaCalcularRequest request)
+        {
+            try
+            {
+                return await _dao.CalcularBalanceTurquiaAsync(usuarioLogueado, request);
+            }
+            catch (Exception)
+            {
+                return new Respuesta { IdTipoMensaje = 3, Mensaje = "Error interno del servidor.", Result = new List<InformeBalanceTurquiaCalculado>() };
+            }
+        }
+
+        public async Task<Respuesta> CalcularBalanceTotalizadoAsync(UsuarioGeneral usuarioLogueado, InformeBalanceTotalizadoCalcularRequest request)
+        {
+            try
+            {
+                return await _dao.CalcularBalanceTotalizadoAsync(usuarioLogueado, request);
+            }
+            catch (Exception)
+            {
+                return new Respuesta { IdTipoMensaje = 3, Mensaje = "Error interno del servidor.", Result = new List<InformeBalanceTotalizadoCalculado>() };
             }
         }
 
@@ -274,7 +334,7 @@ namespace SafetyReport.Handlers
             {
                 return await _dao.EliminarAsync(usuarioLogueado, request.IdInforme);
             }
-            catch (Exception ex)
+            catch (Exception)
             {
                 return new Respuesta { IdTipoMensaje = 3, Mensaje = "Error interno del servidor.", Result = new List<InformeEliminado>() };
             }
@@ -301,7 +361,7 @@ namespace SafetyReport.Handlers
                     Result = JsonSerializer.Deserialize<object>(n8nRespuesta, new JsonSerializerOptions { PropertyNameCaseInsensitive = true })
                 };
             }
-            catch (Exception ex)
+            catch (Exception)
             {
                 return new Respuesta { IdTipoMensaje = 3, Mensaje = "Error interno del servidor.", Result = null };
             }
@@ -327,7 +387,7 @@ namespace SafetyReport.Handlers
                     }
                 });
             }
-            catch (Exception ex)
+            catch (Exception)
             {
                 return Task.FromResult(new Respuesta { IdTipoMensaje = 3, Mensaje = "Error interno del servidor.", Result = null });
             }
@@ -358,7 +418,7 @@ namespace SafetyReport.Handlers
                     Result = JsonSerializer.Deserialize<object>(n8nRespuesta, new JsonSerializerOptions { PropertyNameCaseInsensitive = true })
                 };
             }
-            catch (Exception ex)
+            catch (Exception)
             {
                 return new Respuesta { IdTipoMensaje = 3, Mensaje = "Error interno del servidor.", Result = null };
             }

@@ -90,6 +90,41 @@ namespace SafetyReport.WebApi.Controllers
             return Ok(respuesta);
         }
 
+        [HttpPost("calcularBalanceSeguro")]
+        public async Task<IActionResult> CalcularBalanceSeguro([FromBody] InformeBalanceSeguroCalcularRequest request)
+        {
+            var respuesta = await _informeHandler.CalcularBalanceSeguroAsync(UsuarioLogueado, request);
+            return Ok(respuesta);
+        }
+
+        [HttpPost("calcularBalanceBanco")]
+        public async Task<IActionResult> CalcularBalanceBanco([FromBody] InformeBalanceBancoCalcularRequest request)
+        {
+            var respuesta = await _informeHandler.CalcularBalanceBancoAsync(UsuarioLogueado, request);
+            return Ok(respuesta);
+        }
+
+        [HttpPost("calcularBalanceTurquia")]
+        public async Task<IActionResult> CalcularBalanceTurquia([FromBody] InformeBalanceTurquiaCalcularRequest request)
+        {
+            var respuesta = await _informeHandler.CalcularBalanceTurquiaAsync(UsuarioLogueado, request);
+            return Ok(respuesta);
+        }
+
+        [HttpPost("calcularBalanceDesagregado")]
+        public async Task<IActionResult> CalcularBalanceDesagregado([FromBody] InformeBalanceDesagregadoCalcularRequest request)
+        {
+            var respuesta = await _informeHandler.CalcularBalanceDesagregadoAsync(UsuarioLogueado, request);
+            return Ok(respuesta);
+        }
+
+        [HttpPost("calcularBalanceTotalizado")]
+        public async Task<IActionResult> CalcularBalanceTotalizado([FromBody] InformeBalanceTotalizadoCalcularRequest request)
+        {
+            var respuesta = await _informeHandler.CalcularBalanceTotalizadoAsync(UsuarioLogueado, request);
+            return Ok(respuesta);
+        }
+
         [HttpPost("eliminar")]
         public async Task<IActionResult> Eliminar([FromBody] InformeIdRequest request)
         {

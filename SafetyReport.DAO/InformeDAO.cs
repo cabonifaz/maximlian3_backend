@@ -35,7 +35,7 @@ namespace SafetyReport.DAO
                     x.FechaBalance,
                     (object?)x.FechaHasta ?? DBNull.Value,
                     x.FlgActualidad,
-                    (object?)x.TipoCambio ?? DBNull.Value,
+                    D4(x.TipoCambio),
                     x.IdMoneda, x.IdTipoBalance,
                     (object?)x.IdTipoEstadoFinanciero ?? DBNull.Value);
             return t;
@@ -91,7 +91,7 @@ namespace SafetyReport.DAO
                 t.Rows.Add(i++,
                     (object?)x.IdInformeExportacionImportacion ?? DBNull.Value,
                     x.Anio, x.MesInicio, x.MesFin, x.IdMoneda,
-                    (object?)x.Paises ?? DBNull.Value, (object?)x.Monto ?? DBNull.Value,
+                    (object?)x.Paises ?? DBNull.Value, D2(x.Monto),
                     (object?)x.Productos ?? DBNull.Value, x.IdTipoOperacion,
                     (object?)x.NumOperaciones ?? DBNull.Value);
             return t;
@@ -130,7 +130,7 @@ namespace SafetyReport.DAO
                     (object?)x.IdPais ?? DBNull.Value, (object?)x.IdTipoDocumento ?? DBNull.Value,
                     (object?)x.NumeroDocumento ?? DBNull.Value, (object?)x.IdMoneda ?? DBNull.Value,
                     (object?)x.FechaInicio ?? DBNull.Value, (object?)x.IdLimiteCredito ?? DBNull.Value,
-                    (object?)x.PromedioMensual ?? DBNull.Value, (object?)x.PlazoCredito ?? DBNull.Value,
+                    D4(x.PromedioMensual), (object?)x.PlazoCredito ?? DBNull.Value,
                     (object?)x.Productos ?? DBNull.Value, (object?)x.IdCalificacion ?? DBNull.Value,
                     (object?)x.Comentarios ?? DBNull.Value,
                     (object?)x.NombreContacto ?? DBNull.Value,
@@ -138,7 +138,7 @@ namespace SafetyReport.DAO
                     (object?)x.ComienzoNegociaciones ?? DBNull.Value,
                     (object?)x.IdPlazoCredito ?? DBNull.Value,
                     (object?)x.EsTieneReferenciaComercial ?? DBNull.Value,
-                    (object?)x.TipoCambio ?? DBNull.Value);
+                    D6(x.TipoCambio));
             return t;
         }
 
@@ -219,76 +219,76 @@ namespace SafetyReport.DAO
             foreach (var x in items)
                 t.Rows.Add(
                     x.Id,
-                    (object?)x.EfectivoEquivalente ?? DBNull.Value,
-                    (object?)x.OtrosActivosFinancierosCorriente ?? DBNull.Value,
-                    (object?)x.CuentasCobrarCorriente ?? DBNull.Value,
-                    (object?)x.InventariosCorriente ?? DBNull.Value,
-                    (object?)x.ActivosBiologicosCorriente ?? DBNull.Value,
-                    (object?)x.ActivosImpuestosGanancias ?? DBNull.Value,
-                    (object?)x.OtrosActivosNoFinancierosCorriente ?? DBNull.Value,
-                    (object?)x.TotalActivoCorriente ?? DBNull.Value,
-                    (object?)x.OtrosActivosFinancierosNoCorriente ?? DBNull.Value,
-                    (object?)x.InversionesSubsidiarias ?? DBNull.Value,
-                    (object?)x.CuentasCobrarNoCorriente ?? DBNull.Value,
-                    (object?)x.InventariosNoCorriente ?? DBNull.Value,
-                    (object?)x.ActivosBiologicosNoCorriente ?? DBNull.Value,
-                    (object?)x.PropiedadesInversion ?? DBNull.Value,
-                    (object?)x.PropiedadesPlantaEquipo ?? DBNull.Value,
-                    (object?)x.Intangibles ?? DBNull.Value,
-                    (object?)x.ActivosImpuestosDiferidos ?? DBNull.Value,
-                    (object?)x.ActivosImpuestosCorrientes ?? DBNull.Value,
-                    (object?)x.Plusvalia ?? DBNull.Value,
-                    (object?)x.OtrosActivosNoFinancierosNoCorriente ?? DBNull.Value,
-                    (object?)x.TotalActivoNoCorriente ?? DBNull.Value,
-                    (object?)x.TotalActivo ?? DBNull.Value,
-                    (object?)x.OtrosPasivosFinancierosCorriente ?? DBNull.Value,
-                    (object?)x.CuentasPagarCorriente ?? DBNull.Value,
-                    (object?)x.BeneficiosEmpleadosCorriente ?? DBNull.Value,
-                    (object?)x.OtrasProvisionesCorriente ?? DBNull.Value,
-                    (object?)x.ImpuestosGananciasCorriente ?? DBNull.Value,
-                    (object?)x.OtrosPasivosNoFinancierosCorriente ?? DBNull.Value,
-                    (object?)x.TotalPasivoCorriente ?? DBNull.Value,
-                    (object?)x.OtrosPasivosFinancierosNoCorriente ?? DBNull.Value,
-                    (object?)x.CuentasPagarNoCorriente ?? DBNull.Value,
-                    (object?)x.BeneficiosEmpleadosNoCorriente ?? DBNull.Value,
-                    (object?)x.OtrasProvisionesNoCorriente ?? DBNull.Value,
-                    (object?)x.ImpuestosDiferidosNoCorriente ?? DBNull.Value,
-                    (object?)x.ImpuestosCorrientesNoCorriente ?? DBNull.Value,
-                    (object?)x.OtrosPasivosNoFinancierosNoCorriente ?? DBNull.Value,
-                    (object?)x.TotalPasivoNoCorriente ?? DBNull.Value,
-                    (object?)x.TotalPasivos ?? DBNull.Value,
-                    (object?)x.CapitalEmitido ?? DBNull.Value,
-                    (object?)x.PrimasEmision ?? DBNull.Value,
-                    (object?)x.AccionesInversion ?? DBNull.Value,
-                    (object?)x.AccionesCartera ?? DBNull.Value,
-                    (object?)x.OtrasReservasCapital ?? DBNull.Value,
-                    (object?)x.ResultadosAcumulados ?? DBNull.Value,
-                    (object?)x.OtrasReservasPatrimonio ?? DBNull.Value,
-                    (object?)x.TotalPatrimonio ?? DBNull.Value,
-                    (object?)x.TotalPasivoPatrimonio ?? DBNull.Value,
-                    (object?)x.IngresosOrdinarios ?? DBNull.Value,
-                    (object?)x.CostoVentas ?? DBNull.Value,
-                    (object?)x.GananciaBruta ?? DBNull.Value,
-                    (object?)x.GastosVentas ?? DBNull.Value,
-                    (object?)x.GastosAdministracion ?? DBNull.Value,
-                    (object?)x.OtrosIngresosOperativos ?? DBNull.Value,
-                    (object?)x.OtrosGastosOperativos ?? DBNull.Value,
-                    (object?)x.OtrasGananciasPerdidas ?? DBNull.Value,
-                    (object?)x.GananciaOperativa ?? DBNull.Value,
-                    (object?)x.IngresosFinancieros ?? DBNull.Value,
-                    (object?)x.IngresosIntereses ?? DBNull.Value,
-                    (object?)x.GastosFinancieros ?? DBNull.Value,
-                    (object?)x.DeterioroValor ?? DBNull.Value,
-                    (object?)x.OtrosIngresosSubsidiarias ?? DBNull.Value,
-                    (object?)x.DiferenciasCambio ?? DBNull.Value,
-                    (object?)x.GananciaAntesImpuestos ?? DBNull.Value,
-                    (object?)x.IngresoGastoImpuesto ?? DBNull.Value,
-                    (object?)x.OperacionesDescontinuadas ?? DBNull.Value,
-                    (object?)x.GananciaNeta ?? DBNull.Value,
-                    (object?)x.IndiceLiquidez ?? DBNull.Value,
-                    (object?)x.CapitalTrabajo ?? DBNull.Value,
-                    (object?)x.RatioEndeudamiento ?? DBNull.Value,
-                    (object?)x.RatioRentabilidad ?? DBNull.Value);
+                    D2(x.EfectivoEquivalente),
+                    D2(x.OtrosActivosFinancierosCorriente),
+                    D2(x.CuentasCobrarCorriente),
+                    D2(x.InventariosCorriente),
+                    D2(x.ActivosBiologicosCorriente),
+                    D2(x.ActivosImpuestosGanancias),
+                    D2(x.OtrosActivosNoFinancierosCorriente),
+                    D2(x.TotalActivoCorriente),
+                    D2(x.OtrosActivosFinancierosNoCorriente),
+                    D2(x.InversionesSubsidiarias),
+                    D2(x.CuentasCobrarNoCorriente),
+                    D2(x.InventariosNoCorriente),
+                    D2(x.ActivosBiologicosNoCorriente),
+                    D2(x.PropiedadesInversion),
+                    D2(x.PropiedadesPlantaEquipo),
+                    D2(x.Intangibles),
+                    D2(x.ActivosImpuestosDiferidos),
+                    D2(x.ActivosImpuestosCorrientes),
+                    D2(x.Plusvalia),
+                    D2(x.OtrosActivosNoFinancierosNoCorriente),
+                    D2(x.TotalActivoNoCorriente),
+                    D2(x.TotalActivo),
+                    D2(x.OtrosPasivosFinancierosCorriente),
+                    D2(x.CuentasPagarCorriente),
+                    D2(x.BeneficiosEmpleadosCorriente),
+                    D2(x.OtrasProvisionesCorriente),
+                    D2(x.ImpuestosGananciasCorriente),
+                    D2(x.OtrosPasivosNoFinancierosCorriente),
+                    D2(x.TotalPasivoCorriente),
+                    D2(x.OtrosPasivosFinancierosNoCorriente),
+                    D2(x.CuentasPagarNoCorriente),
+                    D2(x.BeneficiosEmpleadosNoCorriente),
+                    D2(x.OtrasProvisionesNoCorriente),
+                    D2(x.ImpuestosDiferidosNoCorriente),
+                    D2(x.ImpuestosCorrientesNoCorriente),
+                    D2(x.OtrosPasivosNoFinancierosNoCorriente),
+                    D2(x.TotalPasivoNoCorriente),
+                    D2(x.TotalPasivos),
+                    D2(x.CapitalEmitido),
+                    D2(x.PrimasEmision),
+                    D2(x.AccionesInversion),
+                    D2(x.AccionesCartera),
+                    D2(x.OtrasReservasCapital),
+                    D2(x.ResultadosAcumulados),
+                    D2(x.OtrasReservasPatrimonio),
+                    D2(x.TotalPatrimonio),
+                    D2(x.TotalPasivoPatrimonio),
+                    D2(x.IngresosOrdinarios),
+                    D2(x.CostoVentas),
+                    D2(x.GananciaBruta),
+                    D2(x.GastosVentas),
+                    D2(x.GastosAdministracion),
+                    D2(x.OtrosIngresosOperativos),
+                    D2(x.OtrosGastosOperativos),
+                    D2(x.OtrasGananciasPerdidas),
+                    D2(x.GananciaOperativa),
+                    D2(x.IngresosFinancieros),
+                    D2(x.IngresosIntereses),
+                    D2(x.GastosFinancieros),
+                    D2(x.DeterioroValor),
+                    D2(x.OtrosIngresosSubsidiarias),
+                    D2(x.DiferenciasCambio),
+                    D2(x.GananciaAntesImpuestos),
+                    D2(x.IngresoGastoImpuesto),
+                    D2(x.OperacionesDescontinuadas),
+                    D2(x.GananciaNeta),
+                    D2(x.IndiceLiquidez),
+                    D2(x.CapitalTrabajo),
+                    D2(x.RatioEndeudamiento),
+                    D2(x.RatioRentabilidad));
             return t;
         }
 
@@ -313,20 +313,20 @@ namespace SafetyReport.DAO
             foreach (var x in items)
                 t.Rows.Add(
                     x.Id,
-                    (object?)x.TotalActivoCorriente ?? DBNull.Value,
-                    (object?)x.TotalActivoNoCorriente ?? DBNull.Value,
-                    (object?)x.TotalActivo ?? DBNull.Value,
-                    (object?)x.TotalPasivoCorriente ?? DBNull.Value,
-                    (object?)x.TotalPasivoNoCorriente ?? DBNull.Value,
-                    (object?)x.TotalPasivos ?? DBNull.Value,
-                    (object?)x.TotalPatrimonio ?? DBNull.Value,
-                    (object?)x.TotalPasivoPatrimonio ?? DBNull.Value,
-                    (object?)x.IngresosOrdinarios ?? DBNull.Value,
-                    (object?)x.GananciaNeta ?? DBNull.Value,
-                    (object?)x.IndiceLiquidez ?? DBNull.Value,
-                    (object?)x.CapitalTrabajo ?? DBNull.Value,
-                    (object?)x.RatioEndeudamiento ?? DBNull.Value,
-                    (object?)x.RatioRentabilidad ?? DBNull.Value);
+                    D2(x.TotalActivoCorriente),
+                    D2(x.TotalActivoNoCorriente),
+                    D2(x.TotalActivo),
+                    D2(x.TotalPasivoCorriente),
+                    D2(x.TotalPasivoNoCorriente),
+                    D2(x.TotalPasivos),
+                    D2(x.TotalPatrimonio),
+                    D2(x.TotalPasivoPatrimonio),
+                    D2(x.IngresosOrdinarios),
+                    D2(x.GananciaNeta),
+                    D2(x.IndiceLiquidez),
+                    D2(x.CapitalTrabajo),
+                    D2(x.RatioEndeudamiento),
+                    D2(x.RatioRentabilidad));
             return t;
         }
 
@@ -364,33 +364,33 @@ namespace SafetyReport.DAO
             foreach (var x in items)
                 t.Rows.Add(
                     x.Id,
-                    (object?)x.Disponible ?? DBNull.Value,
-                    (object?)x.FondosInterbancarios ?? DBNull.Value,
-                    (object?)x.InversionesValorRazonable ?? DBNull.Value,
-                    (object?)x.CarteraCreditos ?? DBNull.Value,
-                    (object?)x.DerivadosNegociacionActivo ?? DBNull.Value,
-                    (object?)x.DerivadosCoberturaActivo ?? DBNull.Value,
-                    (object?)x.BienesRealizables ?? DBNull.Value,
-                    (object?)x.ParticipacionesSubsidiarias ?? DBNull.Value,
-                    (object?)x.InmuebleMobiliarioEquipo ?? DBNull.Value,
-                    (object?)x.ImpuestoRentaDiferido ?? DBNull.Value,
-                    (object?)x.OtrosActivos ?? DBNull.Value,
-                    (object?)x.TotalActivos ?? DBNull.Value,
-                    (object?)x.ObligacionesPublico ?? DBNull.Value,
-                    (object?)x.FondosInterbancariosPasivo ?? DBNull.Value,
-                    (object?)x.AdeudosFinancieras ?? DBNull.Value,
-                    (object?)x.DerivadosNegociacionPasivo ?? DBNull.Value,
-                    (object?)x.DerivadosCoberturaPasivo ?? DBNull.Value,
-                    (object?)x.CuentasPagarProvisiones ?? DBNull.Value,
-                    (object?)x.TotalPasivo ?? DBNull.Value,
-                    (object?)x.CapitalSocial ?? DBNull.Value,
-                    (object?)x.Reservas ?? DBNull.Value,
-                    (object?)x.ResultadosNoRealizados ?? DBNull.Value,
-                    (object?)x.ResultadoEjercicio ?? DBNull.Value,
-                    (object?)x.TotalPatrimonio ?? DBNull.Value,
-                    (object?)x.TotalPasivoPatrimonio ?? DBNull.Value,
-                    (object?)x.IngresosIntereses ?? DBNull.Value,
-                    (object?)x.UtilidadEjercicio ?? DBNull.Value);
+                    D2(x.Disponible),
+                    D2(x.FondosInterbancarios),
+                    D2(x.InversionesValorRazonable),
+                    D2(x.CarteraCreditos),
+                    D2(x.DerivadosNegociacionActivo),
+                    D2(x.DerivadosCoberturaActivo),
+                    D2(x.BienesRealizables),
+                    D2(x.ParticipacionesSubsidiarias),
+                    D2(x.InmuebleMobiliarioEquipo),
+                    D2(x.ImpuestoRentaDiferido),
+                    D2(x.OtrosActivos),
+                    D2(x.TotalActivos),
+                    D2(x.ObligacionesPublico),
+                    D2(x.FondosInterbancariosPasivo),
+                    D2(x.AdeudosFinancieras),
+                    D2(x.DerivadosNegociacionPasivo),
+                    D2(x.DerivadosCoberturaPasivo),
+                    D2(x.CuentasPagarProvisiones),
+                    D2(x.TotalPasivo),
+                    D2(x.CapitalSocial),
+                    D2(x.Reservas),
+                    D2(x.ResultadosNoRealizados),
+                    D2(x.ResultadoEjercicio),
+                    D2(x.TotalPatrimonio),
+                    D2(x.TotalPasivoPatrimonio),
+                    D2(x.IngresosIntereses),
+                    D2(x.UtilidadEjercicio));
             return t;
         }
 
@@ -427,32 +427,32 @@ namespace SafetyReport.DAO
             foreach (var x in items)
                 t.Rows.Add(
                     x.Id,
-                    (object?)x.EfectivoDisponible ?? DBNull.Value,
-                    (object?)x.InversionesFinancieras ?? DBNull.Value,
-                    (object?)x.PrestamosInteresesNetos ?? DBNull.Value,
-                    (object?)x.PrimasCobrar ?? DBNull.Value,
-                    (object?)x.DeudasReaseguradores ?? DBNull.Value,
-                    (object?)x.ActivosVenta ?? DBNull.Value,
-                    (object?)x.PropiedadesInversion ?? DBNull.Value,
-                    (object?)x.PropiedadPlantaEquipo ?? DBNull.Value,
-                    (object?)x.OtrosActivos ?? DBNull.Value,
-                    (object?)x.TotalActivos ?? DBNull.Value,
-                    (object?)x.ObligacionesAsegurados ?? DBNull.Value,
-                    (object?)x.ReservasSiniestros ?? DBNull.Value,
-                    (object?)x.ReservasTecnicas ?? DBNull.Value,
-                    (object?)x.ObligacionesReaseguradores ?? DBNull.Value,
-                    (object?)x.ObligacionesFinancieras ?? DBNull.Value,
-                    (object?)x.CuentasPagar ?? DBNull.Value,
-                    (object?)x.OtrosPasivos ?? DBNull.Value,
-                    (object?)x.TotalPasivo ?? DBNull.Value,
-                    (object?)x.CapitalSocial ?? DBNull.Value,
-                    (object?)x.AportesCapitalNoCapitalizados ?? DBNull.Value,
-                    (object?)x.ResultadosAcumulados ?? DBNull.Value,
-                    (object?)x.PatrimonioRestringido ?? DBNull.Value,
-                    (object?)x.TotalPatrimonio ?? DBNull.Value,
-                    (object?)x.TotalPasivoPatrimonio ?? DBNull.Value,
-                    (object?)x.PrimasGanadasNetas ?? DBNull.Value,
-                    (object?)x.UtilidadNeta ?? DBNull.Value);
+                    D2(x.EfectivoDisponible),
+                    D2(x.InversionesFinancieras),
+                    D2(x.PrestamosInteresesNetos),
+                    D2(x.PrimasCobrar),
+                    D2(x.DeudasReaseguradores),
+                    D2(x.ActivosVenta),
+                    D2(x.PropiedadesInversion),
+                    D2(x.PropiedadPlantaEquipo),
+                    D2(x.OtrosActivos),
+                    D2(x.TotalActivos),
+                    D2(x.ObligacionesAsegurados),
+                    D2(x.ReservasSiniestros),
+                    D2(x.ReservasTecnicas),
+                    D2(x.ObligacionesReaseguradores),
+                    D2(x.ObligacionesFinancieras),
+                    D2(x.CuentasPagar),
+                    D2(x.OtrosPasivos),
+                    D2(x.TotalPasivo),
+                    D2(x.CapitalSocial),
+                    D2(x.AportesCapitalNoCapitalizados),
+                    D2(x.ResultadosAcumulados),
+                    D2(x.PatrimonioRestringido),
+                    D2(x.TotalPatrimonio),
+                    D2(x.TotalPasivoPatrimonio),
+                    D2(x.PrimasGanadasNetas),
+                    D2(x.UtilidadNeta));
             return t;
         }
 
@@ -517,50 +517,50 @@ namespace SafetyReport.DAO
                     (object?)x.IdMoneda ?? DBNull.Value,
                     (object?)x.DuracionPeriodo ?? DBNull.Value,
                     (object?)x.IdNivelConfiabilidad ?? DBNull.Value,
-                    (object?)x.TipoCambio ?? DBNull.Value,
-                    (object?)x.Efectivo ?? DBNull.Value,
-                    (object?)x.Existencias ?? DBNull.Value,
-                    (object?)x.Deudores ?? DBNull.Value,
-                    (object?)x.TotalCorriente ?? DBNull.Value,
-                    (object?)x.BienesTongibles ?? DBNull.Value,
-                    (object?)x.ActivosIntangibles ?? DBNull.Value,
-                    (object?)x.ActivoFijoNeto ?? DBNull.Value,
-                    (object?)x.TotalActivos ?? DBNull.Value,
-                    (object?)x.Prestamos ?? DBNull.Value,
-                    (object?)x.Acreedores ?? DBNull.Value,
-                    (object?)x.PasivosCorrientes ?? DBNull.Value,
-                    (object?)x.PasivosNoCorrientes ?? DBNull.Value,
-                    (object?)x.PasivosLargoPlazo ?? DBNull.Value,
-                    (object?)x.TotalPasivosNoCorrientes ?? DBNull.Value,
-                    (object?)x.TotalPasivos ?? DBNull.Value,
-                    (object?)x.Capital ?? DBNull.Value,
-                    (object?)x.Patrimonio ?? DBNull.Value,
-                    (object?)x.TotalPatrimonio ?? DBNull.Value,
-                    (object?)x.TotalPasivosPatrimonio ?? DBNull.Value,
-                    (object?)x.VentasNetas ?? DBNull.Value,
-                    (object?)x.CostoVentas ?? DBNull.Value,
-                    (object?)x.CostoMateriales ?? DBNull.Value,
-                    (object?)x.GananciaBruta ?? DBNull.Value,
-                    (object?)x.OtrosGastosOperativos ?? DBNull.Value,
-                    (object?)x.CostoEmpleados ?? DBNull.Value,
-                    (object?)x.Depreciacion ?? DBNull.Value,
-                    (object?)x.IngresosFinancieros ?? DBNull.Value,
-                    (object?)x.GastosFinancieros ?? DBNull.Value,
-                    (object?)x.InteresesPagados ?? DBNull.Value,
-                    (object?)x.PlFinanciero ?? DBNull.Value,
-                    (object?)x.IngresosExtraordinarios ?? DBNull.Value,
-                    (object?)x.GastosExtraordinarios ?? DBNull.Value,
-                    (object?)x.PlExtraordinario ?? DBNull.Value,
-                    (object?)x.GananciaAntesImpuestos ?? DBNull.Value,
-                    (object?)x.Impuestos ?? DBNull.Value,
-                    (object?)x.GananciaNeta ?? DBNull.Value,
-                    (object?)x.Ebit ?? DBNull.Value,
-                    (object?)x.Ebitda ?? DBNull.Value,
-                    (object?)x.Ganancia ?? DBNull.Value,
-                    (object?)x.IndiceLiquidez ?? DBNull.Value,
-                    (object?)x.CapitalTrabajo ?? DBNull.Value,
-                    (object?)x.RatioEndeudamiento ?? DBNull.Value,
-                    (object?)x.RatioRentabilidad ?? DBNull.Value);
+                    D6(x.TipoCambio),
+                    D2(x.Efectivo),
+                    D2(x.Existencias),
+                    D2(x.Deudores),
+                    D2(x.TotalCorriente),
+                    D2(x.BienesTongibles),
+                    D2(x.ActivosIntangibles),
+                    D2(x.ActivoFijoNeto),
+                    D2(x.TotalActivos),
+                    D2(x.Prestamos),
+                    D2(x.Acreedores),
+                    D2(x.PasivosCorrientes),
+                    D2(x.PasivosNoCorrientes),
+                    D2(x.PasivosLargoPlazo),
+                    D2(x.TotalPasivosNoCorrientes),
+                    D2(x.TotalPasivos),
+                    D2(x.Capital),
+                    D2(x.Patrimonio),
+                    D2(x.TotalPatrimonio),
+                    D2(x.TotalPasivosPatrimonio),
+                    D2(x.VentasNetas),
+                    D2(x.CostoVentas),
+                    D2(x.CostoMateriales),
+                    D2(x.GananciaBruta),
+                    D2(x.OtrosGastosOperativos),
+                    D2(x.CostoEmpleados),
+                    D2(x.Depreciacion),
+                    D2(x.IngresosFinancieros),
+                    D2(x.GastosFinancieros),
+                    D2(x.InteresesPagados),
+                    D2(x.PlFinanciero),
+                    D2(x.IngresosExtraordinarios),
+                    D2(x.GastosExtraordinarios),
+                    D2(x.PlExtraordinario),
+                    D2(x.GananciaAntesImpuestos),
+                    D2(x.Impuestos),
+                    D2(x.GananciaNeta),
+                    D2(x.Ebit),
+                    D2(x.Ebitda),
+                    D2(x.Ganancia),
+                    D2(x.IndiceLiquidez),
+                    D2(x.CapitalTrabajo),
+                    D2(x.RatioEndeudamiento),
+                    D2(x.RatioRentabilidad));
             return t;
         }
 
@@ -631,6 +631,12 @@ namespace SafetyReport.DAO
             }
             return t;
         }
+
+        // ── Decimal rounding helpers (match SQL TVP column precision) ────────────
+
+        private static object D2(decimal? v) => v.HasValue ? (object)Math.Round(v.Value, 2, MidpointRounding.AwayFromZero) : DBNull.Value;
+        private static object D4(decimal? v) => v.HasValue ? (object)Math.Round(v.Value, 4, MidpointRounding.AwayFromZero) : DBNull.Value;
+        private static object D6(decimal? v) => v.HasValue ? (object)Math.Round(v.Value, 6, MidpointRounding.AwayFromZero) : DBNull.Value;
 
         // ── Reader helper ─────────────────────────────────────────────────────────
 
@@ -1050,6 +1056,229 @@ namespace SafetyReport.DAO
             catch (Exception ex)
             {
                 return new Respuesta { IdTipoMensaje = 3, Mensaje = ex.Message, Result = new InformeListaResult() };
+            }
+        }
+
+        public async Task<Respuesta> CalcularBalanceDesagregadoAsync(UsuarioGeneral u, InformeBalanceDesagregadoCalcularRequest r)
+        {
+            try
+            {
+                using SqlConnection cn = new(_dbConfig.ConnectionString);
+                using SqlCommand cmd = new("Informe_Balance_Desagregado_Calcular", cn) { CommandType = CommandType.StoredProcedure };
+                cmd.Parameters.Add("@intIdUsuario",                              SqlDbType.Int).Value     = u.IdUsuario;
+                cmd.Parameters.Add("@vchUsuario",                                SqlDbType.VarChar, 32).Value = u.Usuario;
+                cmd.Parameters.Add("@intIdEmpresa",                              SqlDbType.Int).Value     = u.IdEmpresa;
+                cmd.Parameters.Add("@intIdRol",                                  SqlDbType.Int).Value     = u.IdRol;
+                cmd.Parameters.Add("@decEfectivoEquivalente",                    SqlDbType.Decimal).Value = D2(r.EfectivoEquivalente);
+                cmd.Parameters.Add("@decOtrosActivosFinancierosCorriente",       SqlDbType.Decimal).Value = D2(r.OtrosActivosFinancierosCorriente);
+                cmd.Parameters.Add("@decCuentasCobrarCorriente",                 SqlDbType.Decimal).Value = D2(r.CuentasCobrarCorriente);
+                cmd.Parameters.Add("@decInventariosCorriente",                   SqlDbType.Decimal).Value = D2(r.InventariosCorriente);
+                cmd.Parameters.Add("@decActivosBiologicosCorriente",             SqlDbType.Decimal).Value = D2(r.ActivosBiologicosCorriente);
+                cmd.Parameters.Add("@decActivosImpuestosGanancias",              SqlDbType.Decimal).Value = D2(r.ActivosImpuestosGanancias);
+                cmd.Parameters.Add("@decOtrosActivosNoFinancierosCorriente",     SqlDbType.Decimal).Value = D2(r.OtrosActivosNoFinancierosCorriente);
+                cmd.Parameters.Add("@decOtrosActivosFinancierosNoCorriente",     SqlDbType.Decimal).Value = D2(r.OtrosActivosFinancierosNoCorriente);
+                cmd.Parameters.Add("@decInversionesSubsidiarias",                SqlDbType.Decimal).Value = D2(r.InversionesSubsidiarias);
+                cmd.Parameters.Add("@decCuentasCobrarNoCorriente",               SqlDbType.Decimal).Value = D2(r.CuentasCobrarNoCorriente);
+                cmd.Parameters.Add("@decInventariosNoCorriente",                 SqlDbType.Decimal).Value = D2(r.InventariosNoCorriente);
+                cmd.Parameters.Add("@decActivosBiologicosNoCorriente",           SqlDbType.Decimal).Value = D2(r.ActivosBiologicosNoCorriente);
+                cmd.Parameters.Add("@decPropiedadesInversion",                   SqlDbType.Decimal).Value = D2(r.PropiedadesInversion);
+                cmd.Parameters.Add("@decPropiedadesPlantaEquipo",                SqlDbType.Decimal).Value = D2(r.PropiedadesPlantaEquipo);
+                cmd.Parameters.Add("@decIntangibles",                            SqlDbType.Decimal).Value = D2(r.Intangibles);
+                cmd.Parameters.Add("@decActivosImpuestosDiferidos",              SqlDbType.Decimal).Value = D2(r.ActivosImpuestosDiferidos);
+                cmd.Parameters.Add("@decActivosImpuestosCorrientes",             SqlDbType.Decimal).Value = D2(r.ActivosImpuestosCorrientes);
+                cmd.Parameters.Add("@decPlusvalia",                              SqlDbType.Decimal).Value = D2(r.Plusvalia);
+                cmd.Parameters.Add("@decOtrosActivosNoFinancierosNoCorriente",   SqlDbType.Decimal).Value = D2(r.OtrosActivosNoFinancierosNoCorriente);
+                cmd.Parameters.Add("@decOtrosPasivosFinancierosCorriente",       SqlDbType.Decimal).Value = D2(r.OtrosPasivosFinancierosCorriente);
+                cmd.Parameters.Add("@decCuentasPagarCorriente",                  SqlDbType.Decimal).Value = D2(r.CuentasPagarCorriente);
+                cmd.Parameters.Add("@decBeneficiosEmpleadosCorriente",           SqlDbType.Decimal).Value = D2(r.BeneficiosEmpleadosCorriente);
+                cmd.Parameters.Add("@decOtrasProvisionesCorriente",              SqlDbType.Decimal).Value = D2(r.OtrasProvisionesCorriente);
+                cmd.Parameters.Add("@decImpuestosGananciasCorriente",            SqlDbType.Decimal).Value = D2(r.ImpuestosGananciasCorriente);
+                cmd.Parameters.Add("@decOtrosPasivosNoFinancierosCorriente",     SqlDbType.Decimal).Value = D2(r.OtrosPasivosNoFinancierosCorriente);
+                cmd.Parameters.Add("@decOtrosPasivosFinancierosNoCorriente",     SqlDbType.Decimal).Value = D2(r.OtrosPasivosFinancierosNoCorriente);
+                cmd.Parameters.Add("@decCuentasPagarNoCorriente",                SqlDbType.Decimal).Value = D2(r.CuentasPagarNoCorriente);
+                cmd.Parameters.Add("@decBeneficiosEmpleadosNoCorriente",         SqlDbType.Decimal).Value = D2(r.BeneficiosEmpleadosNoCorriente);
+                cmd.Parameters.Add("@decOtrasProvisionesNoCorriente",            SqlDbType.Decimal).Value = D2(r.OtrasProvisionesNoCorriente);
+                cmd.Parameters.Add("@decImpuestosDiferidosNoCorriente",          SqlDbType.Decimal).Value = D2(r.ImpuestosDiferidosNoCorriente);
+                cmd.Parameters.Add("@decImpuestosCorrientesNoCorriente",         SqlDbType.Decimal).Value = D2(r.ImpuestosCorrientesNoCorriente);
+                cmd.Parameters.Add("@decOtrosPasivosNoFinancierosNoCorriente",   SqlDbType.Decimal).Value = D2(r.OtrosPasivosNoFinancierosNoCorriente);
+                cmd.Parameters.Add("@decCapitalEmitido",                         SqlDbType.Decimal).Value = D2(r.CapitalEmitido);
+                cmd.Parameters.Add("@decPrimasEmision",                          SqlDbType.Decimal).Value = D2(r.PrimasEmision);
+                cmd.Parameters.Add("@decAccionesInversion",                      SqlDbType.Decimal).Value = D2(r.AccionesInversion);
+                cmd.Parameters.Add("@decAccionesCartera",                        SqlDbType.Decimal).Value = D2(r.AccionesCartera);
+                cmd.Parameters.Add("@decOtrasReservasCapital",                   SqlDbType.Decimal).Value = D2(r.OtrasReservasCapital);
+                cmd.Parameters.Add("@decResultadosAcumulados",                   SqlDbType.Decimal).Value = D2(r.ResultadosAcumulados);
+                cmd.Parameters.Add("@decOtrasReservasPatrimonio",                SqlDbType.Decimal).Value = D2(r.OtrasReservasPatrimonio);
+                cmd.Parameters.Add("@decIngresosOrdinarios",                     SqlDbType.Decimal).Value = D2(r.IngresosOrdinarios);
+                cmd.Parameters.Add("@decCostoVentas",                            SqlDbType.Decimal).Value = D2(r.CostoVentas);
+                cmd.Parameters.Add("@decGastosVentas",                           SqlDbType.Decimal).Value = D2(r.GastosVentas);
+                cmd.Parameters.Add("@decGastosAdministracion",                   SqlDbType.Decimal).Value = D2(r.GastosAdministracion);
+                cmd.Parameters.Add("@decOtrosIngresosOperativos",                SqlDbType.Decimal).Value = D2(r.OtrosIngresosOperativos);
+                cmd.Parameters.Add("@decOtrosGastosOperativos",                  SqlDbType.Decimal).Value = D2(r.OtrosGastosOperativos);
+                cmd.Parameters.Add("@decOtrasGananciasPerdidas",                 SqlDbType.Decimal).Value = D2(r.OtrasGananciasPerdidas);
+                cmd.Parameters.Add("@decIngresosFinancieros",                    SqlDbType.Decimal).Value = D2(r.IngresosFinancieros);
+                cmd.Parameters.Add("@decIngresosIntereses",                      SqlDbType.Decimal).Value = D2(r.IngresosIntereses);
+                cmd.Parameters.Add("@decGastosFinancieros",                      SqlDbType.Decimal).Value = D2(r.GastosFinancieros);
+                cmd.Parameters.Add("@decDeterioroValor",                         SqlDbType.Decimal).Value = D2(r.DeterioroValor);
+                cmd.Parameters.Add("@decOtrosIngresosSubsidiarias",              SqlDbType.Decimal).Value = D2(r.OtrosIngresosSubsidiarias);
+                cmd.Parameters.Add("@decDiferenciasCambio",                      SqlDbType.Decimal).Value = D2(r.DiferenciasCambio);
+                cmd.Parameters.Add("@decIngresoGastoImpuesto",                   SqlDbType.Decimal).Value = D2(r.IngresoGastoImpuesto);
+                cmd.Parameters.Add("@decOperacionesDescontinuadas",              SqlDbType.Decimal).Value = D2(r.OperacionesDescontinuadas);
+                await cn.OpenAsync();
+                return await LeerRespuestaAsync<InformeBalanceDesagregadoCalculado>(cmd);
+            }
+            catch (Exception ex)
+            {
+                return new Respuesta { IdTipoMensaje = 3, Mensaje = ex.Message, Result = new List<InformeBalanceDesagregadoCalculado>() };
+            }
+        }
+
+        public async Task<Respuesta> CalcularBalanceSeguroAsync(UsuarioGeneral u, InformeBalanceSeguroCalcularRequest r)
+        {
+            try
+            {
+                using SqlConnection cn = new(_dbConfig.ConnectionString);
+                using SqlCommand cmd = new("Informe_Balance_Seguro_Calcular", cn) { CommandType = CommandType.StoredProcedure };
+                cmd.Parameters.Add("@intIdUsuario",                          SqlDbType.Int).Value        = u.IdUsuario;
+                cmd.Parameters.Add("@vchUsuario",                            SqlDbType.VarChar, 32).Value = u.Usuario;
+                cmd.Parameters.Add("@intIdEmpresa",                          SqlDbType.Int).Value        = u.IdEmpresa;
+                cmd.Parameters.Add("@intIdRol",                              SqlDbType.Int).Value        = u.IdRol;
+                cmd.Parameters.Add("@decEfectivoDisponible",                 SqlDbType.Decimal).Value    = D2(r.EfectivoDisponible);
+                cmd.Parameters.Add("@decInversionesFinancieras",             SqlDbType.Decimal).Value    = D2(r.InversionesFinancieras);
+                cmd.Parameters.Add("@decPrestamosInteresesNetos",            SqlDbType.Decimal).Value    = D2(r.PrestamosInteresesNetos);
+                cmd.Parameters.Add("@decPrimasCobrar",                       SqlDbType.Decimal).Value    = D2(r.PrimasCobrar);
+                cmd.Parameters.Add("@decDeudasReaseguradores",               SqlDbType.Decimal).Value    = D2(r.DeudasReaseguradores);
+                cmd.Parameters.Add("@decActivosVenta",                       SqlDbType.Decimal).Value    = D2(r.ActivosVenta);
+                cmd.Parameters.Add("@decPropiedadesInversion",               SqlDbType.Decimal).Value    = D2(r.PropiedadesInversion);
+                cmd.Parameters.Add("@decPropiedadPlantaEquipo",              SqlDbType.Decimal).Value    = D2(r.PropiedadPlantaEquipo);
+                cmd.Parameters.Add("@decOtrosActivos",                       SqlDbType.Decimal).Value    = D2(r.OtrosActivos);
+                cmd.Parameters.Add("@decObligacionesAsegurados",             SqlDbType.Decimal).Value    = D2(r.ObligacionesAsegurados);
+                cmd.Parameters.Add("@decReservasSiniestros",                 SqlDbType.Decimal).Value    = D2(r.ReservasSiniestros);
+                cmd.Parameters.Add("@decReservasTecnicas",                   SqlDbType.Decimal).Value    = D2(r.ReservasTecnicas);
+                cmd.Parameters.Add("@decObligacionesReaseguradores",         SqlDbType.Decimal).Value    = D2(r.ObligacionesReaseguradores);
+                cmd.Parameters.Add("@decObligacionesFinancieras",            SqlDbType.Decimal).Value    = D2(r.ObligacionesFinancieras);
+                cmd.Parameters.Add("@decCuentasPagar",                       SqlDbType.Decimal).Value    = D2(r.CuentasPagar);
+                cmd.Parameters.Add("@decOtrosPasivos",                       SqlDbType.Decimal).Value    = D2(r.OtrosPasivos);
+                cmd.Parameters.Add("@decCapitalSocial",                      SqlDbType.Decimal).Value    = D2(r.CapitalSocial);
+                cmd.Parameters.Add("@decAportesCapitalNoCapitalizados",      SqlDbType.Decimal).Value    = D2(r.AportesCapitalNoCapitalizados);
+                cmd.Parameters.Add("@decResultadosAcumulados",               SqlDbType.Decimal).Value    = D2(r.ResultadosAcumulados);
+                cmd.Parameters.Add("@decPatrimonioRestringido",              SqlDbType.Decimal).Value    = D2(r.PatrimonioRestringido);
+                await cn.OpenAsync();
+                return await LeerRespuestaAsync<InformeBalanceSeguroCalculado>(cmd);
+            }
+            catch (Exception ex)
+            {
+                return new Respuesta { IdTipoMensaje = 3, Mensaje = ex.Message, Result = new List<InformeBalanceSeguroCalculado>() };
+            }
+        }
+
+        public async Task<Respuesta> CalcularBalanceBancoAsync(UsuarioGeneral u, InformeBalanceBancoCalcularRequest r)
+        {
+            try
+            {
+                using SqlConnection cn = new(_dbConfig.ConnectionString);
+                using SqlCommand cmd = new("Informe_Balance_Banco_Calcular", cn) { CommandType = CommandType.StoredProcedure };
+                cmd.Parameters.Add("@intIdUsuario",                      SqlDbType.Int).Value        = u.IdUsuario;
+                cmd.Parameters.Add("@vchUsuario",                        SqlDbType.VarChar, 32).Value = u.Usuario;
+                cmd.Parameters.Add("@intIdEmpresa",                      SqlDbType.Int).Value        = u.IdEmpresa;
+                cmd.Parameters.Add("@intIdRol",                          SqlDbType.Int).Value        = u.IdRol;
+                cmd.Parameters.Add("@decDisponible",                     SqlDbType.Decimal).Value    = D2(r.Disponible);
+                cmd.Parameters.Add("@decFondosInterbancarios",           SqlDbType.Decimal).Value    = D2(r.FondosInterbancarios);
+                cmd.Parameters.Add("@decInversionesValorRazonable",      SqlDbType.Decimal).Value    = D2(r.InversionesValorRazonable);
+                cmd.Parameters.Add("@decCarteraCreditos",                SqlDbType.Decimal).Value    = D2(r.CarteraCreditos);
+                cmd.Parameters.Add("@decDerivadosNegociacionActivo",     SqlDbType.Decimal).Value    = D2(r.DerivadosNegociacionActivo);
+                cmd.Parameters.Add("@decDerivadosCoberturaActivo",       SqlDbType.Decimal).Value    = D2(r.DerivadosCoberturaActivo);
+                cmd.Parameters.Add("@decBienesRealizables",              SqlDbType.Decimal).Value    = D2(r.BienesRealizables);
+                cmd.Parameters.Add("@decParticipacionesSubsidiarias",    SqlDbType.Decimal).Value    = D2(r.ParticipacionesSubsidiarias);
+                cmd.Parameters.Add("@decInmuebleMobiliarioEquipo",       SqlDbType.Decimal).Value    = D2(r.InmuebleMobiliarioEquipo);
+                cmd.Parameters.Add("@decImpuestoRentaDiferido",          SqlDbType.Decimal).Value    = D2(r.ImpuestoRentaDiferido);
+                cmd.Parameters.Add("@decOtrosActivos",                   SqlDbType.Decimal).Value    = D2(r.OtrosActivos);
+                cmd.Parameters.Add("@decObligacionesPublico",            SqlDbType.Decimal).Value    = D2(r.ObligacionesPublico);
+                cmd.Parameters.Add("@decFondosInterbancariosPasivo",     SqlDbType.Decimal).Value    = D2(r.FondosInterbancariosPasivo);
+                cmd.Parameters.Add("@decAdeudosFinancieras",             SqlDbType.Decimal).Value    = D2(r.AdeudosFinancieras);
+                cmd.Parameters.Add("@decDerivadosNegociacionPasivo",     SqlDbType.Decimal).Value    = D2(r.DerivadosNegociacionPasivo);
+                cmd.Parameters.Add("@decDerivadosCoberturaPasivo",       SqlDbType.Decimal).Value    = D2(r.DerivadosCoberturaPasivo);
+                cmd.Parameters.Add("@decCuentasPagarProvisiones",        SqlDbType.Decimal).Value    = D2(r.CuentasPagarProvisiones);
+                cmd.Parameters.Add("@decCapitalSocial",                  SqlDbType.Decimal).Value    = D2(r.CapitalSocial);
+                cmd.Parameters.Add("@decReservas",                       SqlDbType.Decimal).Value    = D2(r.Reservas);
+                cmd.Parameters.Add("@decResultadosNoRealizados",         SqlDbType.Decimal).Value    = D2(r.ResultadosNoRealizados);
+                cmd.Parameters.Add("@decResultadoEjercicio",             SqlDbType.Decimal).Value    = D2(r.ResultadoEjercicio);
+                await cn.OpenAsync();
+                return await LeerRespuestaAsync<InformeBalanceBancoCalculado>(cmd);
+            }
+            catch (Exception ex)
+            {
+                return new Respuesta { IdTipoMensaje = 3, Mensaje = ex.Message, Result = new List<InformeBalanceBancoCalculado>() };
+            }
+        }
+
+        public async Task<Respuesta> CalcularBalanceTurquiaAsync(UsuarioGeneral u, InformeBalanceTurquiaCalcularRequest r)
+        {
+            try
+            {
+                using SqlConnection cn = new(_dbConfig.ConnectionString);
+                using SqlCommand cmd = new("Informe_Balance_Turquia_Calcular", cn) { CommandType = CommandType.StoredProcedure };
+                cmd.Parameters.Add("@intIdUsuario",                SqlDbType.Int).Value         = u.IdUsuario;
+                cmd.Parameters.Add("@vchUsuario",                  SqlDbType.VarChar, 32).Value = u.Usuario;
+                cmd.Parameters.Add("@intIdEmpresa",                SqlDbType.Int).Value         = u.IdEmpresa;
+                cmd.Parameters.Add("@intIdRol",                    SqlDbType.Int).Value         = u.IdRol;
+                cmd.Parameters.Add("@decEfectivo",                 SqlDbType.Decimal).Value     = D2(r.Efectivo);
+                cmd.Parameters.Add("@decExistencias",              SqlDbType.Decimal).Value     = D2(r.Existencias);
+                cmd.Parameters.Add("@decDeudores",                 SqlDbType.Decimal).Value     = D2(r.Deudores);
+                cmd.Parameters.Add("@decBienesTongibles",          SqlDbType.Decimal).Value     = D2(r.BienesTongibles);
+                cmd.Parameters.Add("@decActivosIntangibles",       SqlDbType.Decimal).Value     = D2(r.ActivosIntangibles);
+                cmd.Parameters.Add("@decPrestamos",                SqlDbType.Decimal).Value     = D2(r.Prestamos);
+                cmd.Parameters.Add("@decAcreedores",               SqlDbType.Decimal).Value     = D2(r.Acreedores);
+                cmd.Parameters.Add("@decPasivosNoCorrientes",      SqlDbType.Decimal).Value     = D2(r.PasivosNoCorrientes);
+                cmd.Parameters.Add("@decPasivosLargoPlazo",        SqlDbType.Decimal).Value     = D2(r.PasivosLargoPlazo);
+                cmd.Parameters.Add("@decPatrimonio",               SqlDbType.Decimal).Value     = D2(r.Patrimonio);
+                cmd.Parameters.Add("@decVentasNetas",              SqlDbType.Decimal).Value     = D2(r.VentasNetas);
+                cmd.Parameters.Add("@decCostoVentas",              SqlDbType.Decimal).Value     = D2(r.CostoVentas);
+                cmd.Parameters.Add("@decOtrosGastosOperativos",    SqlDbType.Decimal).Value     = D2(r.OtrosGastosOperativos);
+                cmd.Parameters.Add("@decCostoEmpleados",           SqlDbType.Decimal).Value     = D2(r.CostoEmpleados);
+                cmd.Parameters.Add("@decDepreciacion",             SqlDbType.Decimal).Value     = D2(r.Depreciacion);
+                cmd.Parameters.Add("@decIngresosFinancieros",      SqlDbType.Decimal).Value     = D2(r.IngresosFinancieros);
+                cmd.Parameters.Add("@decGastosFinancieros",        SqlDbType.Decimal).Value     = D2(r.GastosFinancieros);
+                cmd.Parameters.Add("@decIngresosExtraordinarios",  SqlDbType.Decimal).Value     = D2(r.IngresosExtraordinarios);
+                cmd.Parameters.Add("@decGastosExtraordinarios",    SqlDbType.Decimal).Value     = D2(r.GastosExtraordinarios);
+                cmd.Parameters.Add("@decImpuestos",                SqlDbType.Decimal).Value     = D2(r.Impuestos);
+                cmd.Parameters.Add("@decCostoMateriales",          SqlDbType.Decimal).Value     = D2(r.CostoMateriales);
+                cmd.Parameters.Add("@decInteresesPagados",         SqlDbType.Decimal).Value     = D2(r.InteresesPagados);
+                cmd.Parameters.Add("@decCapital",                  SqlDbType.Decimal).Value     = D2(r.Capital);
+                cmd.Parameters.Add("@decEbit",                     SqlDbType.Decimal).Value     = D2(r.Ebit);
+                cmd.Parameters.Add("@decEbitda",                   SqlDbType.Decimal).Value     = D2(r.Ebitda);
+                cmd.Parameters.Add("@decGanancia",                 SqlDbType.Decimal).Value     = D2(r.Ganancia);
+                await cn.OpenAsync();
+                return await LeerRespuestaAsync<InformeBalanceTurquiaCalculado>(cmd);
+            }
+            catch (Exception ex)
+            {
+                return new Respuesta { IdTipoMensaje = 3, Mensaje = ex.Message, Result = new List<InformeBalanceTurquiaCalculado>() };
+            }
+        }
+
+        public async Task<Respuesta> CalcularBalanceTotalizadoAsync(UsuarioGeneral u, InformeBalanceTotalizadoCalcularRequest r)
+        {
+            try
+            {
+                using SqlConnection cn = new(_dbConfig.ConnectionString);
+                using SqlCommand cmd = new("Informe_Balance_Totalizado_Calcular", cn) { CommandType = CommandType.StoredProcedure };
+                cmd.Parameters.Add("@intIdUsuario",              SqlDbType.Int).Value        = u.IdUsuario;
+                cmd.Parameters.Add("@vchUsuario",                SqlDbType.VarChar, 32).Value = u.Usuario;
+                cmd.Parameters.Add("@intIdEmpresa",              SqlDbType.Int).Value        = u.IdEmpresa;
+                cmd.Parameters.Add("@intIdRol",                  SqlDbType.Int).Value        = u.IdRol;
+                cmd.Parameters.Add("@decTotalActivoCorriente",   SqlDbType.Decimal).Value    = Math.Round(r.TotalActivoCorriente,   2, MidpointRounding.AwayFromZero);
+                cmd.Parameters.Add("@decTotalActivoNoCorriente", SqlDbType.Decimal).Value    = Math.Round(r.TotalActivoNoCorriente, 2, MidpointRounding.AwayFromZero);
+                cmd.Parameters.Add("@decTotalPasivoCorriente",   SqlDbType.Decimal).Value    = Math.Round(r.TotalPasivoCorriente,   2, MidpointRounding.AwayFromZero);
+                cmd.Parameters.Add("@decTotalPasivoNoCorriente", SqlDbType.Decimal).Value    = Math.Round(r.TotalPasivoNoCorriente, 2, MidpointRounding.AwayFromZero);
+                cmd.Parameters.Add("@decTotalPatrimonio",        SqlDbType.Decimal).Value    = Math.Round(r.TotalPatrimonio,        2, MidpointRounding.AwayFromZero);
+                cmd.Parameters.Add("@decIngresosOrdinarios",     SqlDbType.Decimal).Value    = Math.Round(r.IngresosOrdinarios,     2, MidpointRounding.AwayFromZero);
+                cmd.Parameters.Add("@decGananciaNeta",           SqlDbType.Decimal).Value    = Math.Round(r.GananciaNeta,           2, MidpointRounding.AwayFromZero);
+                await cn.OpenAsync();
+                return await LeerRespuestaAsync<InformeBalanceTotalizadoCalculado>(cmd);
+            }
+            catch (Exception ex)
+            {
+                return new Respuesta { IdTipoMensaje = 3, Mensaje = ex.Message, Result = new List<InformeBalanceTotalizadoCalculado>() };
             }
         }
 
