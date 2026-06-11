@@ -268,6 +268,18 @@ namespace SafetyReport.Handlers
             }
         }
 
+        public async Task<Respuesta> CalcularBalanceTotalizadoAsync(UsuarioGeneral usuarioLogueado, InformeBalanceTotalizadoCalcularRequest request)
+        {
+            try
+            {
+                return await _dao.CalcularBalanceTotalizadoAsync(usuarioLogueado, request);
+            }
+            catch (Exception ex)
+            {
+                return new Respuesta { IdTipoMensaje = 3, Mensaje = "Error interno del servidor.", Result = new List<InformeBalanceTotalizadoCalculado>() };
+            }
+        }
+
         public async Task<Respuesta> EliminarAsync(UsuarioGeneral usuarioLogueado, InformeIdRequest request)
         {
             try

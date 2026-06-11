@@ -1053,6 +1053,30 @@ namespace SafetyReport.DAO
             }
         }
 
+        public async Task<Respuesta> CalcularBalanceTotalizadoAsync(UsuarioGeneral u, InformeBalanceTotalizadoCalcularRequest r)
+        {
+            try
+            {
+                using var cmd = new SqlCommand("Informe_Balance_Totalizado_Calcular", _connection) { CommandType = CommandType.StoredProcedure };
+                cmd.Parameters.Add("@intIdUsuario",              SqlDbType.Int).Value     = u.IdUsuario;
+                cmd.Parameters.Add("@vchUsuario",                SqlDbType.VarChar, 32).Value = u.Usuario;
+                cmd.Parameters.Add("@intIdEmpresa",              SqlDbType.Int).Value     = u.IdEmpresa;
+                cmd.Parameters.Add("@intIdRol",                  SqlDbType.Int).Value     = u.IdRol;
+                cmd.Parameters.Add("@decTotalActivoCorriente",   SqlDbType.Decimal).Value = D2(r.TotalActivoCorriente);
+                cmd.Parameters.Add("@decTotalActivoNoCorriente", SqlDbType.Decimal).Value = D2(r.TotalActivoNoCorriente);
+                cmd.Parameters.Add("@decTotalPasivoCorriente",   SqlDbType.Decimal).Value = D2(r.TotalPasivoCorriente);
+                cmd.Parameters.Add("@decTotalPasivoNoCorriente", SqlDbType.Decimal).Value = D2(r.TotalPasivoNoCorriente);
+                cmd.Parameters.Add("@decTotalPatrimonio",        SqlDbType.Decimal).Value = D2(r.TotalPatrimonio);
+                cmd.Parameters.Add("@decIngresosOrdinarios",     SqlDbType.Decimal).Value = D2(r.IngresosOrdinarios);
+                cmd.Parameters.Add("@decGananciaNeta",           SqlDbType.Decimal).Value = D2(r.GananciaNeta);
+                return await LeerRespuestaAsync<InformeBalanceTotalizadoCalculado>(cmd);
+            }
+            catch (Exception ex)
+            {
+                return new Respuesta { IdTipoMensaje = 3, Mensaje = ex.Message, Result = new List<InformeBalanceTotalizadoCalculado>() };
+            }
+        }
+
         public async Task<Respuesta> EliminarAsync(UsuarioGeneral u, int idInforme)
         {
             try

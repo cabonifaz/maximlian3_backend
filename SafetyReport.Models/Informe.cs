@@ -447,6 +447,28 @@ namespace SafetyReport.Models
         public int IdInforme { get; set; }
     }
 
+    public class InformeBalanceTotalizadoCalcularRequest
+    {
+        public decimal TotalActivoCorriente { get; set; }
+        public decimal TotalActivoNoCorriente { get; set; }
+        public decimal TotalPasivoCorriente { get; set; }
+        public decimal TotalPasivoNoCorriente { get; set; }
+        public decimal TotalPatrimonio { get; set; }
+        public decimal IngresosOrdinarios { get; set; }
+        public decimal GananciaNeta { get; set; }
+    }
+
+    public class InformeBalanceTotalizadoCalculado
+    {
+        public decimal TotalActivo { get; set; }
+        public decimal TotalPasivos { get; set; }
+        public decimal TotalPasivoPatrimonio { get; set; }
+        public decimal? IndiceLiquidez { get; set; }
+        public decimal CapitalTrabajo { get; set; }
+        public decimal? RatioEndeudamiento { get; set; }
+        public decimal? RatioRentabilidad { get; set; }
+    }
+
     public class InformeLocalImagenEstadoCargaRequest
     {
         public List<int> Ids { get; set; } = new();
