@@ -553,6 +553,41 @@ namespace SafetyReport.Models
         public decimal? RatioRentabilidad { get; set; }
     }
 
+    public class InformeBalanceSeguroCalcularRequest
+    {
+        // Activo
+        public decimal? EfectivoDisponible { get; set; }
+        public decimal? InversionesFinancieras { get; set; }
+        public decimal? PrestamosInteresesNetos { get; set; }
+        public decimal? PrimasCobrar { get; set; }
+        public decimal? DeudasReaseguradores { get; set; }
+        public decimal? ActivosVenta { get; set; }
+        public decimal? PropiedadesInversion { get; set; }
+        public decimal? PropiedadPlantaEquipo { get; set; }
+        public decimal? OtrosActivos { get; set; }
+        // Pasivo
+        public decimal? ObligacionesAsegurados { get; set; }
+        public decimal? ReservasSiniestros { get; set; }
+        public decimal? ReservasTecnicas { get; set; }
+        public decimal? ObligacionesReaseguradores { get; set; }
+        public decimal? ObligacionesFinancieras { get; set; }
+        public decimal? CuentasPagar { get; set; }
+        public decimal? OtrosPasivos { get; set; }
+        // Patrimonio
+        public decimal? CapitalSocial { get; set; }
+        public decimal? AportesCapitalNoCapitalizados { get; set; }
+        public decimal? ResultadosAcumulados { get; set; }
+        public decimal? PatrimonioRestringido { get; set; }
+    }
+
+    public class InformeBalanceSeguroCalculado
+    {
+        public decimal TotalActivos { get; set; }
+        public decimal TotalPasivo { get; set; }
+        public decimal TotalPatrimonio { get; set; }
+        public decimal TotalPasivoPatrimonio { get; set; }
+    }
+
     public class InformeBalanceBancoCalcularRequest
     {
         // Activo

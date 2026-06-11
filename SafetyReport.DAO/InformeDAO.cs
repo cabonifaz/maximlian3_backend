@@ -1132,6 +1132,45 @@ namespace SafetyReport.DAO
             }
         }
 
+        public async Task<Respuesta> CalcularBalanceSeguroAsync(UsuarioGeneral u, InformeBalanceSeguroCalcularRequest r)
+        {
+            try
+            {
+                using SqlConnection cn = new(_dbConfig.ConnectionString);
+                using SqlCommand cmd = new("Informe_Balance_Seguro_Calcular", cn) { CommandType = CommandType.StoredProcedure };
+                cmd.Parameters.Add("@intIdUsuario",                          SqlDbType.Int).Value        = u.IdUsuario;
+                cmd.Parameters.Add("@vchUsuario",                            SqlDbType.VarChar, 32).Value = u.Usuario;
+                cmd.Parameters.Add("@intIdEmpresa",                          SqlDbType.Int).Value        = u.IdEmpresa;
+                cmd.Parameters.Add("@intIdRol",                              SqlDbType.Int).Value        = u.IdRol;
+                cmd.Parameters.Add("@decEfectivoDisponible",                 SqlDbType.Decimal).Value    = D2(r.EfectivoDisponible);
+                cmd.Parameters.Add("@decInversionesFinancieras",             SqlDbType.Decimal).Value    = D2(r.InversionesFinancieras);
+                cmd.Parameters.Add("@decPrestamosInteresesNetos",            SqlDbType.Decimal).Value    = D2(r.PrestamosInteresesNetos);
+                cmd.Parameters.Add("@decPrimasCobrar",                       SqlDbType.Decimal).Value    = D2(r.PrimasCobrar);
+                cmd.Parameters.Add("@decDeudasReaseguradores",               SqlDbType.Decimal).Value    = D2(r.DeudasReaseguradores);
+                cmd.Parameters.Add("@decActivosVenta",                       SqlDbType.Decimal).Value    = D2(r.ActivosVenta);
+                cmd.Parameters.Add("@decPropiedadesInversion",               SqlDbType.Decimal).Value    = D2(r.PropiedadesInversion);
+                cmd.Parameters.Add("@decPropiedadPlantaEquipo",              SqlDbType.Decimal).Value    = D2(r.PropiedadPlantaEquipo);
+                cmd.Parameters.Add("@decOtrosActivos",                       SqlDbType.Decimal).Value    = D2(r.OtrosActivos);
+                cmd.Parameters.Add("@decObligacionesAsegurados",             SqlDbType.Decimal).Value    = D2(r.ObligacionesAsegurados);
+                cmd.Parameters.Add("@decReservasSiniestros",                 SqlDbType.Decimal).Value    = D2(r.ReservasSiniestros);
+                cmd.Parameters.Add("@decReservasTecnicas",                   SqlDbType.Decimal).Value    = D2(r.ReservasTecnicas);
+                cmd.Parameters.Add("@decObligacionesReaseguradores",         SqlDbType.Decimal).Value    = D2(r.ObligacionesReaseguradores);
+                cmd.Parameters.Add("@decObligacionesFinancieras",            SqlDbType.Decimal).Value    = D2(r.ObligacionesFinancieras);
+                cmd.Parameters.Add("@decCuentasPagar",                       SqlDbType.Decimal).Value    = D2(r.CuentasPagar);
+                cmd.Parameters.Add("@decOtrosPasivos",                       SqlDbType.Decimal).Value    = D2(r.OtrosPasivos);
+                cmd.Parameters.Add("@decCapitalSocial",                      SqlDbType.Decimal).Value    = D2(r.CapitalSocial);
+                cmd.Parameters.Add("@decAportesCapitalNoCapitalizados",      SqlDbType.Decimal).Value    = D2(r.AportesCapitalNoCapitalizados);
+                cmd.Parameters.Add("@decResultadosAcumulados",               SqlDbType.Decimal).Value    = D2(r.ResultadosAcumulados);
+                cmd.Parameters.Add("@decPatrimonioRestringido",              SqlDbType.Decimal).Value    = D2(r.PatrimonioRestringido);
+                await cn.OpenAsync();
+                return await LeerRespuestaAsync<InformeBalanceSeguroCalculado>(cmd);
+            }
+            catch (Exception ex)
+            {
+                return new Respuesta { IdTipoMensaje = 3, Mensaje = ex.Message, Result = new List<InformeBalanceSeguroCalculado>() };
+            }
+        }
+
         public async Task<Respuesta> CalcularBalanceBancoAsync(UsuarioGeneral u, InformeBalanceBancoCalcularRequest r)
         {
             try
