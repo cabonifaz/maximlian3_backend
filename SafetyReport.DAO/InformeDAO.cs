@@ -482,6 +482,10 @@ namespace SafetyReport.DAO
             t.Columns.Add("TotalPasivosNoCorrientes", typeof(decimal));
             t.Columns.Add("TotalPasivos", typeof(decimal));
             t.Columns.Add("Capital", typeof(decimal));
+            t.Columns.Add("Reservas", typeof(decimal));
+            t.Columns.Add("ResultadosAcumulados", typeof(decimal));
+            t.Columns.Add("ResultadoEjercicio", typeof(decimal));
+            t.Columns.Add("OtrasCuentas", typeof(decimal));
             t.Columns.Add("Patrimonio", typeof(decimal));
             t.Columns.Add("TotalPatrimonio", typeof(decimal));
             t.Columns.Add("TotalPasivosPatrimonio", typeof(decimal));
@@ -534,6 +538,10 @@ namespace SafetyReport.DAO
                     D2(x.TotalPasivosNoCorrientes),
                     D2(x.TotalPasivos),
                     D2(x.Capital),
+                    D2(x.Reservas),
+                    D2(x.ResultadosAcumulados),
+                    D2(x.ResultadoEjercicio),
+                    D2(x.OtrasCuentas),
                     D2(x.Patrimonio),
                     D2(x.TotalPatrimonio),
                     D2(x.TotalPasivosPatrimonio),

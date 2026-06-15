@@ -198,6 +198,10 @@ namespace SafetyReport.Models
         public decimal? TotalPasivosNoCorrientes { get; set; }
         public decimal? TotalPasivos { get; set; }
         public decimal? Capital { get; set; }
+        public decimal? Reservas { get; set; }
+        public decimal? ResultadosAcumulados { get; set; }
+        public decimal? ResultadoEjercicio { get; set; }
+        public decimal? OtrasCuentas { get; set; }
         public decimal? Patrimonio { get; set; }
         public decimal? TotalPatrimonio { get; set; }
         public decimal? TotalPasivosPatrimonio { get; set; }
