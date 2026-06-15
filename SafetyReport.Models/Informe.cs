@@ -800,6 +800,8 @@ namespace SafetyReport.Models
         public int EnProceso { get; set; }
         public int Aprobado { get; set; }
         public int PendienteAprobacion { get; set; }
+        public int Vigente { get; set; }
+        public int Vencido { get; set; }
     }
 
     // ── Detail (Obtener) ─────────────────────────────────────────────────────────
