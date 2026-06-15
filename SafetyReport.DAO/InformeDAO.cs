@@ -482,6 +482,10 @@ namespace SafetyReport.DAO
             t.Columns.Add("TotalPasivosNoCorrientes", typeof(decimal));
             t.Columns.Add("TotalPasivos", typeof(decimal));
             t.Columns.Add("Capital", typeof(decimal));
+            t.Columns.Add("Reservas", typeof(decimal));
+            t.Columns.Add("ResultadosAcumulados", typeof(decimal));
+            t.Columns.Add("ResultadoEjercicio", typeof(decimal));
+            t.Columns.Add("OtrasCuentas", typeof(decimal));
             t.Columns.Add("Patrimonio", typeof(decimal));
             t.Columns.Add("TotalPatrimonio", typeof(decimal));
             t.Columns.Add("TotalPasivosPatrimonio", typeof(decimal));
@@ -534,6 +538,10 @@ namespace SafetyReport.DAO
                     D2(x.TotalPasivosNoCorrientes),
                     D2(x.TotalPasivos),
                     D2(x.Capital),
+                    D2(x.Reservas),
+                    D2(x.ResultadosAcumulados),
+                    D2(x.ResultadoEjercicio),
+                    D2(x.OtrasCuentas),
                     D2(x.Patrimonio),
                     D2(x.TotalPatrimonio),
                     D2(x.TotalPasivosPatrimonio),
@@ -1231,6 +1239,10 @@ namespace SafetyReport.DAO
                 cmd.Parameters.Add("@decPasivosNoCorrientes",      SqlDbType.Decimal).Value     = D2(r.PasivosNoCorrientes);
                 cmd.Parameters.Add("@decPasivosLargoPlazo",        SqlDbType.Decimal).Value     = D2(r.PasivosLargoPlazo);
                 cmd.Parameters.Add("@decPatrimonio",               SqlDbType.Decimal).Value     = D2(r.Patrimonio);
+                cmd.Parameters.Add("@decReservas",                 SqlDbType.Decimal).Value     = D2(r.Reservas);
+                cmd.Parameters.Add("@decResultadosAcumulados",     SqlDbType.Decimal).Value     = D2(r.ResultadosAcumulados);
+                cmd.Parameters.Add("@decPerdidaGanancias",         SqlDbType.Decimal).Value     = D2(r.PerdidaGanancias);
+                cmd.Parameters.Add("@decOtrasCuentas",             SqlDbType.Decimal).Value     = D2(r.OtrasCuentas);
                 cmd.Parameters.Add("@decVentasNetas",              SqlDbType.Decimal).Value     = D2(r.VentasNetas);
                 cmd.Parameters.Add("@decCostoVentas",              SqlDbType.Decimal).Value     = D2(r.CostoVentas);
                 cmd.Parameters.Add("@decOtrosGastosOperativos",    SqlDbType.Decimal).Value     = D2(r.OtrosGastosOperativos);
