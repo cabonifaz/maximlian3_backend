@@ -795,6 +795,13 @@ namespace SafetyReport.Models
         public List<InformeListaConsulta> lstInformes { get; set; } = new();
         public int TotalRegistros { get; set; }
         public int TotalPaginas { get; set; }
+        public int Asignado { get; set; }
+        public int Rechazado { get; set; }
+        public int EnProceso { get; set; }
+        public int Aprobado { get; set; }
+        public int PendienteAprobacion { get; set; }
+        public int Vigente { get; set; }
+        public int Vencido { get; set; }
     }
 
     // ── Detail (Obtener) ─────────────────────────────────────────────────────────

@@ -158,6 +158,11 @@ namespace SafetyReport.Models
         public List<PedidoListaConsulta> lstPedido { get; set; } = new();
         public int TotalRegistros { get; set; }
         public int TotalPaginas { get; set; }
+        public int Pendiente { get; set; }
+        public int EnRevision { get; set; }
+        public int Aprobado { get; set; }
+        public int Observado { get; set; }
+        public int Cancelado { get; set; }
     }
 
     public class FiltroPedidoAsignacion
