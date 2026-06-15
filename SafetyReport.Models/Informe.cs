@@ -636,6 +636,10 @@ namespace SafetyReport.Models
         public decimal? PasivosNoCorrientes { get; set; }
         public decimal? PasivosLargoPlazo { get; set; }
         public decimal? Patrimonio { get; set; }
+        public decimal? Reservas { get; set; }
+        public decimal? ResultadosAcumulados { get; set; }
+        public decimal? PerdidaGanancias { get; set; }
+        public decimal? OtrasCuentas { get; set; }
         public decimal? VentasNetas { get; set; }
         public decimal? CostoVentas { get; set; }
         public decimal? OtrosGastosOperativos { get; set; }
@@ -669,6 +673,8 @@ namespace SafetyReport.Models
         public decimal? PlExtraordinario { get; set; }
         public decimal? GananciaAntesImpuestos { get; set; }
         public decimal? GananciaNeta { get; set; }
+        public decimal? Ebit { get; set; }
+        public decimal? Ebitda { get; set; }
         public decimal? IndiceLiquidez { get; set; }
         public decimal? CapitalTrabajo { get; set; }
         public decimal? RatioEndeudamiento { get; set; }
