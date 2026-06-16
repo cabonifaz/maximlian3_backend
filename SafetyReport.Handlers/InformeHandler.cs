@@ -10,14 +10,18 @@ namespace SafetyReport.Handlers
     public class InformeHandler
     {
         private readonly InformeDAO _dao;
+        private readonly PedidoDAO _pedidoDAO;
+        private readonly PlantillaDocumentoDAO _plantillaDAO;
         private readonly IS3UploadService _s3;
         private readonly N8nService _n8n;
         private readonly N8nConfig _n8nConfig;
         private readonly int _s3ExpirationMinutes;
 
-        public InformeHandler(InformeDAO dao, IS3UploadService s3, N8nService n8n, N8nConfig n8nConfig, IConfiguration configuration)
+        public InformeHandler(InformeDAO dao, PedidoDAO pedidoDAO, PlantillaDocumentoDAO plantillaDAO, IS3UploadService s3, N8nService n8n, N8nConfig n8nConfig, IConfiguration configuration)
         {
             _dao = dao;
+            _pedidoDAO = pedidoDAO;
+            _plantillaDAO = plantillaDAO;
             _s3 = s3;
             _n8n = n8n;
             _n8nConfig = n8nConfig;
@@ -433,6 +437,182 @@ namespace SafetyReport.Handlers
             {
                 return new Respuesta { IdTipoMensaje = 3, Mensaje = "Error interno del servidor.", Result = null };
             }
+        }
+
+        public async Task<Respuesta> GenerarDocumentoAsync(UsuarioGeneral usuarioLogueado, FiltroGenerarDocumento request)
+        {
+            try
+            {
+                // 1. Get pedido to resolve IdPlantilla
+                var pedidoRespuesta = await _pedidoDAO.ObtenerAsync(usuarioLogueado, new FiltroPedidoObtener { idPedido = request.IdPedido });
+                if (pedidoRespuesta.IdTipoMensaje != 2 || pedidoRespuesta.Result is not List<PedidoConsulta> pedidos || pedidos.Count == 0)
+                    return new Respuesta { IdTipoMensaje = 1, Mensaje = "Pedido no encontrado.", Result = null };
+
+                var pedido = pedidos[0];
+
+                // 2. Get template
+                var plantilla = await _plantillaDAO.ObtenerPorIdAsync(pedido.IdPlantilla);
+                if (plantilla is null)
+                    return new Respuesta { IdTipoMensaje = 1, Mensaje = "Plantilla no encontrada.", Result = null };
+
+                // 3. Get informe data
+                var informeRespuesta = await _dao.ObtenerAsync(usuarioLogueado, request.IdPedido);
+                if (informeRespuesta.IdTipoMensaje != 2 || informeRespuesta.Result is not List<InformeConsulta> informes || informes.Count == 0)
+                    return new Respuesta { IdTipoMensaje = 1, Mensaje = "Informe no encontrado.", Result = null };
+
+                // 4. Map data onto template structure
+                var informeJson   = JsonSerializer.SerializeToNode(informes[0]);
+                var pedidoJson    = JsonSerializer.SerializeToNode(pedido);
+                var estructuraStr = MapearPlantilla(plantilla.Estructura, informeJson, pedidoJson);
+                var estructura    = JsonNode.Parse(estructuraStr);
+
+                return new Respuesta
+                {
+                    IdTipoMensaje = 2,
+                    Mensaje       = "Documento generado correctamente.",
+                    Result        = estructura
+                };
+            }
+            catch (Exception)
+            {
+                return new Respuesta { IdTipoMensaje = 3, Mensaje = "Error interno del servidor.", Result = null };
+            }
+        }
+
+        private static string MapearPlantilla(string estructura, JsonNode? informe, JsonNode? pedido)
+        {
+            var node = JsonNode.Parse(estructura) ?? throw new InvalidOperationException("Estructura inválida.");
+            MapearNodo(node, informe, pedido);
+            return node.ToJsonString();
+        }
+
+        private static void MapearNodo(JsonNode node, JsonNode? informe, JsonNode? pedido)
+        {
+            switch (node)
+            {
+                case JsonObject obj:
+                    // Expand "each" iteration blocks
+                    if (obj["type"]?.GetValue<string>() == "each" && obj["source"] is JsonValue src)
+                    {
+                        var sourceKey = src.GetValue<string>();
+                        var array     = informe?[sourceKey] as JsonArray ?? new JsonArray();
+                        var bloques   = (obj["blocks"] as JsonArray)?.ToList() ?? new List<JsonNode?>();
+                        obj.Remove("blocks");
+
+                        var expanded = new JsonArray();
+                        foreach (var item in array)
+                        {
+                            foreach (var bloque in bloques)
+                            {
+                                var bloqueStr  = bloque?.ToJsonString() ?? "{}";
+                                var bloqueNode = JsonNode.Parse(bloqueStr)!;
+                                MapearNodoConItem(bloqueNode, informe, pedido, item);
+                                expanded.Add(bloqueNode);
+                            }
+                        }
+                        obj["blocks"] = expanded;
+                        return;
+                    }
+
+                    // Expand table with "each" + "rowTemplate"
+                    if (obj["each"] is JsonValue eachVal && obj["rowTemplate"] is JsonArray rowTemplate)
+                    {
+                        var sourceKey = eachVal.GetValue<string>();
+                        var array     = informe?[sourceKey] as JsonArray ?? new JsonArray();
+                        var rows      = new JsonArray();
+
+                        foreach (var item in array)
+                        {
+                            var condition = obj["condition"]?.GetValue<string>();
+                            if (condition != null && !(item?[condition]?.GetValue<bool>() ?? false))
+                                continue;
+
+                            var rowStr  = rowTemplate.ToJsonString();
+                            var rowNode = JsonNode.Parse(rowStr)!;
+                            MapearNodoConItem(rowNode, informe, pedido, item);
+                            rows.Add(rowNode);
+                        }
+
+                        obj.Remove("each");
+                        obj.Remove("rowTemplate");
+                        obj.Remove("condition");
+                        obj["rows"] = rows;
+                        return;
+                    }
+
+                    foreach (var key in obj.Select(kv => kv.Key).ToList())
+                        if (obj[key] is JsonNode child)
+                            MapearNodo(child, informe, pedido);
+                    break;
+
+                case JsonArray arr:
+                    foreach (var item in arr)
+                        if (item != null)
+                            MapearNodo(item, informe, pedido);
+                    break;
+
+                case JsonValue val:
+                    // handled at parent level (strings inside arrays/objects)
+                    break;
+            }
+        }
+
+        private static void MapearNodoConItem(JsonNode node, JsonNode? informe, JsonNode? pedido, JsonNode? item)
+        {
+            switch (node)
+            {
+                case JsonObject obj:
+                    foreach (var key in obj.Select(kv => kv.Key).ToList())
+                        if (obj[key] is JsonNode child)
+                            MapearNodoConItem(child, informe, pedido, item);
+                    break;
+
+                case JsonArray arr:
+                    for (int i = 0; i < arr.Count; i++)
+                        if (arr[i] is JsonNode child)
+                            MapearNodoConItem(child, informe, pedido, item);
+                    break;
+            }
+        }
+
+        private static JsonNode ReemplazarTexto(JsonNode node, JsonNode? informe, JsonNode? pedido, JsonNode? item = null)
+        {
+            if (node is not JsonValue val || val.GetValueKind() != System.Text.Json.JsonValueKind.String)
+                return node;
+
+            var texto = val.GetValue<string>();
+            texto = System.Text.RegularExpressions.Regex.Replace(texto, @"\{\{([^}]+)\}\}", match =>
+            {
+                var campo = match.Groups[1].Value.Trim();
+
+                if (campo.StartsWith("pedido."))
+                    return ResolverCampo(pedido, campo["pedido.".Length..]) ?? match.Value;
+
+                // Dot notation: CuentaBalance.Field → item["CuentaBalance"]["Field"]
+                var partes = campo.Split('.');
+                if (partes.Length > 1)
+                {
+                    JsonNode? cursor = item;
+                    foreach (var parte in partes)
+                        cursor = cursor?[parte];
+                    return cursor?.ToString() ?? match.Value;
+                }
+
+                return ResolverCampo(item, campo)
+                    ?? ResolverCampo(informe, campo)
+                    ?? match.Value;
+            });
+
+            return JsonValue.Create(texto)!;
+        }
+
+        private static string? ResolverCampo(JsonNode? source, string campo)
+        {
+            if (source is null) return null;
+            var valor = source[campo];
+            return valor is null || valor.GetValueKind() == System.Text.Json.JsonValueKind.Null
+                ? null
+                : valor.ToString();
         }
     }
 }
