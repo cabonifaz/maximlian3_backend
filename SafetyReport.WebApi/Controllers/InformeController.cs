@@ -56,9 +56,9 @@ namespace SafetyReport.WebApi.Controllers
         }
 
         [HttpPost("generarUrlsArchivo")]
-        public IActionResult GenerarUrlsArchivo([FromBody] InformeArchivoUrlRequest request)
+        public async Task<IActionResult> GenerarUrlsArchivo([FromBody] InformeArchivoUrlRequest request)
         {
-            var respuesta = _informeHandler.GenerarUrlsArchivoAsync(request);
+            var respuesta = await _informeHandler.GenerarUrlsArchivoAsync(UsuarioLogueado, request);
             return Ok(respuesta);
         }
 

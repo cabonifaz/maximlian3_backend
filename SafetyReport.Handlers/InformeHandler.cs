@@ -126,16 +126,26 @@ namespace SafetyReport.Handlers
             }
         }
 
-        public Respuesta GenerarUrlsArchivoAsync(InformeArchivoUrlRequest request)
+        public async Task<Respuesta> GenerarUrlsArchivoAsync(UsuarioGeneral usuarioLogueado, InformeArchivoUrlRequest request)
         {
             try
             {
+                var idInforme = request.IdInforme;
+
+                if (idInforme == 0)
+                {
+                    var resultado = await _dao.ObtenerOCrearInformeAsync(usuarioLogueado, request.IdPedido);
+                    if (resultado.IdTipoMensaje != 2 || resultado.Result is not List<InformeIdResult> ids || ids.Count == 0)
+                        return new Respuesta { IdTipoMensaje = resultado.IdTipoMensaje, Mensaje = resultado.Mensaje, Result = new List<InformeArchivoUrlResult>() };
+                    idInforme = ids[0].IdInforme;
+                }
+
                 var pendientes = new List<InformeArchivoPendiente>();
                 foreach (var nombre in request.Nombres)
                 {
                     var ext = Path.GetExtension(nombre);
                     var nombreSinExt = Path.GetFileNameWithoutExtension(nombre);
-                    var s3Key = $"informes/pedido-{request.IdPedido}/adjunto/{nombreSinExt}-{DateTimeOffset.UtcNow.ToUnixTimeMilliseconds()}{ext}";
+                    var s3Key = $"informes/pedido-{request.IdPedido}/informe-{idInforme}/adjunto/{nombreSinExt}-{DateTimeOffset.UtcNow.ToUnixTimeMilliseconds()}{ext}";
                     pendientes.Add(new InformeArchivoPendiente
                     {
                         Nombre = nombre,
@@ -144,11 +154,12 @@ namespace SafetyReport.Handlers
                     });
                 }
 
-                return new Respuesta { IdTipoMensaje = 2, Mensaje = "URLs generadas correctamente.", Result = pendientes };
+                var result = new InformeArchivoUrlResult { IdInforme = idInforme, Archivos = pendientes };
+                return new Respuesta { IdTipoMensaje = 2, Mensaje = "URLs generadas correctamente.", Result = result };
             }
             catch (Exception)
             {
-                return new Respuesta { IdTipoMensaje = 3, Mensaje = "Error interno del servidor.", Result = new List<InformeArchivoPendiente>() };
+                return new Respuesta { IdTipoMensaje = 3, Mensaje = "Error interno del servidor.", Result = new List<InformeArchivoUrlResult>() };
             }
         }
 

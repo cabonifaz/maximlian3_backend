@@ -753,6 +753,7 @@ namespace SafetyReport.Models
     public class InformeArchivoUrlRequest
     {
         public int IdPedido { get; set; }
+        public int IdInforme { get; set; }
         public List<string> Nombres { get; set; } = new();
     }
 
@@ -761,6 +762,17 @@ namespace SafetyReport.Models
         public string Nombre { get; set; } = string.Empty;
         public string ArchivoUrl { get; set; } = string.Empty;
         public string UploadUrl { get; set; } = string.Empty;
+    }
+
+    public class InformeArchivoUrlResult
+    {
+        public int IdInforme { get; set; }
+        public List<InformeArchivoPendiente> Archivos { get; set; } = new();
+    }
+
+    public class InformeIdResult
+    {
+        public int IdInforme { get; set; }
     }
 
     // ── Filters ──────────────────────────────────────────────────────────────────
