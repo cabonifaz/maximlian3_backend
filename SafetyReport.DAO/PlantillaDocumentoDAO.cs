@@ -1,6 +1,7 @@
 using Microsoft.Data.SqlClient;
 using SafetyReport.Models;
 using System.Data;
+using System.Text.Json;
 
 namespace SafetyReport.DAO
 {
@@ -17,7 +18,7 @@ namespace SafetyReport.DAO
         {
             using SqlConnection cn = new(_dbConfig.ConnectionString);
             using SqlCommand cmd = new(
-                "SELECT IdPlantillaDocumento, Nombre, Descripcion, Formato, Estructura " +
+                "SELECT IdPlantillaDocumento, Nombre, Descripcion, Formato, Estructura, Imagenes " +
                 "FROM PLANTILLA_DOCUMENTO " +
                 "WHERE IdPlantillaDocumento = @id AND SoftDelete = 0", cn);
 
@@ -33,7 +34,9 @@ namespace SafetyReport.DAO
                 Nombre               = dr["Nombre"]?.ToString() ?? string.Empty,
                 Descripcion          = dr["Descripcion"]?.ToString(),
                 Formato              = dr["Formato"]?.ToString() ?? string.Empty,
-                Estructura           = dr["Estructura"]?.ToString() ?? string.Empty
+                Estructura           = dr["Estructura"]?.ToString() ?? string.Empty,
+                Imagenes             = JsonSerializer.Deserialize<List<string>>(
+                                           dr["Imagenes"]?.ToString() ?? "[]") ?? new()
             };
         }
     }

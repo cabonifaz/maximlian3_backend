@@ -464,7 +464,14 @@ namespace SafetyReport.Handlers
                 var informeJson   = JsonSerializer.SerializeToNode(informes[0]);
                 var pedidoJson    = JsonSerializer.SerializeToNode(pedido);
                 var estructuraStr = MapearPlantilla(plantilla.Estructura, informeJson, pedidoJson);
-                var estructura    = JsonNode.Parse(estructuraStr);
+
+                // 5. Replace image S3 keys with presigned URLs
+                foreach (var key in plantilla.Imagenes)
+                    estructuraStr = estructuraStr.Replace(
+                        $"\"{key}\"",
+                        $"\"{_s3.GenerarDownloadUrl(key)}\"");
+
+                var estructura = JsonNode.Parse(estructuraStr);
 
                 return new Respuesta
                 {

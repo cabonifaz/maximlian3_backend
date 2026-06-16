@@ -7,6 +7,7 @@ namespace SafetyReport.Models
         public string? Descripcion { get; set; }
         public string Formato { get; set; } = string.Empty;
         public string Estructura { get; set; } = string.Empty;
+        public List<string> Imagenes { get; set; } = new();
     }
 
     public class FiltroGenerarDocumento
