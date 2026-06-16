@@ -504,8 +504,7 @@ namespace SafetyReport.Handlers
                         {
                             foreach (var bloque in bloques)
                             {
-                                var bloqueStr  = bloque?.ToJsonString() ?? "{}";
-                                var bloqueNode = JsonNode.Parse(bloqueStr)!;
+                                var bloqueNode = JsonNode.Parse(bloque?.ToJsonString() ?? "{}")!;
                                 MapearNodoConItem(bloqueNode, informe, pedido, item);
                                 expanded.Add(bloqueNode);
                             }
@@ -527,8 +526,7 @@ namespace SafetyReport.Handlers
                             if (condition != null && !(item?[condition]?.GetValue<bool>() ?? false))
                                 continue;
 
-                            var rowStr  = rowTemplate.ToJsonString();
-                            var rowNode = JsonNode.Parse(rowStr)!;
+                            var rowNode = JsonNode.Parse(rowTemplate.ToJsonString())!;
                             MapearNodoConItem(rowNode, informe, pedido, item);
                             rows.Add(rowNode);
                         }
@@ -541,18 +539,22 @@ namespace SafetyReport.Handlers
                     }
 
                     foreach (var key in obj.Select(kv => kv.Key).ToList())
-                        if (obj[key] is JsonNode child)
+                    {
+                        if (obj[key] is JsonValue strVal && strVal.GetValueKind() == System.Text.Json.JsonValueKind.String)
+                            obj[key] = ReemplazarTexto(strVal, informe, pedido);
+                        else if (obj[key] is JsonNode child)
                             MapearNodo(child, informe, pedido);
+                    }
                     break;
 
                 case JsonArray arr:
-                    foreach (var item in arr)
-                        if (item != null)
-                            MapearNodo(item, informe, pedido);
-                    break;
-
-                case JsonValue val:
-                    // handled at parent level (strings inside arrays/objects)
+                    for (int i = 0; i < arr.Count; i++)
+                    {
+                        if (arr[i] is JsonValue strVal && strVal.GetValueKind() == System.Text.Json.JsonValueKind.String)
+                            arr[i] = ReemplazarTexto(strVal, informe, pedido);
+                        else if (arr[i] is JsonNode child)
+                            MapearNodo(child, informe, pedido);
+                    }
                     break;
             }
         }
@@ -563,14 +565,22 @@ namespace SafetyReport.Handlers
             {
                 case JsonObject obj:
                     foreach (var key in obj.Select(kv => kv.Key).ToList())
-                        if (obj[key] is JsonNode child)
+                    {
+                        if (obj[key] is JsonValue strVal && strVal.GetValueKind() == System.Text.Json.JsonValueKind.String)
+                            obj[key] = ReemplazarTexto(strVal, informe, pedido, item);
+                        else if (obj[key] is JsonNode child)
                             MapearNodoConItem(child, informe, pedido, item);
+                    }
                     break;
 
                 case JsonArray arr:
                     for (int i = 0; i < arr.Count; i++)
-                        if (arr[i] is JsonNode child)
+                    {
+                        if (arr[i] is JsonValue strVal && strVal.GetValueKind() == System.Text.Json.JsonValueKind.String)
+                            arr[i] = ReemplazarTexto(strVal, informe, pedido, item);
+                        else if (arr[i] is JsonNode child)
                             MapearNodoConItem(child, informe, pedido, item);
+                    }
                     break;
             }
         }
