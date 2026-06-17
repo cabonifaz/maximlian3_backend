@@ -1029,6 +1029,37 @@ namespace SafetyReport.DAO
             }
         }
 
+        public async Task<Respuesta> GenerarDocumentoAsync(UsuarioGeneral u, int idPedido)
+        {
+            try
+            {
+                using SqlConnection cn = new(_dbConfig.ConnectionString);
+                using SqlCommand cmd = new("Pedido_GenerarDocumento", cn) { CommandType = CommandType.StoredProcedure };
+                AgregarParametrosAuditoria(cmd, u);
+                cmd.Parameters.Add("@intIdPedido", SqlDbType.Int).Value = idPedido;
+                await cn.OpenAsync();
+
+                var respuesta = new Respuesta();
+                using var dr = await cmd.ExecuteReaderAsync();
+                if (await dr.ReadAsync())
+                {
+                    respuesta.IdTipoMensaje = dr["IdTipoMensaje"] != DBNull.Value ? Convert.ToInt32(dr["IdTipoMensaje"]) : 0;
+                    respuesta.Mensaje = dr["Mensaje"]?.ToString() ?? string.Empty;
+                    respuesta.Result = dr["Result"]?.ToString();
+                }
+                else
+                {
+                    respuesta.IdTipoMensaje = 1;
+                    respuesta.Mensaje = "No se obtuvo respuesta del procedimiento.";
+                }
+                return respuesta;
+            }
+            catch (Exception ex)
+            {
+                return new Respuesta { IdTipoMensaje = 3, Mensaje = ex.Message };
+            }
+        }
+
         public async Task<Respuesta> ListarAsync(UsuarioGeneral u, FiltroInforme filtro)
         {
             try

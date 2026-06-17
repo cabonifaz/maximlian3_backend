@@ -443,44 +443,17 @@ namespace SafetyReport.Handlers
         {
             try
             {
-                // 1. Get pedido to resolve IdPlantilla
-                var pedidoRespuesta = await _pedidoDAO.ObtenerAsync(usuarioLogueado, new FiltroPedidoObtener { idPedido = request.IdPedido });
-                if (pedidoRespuesta.IdTipoMensaje != 2 || pedidoRespuesta.Result is not List<PedidoConsulta> pedidos || pedidos.Count == 0)
-                    return new Respuesta { IdTipoMensaje = 1, Mensaje = "Pedido no encontrado.", Result = null };
+                var respuesta = await _dao.GenerarDocumentoAsync(usuarioLogueado, request.IdPedido);
+                if (respuesta.IdTipoMensaje != 2 || respuesta.Result is not string jsonStr || string.IsNullOrWhiteSpace(jsonStr))
+                    return new Respuesta { IdTipoMensaje = respuesta.IdTipoMensaje, Mensaje = respuesta.Mensaje, Result = null };
 
-                var pedido = pedidos[0];
-
-                // 2. Get template
-                var plantilla = await _plantillaDAO.ObtenerPorIdAsync(pedido.IdPlantilla);
-                if (plantilla is null)
-                    return new Respuesta { IdTipoMensaje = 1, Mensaje = "Plantilla no encontrada.", Result = null };
-
-                // 3. Get informe data
-                var informeRespuesta = await _dao.ObtenerAsync(usuarioLogueado, request.IdPedido);
-                if (informeRespuesta.IdTipoMensaje != 2 || informeRespuesta.Result is not List<InformeConsulta> informes || informes.Count == 0)
-                    return new Respuesta { IdTipoMensaje = 1, Mensaje = "Informe no encontrado.", Result = null };
-
-                // 4. Map data onto template
-                var informeJson   = JsonSerializer.SerializeToNode(informes[0]);
-                var pedidoJson    = JsonSerializer.SerializeToNode(pedido);
-                if (string.IsNullOrWhiteSpace(plantilla.Contenido))
-                    return new Respuesta { IdTipoMensaje = 1, Mensaje = "Plantilla vacía.", Result = null };
-
-                var contenido = plantilla.Contenido;
-                var imagenes = plantilla.Imagenes.Where(i => !string.IsNullOrWhiteSpace(i)).Distinct().ToList();
-                var urlsResueltas = new Dictionary<string, string>();
-                foreach (var key in imagenes)
-                    urlsResueltas[key] = _s3.GenerarDownloadUrl(key);
-
-                if (imagenes.Count > 0)
-                    contenido = contenido.Replace("{{imagenes.logo}}", urlsResueltas[imagenes[0]]);
-
-
-                var estructura = JsonNode.Parse(contenido);
+                var estructura = JsonNode.Parse(jsonStr);
                 if (estructura is null)
-                    return new Respuesta { IdTipoMensaje = 1, Mensaje = "Plantilla con formato inválido.", Result = null };
+                    return new Respuesta { IdTipoMensaje = 1, Mensaje = "Error al procesar el documento.", Result = null };
 
-                MapearNodo(estructura, informeJson, pedidoJson);
+                var logoKey = estructura?["document"]?["header"]?["logo"]?.GetValue<string>();
+                if (!string.IsNullOrWhiteSpace(logoKey))
+                    estructura!["document"]!["header"]!["logo"] = _s3.GenerarDownloadUrl(logoKey);
 
                 return new Respuesta
                 {
