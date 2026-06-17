@@ -463,20 +463,24 @@ namespace SafetyReport.Handlers
                 // 4. Map data onto template
                 var informeJson   = JsonSerializer.SerializeToNode(informes[0]);
                 var pedidoJson    = JsonSerializer.SerializeToNode(pedido);
-                if (string.IsNullOrWhiteSpace(plantilla.Html))
-                    return new Respuesta { IdTipoMensaje = 1, Mensaje = "Plantilla HTML vacía.", Result = null };
+                if (string.IsNullOrWhiteSpace(plantilla.Contenido))
+                    return new Respuesta { IdTipoMensaje = 1, Mensaje = "Plantilla vacía.", Result = null };
 
-                var htmlPlantilla = plantilla.Html;
+                var contenido = plantilla.Contenido;
                 var imagenes = plantilla.Imagenes.Where(i => !string.IsNullOrWhiteSpace(i)).Distinct().ToList();
-                if (imagenes.Count > 0)
-                    htmlPlantilla = htmlPlantilla.Replace("{{imagenes.logo}}", _s3.GenerarDownloadUrl(imagenes[0]));
-
+                var urlsResueltas = new Dictionary<string, string>();
                 foreach (var key in imagenes)
-                    htmlPlantilla = htmlPlantilla.Replace(key, _s3.GenerarDownloadUrl(key));
+                    urlsResueltas[key] = _s3.GenerarDownloadUrl(key);
 
-                var estructuraStr = MapearPlantillaHtml(htmlPlantilla, informeJson, pedidoJson);
+                if (imagenes.Count > 0)
+                    contenido = contenido.Replace("{{imagenes.logo}}", urlsResueltas[imagenes[0]]);
 
-                var estructura = JsonNode.Parse(estructuraStr);
+
+                var estructura = JsonNode.Parse(contenido);
+                if (estructura is null)
+                    return new Respuesta { IdTipoMensaje = 1, Mensaje = "Plantilla con formato inválido.", Result = null };
+
+                MapearNodo(estructura, informeJson, pedidoJson);
 
                 return new Respuesta
                 {
@@ -495,11 +499,36 @@ namespace SafetyReport.Handlers
         {
             html = System.Text.RegularExpressions.Regex.Replace(
                 html,
-                @"\{\{#chunks\s+([^\s}]+)(?:\s+(\d+))?\}\}(.*?)\{\{/chunks\}\}",
+                @"\{\{#chunks\s+([^\s}]+)(?:\s+(\d+))?(?:\s+(\d+))?\}\}(.*?)\{\{/chunks\}\}",
                 match =>
                 {
                     var sourceKey = match.Groups[1].Value.Trim();
                     var maxCharacters = match.Groups[2].Success
+                        ? int.Parse(match.Groups[2].Value)
+                        : 2200;
+                    var firstChunkSize = match.Groups[3].Success
+                        ? int.Parse(match.Groups[3].Value)
+                        : maxCharacters;
+                    var template = match.Groups[4].Value;
+                    var source = ResolverRuta(informe, sourceKey)
+                        ?? ResolverRuta(pedido, sourceKey);
+                    var text = source?.ToString() ?? string.Empty;
+
+                    return string.Concat(SplitTextChunks(text, maxCharacters, firstChunkSize).Select((chunk, index) =>
+                    {
+                        var item = new JsonObject { ["chunk"] = chunk, ["chunkIndex"] = index };
+                        return ReemplazarTexto(JsonValue.Create(template)!, informe, pedido, item).GetValue<string>();
+                    }));
+                },
+                System.Text.RegularExpressions.RegexOptions.Singleline);
+
+            html = System.Text.RegularExpressions.Regex.Replace(
+                html,
+                @"\{\{#chunkFirst\s+([^\s}]+)(?:\s+(\d+))?\}\}(.*?)\{\{/chunkFirst\}\}",
+                match =>
+                {
+                    var sourceKey = match.Groups[1].Value.Trim();
+                    var firstChunkSize = match.Groups[2].Success
                         ? int.Parse(match.Groups[2].Value)
                         : 2200;
                     var template = match.Groups[3].Value;
@@ -507,9 +536,35 @@ namespace SafetyReport.Handlers
                         ?? ResolverRuta(pedido, sourceKey);
                     var text = source?.ToString() ?? string.Empty;
 
-                    return string.Concat(SplitTextChunks(text, maxCharacters).Select(chunk =>
+                    var firstChunk = SplitTextChunks(text, firstChunkSize).First();
+                    var item = new JsonObject { ["chunk"] = firstChunk };
+                    return ReemplazarTexto(JsonValue.Create(template)!, informe, pedido, item).GetValue<string>();
+                },
+                System.Text.RegularExpressions.RegexOptions.Singleline);
+
+            html = System.Text.RegularExpressions.Regex.Replace(
+                html,
+                @"\{\{#chunkRest\s+([^\s}]+)(?:\s+(\d+))?(?:\s+(\d+))?\}\}(.*?)\{\{/chunkRest\}\}",
+                match =>
+                {
+                    var sourceKey = match.Groups[1].Value.Trim();
+                    var maxCharacters = match.Groups[2].Success
+                        ? int.Parse(match.Groups[2].Value)
+                        : 2200;
+                    var firstChunkSize = match.Groups[3].Success
+                        ? int.Parse(match.Groups[3].Value)
+                        : maxCharacters;
+                    var template = match.Groups[4].Value;
+                    var source = ResolverRuta(informe, sourceKey)
+                        ?? ResolverRuta(pedido, sourceKey);
+                    var text = source?.ToString() ?? string.Empty;
+
+                    var allChunks = SplitTextChunks(text, maxCharacters, firstChunkSize).ToList();
+                    if (allChunks.Count <= 1) return string.Empty;
+
+                    return string.Concat(allChunks.Skip(1).Select((chunk, index) =>
                     {
-                        var item = new JsonObject { ["chunk"] = chunk };
+                        var item = new JsonObject { ["chunk"] = chunk, ["chunkIndex"] = index + 1 };
                         return ReemplazarTexto(JsonValue.Create(template)!, informe, pedido, item).GetValue<string>();
                     }));
                 },
@@ -539,27 +594,31 @@ namespace SafetyReport.Handlers
             return node.ToJsonString();
         }
 
-        private static IEnumerable<string> SplitTextChunks(string text, int maxCharacters)
+        private static IEnumerable<string> SplitTextChunks(string text, int maxCharacters, int firstChunkSize = 0)
         {
             maxCharacters = Math.Max(maxCharacters, 500);
+            if (firstChunkSize <= 0) firstChunkSize = maxCharacters;
+            firstChunkSize = Math.Max(firstChunkSize, 200);
             text = text?.Trim() ?? string.Empty;
             if (string.IsNullOrWhiteSpace(text))
                 return new[] { string.Empty };
 
             var chunks = new List<string>();
             var remaining = text;
-            while (remaining.Length > maxCharacters)
+            var currentMax = firstChunkSize;
+            while (remaining.Length > currentMax)
             {
-                var splitAt = remaining.LastIndexOf('\n', maxCharacters);
-                if (splitAt < maxCharacters / 2)
-                    splitAt = remaining.LastIndexOf(". ", maxCharacters, StringComparison.Ordinal);
-                if (splitAt < maxCharacters / 2)
-                    splitAt = remaining.LastIndexOf(' ', maxCharacters);
-                if (splitAt < maxCharacters / 2)
-                    splitAt = maxCharacters;
+                var splitAt = remaining.LastIndexOf('\n', currentMax);
+                if (splitAt < currentMax / 2)
+                    splitAt = remaining.LastIndexOf(". ", currentMax, StringComparison.Ordinal);
+                if (splitAt < currentMax / 2)
+                    splitAt = remaining.LastIndexOf(' ', currentMax);
+                if (splitAt < currentMax / 2)
+                    splitAt = currentMax;
 
                 chunks.Add(remaining[..splitAt].Trim());
                 remaining = remaining[splitAt..].Trim();
+                currentMax = maxCharacters;
             }
 
             chunks.Add(remaining);
@@ -580,12 +639,74 @@ namespace SafetyReport.Handlers
             switch (node)
             {
                 case JsonObject obj:
-                    // Expand "each" iteration blocks
-                    if (obj["type"]?.GetValue<string>() == "each" && obj["source"] is JsonValue src)
+                    var tipo = obj["type"]?.GetValue<string>();
+
+                    if (tipo == "repeat" && obj["source"] is JsonValue repeatSrc)
                     {
-                        var sourceKey = src.GetValue<string>();
-                        var array     = informe?[sourceKey] as JsonArray ?? new JsonArray();
-                        var bloques   = (obj["blocks"] as JsonArray)?.ToList() ?? new List<JsonNode?>();
+                        var sourceKey = repeatSrc.GetValue<string>();
+                        var array = ResolverRuta(informe, sourceKey) as JsonArray ?? new JsonArray();
+                        var secciones = (obj["sections"] as JsonArray)?.ToList() ?? new List<JsonNode?>();
+                        obj.Remove("sections");
+
+                        var expanded = new JsonArray();
+                        foreach (var item in array)
+                        {
+                            foreach (var seccion in secciones)
+                            {
+                                var seccionNode = JsonNode.Parse(seccion?.ToJsonString() ?? "{}")!;
+                                MapearNodoConItem(seccionNode, informe, pedido, item);
+                                expanded.Add(seccionNode);
+                            }
+                        }
+                        obj["sections"] = expanded;
+                        return;
+                    }
+
+                    if (tipo == "dataTable" && obj["source"] is JsonValue tableSrc)
+                    {
+                        var sourceKey = tableSrc.GetValue<string>();
+                        var array = ResolverRuta(informe, sourceKey) as JsonArray ?? new JsonArray();
+                        var columnas = (obj["columns"] as JsonArray)?.ToList() ?? new List<JsonNode?>();
+
+                        var rows = new JsonArray();
+                        foreach (var item in array)
+                        {
+                            var row = new JsonArray();
+                            foreach (var col in columnas)
+                            {
+                                var fieldTemplate = col?["field"]?.GetValue<string>() ?? "";
+                                var resolved = ReemplazarTexto(JsonValue.Create(fieldTemplate)!, informe, pedido, item).GetValue<string>();
+                                row.Add(JsonValue.Create(resolved));
+                            }
+                            rows.Add(row);
+                        }
+                        obj["rows"] = rows;
+                        return;
+                    }
+
+                    if (tipo == "repeatDetail" && obj["source"] is JsonValue detailSrc)
+                    {
+                        var sourceKey = detailSrc.GetValue<string>();
+                        var array = ResolverRuta(informe, sourceKey) as JsonArray ?? new JsonArray();
+                        var titleField = obj["titleField"]?.GetValue<string>() ?? "";
+                        var contentField = obj["contentField"]?.GetValue<string>() ?? "";
+
+                        var items = new JsonArray();
+                        foreach (var item in array)
+                        {
+                            var titulo = ReemplazarTexto(JsonValue.Create(titleField)!, informe, pedido, item).GetValue<string>();
+                            var contenido = ReemplazarTexto(JsonValue.Create(contentField)!, informe, pedido, item).GetValue<string>();
+                            items.Add(new JsonObject { ["title"] = titulo, ["content"] = contenido });
+                        }
+                        obj["items"] = items;
+                        return;
+                    }
+
+                    if (tipo == "each" && obj["source"] is JsonValue eachSrc)
+                    {
+                        var sourceKey = eachSrc.GetValue<string>();
+                        var array = ResolverRuta(informe, sourceKey) as JsonArray ?? new JsonArray();
+                        var bloques = (obj["blocks"] as JsonArray)?.ToList() ?? new List<JsonNode?>();
                         obj.Remove("blocks");
 
                         var expanded = new JsonArray();
@@ -602,12 +723,11 @@ namespace SafetyReport.Handlers
                         return;
                     }
 
-                    // Expand table with "each" + "rowTemplate"
                     if (obj["each"] is JsonValue eachVal && obj["rowTemplate"] is JsonArray rowTemplate)
                     {
                         var sourceKey = eachVal.GetValue<string>();
-                        var array     = informe?[sourceKey] as JsonArray ?? new JsonArray();
-                        var rows      = new JsonArray();
+                        var array = ResolverRuta(informe, sourceKey) as JsonArray ?? new JsonArray();
+                        var rows = new JsonArray();
 
                         foreach (var item in array)
                         {

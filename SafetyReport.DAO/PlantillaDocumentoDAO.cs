@@ -30,7 +30,7 @@ namespace SafetyReport.DAO
 
             return new PlantillaDocumento
             {
-                Html       = dr["Html"]?.ToString() ?? string.Empty,
+                Contenido  = dr["Contenido"]?.ToString() ?? string.Empty,
                 Imagenes   = ParsearImagenes(dr["Imagenes"]?.ToString())
             };
         }
