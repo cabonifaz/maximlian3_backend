@@ -491,12 +491,37 @@ namespace SafetyReport.Handlers
 
         private static string MapearPlantillaHtml(string html, JsonNode? informe, JsonNode? pedido)
         {
+            html = System.Text.RegularExpressions.Regex.Replace(
+                html,
+                @"\{\{#each\s+([^}]+)\}\}(.*?)\{\{/each\}\}",
+                match =>
+                {
+                    var sourceKey = match.Groups[1].Value.Trim();
+                    var template = match.Groups[2].Value;
+                    var source = ResolverRuta(informe, sourceKey) as JsonArray
+                        ?? ResolverRuta(pedido, sourceKey) as JsonArray
+                        ?? new JsonArray();
+
+                    return string.Concat(source.Select(item =>
+                        ReemplazarTexto(JsonValue.Create(template)!, informe, pedido, item).GetValue<string>()));
+                },
+                System.Text.RegularExpressions.RegexOptions.Singleline);
+
             var htmlMapeado = ReemplazarTexto(JsonValue.Create(html)!, informe, pedido).GetValue<string>();
             var node = new JsonObject
             {
                 ["html"] = htmlMapeado
             };
             return node.ToJsonString();
+        }
+
+        private static JsonNode? ResolverRuta(JsonNode? source, string ruta)
+        {
+            if (source is null) return null;
+            JsonNode? cursor = source;
+            foreach (var parte in ruta.Split('.', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries))
+                cursor = cursor?[parte];
+            return cursor;
         }
 
         private static void MapearNodo(JsonNode node, JsonNode? informe, JsonNode? pedido)
