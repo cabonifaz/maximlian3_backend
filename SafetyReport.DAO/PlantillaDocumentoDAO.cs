@@ -30,7 +30,7 @@ namespace SafetyReport.DAO
 
             return new PlantillaDocumento
             {
-                Estructura = dr["Estructura"]?.ToString() ?? string.Empty,
+                Html       = dr["Html"]?.ToString() ?? string.Empty,
                 Imagenes   = JsonSerializer.Deserialize<List<string>>(
                                  dr["Imagenes"]?.ToString() ?? "[]") ?? new()
             };

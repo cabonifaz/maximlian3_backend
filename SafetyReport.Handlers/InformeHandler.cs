@@ -460,10 +460,13 @@ namespace SafetyReport.Handlers
                 if (informeRespuesta.IdTipoMensaje != 2 || informeRespuesta.Result is not List<InformeConsulta> informes || informes.Count == 0)
                     return new Respuesta { IdTipoMensaje = 1, Mensaje = "Informe no encontrado.", Result = null };
 
-                // 4. Map data onto template structure
+                // 4. Map data onto template
                 var informeJson   = JsonSerializer.SerializeToNode(informes[0]);
                 var pedidoJson    = JsonSerializer.SerializeToNode(pedido);
-                var estructuraStr = MapearPlantilla(plantilla.Estructura, informeJson, pedidoJson);
+                if (string.IsNullOrWhiteSpace(plantilla.Html))
+                    return new Respuesta { IdTipoMensaje = 1, Mensaje = "Plantilla HTML vacía.", Result = null };
+
+                var estructuraStr = MapearPlantillaHtml(plantilla.Html, informeJson, pedidoJson);
 
                 // 5. Replace image S3 keys with presigned URLs
                 foreach (var key in plantilla.Imagenes)
@@ -486,10 +489,13 @@ namespace SafetyReport.Handlers
             }
         }
 
-        private static string MapearPlantilla(string estructura, JsonNode? informe, JsonNode? pedido)
+        private static string MapearPlantillaHtml(string html, JsonNode? informe, JsonNode? pedido)
         {
-            var node = JsonNode.Parse(estructura) ?? throw new InvalidOperationException("Estructura inválida.");
-            MapearNodo(node, informe, pedido);
+            var htmlMapeado = ReemplazarTexto(JsonValue.Create(html)!, informe, pedido).GetValue<string>();
+            var node = new JsonObject
+            {
+                ["html"] = htmlMapeado
+            };
             return node.ToJsonString();
         }
 
