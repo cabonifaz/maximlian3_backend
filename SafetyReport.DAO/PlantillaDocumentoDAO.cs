@@ -31,9 +31,31 @@ namespace SafetyReport.DAO
             return new PlantillaDocumento
             {
                 Html       = dr["Html"]?.ToString() ?? string.Empty,
-                Imagenes   = JsonSerializer.Deserialize<List<string>>(
-                                 dr["Imagenes"]?.ToString() ?? "[]") ?? new()
+                Imagenes   = ParsearImagenes(dr["Imagenes"]?.ToString())
             };
+        }
+
+        private static List<string> ParsearImagenes(string? imagenesJson)
+        {
+            if (string.IsNullOrWhiteSpace(imagenesJson))
+                return new();
+
+            using var document = JsonDocument.Parse(imagenesJson);
+            if (document.RootElement.ValueKind == JsonValueKind.Array)
+                return document.RootElement
+                    .EnumerateArray()
+                    .Where(item => item.ValueKind == JsonValueKind.String)
+                    .Select(item => item.GetString() ?? string.Empty)
+                    .ToList();
+
+            if (document.RootElement.ValueKind == JsonValueKind.Object)
+                return document.RootElement
+                    .EnumerateObject()
+                    .Where(prop => prop.Value.ValueKind == JsonValueKind.String)
+                    .Select(prop => prop.Value.GetString() ?? string.Empty)
+                    .ToList();
+
+            return new();
         }
     }
 }

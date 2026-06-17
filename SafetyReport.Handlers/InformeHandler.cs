@@ -466,13 +466,15 @@ namespace SafetyReport.Handlers
                 if (string.IsNullOrWhiteSpace(plantilla.Html))
                     return new Respuesta { IdTipoMensaje = 1, Mensaje = "Plantilla HTML vacía.", Result = null };
 
-                var estructuraStr = MapearPlantillaHtml(plantilla.Html, informeJson, pedidoJson);
+                var htmlPlantilla = plantilla.Html;
+                var imagenes = plantilla.Imagenes.Where(i => !string.IsNullOrWhiteSpace(i)).Distinct().ToList();
+                if (imagenes.Count > 0)
+                    htmlPlantilla = htmlPlantilla.Replace("{{imagenes.logo}}", _s3.GenerarDownloadUrl(imagenes[0]));
 
-                // 5. Replace image S3 keys with presigned URLs
-                foreach (var key in plantilla.Imagenes)
-                    estructuraStr = estructuraStr.Replace(
-                        $"\"{key}\"",
-                        $"\"{_s3.GenerarDownloadUrl(key)}\"");
+                foreach (var key in imagenes)
+                    htmlPlantilla = htmlPlantilla.Replace(key, _s3.GenerarDownloadUrl(key));
+
+                var estructuraStr = MapearPlantillaHtml(htmlPlantilla, informeJson, pedidoJson);
 
                 var estructura = JsonNode.Parse(estructuraStr);
 
