@@ -493,6 +493,28 @@ namespace SafetyReport.Handlers
         {
             html = System.Text.RegularExpressions.Regex.Replace(
                 html,
+                @"\{\{#chunks\s+([^\s}]+)(?:\s+(\d+))?\}\}(.*?)\{\{/chunks\}\}",
+                match =>
+                {
+                    var sourceKey = match.Groups[1].Value.Trim();
+                    var maxCharacters = match.Groups[2].Success
+                        ? int.Parse(match.Groups[2].Value)
+                        : 2200;
+                    var template = match.Groups[3].Value;
+                    var source = ResolverRuta(informe, sourceKey)
+                        ?? ResolverRuta(pedido, sourceKey);
+                    var text = source?.ToString() ?? string.Empty;
+
+                    return string.Concat(SplitTextChunks(text, maxCharacters).Select(chunk =>
+                    {
+                        var item = new JsonObject { ["chunk"] = chunk };
+                        return ReemplazarTexto(JsonValue.Create(template)!, informe, pedido, item).GetValue<string>();
+                    }));
+                },
+                System.Text.RegularExpressions.RegexOptions.Singleline);
+
+            html = System.Text.RegularExpressions.Regex.Replace(
+                html,
                 @"\{\{#each\s+([^}]+)\}\}(.*?)\{\{/each\}\}",
                 match =>
                 {
@@ -513,6 +535,33 @@ namespace SafetyReport.Handlers
                 ["html"] = htmlMapeado
             };
             return node.ToJsonString();
+        }
+
+        private static IEnumerable<string> SplitTextChunks(string text, int maxCharacters)
+        {
+            maxCharacters = Math.Max(maxCharacters, 500);
+            text = text?.Trim() ?? string.Empty;
+            if (string.IsNullOrWhiteSpace(text))
+                return new[] { string.Empty };
+
+            var chunks = new List<string>();
+            var remaining = text;
+            while (remaining.Length > maxCharacters)
+            {
+                var splitAt = remaining.LastIndexOf('\n', maxCharacters);
+                if (splitAt < maxCharacters / 2)
+                    splitAt = remaining.LastIndexOf(". ", maxCharacters, StringComparison.Ordinal);
+                if (splitAt < maxCharacters / 2)
+                    splitAt = remaining.LastIndexOf(' ', maxCharacters);
+                if (splitAt < maxCharacters / 2)
+                    splitAt = maxCharacters;
+
+                chunks.Add(remaining[..splitAt].Trim());
+                remaining = remaining[splitAt..].Trim();
+            }
+
+            chunks.Add(remaining);
+            return chunks;
         }
 
         private static JsonNode? ResolverRuta(JsonNode? source, string ruta)
