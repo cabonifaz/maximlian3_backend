@@ -57,6 +57,7 @@ public partial class DocxGeneratorService
         var fs = config["font"]?["size"]?.GetValue<string>() ?? "10pt";
         _fontSizeHp = PtToHalfPt(fs);
         var ls = config["font"]?["lineSpacing"]?.GetValue<double>() ?? 1.15;
+        if (ls > 10) ls = ls / 100.0;
         _lineSpacing = (int)(ls * 240);
         _contentIndentL = CssToTwips(config["contentIndent"]?["left"]?.GetValue<string>() ?? "0");
         _contentIndentR = CssToTwips(config["contentIndent"]?["right"]?.GetValue<string>() ?? "0");
