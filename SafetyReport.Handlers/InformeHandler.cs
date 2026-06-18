@@ -468,6 +468,39 @@ namespace SafetyReport.Handlers
             }
         }
 
+        public async Task<Respuesta> GenerarDocumentoDocxAsync(UsuarioGeneral usuarioLogueado, FiltroGenerarDocumento request)
+        {
+            try
+            {
+                var respuesta = await _dao.GenerarDocumentoAsync(usuarioLogueado, request.IdInforme, request.IdPedido, 1);
+                if (respuesta.IdTipoMensaje != 2 || respuesta.Result is not string jsonStr || string.IsNullOrWhiteSpace(jsonStr))
+                    return new Respuesta { IdTipoMensaje = respuesta.IdTipoMensaje, Mensaje = respuesta.Mensaje, Result = null };
+
+                var estructura = JsonNode.Parse(jsonStr);
+                if (estructura is null)
+                    return new Respuesta { IdTipoMensaje = 1, Mensaje = "Error al procesar el documento.", Result = null };
+
+                var generador = new DocxGeneratorService();
+                using var docxStream = generador.GenerarDocx(estructura);
+
+                var rutaS3 = $"informes/pedido-{request.IdPedido}/informe-{request.IdInforme}/documento.docx";
+                await _s3.UploadStreamAsync(rutaS3, docxStream, "application/vnd.openxmlformats-officedocument.wordprocessingml.document");
+
+                var downloadUrl = _s3.GenerarDownloadUrl(rutaS3);
+
+                return new Respuesta
+                {
+                    IdTipoMensaje = 2,
+                    Mensaje = "Documento DOCX generado correctamente.",
+                    Result = new { url = downloadUrl, ruta = rutaS3 }
+                };
+            }
+            catch (Exception)
+            {
+                return new Respuesta { IdTipoMensaje = 3, Mensaje = "Error interno del servidor.", Result = null };
+            }
+        }
+
         private static string MapearPlantillaHtml(string html, JsonNode? informe, JsonNode? pedido)
         {
             html = System.Text.RegularExpressions.Regex.Replace(

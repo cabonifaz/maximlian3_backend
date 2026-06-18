@@ -9,6 +9,7 @@ public interface IS3UploadService
     List<string> GenerarUploadUrlsBatch(List<string> sufijos, string formatoArchivo);
     List<string> GenerarDownloadUrlsBatch(List<string> sufijos);
     Task UploadFileAsync(string rutaArchivo, IFormFile file);
+    Task UploadStreamAsync(string rutaArchivo, Stream stream, string contentType);
     Task DeleteFileAsync(string rutaArchivo);
     Task MoverArchivoAsync(string rutaOrigen, string rutaDestino);
 }

@@ -106,6 +106,20 @@ public class S3UploadService : IS3UploadService
         await _s3Client.PutObjectAsync(putRequest);
     }
 
+    public async Task UploadStreamAsync(string rutaArchivo, Stream stream, string contentType)
+    {
+        var putRequest = new PutObjectRequest
+        {
+            BucketName = _bucketName,
+            Key = rutaArchivo,
+            InputStream = stream,
+            ContentType = contentType,
+            AutoCloseStream = false
+        };
+
+        await _s3Client.PutObjectAsync(putRequest);
+    }
+
     public async Task DeleteFileAsync(string rutaArchivo)
     {
         if (string.IsNullOrWhiteSpace(rutaArchivo))
