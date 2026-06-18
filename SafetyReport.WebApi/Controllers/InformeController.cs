@@ -34,6 +34,13 @@ namespace SafetyReport.WebApi.Controllers
             return Ok(respuesta);
         }
 
+        [HttpGet("generarDocumento")]
+        public async Task<IActionResult> GenerarDocumento([FromQuery] FiltroGenerarDocumento request)
+        {
+            var respuesta = await _informeHandler.GenerarDocumentoAsync(UsuarioLogueado, request);
+            return Ok(respuesta);
+        }
+
         [HttpGet("listar")]
         public async Task<IActionResult> Listar([FromQuery] FiltroInforme request)
         {
@@ -56,9 +63,9 @@ namespace SafetyReport.WebApi.Controllers
         }
 
         [HttpPost("generarUrlsArchivo")]
-        public IActionResult GenerarUrlsArchivo([FromBody] InformeArchivoUrlRequest request)
+        public async Task<IActionResult> GenerarUrlsArchivo([FromBody] InformeArchivoUrlRequest request)
         {
-            var respuesta = _informeHandler.GenerarUrlsArchivoAsync(request);
+            var respuesta = await _informeHandler.GenerarUrlsArchivoAsync(UsuarioLogueado, request);
             return Ok(respuesta);
         }
 

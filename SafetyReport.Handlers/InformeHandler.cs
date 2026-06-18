@@ -10,14 +10,18 @@ namespace SafetyReport.Handlers
     public class InformeHandler
     {
         private readonly InformeDAO _dao;
+        private readonly PedidoDAO _pedidoDAO;
+        private readonly PlantillaDocumentoDAO _plantillaDAO;
         private readonly IS3UploadService _s3;
         private readonly N8nService _n8n;
         private readonly N8nConfig _n8nConfig;
         private readonly int _s3ExpirationMinutes;
 
-        public InformeHandler(InformeDAO dao, IS3UploadService s3, N8nService n8n, N8nConfig n8nConfig, IConfiguration configuration)
+        public InformeHandler(InformeDAO dao, PedidoDAO pedidoDAO, PlantillaDocumentoDAO plantillaDAO, IS3UploadService s3, N8nService n8n, N8nConfig n8nConfig, IConfiguration configuration)
         {
             _dao = dao;
+            _pedidoDAO = pedidoDAO;
+            _plantillaDAO = plantillaDAO;
             _s3 = s3;
             _n8n = n8n;
             _n8nConfig = n8nConfig;
@@ -126,16 +130,26 @@ namespace SafetyReport.Handlers
             }
         }
 
-        public Respuesta GenerarUrlsArchivoAsync(InformeArchivoUrlRequest request)
+        public async Task<Respuesta> GenerarUrlsArchivoAsync(UsuarioGeneral usuarioLogueado, InformeArchivoUrlRequest request)
         {
             try
             {
+                var idInforme = request.IdInforme;
+
+                if (idInforme == 0)
+                {
+                    var resultado = await _dao.ObtenerOCrearInformeAsync(usuarioLogueado, request.IdPedido);
+                    if (resultado.IdTipoMensaje != 2 || resultado.Result is not List<InformeIdResult> ids || ids.Count == 0)
+                        return new Respuesta { IdTipoMensaje = resultado.IdTipoMensaje, Mensaje = resultado.Mensaje, Result = new List<InformeArchivoUrlResult>() };
+                    idInforme = ids[0].IdInforme;
+                }
+
                 var pendientes = new List<InformeArchivoPendiente>();
                 foreach (var nombre in request.Nombres)
                 {
                     var ext = Path.GetExtension(nombre);
                     var nombreSinExt = Path.GetFileNameWithoutExtension(nombre);
-                    var s3Key = $"informes/pedido-{request.IdPedido}/adjunto/{nombreSinExt}-{DateTimeOffset.UtcNow.ToUnixTimeMilliseconds()}{ext}";
+                    var s3Key = $"informes/pedido-{request.IdPedido}/informe-{idInforme}/adjunto/{nombreSinExt}-{DateTimeOffset.UtcNow.ToUnixTimeMilliseconds()}{ext}";
                     pendientes.Add(new InformeArchivoPendiente
                     {
                         Nombre = nombre,
@@ -144,11 +158,12 @@ namespace SafetyReport.Handlers
                     });
                 }
 
-                return new Respuesta { IdTipoMensaje = 2, Mensaje = "URLs generadas correctamente.", Result = pendientes };
+                var result = new InformeArchivoUrlResult { IdInforme = idInforme, Archivos = pendientes };
+                return new Respuesta { IdTipoMensaje = 2, Mensaje = "URLs generadas correctamente.", Result = result };
             }
             catch (Exception)
             {
-                return new Respuesta { IdTipoMensaje = 3, Mensaje = "Error interno del servidor.", Result = new List<InformeArchivoPendiente>() };
+                return new Respuesta { IdTipoMensaje = 3, Mensaje = "Error interno del servidor.", Result = new List<InformeArchivoUrlResult>() };
             }
         }
 
@@ -422,6 +437,374 @@ namespace SafetyReport.Handlers
             {
                 return new Respuesta { IdTipoMensaje = 3, Mensaje = "Error interno del servidor.", Result = null };
             }
+        }
+
+        public async Task<Respuesta> GenerarDocumentoAsync(UsuarioGeneral usuarioLogueado, FiltroGenerarDocumento request)
+        {
+            try
+            {
+                var respuesta = await _dao.GenerarDocumentoAsync(usuarioLogueado, request.IdPedido);
+                if (respuesta.IdTipoMensaje != 2 || respuesta.Result is not string jsonStr || string.IsNullOrWhiteSpace(jsonStr))
+                    return new Respuesta { IdTipoMensaje = respuesta.IdTipoMensaje, Mensaje = respuesta.Mensaje, Result = null };
+
+                var estructura = JsonNode.Parse(jsonStr);
+                if (estructura is null)
+                    return new Respuesta { IdTipoMensaje = 1, Mensaje = "Error al procesar el documento.", Result = null };
+
+                var logoKey = estructura?["document"]?["header"]?["logo"]?.GetValue<string>();
+                if (!string.IsNullOrWhiteSpace(logoKey))
+                    estructura!["document"]!["header"]!["logo"] = _s3.GenerarDownloadUrl(logoKey);
+
+                return new Respuesta
+                {
+                    IdTipoMensaje = 2,
+                    Mensaje       = "Documento generado correctamente.",
+                    Result        = estructura
+                };
+            }
+            catch (Exception)
+            {
+                return new Respuesta { IdTipoMensaje = 3, Mensaje = "Error interno del servidor.", Result = null };
+            }
+        }
+
+        private static string MapearPlantillaHtml(string html, JsonNode? informe, JsonNode? pedido)
+        {
+            html = System.Text.RegularExpressions.Regex.Replace(
+                html,
+                @"\{\{#chunks\s+([^\s}]+)(?:\s+(\d+))?(?:\s+(\d+))?\}\}(.*?)\{\{/chunks\}\}",
+                match =>
+                {
+                    var sourceKey = match.Groups[1].Value.Trim();
+                    var maxCharacters = match.Groups[2].Success
+                        ? int.Parse(match.Groups[2].Value)
+                        : 2200;
+                    var firstChunkSize = match.Groups[3].Success
+                        ? int.Parse(match.Groups[3].Value)
+                        : maxCharacters;
+                    var template = match.Groups[4].Value;
+                    var source = ResolverRuta(informe, sourceKey)
+                        ?? ResolverRuta(pedido, sourceKey);
+                    var text = source?.ToString() ?? string.Empty;
+
+                    return string.Concat(SplitTextChunks(text, maxCharacters, firstChunkSize).Select((chunk, index) =>
+                    {
+                        var item = new JsonObject { ["chunk"] = chunk, ["chunkIndex"] = index };
+                        return ReemplazarTexto(JsonValue.Create(template)!, informe, pedido, item).GetValue<string>();
+                    }));
+                },
+                System.Text.RegularExpressions.RegexOptions.Singleline);
+
+            html = System.Text.RegularExpressions.Regex.Replace(
+                html,
+                @"\{\{#chunkFirst\s+([^\s}]+)(?:\s+(\d+))?\}\}(.*?)\{\{/chunkFirst\}\}",
+                match =>
+                {
+                    var sourceKey = match.Groups[1].Value.Trim();
+                    var firstChunkSize = match.Groups[2].Success
+                        ? int.Parse(match.Groups[2].Value)
+                        : 2200;
+                    var template = match.Groups[3].Value;
+                    var source = ResolverRuta(informe, sourceKey)
+                        ?? ResolverRuta(pedido, sourceKey);
+                    var text = source?.ToString() ?? string.Empty;
+
+                    var firstChunk = SplitTextChunks(text, firstChunkSize).First();
+                    var item = new JsonObject { ["chunk"] = firstChunk };
+                    return ReemplazarTexto(JsonValue.Create(template)!, informe, pedido, item).GetValue<string>();
+                },
+                System.Text.RegularExpressions.RegexOptions.Singleline);
+
+            html = System.Text.RegularExpressions.Regex.Replace(
+                html,
+                @"\{\{#chunkRest\s+([^\s}]+)(?:\s+(\d+))?(?:\s+(\d+))?\}\}(.*?)\{\{/chunkRest\}\}",
+                match =>
+                {
+                    var sourceKey = match.Groups[1].Value.Trim();
+                    var maxCharacters = match.Groups[2].Success
+                        ? int.Parse(match.Groups[2].Value)
+                        : 2200;
+                    var firstChunkSize = match.Groups[3].Success
+                        ? int.Parse(match.Groups[3].Value)
+                        : maxCharacters;
+                    var template = match.Groups[4].Value;
+                    var source = ResolverRuta(informe, sourceKey)
+                        ?? ResolverRuta(pedido, sourceKey);
+                    var text = source?.ToString() ?? string.Empty;
+
+                    var allChunks = SplitTextChunks(text, maxCharacters, firstChunkSize).ToList();
+                    if (allChunks.Count <= 1) return string.Empty;
+
+                    return string.Concat(allChunks.Skip(1).Select((chunk, index) =>
+                    {
+                        var item = new JsonObject { ["chunk"] = chunk, ["chunkIndex"] = index + 1 };
+                        return ReemplazarTexto(JsonValue.Create(template)!, informe, pedido, item).GetValue<string>();
+                    }));
+                },
+                System.Text.RegularExpressions.RegexOptions.Singleline);
+
+            html = System.Text.RegularExpressions.Regex.Replace(
+                html,
+                @"\{\{#each\s+([^}]+)\}\}(.*?)\{\{/each\}\}",
+                match =>
+                {
+                    var sourceKey = match.Groups[1].Value.Trim();
+                    var template = match.Groups[2].Value;
+                    var source = ResolverRuta(informe, sourceKey) as JsonArray
+                        ?? ResolverRuta(pedido, sourceKey) as JsonArray
+                        ?? new JsonArray();
+
+                    return string.Concat(source.Select(item =>
+                        ReemplazarTexto(JsonValue.Create(template)!, informe, pedido, item).GetValue<string>()));
+                },
+                System.Text.RegularExpressions.RegexOptions.Singleline);
+
+            var htmlMapeado = ReemplazarTexto(JsonValue.Create(html)!, informe, pedido).GetValue<string>();
+            var node = new JsonObject
+            {
+                ["html"] = htmlMapeado
+            };
+            return node.ToJsonString();
+        }
+
+        private static IEnumerable<string> SplitTextChunks(string text, int maxCharacters, int firstChunkSize = 0)
+        {
+            maxCharacters = Math.Max(maxCharacters, 500);
+            if (firstChunkSize <= 0) firstChunkSize = maxCharacters;
+            firstChunkSize = Math.Max(firstChunkSize, 200);
+            text = text?.Trim() ?? string.Empty;
+            if (string.IsNullOrWhiteSpace(text))
+                return new[] { string.Empty };
+
+            var chunks = new List<string>();
+            var remaining = text;
+            var currentMax = firstChunkSize;
+            while (remaining.Length > currentMax)
+            {
+                var splitAt = remaining.LastIndexOf('\n', currentMax);
+                if (splitAt < currentMax / 2)
+                    splitAt = remaining.LastIndexOf(". ", currentMax, StringComparison.Ordinal);
+                if (splitAt < currentMax / 2)
+                    splitAt = remaining.LastIndexOf(' ', currentMax);
+                if (splitAt < currentMax / 2)
+                    splitAt = currentMax;
+
+                chunks.Add(remaining[..splitAt].Trim());
+                remaining = remaining[splitAt..].Trim();
+                currentMax = maxCharacters;
+            }
+
+            chunks.Add(remaining);
+            return chunks;
+        }
+
+        private static JsonNode? ResolverRuta(JsonNode? source, string ruta)
+        {
+            if (source is null) return null;
+            JsonNode? cursor = source;
+            foreach (var parte in ruta.Split('.', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries))
+                cursor = cursor?[parte];
+            return cursor;
+        }
+
+        private static void MapearNodo(JsonNode node, JsonNode? informe, JsonNode? pedido)
+        {
+            switch (node)
+            {
+                case JsonObject obj:
+                    var tipo = obj["type"]?.GetValue<string>();
+
+                    if (tipo == "repeat" && obj["source"] is JsonValue repeatSrc)
+                    {
+                        var sourceKey = repeatSrc.GetValue<string>();
+                        var array = ResolverRuta(informe, sourceKey) as JsonArray ?? new JsonArray();
+                        var secciones = (obj["sections"] as JsonArray)?.ToList() ?? new List<JsonNode?>();
+                        obj.Remove("sections");
+
+                        var expanded = new JsonArray();
+                        foreach (var item in array)
+                        {
+                            foreach (var seccion in secciones)
+                            {
+                                var seccionNode = JsonNode.Parse(seccion?.ToJsonString() ?? "{}")!;
+                                MapearNodoConItem(seccionNode, informe, pedido, item);
+                                expanded.Add(seccionNode);
+                            }
+                        }
+                        obj["sections"] = expanded;
+                        return;
+                    }
+
+                    if (tipo == "dataTable" && obj["source"] is JsonValue tableSrc)
+                    {
+                        var sourceKey = tableSrc.GetValue<string>();
+                        var array = ResolverRuta(informe, sourceKey) as JsonArray ?? new JsonArray();
+                        var columnas = (obj["columns"] as JsonArray)?.ToList() ?? new List<JsonNode?>();
+
+                        var rows = new JsonArray();
+                        foreach (var item in array)
+                        {
+                            var row = new JsonArray();
+                            foreach (var col in columnas)
+                            {
+                                var fieldTemplate = col?["field"]?.GetValue<string>() ?? "";
+                                var resolved = ReemplazarTexto(JsonValue.Create(fieldTemplate)!, informe, pedido, item).GetValue<string>();
+                                row.Add(JsonValue.Create(resolved));
+                            }
+                            rows.Add(row);
+                        }
+                        obj["rows"] = rows;
+                        return;
+                    }
+
+                    if (tipo == "repeatDetail" && obj["source"] is JsonValue detailSrc)
+                    {
+                        var sourceKey = detailSrc.GetValue<string>();
+                        var array = ResolverRuta(informe, sourceKey) as JsonArray ?? new JsonArray();
+                        var titleField = obj["titleField"]?.GetValue<string>() ?? "";
+                        var contentField = obj["contentField"]?.GetValue<string>() ?? "";
+
+                        var items = new JsonArray();
+                        foreach (var item in array)
+                        {
+                            var titulo = ReemplazarTexto(JsonValue.Create(titleField)!, informe, pedido, item).GetValue<string>();
+                            var contenido = ReemplazarTexto(JsonValue.Create(contentField)!, informe, pedido, item).GetValue<string>();
+                            items.Add(new JsonObject { ["title"] = titulo, ["content"] = contenido });
+                        }
+                        obj["items"] = items;
+                        return;
+                    }
+
+                    if (tipo == "each" && obj["source"] is JsonValue eachSrc)
+                    {
+                        var sourceKey = eachSrc.GetValue<string>();
+                        var array = ResolverRuta(informe, sourceKey) as JsonArray ?? new JsonArray();
+                        var bloques = (obj["blocks"] as JsonArray)?.ToList() ?? new List<JsonNode?>();
+                        obj.Remove("blocks");
+
+                        var expanded = new JsonArray();
+                        foreach (var item in array)
+                        {
+                            foreach (var bloque in bloques)
+                            {
+                                var bloqueNode = JsonNode.Parse(bloque?.ToJsonString() ?? "{}")!;
+                                MapearNodoConItem(bloqueNode, informe, pedido, item);
+                                expanded.Add(bloqueNode);
+                            }
+                        }
+                        obj["blocks"] = expanded;
+                        return;
+                    }
+
+                    if (obj["each"] is JsonValue eachVal && obj["rowTemplate"] is JsonArray rowTemplate)
+                    {
+                        var sourceKey = eachVal.GetValue<string>();
+                        var array = ResolverRuta(informe, sourceKey) as JsonArray ?? new JsonArray();
+                        var rows = new JsonArray();
+
+                        foreach (var item in array)
+                        {
+                            var condition = obj["condition"]?.GetValue<string>();
+                            if (condition != null && !(item?[condition]?.GetValue<bool>() ?? false))
+                                continue;
+
+                            var rowNode = JsonNode.Parse(rowTemplate.ToJsonString())!;
+                            MapearNodoConItem(rowNode, informe, pedido, item);
+                            rows.Add(rowNode);
+                        }
+
+                        obj.Remove("each");
+                        obj.Remove("rowTemplate");
+                        obj.Remove("condition");
+                        obj["rows"] = rows;
+                        return;
+                    }
+
+                    foreach (var key in obj.Select(kv => kv.Key).ToList())
+                    {
+                        if (obj[key] is JsonValue strVal && strVal.GetValueKind() == System.Text.Json.JsonValueKind.String)
+                            obj[key] = ReemplazarTexto(strVal, informe, pedido);
+                        else if (obj[key] is JsonNode child)
+                            MapearNodo(child, informe, pedido);
+                    }
+                    break;
+
+                case JsonArray arr:
+                    for (int i = 0; i < arr.Count; i++)
+                    {
+                        if (arr[i] is JsonValue strVal && strVal.GetValueKind() == System.Text.Json.JsonValueKind.String)
+                            arr[i] = ReemplazarTexto(strVal, informe, pedido);
+                        else if (arr[i] is JsonNode child)
+                            MapearNodo(child, informe, pedido);
+                    }
+                    break;
+            }
+        }
+
+        private static void MapearNodoConItem(JsonNode node, JsonNode? informe, JsonNode? pedido, JsonNode? item)
+        {
+            switch (node)
+            {
+                case JsonObject obj:
+                    foreach (var key in obj.Select(kv => kv.Key).ToList())
+                    {
+                        if (obj[key] is JsonValue strVal && strVal.GetValueKind() == System.Text.Json.JsonValueKind.String)
+                            obj[key] = ReemplazarTexto(strVal, informe, pedido, item);
+                        else if (obj[key] is JsonNode child)
+                            MapearNodoConItem(child, informe, pedido, item);
+                    }
+                    break;
+
+                case JsonArray arr:
+                    for (int i = 0; i < arr.Count; i++)
+                    {
+                        if (arr[i] is JsonValue strVal && strVal.GetValueKind() == System.Text.Json.JsonValueKind.String)
+                            arr[i] = ReemplazarTexto(strVal, informe, pedido, item);
+                        else if (arr[i] is JsonNode child)
+                            MapearNodoConItem(child, informe, pedido, item);
+                    }
+                    break;
+            }
+        }
+
+        private static JsonNode ReemplazarTexto(JsonNode node, JsonNode? informe, JsonNode? pedido, JsonNode? item = null)
+        {
+            if (node is not JsonValue val || val.GetValueKind() != System.Text.Json.JsonValueKind.String)
+                return node;
+
+            var texto = val.GetValue<string>();
+            texto = System.Text.RegularExpressions.Regex.Replace(texto, @"\{\{([^}]+)\}\}", match =>
+            {
+                var campo = match.Groups[1].Value.Trim();
+
+                if (campo.StartsWith("pedido."))
+                    return ResolverCampo(pedido, campo["pedido.".Length..]) ?? match.Value;
+
+                // Dot notation: CuentaBalance.Field → item["CuentaBalance"]["Field"]
+                var partes = campo.Split('.');
+                if (partes.Length > 1)
+                {
+                    JsonNode? cursor = item;
+                    foreach (var parte in partes)
+                        cursor = cursor?[parte];
+                    return cursor?.ToString() ?? match.Value;
+                }
+
+                return ResolverCampo(item, campo)
+                    ?? ResolverCampo(informe, campo)
+                    ?? match.Value;
+            });
+
+            return JsonValue.Create(texto)!;
+        }
+
+        private static string? ResolverCampo(JsonNode? source, string campo)
+        {
+            if (source is null) return null;
+            var valor = source[campo];
+            return valor is null || valor.GetValueKind() == System.Text.Json.JsonValueKind.Null
+                ? null
+                : valor.ToString();
         }
     }
 }
