@@ -104,21 +104,14 @@ public partial class DocxGeneratorService
         if (css.TryGetValue("text-align", out var align))
             pPr.Append(new Justification { Val = MapAlign(align) });
 
-        int before = 0, after = 0;
-        if (css.TryGetValue("margin", out var margin))
-        {
-            var parts = margin.Split(' ', StringSplitOptions.RemoveEmptyEntries);
-            if (parts.Length == 1) { before = CssToTwips(parts[0]); after = before; }
-            else if (parts.Length == 2) { before = CssToTwips(parts[0]); after = before; }
-            else if (parts.Length >= 3) { before = CssToTwips(parts[0]); after = CssToTwips(parts[2]); }
-        }
+        var (before, after) = ObtenerEspaciadoVertical(css);
 
         pPr.Append(new SpacingBetweenLines
         {
             Before = before.ToString(),
-            After = "20",
-            Line = "320",
-            LineRule = LineSpacingRuleValues.AtLeast
+            After = after.ToString(),
+            Line = CssLineSpacing(css).ToString(),
+            LineRule = LineSpacingRuleValues.Auto
         });
 
         AgregarIndentacion(pPr);
@@ -138,16 +131,14 @@ public partial class DocxGeneratorService
         if (css.TryGetValue("text-align", out var align))
             pPr.Append(new Justification { Val = MapAlign(align) });
 
-        int before = 0;
-        if (css.TryGetValue("padding-top", out var pt)) before = CssToTwips(pt);
-        if (css.TryGetValue("margin-top", out var mt)) before = CssToTwips(mt);
+        var (before, after) = ObtenerEspaciadoVertical(css);
 
         pPr.Append(new SpacingBetweenLines
         {
             Before = before.ToString(),
-            After = "100",
-            Line = "320",
-            LineRule = LineSpacingRuleValues.AtLeast
+            After = after.ToString(),
+            Line = CssLineSpacing(css).ToString(),
+            LineRule = LineSpacingRuleValues.Auto
         });
 
         AgregarIndentacion(pPr);
@@ -167,7 +158,7 @@ public partial class DocxGeneratorService
         {
             var para = new Paragraph();
             var pPr = new ParagraphProperties();
-            pPr.Append(new SpacingBetweenLines { After = "0", Line = _lineSpacing.ToString(), LineRule = LineSpacingRuleValues.Auto });
+            pPr.Append(new SpacingBetweenLines { After = "0", Line = CssLineSpacing(css).ToString(), LineRule = LineSpacingRuleValues.Auto });
             AgregarIndentacion(pPr);
             para.Append(pPr);
             para.Append(CrearRun(line, css));
@@ -366,7 +357,7 @@ public partial class DocxGeneratorService
                 {
                     var pContent = new Paragraph();
                     var pPr = new ParagraphProperties();
-                    pPr.Append(new SpacingBetweenLines { After = "0", Line = _lineSpacing.ToString(), LineRule = LineSpacingRuleValues.Auto });
+                    pPr.Append(new SpacingBetweenLines { After = "0", Line = CssLineSpacing(contentCss).ToString(), LineRule = LineSpacingRuleValues.Auto });
                     AgregarIndentacion(pPr);
                     pContent.Append(pPr);
                     pContent.Append(CrearRun(line, contentCss));
@@ -432,6 +423,9 @@ public partial class DocxGeneratorService
         var para = new Paragraph();
         var pPr = new ParagraphProperties();
         pPr.Append(new Justification { Val = MapAlign(align) });
+        var gapAfter = CssToTwips(config?["header"]?["gapAfter"]?.GetValue<string>() ?? "0");
+        if (gapAfter > 0)
+            pPr.Append(new SpacingBetweenLines { After = gapAfter.ToString(), Line = "240" });
         para.Append(pPr);
 
         var run = new Run();
@@ -446,29 +440,39 @@ public partial class DocxGeneratorService
     private void AgregarFooter(MainDocumentPart mainPart, JsonNode? config)
     {
         var footerText = config?["footer"]?["text"]?.GetValue<string>();
-        if (string.IsNullOrEmpty(footerText)) return;
-
         var footerPart = mainPart.AddNewPart<FooterPart>();
         var footer = new Footer();
         var footerFontSize = PtToHalfPt(config?["footer"]?["fontSize"]?.GetValue<string>() ?? "7pt").ToString();
         var footerAlign = config?["footer"]?["align"]?.GetValue<string>() ?? "left";
         var fiL = CssToTwips(config?["footerIndent"]?["left"]?.GetValue<string>() ?? "0");
         var fiR = CssToTwips(config?["footerIndent"]?["right"]?.GetValue<string>() ?? "0");
+        var gapBefore = CssToTwips(config?["footer"]?["gapBefore"]?.GetValue<string>() ?? "0");
+        var showPageNumber = config?["footer"]?["showPageNumber"]?.GetValue<bool>() ?? true;
 
         // Footer text
-        var para = new Paragraph();
-        var pPr = new ParagraphProperties();
-        pPr.Append(new Justification { Val = MapAlign(footerAlign) });
-        pPr.Append(new SpacingBetweenLines { Before = "40", After = "40", Line = "240" });
-        if (fiL > 0 || fiR > 0)
-            pPr.Append(new Indentation { Left = fiL.ToString(), Right = fiR.ToString() });
-        para.Append(pPr);
+        if (!string.IsNullOrEmpty(footerText))
+        {
+            var para = new Paragraph();
+            var pPr = new ParagraphProperties();
+            pPr.Append(new Justification { Val = MapAlign(footerAlign) });
+            pPr.Append(new SpacingBetweenLines { Before = gapBefore.ToString(), After = "0", Line = "240" });
+            if (fiL > 0 || fiR > 0)
+                pPr.Append(new Indentation { Left = fiL.ToString(), Right = fiR.ToString() });
+            para.Append(pPr);
 
-        var run = new Run();
-        run.Append(new RunProperties(new FontSize { Val = footerFontSize }, new RunFonts { Ascii = _fontFamily, HighAnsi = _fontFamily }));
-        run.Append(new Text(footerText) { Space = SpaceProcessingModeValues.Preserve });
-        para.Append(run);
-        footer.Append(para);
+            var run = new Run();
+            run.Append(new RunProperties(new FontSize { Val = footerFontSize }, new RunFonts { Ascii = _fontFamily, HighAnsi = _fontFamily }));
+            run.Append(new Text(footerText) { Space = SpaceProcessingModeValues.Preserve });
+            para.Append(run);
+            footer.Append(para);
+        }
+
+        if (!showPageNumber)
+        {
+            footerPart.Footer = footer;
+            footerPart.Footer.Save();
+            return;
+        }
 
         // Page number
         var paraPage = new Paragraph();
@@ -476,6 +480,7 @@ public partial class DocxGeneratorService
         pPrPage.Append(new Justification { Val = MapAlign(footerAlign) });
         if (fiL > 0 || fiR > 0)
             pPrPage.Append(new Indentation { Left = fiL.ToString(), Right = fiR.ToString() });
+        pPrPage.Append(new SpacingBetweenLines { Before = string.IsNullOrEmpty(footerText) ? gapBefore.ToString() : "0", After = "0", Line = "240" });
         paraPage.Append(pPrPage);
 
         var pageLabel = config?["footer"]?["pageLabel"]?.GetValue<string>() ?? "Page";
@@ -535,7 +540,14 @@ public partial class DocxGeneratorService
 
     private void AgregarTablaConMargen(Body body, Table table, Dictionary<string, string> tblCss)
     {
+        var (before, after) = ObtenerEspaciadoVertical(tblCss);
+        if (before > 0)
+            body.Append(CrearParrafoEspaciador(before));
+
         body.Append(table);
+
+        if (after > 0)
+            body.Append(CrearParrafoEspaciador(after));
     }
 
     // ==================== ELEMENT BUILDERS ====================
@@ -547,25 +559,13 @@ public partial class DocxGeneratorService
         if (css.TryGetValue("text-align", out var align))
             pPr.Append(new Justification { Val = MapAlign(align) });
 
-        int before = 0, after = 0;
-
-        if (css.TryGetValue("margin", out var margin))
-        {
-            var parts = margin.Split(' ', StringSplitOptions.RemoveEmptyEntries);
-            if (parts.Length == 1) { before = CssToTwips(parts[0]); after = before; }
-            else if (parts.Length == 2) { before = CssToTwips(parts[0]); after = before; }
-            else if (parts.Length >= 3) { before = CssToTwips(parts[0]); after = CssToTwips(parts[2]); }
-        }
-        if (css.TryGetValue("padding-top", out var pt)) before = CssToTwips(pt);
-        if (css.TryGetValue("padding-bottom", out var pb)) after = CssToTwips(pb);
-        if (css.TryGetValue("margin-top", out var mt)) before = CssToTwips(mt);
-        if (css.TryGetValue("margin-bottom", out var mb)) after = CssToTwips(mb);
+        var (before, after) = ObtenerEspaciadoVertical(css);
 
         pPr.Append(new SpacingBetweenLines
         {
             Before = before.ToString(),
             After = after.ToString(),
-            Line = _lineSpacing.ToString(),
+            Line = CssLineSpacing(css).ToString(),
             LineRule = LineSpacingRuleValues.Auto
         });
 
@@ -639,14 +639,6 @@ public partial class DocxGeneratorService
             ));
         }
 
-        // Cell margins (matching CSS: td, th { padding: 0 0.03in })
-        tPr.Append(new TableCellMarginDefault(
-            new TopMargin { Width = "0", Type = TableWidthUnitValues.Dxa },
-            new BottomMargin { Width = "0", Type = TableWidthUnitValues.Dxa },
-            new TableCellLeftMargin { Width = 43, Type = TableWidthValues.Dxa },
-            new TableCellRightMargin { Width = 43, Type = TableWidthValues.Dxa }
-        ));
-
         if (isFixed)
             tPr.Append(new TableLayout { Type = TableLayoutValues.Fixed });
 
@@ -688,13 +680,21 @@ public partial class DocxGeneratorService
                 tcPr.Append(borders);
         }
 
+        var (padTop, padRight, padBottom, padLeft) = ObtenerPadding(css);
+        tcPr.Append(new TableCellMargin(
+            new TopMargin { Width = padTop.ToString(), Type = TableWidthUnitValues.Dxa },
+            new BottomMargin { Width = padBottom.ToString(), Type = TableWidthUnitValues.Dxa },
+            new LeftMargin { Width = padLeft.ToString(), Type = TableWidthUnitValues.Dxa },
+            new RightMargin { Width = padRight.ToString(), Type = TableWidthUnitValues.Dxa }
+        ));
+
         tcPr.Append(new TableCellVerticalAlignment { Val = TableVerticalAlignmentValues.Top });
         tc.Append(tcPr);
 
         // Paragraph inside cell
         var para = new Paragraph();
         var pPr = new ParagraphProperties();
-        pPr.Append(new SpacingBetweenLines { Before = "40", After = "40", Line = "240" });
+        pPr.Append(new SpacingBetweenLines { Before = "0", After = "0", Line = CssLineSpacing(css).ToString(), LineRule = LineSpacingRuleValues.Auto });
 
         if (css != null && css.TryGetValue("text-align", out var align))
             pPr.Append(new Justification { Val = MapAlign(align) });
@@ -743,6 +743,103 @@ public partial class DocxGeneratorService
             return (int)(_contentWidth * pct);
         }
         return CssToTwips(w);
+    }
+
+    private Paragraph CrearParrafoEspaciador(int heightTwips)
+    {
+        var para = new Paragraph();
+        var pPr = new ParagraphProperties();
+        pPr.Append(new SpacingBetweenLines { Before = heightTwips.ToString(), After = "0", Line = "1", LineRule = LineSpacingRuleValues.Exact });
+        para.Append(pPr);
+        return para;
+    }
+
+    private int CssLineSpacing(Dictionary<string, string>? css)
+    {
+        if (css != null && css.TryGetValue("line-height", out var lineHeight))
+        {
+            var trimmed = lineHeight.Trim();
+            if (trimmed.EndsWith("pt", StringComparison.OrdinalIgnoreCase) || trimmed.EndsWith("in", StringComparison.OrdinalIgnoreCase))
+                return CssToTwips(trimmed);
+            var m = Regex.Match(trimmed, @"([\d.]+)");
+            if (m.Success && double.TryParse(m.Groups[1].Value, System.Globalization.NumberStyles.Any, System.Globalization.CultureInfo.InvariantCulture, out var multiplier))
+                return (int)(multiplier * 240);
+        }
+
+        return _lineSpacing;
+    }
+
+    private static (int Top, int Bottom) ObtenerEspaciadoVertical(Dictionary<string, string> css)
+    {
+        var top = 0;
+        var bottom = 0;
+
+        if (css.TryGetValue("margin", out var margin))
+        {
+            var parts = margin.Split(' ', StringSplitOptions.RemoveEmptyEntries);
+            if (parts.Length == 1)
+            {
+                top = bottom = CssToTwips(parts[0]);
+            }
+            else if (parts.Length == 2)
+            {
+                top = bottom = CssToTwips(parts[0]);
+            }
+            else if (parts.Length >= 3)
+            {
+                top = CssToTwips(parts[0]);
+                bottom = CssToTwips(parts[2]);
+            }
+        }
+
+        if (css.TryGetValue("padding-top", out var pt)) top = CssToTwips(pt);
+        if (css.TryGetValue("padding-bottom", out var pb)) bottom = CssToTwips(pb);
+        if (css.TryGetValue("margin-top", out var mt)) top = CssToTwips(mt);
+        if (css.TryGetValue("margin-bottom", out var mb)) bottom = CssToTwips(mb);
+
+        return (top, bottom);
+    }
+
+    private static (int Top, int Right, int Bottom, int Left) ObtenerPadding(Dictionary<string, string>? css)
+    {
+        var top = 0;
+        var right = 43;
+        var bottom = 0;
+        var left = 43;
+
+        if (css != null && css.TryGetValue("padding", out var padding))
+        {
+            var parts = padding.Split(' ', StringSplitOptions.RemoveEmptyEntries);
+            if (parts.Length == 1)
+            {
+                top = right = bottom = left = CssToTwips(parts[0]);
+            }
+            else if (parts.Length == 2)
+            {
+                top = bottom = CssToTwips(parts[0]);
+                right = left = CssToTwips(parts[1]);
+            }
+            else if (parts.Length == 3)
+            {
+                top = CssToTwips(parts[0]);
+                right = left = CssToTwips(parts[1]);
+                bottom = CssToTwips(parts[2]);
+            }
+            else if (parts.Length >= 4)
+            {
+                top = CssToTwips(parts[0]);
+                right = CssToTwips(parts[1]);
+                bottom = CssToTwips(parts[2]);
+                left = CssToTwips(parts[3]);
+            }
+        }
+
+        if (css != null && css.TryGetValue("padding-top", out var pt)) top = CssToTwips(pt);
+        if (css != null && css.TryGetValue("padding-right", out var pr)) right = CssToTwips(pr);
+        if (css != null && css.TryGetValue("padding-bottom", out var pb)) bottom = CssToTwips(pb);
+        if (css != null && css.TryGetValue("padding-left", out var pl)) left = CssToTwips(pl);
+
+        return (top, right, bottom, left);
     }
 
     // ==================== CSS PARSING / CONVERSION ====================
