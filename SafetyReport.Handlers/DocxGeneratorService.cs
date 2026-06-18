@@ -12,12 +12,13 @@ namespace SafetyReport.Handlers;
 public partial class DocxGeneratorService
 {
     private string _fontFamily = "Calibri";
-    private int _fontSizeHp = 20; // half-points (10pt)
-    private int _lineSpacing = 276; // 1.15 line spacing in 240ths of a line
+    private int _fontSizeHp = 20;
+    private int _lineSpacing = 276;
     private int _contentIndentL = 0;
     private int _contentIndentR = 0;
+    private byte[]? _logoBytes;
 
-    public MemoryStream GenerarDocx(JsonNode json)
+    public MemoryStream GenerarDocx(JsonNode json, byte[]? logoBytes = null)
     {
         var ms = new MemoryStream();
         using (var doc = WordprocessingDocument.Create(ms, WordprocessingDocumentType.Document, true))
@@ -29,6 +30,7 @@ public partial class DocxGeneratorService
             var config = json["document"];
             var sections = json["sections"]?.AsArray();
 
+            _logoBytes = logoBytes;
             LeerConfigGlobal(config);
 
             if (sections != null)
@@ -150,7 +152,7 @@ public partial class DocxGeneratorService
             table.Append(tr);
         }
 
-        body.Append(table);
+        AgregarTablaConMargen(body, table, tblCss);
     }
 
     private void RenderBorderedBox(Body body, JsonNode section)
@@ -199,7 +201,7 @@ public partial class DocxGeneratorService
             }
         }
 
-        body.Append(table);
+        AgregarTablaConMargen(body, table, tblCss);
     }
 
     private void RenderReferenceBox(Body body, JsonNode section)
@@ -231,7 +233,7 @@ public partial class DocxGeneratorService
             }
         }
 
-        body.Append(table);
+        AgregarTablaConMargen(body, table, tblCss);
     }
 
     private void RenderDataTable(Body body, JsonNode section)
@@ -284,7 +286,7 @@ public partial class DocxGeneratorService
             }
         }
 
-        body.Append(table);
+        AgregarTablaConMargen(body, table, tblCss);
     }
 
     private void RenderRepeatDetail(Body body, JsonNode section)
@@ -335,8 +337,7 @@ public partial class DocxGeneratorService
 
     private void AgregarHeaderLogo(MainDocumentPart mainPart, JsonNode? config)
     {
-        var logoUrl = config?["header"]?["logo"]?.GetValue<string>();
-        if (string.IsNullOrWhiteSpace(logoUrl)) return;
+        if (_logoBytes is null || _logoBytes.Length == 0) return;
 
         var headerPart = mainPart.AddNewPart<HeaderPart>();
         var header = new Header();
@@ -345,15 +346,43 @@ public partial class DocxGeneratorService
         var logoH = CssToEmu(config?["header"]?["logoHeight"]?.GetValue<string>() ?? "0.55in");
         var align = config?["header"]?["align"]?.GetValue<string>() ?? "center";
 
+        var imagePart = headerPart.AddImagePart(ImagePartType.Png);
+        using (var imgStream = new MemoryStream(_logoBytes))
+            imagePart.FeedData(imgStream);
+
+        var relationshipId = headerPart.GetIdOfPart(imagePart);
+
+        var drawing = new Drawing(
+            new DW.Inline(
+                new DW.Extent { Cx = logoW, Cy = logoH },
+                new DW.EffectExtent { LeftEdge = 0, TopEdge = 0, RightEdge = 0, BottomEdge = 0 },
+                new DW.DocProperties { Id = 1, Name = "Logo" },
+                new DW.NonVisualGraphicFrameDrawingProperties(
+                    new A.GraphicFrameLocks { NoChangeAspect = true }),
+                new A.Graphic(
+                    new A.GraphicData(
+                        new PIC.Picture(
+                            new PIC.NonVisualPictureProperties(
+                                new PIC.NonVisualDrawingProperties { Id = 0, Name = "logo.png" },
+                                new PIC.NonVisualPictureDrawingProperties()),
+                            new PIC.BlipFill(
+                                new A.Blip { Embed = relationshipId },
+                                new A.Stretch(new A.FillRectangle())),
+                            new PIC.ShapeProperties(
+                                new A.Transform2D(
+                                    new A.Offset { X = 0, Y = 0 },
+                                    new A.Extents { Cx = logoW, Cy = logoH }),
+                                new A.PresetGeometry(new A.AdjustValueList()) { Preset = A.ShapeTypeValues.Rectangle }))
+                    ) { Uri = "http://schemas.openxmlformats.org/drawingml/2006/picture" })
+            ) { DistanceFromTop = 0, DistanceFromBottom = 0, DistanceFromLeft = 0, DistanceFromRight = 0 });
+
         var para = new Paragraph();
         var pPr = new ParagraphProperties();
         pPr.Append(new Justification { Val = MapAlign(align) });
         para.Append(pPr);
 
-        // Placeholder run - actual logo would need to be downloaded and embedded
         var run = new Run();
-        run.Append(new RunProperties(new FontSize { Val = "16" }, new RunFonts { Ascii = _fontFamily, HighAnsi = _fontFamily }));
-        run.Append(new Text("[Logo]") { Space = SpaceProcessingModeValues.Preserve });
+        run.Append(drawing);
         para.Append(run);
 
         header.Append(para);
@@ -446,6 +475,36 @@ public partial class DocxGeneratorService
             secPr.InsertAt(new FooterReference { Type = HeaderFooterValues.Default, Id = mainPart.GetIdOfPart(footerPart) }, 0);
 
         body.Append(secPr);
+    }
+
+    private void AgregarTablaConMargen(Body body, Table table, Dictionary<string, string> tblCss)
+    {
+        int before = 0, after = 0;
+        if (tblCss.TryGetValue("margin", out var margin))
+        {
+            var parts = margin.Split(' ', StringSplitOptions.RemoveEmptyEntries);
+            if (parts.Length >= 1) before = CssToTwips(parts[0]);
+            if (parts.Length >= 3) after = CssToTwips(parts[2]);
+            else if (parts.Length == 2) after = 0;
+        }
+        if (tblCss.TryGetValue("margin-top", out var mt)) before = CssToTwips(mt);
+        if (tblCss.TryGetValue("margin-bottom", out var mb)) after = CssToTwips(mb);
+
+        if (before > 0)
+        {
+            var spacer = new Paragraph(new ParagraphProperties(
+                new SpacingBetweenLines { Before = "0", After = before.ToString() }));
+            body.Append(spacer);
+        }
+
+        body.Append(table);
+
+        if (after > 0)
+        {
+            var spacer = new Paragraph(new ParagraphProperties(
+                new SpacingBetweenLines { Before = after.ToString(), After = "0" }));
+            body.Append(spacer);
+        }
     }
 
     // ==================== ELEMENT BUILDERS ====================

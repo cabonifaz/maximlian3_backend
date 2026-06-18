@@ -480,8 +480,21 @@ namespace SafetyReport.Handlers
                 if (estructura is null)
                     return new Respuesta { IdTipoMensaje = 1, Mensaje = "Error al procesar el documento.", Result = null };
 
+                byte[]? logoBytes = null;
+                var logoKey = estructura?["document"]?["header"]?["logo"]?.GetValue<string>();
+                if (!string.IsNullOrWhiteSpace(logoKey))
+                {
+                    try
+                    {
+                        var logoUrl = _s3.GenerarDownloadUrl(logoKey);
+                        using var http = new HttpClient();
+                        logoBytes = await http.GetByteArrayAsync(logoUrl);
+                    }
+                    catch { }
+                }
+
                 var generador = new DocxGeneratorService();
-                using var docxStream = generador.GenerarDocx(estructura);
+                using var docxStream = generador.GenerarDocx(estructura!, logoBytes);
 
                 var rutaS3 = $"informes/pedido-{request.IdPedido}/informe-{request.IdInforme}/documento.docx";
                 await _s3.UploadStreamAsync(rutaS3, docxStream, "application/vnd.openxmlformats-officedocument.wordprocessingml.document");
