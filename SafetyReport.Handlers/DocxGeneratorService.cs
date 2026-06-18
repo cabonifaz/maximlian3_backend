@@ -16,6 +16,7 @@ public partial class DocxGeneratorService
     private int _lineSpacing = 276;
     private int _contentIndentL = 0;
     private int _contentIndentR = 0;
+    private int _contentWidth = 0; // available width for content in twips
     private byte[]? _logoBytes;
 
     public MemoryStream GenerarDocx(JsonNode json, byte[]? logoBytes = null)
@@ -59,6 +60,11 @@ public partial class DocxGeneratorService
         _lineSpacing = (int)(ls * 240);
         _contentIndentL = CssToTwips(config["contentIndent"]?["left"]?.GetValue<string>() ?? "0");
         _contentIndentR = CssToTwips(config["contentIndent"]?["right"]?.GetValue<string>() ?? "0");
+
+        var pageW = CssToTwips(config["pageSize"]?["width"]?.GetValue<string>() ?? "8.27in");
+        var ml = CssToTwips(config["margins"]?["left"]?.GetValue<string>() ?? "0.5in");
+        var mr = CssToTwips(config["margins"]?["right"]?.GetValue<string>() ?? "0.5in");
+        _contentWidth = pageW - ml - mr - _contentIndentL - _contentIndentR;
     }
 
     // ==================== SECTION RENDERERS ====================
@@ -436,10 +442,12 @@ public partial class DocxGeneratorService
         paraPage.Append(runField);
 
         var runCode = new Run();
+        runCode.Append(new RunProperties(new FontSize { Val = footerFontSize }, new RunFonts { Ascii = _fontFamily, HighAnsi = _fontFamily }));
         runCode.Append(new FieldCode(" PAGE ") { Space = SpaceProcessingModeValues.Preserve });
         paraPage.Append(runCode);
 
         var runEnd = new Run();
+        runEnd.Append(new RunProperties(new FontSize { Val = footerFontSize }, new RunFonts { Ascii = _fontFamily, HighAnsi = _fontFamily }));
         runEnd.Append(new FieldChar { FieldCharType = FieldCharValues.End });
         paraPage.Append(runEnd);
 
@@ -568,14 +576,16 @@ public partial class DocxGeneratorService
         var tPr = new TableProperties();
         var isFixed = false;
 
-        // Width
+        // Width — convert % to absolute twips using calculated content width
         if (css.TryGetValue("width", out var w))
         {
             if (w.Contains('%'))
             {
                 var m = Regex.Match(w, @"([\d.]+)");
-                var pct = m.Success && double.TryParse(m.Groups[1].Value, out var p) ? (int)(p * 50) : 5000;
-                tPr.Append(new TableWidth { Width = pct.ToString(), Type = TableWidthUnitValues.Pct });
+                var pct = m.Success && double.TryParse(m.Groups[1].Value, System.Globalization.NumberStyles.Any, System.Globalization.CultureInfo.InvariantCulture, out var p) ? p / 100.0 : 1.0;
+                var twips = (int)(_contentWidth * pct);
+                tPr.Append(new TableWidth { Width = twips.ToString(), Type = TableWidthUnitValues.Dxa });
+                isFixed = true;
             }
             else
             {
@@ -585,7 +595,8 @@ public partial class DocxGeneratorService
         }
         else
         {
-            tPr.Append(new TableWidth { Width = "5000", Type = TableWidthUnitValues.Pct });
+            tPr.Append(new TableWidth { Width = _contentWidth.ToString(), Type = TableWidthUnitValues.Dxa });
+            isFixed = true;
         }
 
         // Centering
