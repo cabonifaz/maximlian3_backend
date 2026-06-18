@@ -133,7 +133,24 @@ public partial class DocxGeneratorService
         var css = ParseCss(section["style"]?.GetValue<string>());
 
         var para = new Paragraph();
-        var pPr = CrearParagraphProps(css);
+        var pPr = new ParagraphProperties();
+
+        if (css.TryGetValue("text-align", out var align))
+            pPr.Append(new Justification { Val = MapAlign(align) });
+
+        int before = 0;
+        if (css.TryGetValue("padding-top", out var pt)) before = CssToTwips(pt);
+        if (css.TryGetValue("margin-top", out var mt)) before = CssToTwips(mt);
+
+        pPr.Append(new SpacingBetweenLines
+        {
+            Before = before.ToString(),
+            After = "100",
+            Line = "320",
+            LineRule = LineSpacingRuleValues.AtLeast
+        });
+
+        AgregarIndentacion(pPr);
         para.Append(pPr);
         para.Append(CrearRun(text, css));
         body.Append(para);
@@ -518,34 +535,7 @@ public partial class DocxGeneratorService
 
     private void AgregarTablaConMargen(Body body, Table table, Dictionary<string, string> tblCss)
     {
-        int before = 0, after = 0;
-        if (tblCss.TryGetValue("margin", out var margin))
-        {
-            var parts = margin.Split(' ', StringSplitOptions.RemoveEmptyEntries);
-            if (parts.Length == 1) { before = CssToTwips(parts[0]); after = before; }
-            else if (parts.Length == 2) { before = CssToTwips(parts[0]); after = before; }
-            else if (parts.Length >= 3) { before = CssToTwips(parts[0]); after = CssToTwips(parts[2]); }
-        }
-        if (tblCss.TryGetValue("margin-top", out var mt)) before = CssToTwips(mt);
-        if (tblCss.TryGetValue("margin-bottom", out var mb)) after = CssToTwips(mb);
-
-        if (before > 0)
-        {
-            var spacer = new Paragraph(
-                new ParagraphProperties(new SpacingBetweenLines { Before = "0", After = before.ToString(), Line = "0", LineRule = LineSpacingRuleValues.Exact }),
-                new Run(new RunProperties(new FontSize { Val = "2" })));
-            body.Append(spacer);
-        }
-
         body.Append(table);
-
-        if (after > 0)
-        {
-            var spacer = new Paragraph(
-                new ParagraphProperties(new SpacingBetweenLines { Before = after.ToString(), After = "0", Line = "0", LineRule = LineSpacingRuleValues.Exact }),
-                new Run(new RunProperties(new FontSize { Val = "2" })));
-            body.Append(spacer);
-        }
     }
 
     // ==================== ELEMENT BUILDERS ====================
