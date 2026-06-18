@@ -488,11 +488,24 @@ public class DocxGeneratorService
     private TableProperties CrearPropiedadesTabla(Dictionary<string, string> style, bool allBorders = false)
     {
         var tPr = new TableProperties();
+        var esAnchoFijo = false;
 
         if (style.TryGetValue("width", out var w))
         {
-            var twips = ConvertirInchATwips(w);
-            tPr.Append(new TableWidth { Width = twips.ToString(), Type = TableWidthUnitValues.Dxa });
+            if (w.Contains('%'))
+            {
+                var pct = Regex.Match(w, @"([\d.]+)");
+                if (pct.Success && double.TryParse(pct.Groups[1].Value, out var pctVal))
+                    tPr.Append(new TableWidth { Width = ((int)(pctVal * 50)).ToString(), Type = TableWidthUnitValues.Pct });
+                else
+                    tPr.Append(new TableWidth { Width = "5000", Type = TableWidthUnitValues.Pct });
+            }
+            else
+            {
+                var twips = ConvertirInchATwips(w);
+                tPr.Append(new TableWidth { Width = twips.ToString(), Type = TableWidthUnitValues.Dxa });
+                esAnchoFijo = true;
+            }
         }
         else
         {
@@ -518,7 +531,8 @@ public class DocxGeneratorService
             ));
         }
 
-        tPr.Append(new TableLayout { Type = TableLayoutValues.Fixed });
+        if (esAnchoFijo)
+            tPr.Append(new TableLayout { Type = TableLayoutValues.Fixed });
 
         return tPr;
     }
