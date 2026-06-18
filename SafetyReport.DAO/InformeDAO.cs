@@ -1029,14 +1029,14 @@ namespace SafetyReport.DAO
             }
         }
 
-        public async Task<Respuesta> GenerarDocumentoAsync(UsuarioGeneral u, int idPedido, int idIdioma)
+        public async Task<Respuesta> GenerarDocumentoAsync(UsuarioGeneral u, int idInforme, int idIdioma)
         {
             try
             {
                 using SqlConnection cn = new(_dbConfig.ConnectionString);
                 using SqlCommand cmd = new("Pedido_GenerarDocumento", cn) { CommandType = CommandType.StoredProcedure };
                 AgregarParametrosAuditoria(cmd, u);
-                cmd.Parameters.Add("@intIdPedido", SqlDbType.Int).Value = idPedido;
+                cmd.Parameters.Add("@intIdInforme", SqlDbType.Int).Value = idInforme;
                 cmd.Parameters.Add("@intIdIdioma", SqlDbType.Int).Value = idIdioma;
                 await cn.OpenAsync();
 
