@@ -508,8 +508,9 @@ public partial class DocxGeneratorService
 
         if (before > 0)
         {
-            var spacer = new Paragraph(new ParagraphProperties(
-                new SpacingBetweenLines { Before = "0", After = before.ToString() }));
+            var spacer = new Paragraph(
+                new ParagraphProperties(new SpacingBetweenLines { Before = "0", After = before.ToString(), Line = "0", LineRule = LineSpacingRuleValues.Exact }),
+                new Run(new RunProperties(new FontSize { Val = "2" })));
             body.Append(spacer);
         }
 
@@ -517,8 +518,9 @@ public partial class DocxGeneratorService
 
         if (after > 0)
         {
-            var spacer = new Paragraph(new ParagraphProperties(
-                new SpacingBetweenLines { Before = after.ToString(), After = "0" }));
+            var spacer = new Paragraph(
+                new ParagraphProperties(new SpacingBetweenLines { Before = after.ToString(), After = "0", Line = "0", LineRule = LineSpacingRuleValues.Exact }),
+                new Run(new RunProperties(new FontSize { Val = "2" })));
             body.Append(spacer);
         }
     }
