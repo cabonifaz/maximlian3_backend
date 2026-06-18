@@ -626,6 +626,8 @@ public partial class DocxGeneratorService
 
         // Cell margins (matching CSS: td, th { padding: 0 0.03in })
         tPr.Append(new TableCellMarginDefault(
+            new TopMargin { Width = "0", Type = TableWidthUnitValues.Dxa },
+            new BottomMargin { Width = "0", Type = TableWidthUnitValues.Dxa },
             new TableCellLeftMargin { Width = 43, Type = TableWidthValues.Dxa },
             new TableCellRightMargin { Width = 43, Type = TableWidthValues.Dxa }
         ));
