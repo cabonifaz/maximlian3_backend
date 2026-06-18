@@ -9,5 +9,6 @@ namespace SafetyReport.Models
     public class FiltroGenerarDocumento
     {
         public int IdPedido { get; set; }
+        public int IdIdioma { get; set; }
     }
 }

@@ -443,7 +443,7 @@ namespace SafetyReport.Handlers
         {
             try
             {
-                var respuesta = await _dao.GenerarDocumentoAsync(usuarioLogueado, request.IdPedido);
+                var respuesta = await _dao.GenerarDocumentoAsync(usuarioLogueado, request.IdPedido, request.IdIdioma);
                 if (respuesta.IdTipoMensaje != 2 || respuesta.Result is not string jsonStr || string.IsNullOrWhiteSpace(jsonStr))
                     return new Respuesta { IdTipoMensaje = respuesta.IdTipoMensaje, Mensaje = respuesta.Mensaje, Result = null };
 
