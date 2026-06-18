@@ -1,14 +1,22 @@
-using System.Text.Json;
-using System.Text.Json.Nodes;
 using System.Text.RegularExpressions;
+using System.Text.Json.Nodes;
 using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Wordprocessing;
+using A = DocumentFormat.OpenXml.Drawing;
+using DW = DocumentFormat.OpenXml.Drawing.Wordprocessing;
+using PIC = DocumentFormat.OpenXml.Drawing.Pictures;
 
 namespace SafetyReport.Handlers;
 
-public class DocxGeneratorService
+public partial class DocxGeneratorService
 {
+    private string _fontFamily = "Calibri";
+    private int _fontSizeHp = 20; // half-points (10pt)
+    private int _lineSpacing = 276; // 1.15 line spacing in 240ths of a line
+    private int _contentIndentL = 0;
+    private int _contentIndentR = 0;
+
     public MemoryStream GenerarDocx(JsonNode json)
     {
         var ms = new MemoryStream();
@@ -21,17 +29,15 @@ public class DocxGeneratorService
             var config = json["document"];
             var sections = json["sections"]?.AsArray();
 
-            if (sections != null)
-            {
-                foreach (var section in sections)
-                {
-                    if (section is null) continue;
-                    RenderizarSeccion(body, section, config);
-                }
-            }
+            LeerConfigGlobal(config);
 
-            AgregarPropiedadesPagina(body, config);
-            AgregarPiePagina(mainPart, config);
+            if (sections != null)
+                foreach (var section in sections)
+                    if (section != null) RenderizarSeccion(body, section);
+
+            AgregarHeaderLogo(mainPart, config);
+            AgregarFooter(mainPart, config);
+            AgregarSectionProperties(body, mainPart, config);
 
             mainPart.Document.Append(body);
             mainPart.Document.Save();
@@ -41,110 +47,71 @@ public class DocxGeneratorService
         return ms;
     }
 
-    private void RenderizarSeccion(Body body, JsonNode section, JsonNode? config)
+    private void LeerConfigGlobal(JsonNode? config)
+    {
+        if (config is null) return;
+        _fontFamily = config["font"]?["family"]?.GetValue<string>()?.Split(',')[0].Trim() ?? "Calibri";
+        var fs = config["font"]?["size"]?.GetValue<string>() ?? "10pt";
+        _fontSizeHp = PtToHalfPt(fs);
+        var ls = config["font"]?["lineSpacing"]?.GetValue<double>() ?? 1.15;
+        _lineSpacing = (int)(ls * 240);
+        _contentIndentL = CssToTwips(config["contentIndent"]?["left"]?.GetValue<string>() ?? "0");
+        _contentIndentR = CssToTwips(config["contentIndent"]?["right"]?.GetValue<string>() ?? "0");
+    }
+
+    // ==================== SECTION RENDERERS ====================
+
+    private void RenderizarSeccion(Body body, JsonNode section)
     {
         var type = section["type"]?.GetValue<string>() ?? "";
-
         switch (type)
         {
-            case "heading":
-                RenderizarHeading(body, section);
-                break;
-            case "subtitle":
-                RenderizarSubtitle(body, section);
-                break;
-            case "text":
-                RenderizarText(body, section);
-                break;
-            case "keyValue":
-                RenderizarKeyValue(body, section);
-                break;
-            case "borderedBox":
-                RenderizarBorderedBox(body, section);
-                break;
-            case "referenceBox":
-                RenderizarReferenceBox(body, section);
-                break;
-            case "dataTable":
-                RenderizarDataTable(body, section);
-                break;
+            case "heading": RenderHeading(body, section); break;
+            case "subtitle": RenderSubtitle(body, section); break;
+            case "text": RenderText(body, section); break;
+            case "keyValue": RenderKeyValue(body, section); break;
+            case "borderedBox": RenderBorderedBox(body, section); break;
+            case "referenceBox": RenderReferenceBox(body, section); break;
+            case "dataTable": RenderDataTable(body, section); break;
             case "repeat":
                 var subs = section["sections"]?.AsArray();
                 if (subs != null)
                     foreach (var sub in subs)
-                        if (sub != null) RenderizarSeccion(body, sub, config);
+                        if (sub != null) RenderizarSeccion(body, sub);
                 break;
-            case "repeatDetail":
-                RenderizarRepeatDetail(body, section);
-                break;
-            case "spacer":
-                RenderizarSpacer(body, section);
-                break;
+            case "repeatDetail": RenderRepeatDetail(body, section); break;
+            case "spacer": RenderSpacer(body, section); break;
         }
     }
 
-    private void RenderizarHeading(Body body, JsonNode section)
+    private void RenderHeading(Body body, JsonNode section)
     {
         var text = section["text"]?.GetValue<string>() ?? "";
-        var style = ParseCss(section["style"]?.GetValue<string>());
-        var level = section["level"]?.GetValue<int>() ?? 2;
+        var css = ParseCss(section["style"]?.GetValue<string>());
 
         var para = new Paragraph();
-        var pPr = new ParagraphProperties();
-
-        if (style.TryGetValue("text-align", out var align))
-            pPr.Append(new Justification { Val = MapearAlineacion(align) });
-
-        AgregarEspaciado(pPr, style);
-
+        var pPr = CrearParagraphProps(css);
         para.Append(pPr);
-
-        var run = new Run();
-        var rPr = new RunProperties();
-
-        var fontSize = level == 1 ? "24" : "20";
-        if (style.TryGetValue("font-size", out var fs))
-            fontSize = ConvertirPtAHalfPt(fs);
-
-        rPr.Append(new FontSize { Val = fontSize });
-        rPr.Append(new RunFonts { Ascii = "Calibri", HighAnsi = "Calibri" });
-
-        if (style.GetValueOrDefault("font-weight") == "700" || style.GetValueOrDefault("font-weight") == "bold")
-            rPr.Append(new Bold());
-
-        run.Append(rPr);
-        run.Append(new Text(text) { Space = SpaceProcessingModeValues.Preserve });
-        para.Append(run);
+        para.Append(CrearRun(text, css));
         body.Append(para);
     }
 
-    private void RenderizarSubtitle(Body body, JsonNode section)
+    private void RenderSubtitle(Body body, JsonNode section)
     {
         var text = section["text"]?.GetValue<string>() ?? "";
-        var style = ParseCss(section["style"]?.GetValue<string>());
+        var css = ParseCss(section["style"]?.GetValue<string>());
 
         var para = new Paragraph();
-        var pPr = new ParagraphProperties();
-        AgregarEspaciado(pPr, style);
+        var pPr = CrearParagraphProps(css);
         para.Append(pPr);
-
-        var run = new Run();
-        var rPr = new RunProperties();
-        rPr.Append(new FontSize { Val = "20" });
-        rPr.Append(new RunFonts { Ascii = "Calibri", HighAnsi = "Calibri" });
-
-        if (style.GetValueOrDefault("font-weight") == "700" || style.GetValueOrDefault("font-weight") == "bold")
-            rPr.Append(new Bold());
-
-        run.Append(rPr);
-        run.Append(new Text(text) { Space = SpaceProcessingModeValues.Preserve });
-        para.Append(run);
+        para.Append(CrearRun(text, css));
         body.Append(para);
     }
 
-    private void RenderizarText(Body body, JsonNode section)
+    private void RenderText(Body body, JsonNode section)
     {
         var text = section["field"]?.GetValue<string>() ?? "";
+        var css = ParseCss(section["style"]?.GetValue<string>());
         if (string.IsNullOrEmpty(text)) return;
 
         var lines = text.Split('\n');
@@ -152,82 +119,65 @@ public class DocxGeneratorService
         {
             var para = new Paragraph();
             var pPr = new ParagraphProperties();
-            pPr.Append(new SpacingBetweenLines { After = "0", Line = "276", LineRule = LineSpacingRuleValues.Auto });
+            pPr.Append(new SpacingBetweenLines { After = "0", Line = _lineSpacing.ToString(), LineRule = LineSpacingRuleValues.Auto });
+            AgregarIndentacion(pPr);
             para.Append(pPr);
-
-            var run = new Run();
-            var rPr = new RunProperties();
-            rPr.Append(new FontSize { Val = "20" });
-            rPr.Append(new RunFonts { Ascii = "Calibri", HighAnsi = "Calibri" });
-            run.Append(rPr);
-            run.Append(new Text(line) { Space = SpaceProcessingModeValues.Preserve });
-            para.Append(run);
+            para.Append(CrearRun(line, css));
             body.Append(para);
         }
     }
 
-    private void RenderizarKeyValue(Body body, JsonNode section)
+    private void RenderKeyValue(Body body, JsonNode section)
     {
-        var style = ParseCss(section["style"]?.GetValue<string>());
-        var lblStyle = ParseCss(section["labelStyle"]?.GetValue<string>());
+        var tblCss = ParseCss(section["style"]?.GetValue<string>());
+        var lblCss = ParseCss(section["labelStyle"]?.GetValue<string>());
         var rows = section["rows"]?.AsArray();
         if (rows is null || rows.Count == 0) return;
 
-        var table = new Table();
-        var tPr = CrearPropiedadesTabla(style);
-        table.Append(tPr);
-
-        var lblWidth = ExtraerAncho(lblStyle);
+        var table = CrearTabla(tblCss);
+        var lblWidthTwips = CssToTwips(lblCss.GetValueOrDefault("width", ""));
 
         foreach (var row in rows)
         {
             if (row is null) continue;
             var label = row["label"]?.GetValue<string>() ?? "";
             var value = row["value"]?.GetValue<string>() ?? "";
-            var separator = row["separator"]?.GetValue<string>() ?? "";
+            var sep = row["separator"]?.GetValue<string>() ?? "";
 
             var tr = new TableRow();
-
-            var tcLabel = CrearCelda(label, lblWidth, true, lblStyle);
-            tr.Append(tcLabel);
-
-            var tcValue = CrearCelda(separator + value, null, false, null);
-            tr.Append(tcValue);
-
+            tr.Append(CrearCeldaTexto(label, lblWidthTwips > 0 ? lblWidthTwips : 0, lblCss));
+            tr.Append(CrearCeldaTexto(sep + value, 0, null));
             table.Append(tr);
         }
 
         body.Append(table);
-        body.Append(new Paragraph(new ParagraphProperties(new SpacingBetweenLines { After = "0" })));
     }
 
-    private void RenderizarBorderedBox(Body body, JsonNode section)
+    private void RenderBorderedBox(Body body, JsonNode section)
     {
-        var style = ParseCss(section["style"]?.GetValue<string>());
-        var lblStyle = ParseCss(section["labelStyle"]?.GetValue<string>());
-        var valStyle = ParseCss(section["valueStyle"]?.GetValue<string>());
+        var tblCss = ParseCss(section["style"]?.GetValue<string>());
+        var titleCss = ParseCss(section["titleStyle"]?.GetValue<string>());
+        var lblCss = ParseCss(section["labelStyle"]?.GetValue<string>());
+        var valCss = ParseCss(section["valueStyle"]?.GetValue<string>());
+        var cellCss = ParseCss(section["cellStyle"]?.GetValue<string>());
         var title = section["title"]?.GetValue<string>() ?? "";
         var content = section["content"]?.GetValue<string>();
         var rows = section["rows"]?.AsArray();
 
-        var table = new Table();
-        var tPr = CrearPropiedadesTabla(style, true);
-        table.Append(tPr);
+        var hasBorder = tblCss.ContainsKey("border") || cellCss.ContainsKey("border");
+        var table = CrearTabla(tblCss, hasBorder);
+        var lblWidthTwips = CssToTwips(lblCss.GetValueOrDefault("width", ""));
 
-        var lblWidth = ExtraerAncho(lblStyle);
-
-        // Title row
+        // Title row (colspan 2)
         var trTitle = new TableRow();
-        var tcTitle = CrearCelda(title, null, true, ParseCss(section["titleStyle"]?.GetValue<string>()), 2);
-        trTitle.Append(tcTitle);
+        trTitle.Append(CrearCeldaTexto(title, 0, titleCss, colspan: 2));
         table.Append(trTitle);
 
         // Content row
         if (!string.IsNullOrEmpty(content))
         {
             var trContent = new TableRow();
-            var tcContent = CrearCelda(content, null, false, null, 2);
-            trContent.Append(tcContent);
+            trContent.Append(CrearCeldaTexto(content, 0, cellCss, colspan: 2));
             table.Append(trContent);
         }
 
@@ -239,75 +189,75 @@ public class DocxGeneratorService
                 if (row is null) continue;
                 var label = row["label"]?.GetValue<string>() ?? "";
                 var value = row["value"]?.GetValue<string>() ?? "";
-                var rowStyle = ParseCss(row["style"]?.GetValue<string>());
-                var isBold = rowStyle.GetValueOrDefault("font-weight") == "700" ||
-                             lblStyle.GetValueOrDefault("font-weight") == "700";
+                var rowCss = ParseCss(row["style"]?.GetValue<string>());
+                var effectiveLblCss = rowCss.Count > 0 ? rowCss : lblCss;
 
                 var tr = new TableRow();
-                tr.Append(CrearCelda(label, lblWidth, isBold, lblStyle.Count > 0 ? lblStyle : null, borders: true));
-                tr.Append(CrearCelda(value, null, rowStyle.GetValueOrDefault("font-weight") == "700", valStyle.Count > 0 ? valStyle : null, borders: true));
+                tr.Append(CrearCeldaTexto(label, lblWidthTwips > 0 ? lblWidthTwips : 0, effectiveLblCss));
+                tr.Append(CrearCeldaTexto(value, 0, valCss));
                 table.Append(tr);
             }
         }
 
         body.Append(table);
-        body.Append(new Paragraph(new ParagraphProperties(new SpacingBetweenLines { After = "0" })));
     }
 
-    private void RenderizarReferenceBox(Body body, JsonNode section)
+    private void RenderReferenceBox(Body body, JsonNode section)
     {
+        var tblCss = ParseCss(section["style"]?.GetValue<string>());
+        var titleCss = ParseCss(section["titleStyle"]?.GetValue<string>());
+        var cellCss = ParseCss(section["cellStyle"]?.GetValue<string>());
+        var lastCellCss = ParseCss(section["lastCellStyle"]?.GetValue<string>());
         var title = section["title"]?.GetValue<string>() ?? "";
         var items = section["items"]?.AsArray();
 
-        var table = new Table();
-        var tPr = CrearPropiedadesTabla(ParseCss(section["style"]?.GetValue<string>()), true);
-        table.Append(tPr);
+        var table = CrearTabla(tblCss, true);
 
         var trTitle = new TableRow();
-        trTitle.Append(CrearCelda(title, null, true, ParseCss(section["titleStyle"]?.GetValue<string>())));
+        trTitle.Append(CrearCeldaTexto(title, 0, titleCss));
         table.Append(trTitle);
 
         if (items != null)
         {
-            foreach (var item in items)
+            for (int i = 0; i < items.Count; i++)
             {
-                var text = item?.GetValue<string>() ?? "";
+                var text = items[i]?.GetValue<string>() ?? "";
+                var isLast = i == items.Count - 1;
+                var css = isLast && lastCellCss.Count > 0 ? lastCellCss : cellCss;
+
                 var tr = new TableRow();
-                tr.Append(CrearCelda(text, null, false, null, fontSize: "12"));
+                tr.Append(CrearCeldaTexto(text, 0, css, fontSize: CssToHalfPt(tblCss.GetValueOrDefault("font-size", ""))));
                 table.Append(tr);
             }
         }
 
         body.Append(table);
-        body.Append(new Paragraph(new ParagraphProperties(new SpacingBetweenLines { After = "0" })));
     }
 
-    private void RenderizarDataTable(Body body, JsonNode section)
+    private void RenderDataTable(Body body, JsonNode section)
     {
-        var style = ParseCss(section["style"]?.GetValue<string>());
+        var tblCss = ParseCss(section["style"]?.GetValue<string>());
+        var cellCss = ParseCss(section["cellStyle"]?.GetValue<string>());
+        var headerCss = ParseCss(section["headerStyle"]?.GetValue<string>());
         var columns = section["columns"]?.AsArray();
         var rows = section["rows"]?.AsArray();
         var columnWidths = section["columnWidths"]?.AsArray();
-        var headerStyle = ParseCss(section["headerStyle"]?.GetValue<string>());
 
         if (columns is null) return;
 
-        var table = new Table();
-        var tPr = CrearPropiedadesTabla(style);
-        table.Append(tPr);
+        var table = CrearTabla(tblCss);
+
+        // Merge cell + header styles for header cells
+        var mergedHeaderCss = new Dictionary<string, string>(cellCss);
+        foreach (var kv in headerCss) mergedHeaderCss[kv.Key] = kv.Value;
 
         // Header row
         var trHeader = new TableRow();
         for (int i = 0; i < columns.Count; i++)
         {
-            var col = columns[i];
-            var header = col?["header"]?.GetValue<string>() ?? "";
-            var width = columnWidths != null && i < columnWidths.Count
-                ? columnWidths[i]?.GetValue<string>()
-                : null;
-            var isBold = headerStyle.GetValueOrDefault("font-weight") == "bold" ||
-                         headerStyle.GetValueOrDefault("font-weight") == "700";
-            trHeader.Append(CrearCelda(header, width, isBold, null));
+            var header = columns[i]?["header"]?.GetValue<string>() ?? "";
+            var w = columnWidths != null && i < columnWidths.Count ? CssToTwips(columnWidths[i]?.GetValue<string>() ?? "") : 0;
+            trHeader.Append(CrearCeldaTexto(header, w, mergedHeaderCss));
         }
         table.Append(trHeader);
 
@@ -318,44 +268,31 @@ public class DocxGeneratorService
             {
                 if (row is null) continue;
                 var tr = new TableRow();
+                var values = new List<string>();
 
                 if (row is JsonArray arr)
-                {
-                    for (int i = 0; i < arr.Count; i++)
-                    {
-                        var width = columnWidths != null && i < columnWidths.Count
-                            ? columnWidths[i]?.GetValue<string>()
-                            : null;
-                        tr.Append(CrearCelda(arr[i]?.GetValue<string>() ?? "", width, false, null));
-                    }
-                }
+                    foreach (var v in arr) values.Add(v?.GetValue<string>() ?? "");
                 else if (row is JsonObject obj)
-                {
-                    int i = 0;
-                    foreach (var prop in obj)
-                    {
-                        var width = columnWidths != null && i < columnWidths.Count
-                            ? columnWidths[i]?.GetValue<string>()
-                            : null;
-                        tr.Append(CrearCelda(prop.Value?.GetValue<string>() ?? "", width, false, null));
-                        i++;
-                    }
-                }
+                    foreach (var prop in obj) values.Add(prop.Value?.GetValue<string>() ?? "");
 
+                for (int i = 0; i < values.Count; i++)
+                {
+                    var w = columnWidths != null && i < columnWidths.Count ? CssToTwips(columnWidths[i]?.GetValue<string>() ?? "") : 0;
+                    tr.Append(CrearCeldaTexto(values[i], w, cellCss));
+                }
                 table.Append(tr);
             }
         }
 
         body.Append(table);
-        body.Append(new Paragraph(new ParagraphProperties(new SpacingBetweenLines { After = "0" })));
     }
 
-    private void RenderizarRepeatDetail(Body body, JsonNode section)
+    private void RenderRepeatDetail(Body body, JsonNode section)
     {
+        var titleCss = ParseCss(section["titleStyle"]?.GetValue<string>());
+        var contentCss = ParseCss(section["contentStyle"]?.GetValue<string>());
         var items = section["items"]?.AsArray();
         if (items is null) return;
-
-        var titleStyle = ParseCss(section["titleStyle"]?.GetValue<string>());
 
         foreach (var item in items)
         {
@@ -363,148 +300,228 @@ public class DocxGeneratorService
             var title = item["title"]?.GetValue<string>() ?? "";
             var content = item["content"]?.GetValue<string>() ?? "";
 
-            // Title
             var pTitle = new Paragraph();
-            var pPrTitle = new ParagraphProperties();
-            AgregarEspaciado(pPrTitle, titleStyle);
-            pTitle.Append(pPrTitle);
-
-            var rTitle = new Run();
-            var rPrTitle = new RunProperties();
-            rPrTitle.Append(new FontSize { Val = "20" });
-            rPrTitle.Append(new RunFonts { Ascii = "Calibri", HighAnsi = "Calibri" });
-            if (titleStyle.GetValueOrDefault("font-weight") == "700")
-                rPrTitle.Append(new Bold());
-            rTitle.Append(rPrTitle);
-            rTitle.Append(new Text(title) { Space = SpaceProcessingModeValues.Preserve });
-            pTitle.Append(rTitle);
+            pTitle.Append(CrearParagraphProps(titleCss));
+            pTitle.Append(CrearRun(title, titleCss));
             body.Append(pTitle);
 
-            // Content
             if (!string.IsNullOrEmpty(content))
             {
                 foreach (var line in content.Split('\n'))
                 {
                     var pContent = new Paragraph();
-                    pContent.Append(new ParagraphProperties(new SpacingBetweenLines { After = "0", Line = "276", LineRule = LineSpacingRuleValues.Auto }));
-                    var rContent = new Run();
-                    var rPrContent = new RunProperties();
-                    rPrContent.Append(new FontSize { Val = "20" });
-                    rPrContent.Append(new RunFonts { Ascii = "Calibri", HighAnsi = "Calibri" });
-                    rContent.Append(rPrContent);
-                    rContent.Append(new Text(line) { Space = SpaceProcessingModeValues.Preserve });
-                    pContent.Append(rContent);
+                    var pPr = new ParagraphProperties();
+                    pPr.Append(new SpacingBetweenLines { After = "0", Line = _lineSpacing.ToString(), LineRule = LineSpacingRuleValues.Auto });
+                    AgregarIndentacion(pPr);
+                    pContent.Append(pPr);
+                    pContent.Append(CrearRun(line, contentCss));
                     body.Append(pContent);
                 }
             }
         }
     }
 
-    private void RenderizarSpacer(Body body, JsonNode section)
+    private void RenderSpacer(Body body, JsonNode section)
     {
         var height = section["height"]?.GetValue<string>() ?? "0.3in";
-        var twips = ConvertirInchATwips(height);
-
         var para = new Paragraph();
         var pPr = new ParagraphProperties();
-        pPr.Append(new SpacingBetweenLines { Before = twips.ToString(), After = "0" });
+        pPr.Append(new SpacingBetweenLines { Before = CssToTwips(height).ToString(), After = "0" });
         para.Append(pPr);
         body.Append(para);
     }
 
-    private void AgregarPropiedadesPagina(Body body, JsonNode? config)
+    // ==================== HEADER / FOOTER / PAGE ====================
+
+    private void AgregarHeaderLogo(MainDocumentPart mainPart, JsonNode? config)
     {
-        if (config is null) return;
+        var logoUrl = config?["header"]?["logo"]?.GetValue<string>();
+        if (string.IsNullOrWhiteSpace(logoUrl)) return;
 
-        var pageW = ConvertirInchATwips(config["pageSize"]?["width"]?.GetValue<string>() ?? "8.27in");
-        var pageH = ConvertirInchATwips(config["pageSize"]?["height"]?.GetValue<string>() ?? "11.69in");
-        var mt = ConvertirInchATwips(config["margins"]?["top"]?.GetValue<string>() ?? "1.15in");
-        var mb = ConvertirInchATwips(config["margins"]?["bottom"]?.GetValue<string>() ?? "1.0in");
-        var ml = ConvertirInchATwips(config["margins"]?["left"]?.GetValue<string>() ?? "0.5in");
-        var mr = ConvertirInchATwips(config["margins"]?["right"]?.GetValue<string>() ?? "0.5in");
+        var headerPart = mainPart.AddNewPart<HeaderPart>();
+        var header = new Header();
 
-        var secPr = new SectionProperties();
-        secPr.Append(new PageSize
-        {
-            Width = (UInt32Value)(uint)pageW,
-            Height = (UInt32Value)(uint)pageH
-        });
-        secPr.Append(new PageMargin
-        {
-            Top = mt,
-            Bottom = mb,
-            Left = (UInt32Value)(uint)ml,
-            Right = (UInt32Value)(uint)mr
-        });
+        var logoW = CssToEmu(config?["header"]?["logoWidth"]?.GetValue<string>() ?? "1.3in");
+        var logoH = CssToEmu(config?["header"]?["logoHeight"]?.GetValue<string>() ?? "0.55in");
+        var align = config?["header"]?["align"]?.GetValue<string>() ?? "center";
 
-        body.Append(secPr);
+        var para = new Paragraph();
+        var pPr = new ParagraphProperties();
+        pPr.Append(new Justification { Val = MapAlign(align) });
+        para.Append(pPr);
+
+        // Placeholder run - actual logo would need to be downloaded and embedded
+        var run = new Run();
+        run.Append(new RunProperties(new FontSize { Val = "16" }, new RunFonts { Ascii = _fontFamily, HighAnsi = _fontFamily }));
+        run.Append(new Text("[Logo]") { Space = SpaceProcessingModeValues.Preserve });
+        para.Append(run);
+
+        header.Append(para);
+        headerPart.Header = header;
+        headerPart.Header.Save();
     }
 
-    private void AgregarPiePagina(MainDocumentPart mainPart, JsonNode? config)
+    private void AgregarFooter(MainDocumentPart mainPart, JsonNode? config)
     {
         var footerText = config?["footer"]?["text"]?.GetValue<string>();
         if (string.IsNullOrEmpty(footerText)) return;
 
         var footerPart = mainPart.AddNewPart<FooterPart>();
         var footer = new Footer();
+        var footerFontSize = PtToHalfPt(config?["footer"]?["fontSize"]?.GetValue<string>() ?? "7pt").ToString();
+        var footerAlign = config?["footer"]?["align"]?.GetValue<string>() ?? "left";
+        var fiL = CssToTwips(config?["footerIndent"]?["left"]?.GetValue<string>() ?? "0");
+        var fiR = CssToTwips(config?["footerIndent"]?["right"]?.GetValue<string>() ?? "0");
 
+        // Footer text
         var para = new Paragraph();
-        var rPr = new RunProperties();
-        rPr.Append(new FontSize { Val = "14" });
-        rPr.Append(new RunFonts { Ascii = "Calibri", HighAnsi = "Calibri" });
+        var pPr = new ParagraphProperties();
+        pPr.Append(new Justification { Val = MapAlign(footerAlign) });
+        pPr.Append(new SpacingBetweenLines { After = "0", Line = "240" });
+        if (fiL > 0 || fiR > 0)
+            pPr.Append(new Indentation { Left = fiL.ToString(), Right = fiR.ToString() });
+        para.Append(pPr);
 
         var run = new Run();
-        run.Append(rPr);
+        run.Append(new RunProperties(new FontSize { Val = footerFontSize }, new RunFonts { Ascii = _fontFamily, HighAnsi = _fontFamily }));
         run.Append(new Text(footerText) { Space = SpaceProcessingModeValues.Preserve });
         para.Append(run);
         footer.Append(para);
 
         // Page number
         var paraPage = new Paragraph();
+        var pPrPage = new ParagraphProperties();
+        pPrPage.Append(new Justification { Val = MapAlign(footerAlign) });
+        if (fiL > 0 || fiR > 0)
+            pPrPage.Append(new Indentation { Left = fiL.ToString(), Right = fiR.ToString() });
+        paraPage.Append(pPrPage);
+
         var runPage = new Run();
-        runPage.Append(new RunProperties(new FontSize { Val = "14" }, new RunFonts { Ascii = "Calibri", HighAnsi = "Calibri" }));
+        runPage.Append(new RunProperties(new FontSize { Val = footerFontSize }, new RunFonts { Ascii = _fontFamily, HighAnsi = _fontFamily }));
         runPage.Append(new Text("Page ") { Space = SpaceProcessingModeValues.Preserve });
-        runPage.Append(new FieldChar { FieldCharType = FieldCharValues.Begin });
-        runPage.Append(new FieldCode(" PAGE ") { Space = SpaceProcessingModeValues.Preserve });
-        runPage.Append(new FieldChar { FieldCharType = FieldCharValues.End });
         paraPage.Append(runPage);
+
+        var runField = new Run();
+        runField.Append(new RunProperties(new FontSize { Val = footerFontSize }, new RunFonts { Ascii = _fontFamily, HighAnsi = _fontFamily }));
+        runField.Append(new FieldChar { FieldCharType = FieldCharValues.Begin });
+        paraPage.Append(runField);
+
+        var runCode = new Run();
+        runCode.Append(new FieldCode(" PAGE ") { Space = SpaceProcessingModeValues.Preserve });
+        paraPage.Append(runCode);
+
+        var runEnd = new Run();
+        runEnd.Append(new FieldChar { FieldCharType = FieldCharValues.End });
+        paraPage.Append(runEnd);
+
         footer.Append(paraPage);
 
         footerPart.Footer = footer;
         footerPart.Footer.Save();
-
-        var footerRef = new FooterReference
-        {
-            Type = HeaderFooterValues.Default,
-            Id = mainPart.GetIdOfPart(footerPart)
-        };
-
-        var secPr = mainPart.Document.Body?.Elements<SectionProperties>().FirstOrDefault();
-        secPr?.InsertAt(footerRef, 0);
     }
 
-    // === Helpers ===
-
-    private TableProperties CrearPropiedadesTabla(Dictionary<string, string> style, bool allBorders = false)
+    private void AgregarSectionProperties(Body body, MainDocumentPart mainPart, JsonNode? config)
     {
-        var tPr = new TableProperties();
-        var esAnchoFijo = false;
+        if (config is null) return;
 
-        if (style.TryGetValue("width", out var w))
+        var pageW = CssToTwips(config["pageSize"]?["width"]?.GetValue<string>() ?? "8.27in");
+        var pageH = CssToTwips(config["pageSize"]?["height"]?.GetValue<string>() ?? "11.69in");
+        var mt = CssToTwips(config["margins"]?["top"]?.GetValue<string>() ?? "1.15in");
+        var mb = CssToTwips(config["margins"]?["bottom"]?.GetValue<string>() ?? "1.0in");
+        var ml = CssToTwips(config["margins"]?["left"]?.GetValue<string>() ?? "0.5in");
+        var mr = CssToTwips(config["margins"]?["right"]?.GetValue<string>() ?? "0.5in");
+
+        var secPr = new SectionProperties();
+        secPr.Append(new PageSize { Width = (uint)pageW, Height = (uint)pageH });
+        secPr.Append(new PageMargin { Top = mt, Bottom = mb, Left = (uint)ml, Right = (uint)mr });
+
+        // Link header
+        var headerPart = mainPart.HeaderParts.FirstOrDefault();
+        if (headerPart != null)
+            secPr.InsertAt(new HeaderReference { Type = HeaderFooterValues.Default, Id = mainPart.GetIdOfPart(headerPart) }, 0);
+
+        // Link footer
+        var footerPart = mainPart.FooterParts.FirstOrDefault();
+        if (footerPart != null)
+            secPr.InsertAt(new FooterReference { Type = HeaderFooterValues.Default, Id = mainPart.GetIdOfPart(footerPart) }, 0);
+
+        body.Append(secPr);
+    }
+
+    // ==================== ELEMENT BUILDERS ====================
+
+    private ParagraphProperties CrearParagraphProps(Dictionary<string, string> css)
+    {
+        var pPr = new ParagraphProperties();
+
+        if (css.TryGetValue("text-align", out var align))
+            pPr.Append(new Justification { Val = MapAlign(align) });
+
+        int before = 0, after = 0;
+
+        if (css.TryGetValue("margin", out var margin))
+        {
+            var parts = margin.Split(' ', StringSplitOptions.RemoveEmptyEntries);
+            if (parts.Length >= 1) before = CssToTwips(parts[0]);
+            if (parts.Length >= 3) after = CssToTwips(parts[2]);
+        }
+        if (css.TryGetValue("padding-top", out var pt)) before = CssToTwips(pt);
+        if (css.TryGetValue("padding-bottom", out var pb)) after = CssToTwips(pb);
+        if (css.TryGetValue("margin-top", out var mt)) before = CssToTwips(mt);
+        if (css.TryGetValue("margin-bottom", out var mb)) after = CssToTwips(mb);
+
+        pPr.Append(new SpacingBetweenLines
+        {
+            Before = before.ToString(),
+            After = after.ToString(),
+            Line = _lineSpacing.ToString(),
+            LineRule = LineSpacingRuleValues.Auto
+        });
+
+        AgregarIndentacion(pPr);
+
+        return pPr;
+    }
+
+    private Run CrearRun(string text, Dictionary<string, string> css)
+    {
+        var run = new Run();
+        var rPr = new RunProperties();
+
+        var hp = _fontSizeHp;
+        if (css.TryGetValue("font-size", out var fs))
+            hp = PtToHalfPt(fs);
+
+        rPr.Append(new FontSize { Val = hp.ToString() });
+        rPr.Append(new RunFonts { Ascii = _fontFamily, HighAnsi = _fontFamily, ComplexScript = _fontFamily });
+
+        if (css.GetValueOrDefault("font-weight") is "700" or "bold")
+            rPr.Append(new Bold());
+
+        run.Append(rPr);
+        run.Append(new Text(text) { Space = SpaceProcessingModeValues.Preserve });
+        return run;
+    }
+
+    private Table CrearTabla(Dictionary<string, string> css, bool allBorders = false)
+    {
+        var table = new Table();
+        var tPr = new TableProperties();
+        var isFixed = false;
+
+        // Width
+        if (css.TryGetValue("width", out var w))
         {
             if (w.Contains('%'))
             {
-                var pct = Regex.Match(w, @"([\d.]+)");
-                if (pct.Success && double.TryParse(pct.Groups[1].Value, out var pctVal))
-                    tPr.Append(new TableWidth { Width = ((int)(pctVal * 50)).ToString(), Type = TableWidthUnitValues.Pct });
-                else
-                    tPr.Append(new TableWidth { Width = "5000", Type = TableWidthUnitValues.Pct });
+                var m = Regex.Match(w, @"([\d.]+)");
+                var pct = m.Success && double.TryParse(m.Groups[1].Value, out var p) ? (int)(p * 50) : 5000;
+                tPr.Append(new TableWidth { Width = pct.ToString(), Type = TableWidthUnitValues.Pct });
             }
             else
             {
-                var twips = ConvertirInchATwips(w);
-                tPr.Append(new TableWidth { Width = twips.ToString(), Type = TableWidthUnitValues.Dxa });
-                esAnchoFijo = true;
+                tPr.Append(new TableWidth { Width = CssToTwips(w).ToString(), Type = TableWidthUnitValues.Dxa });
+                isFixed = true;
             }
         }
         else
@@ -512,14 +529,12 @@ public class DocxGeneratorService
             tPr.Append(new TableWidth { Width = "5000", Type = TableWidthUnitValues.Pct });
         }
 
-        if (style.ContainsKey("margin"))
-        {
-            var margin = style["margin"];
-            if (margin.Contains("auto"))
-                tPr.Append(new TableJustification { Val = TableRowAlignmentValues.Center });
-        }
+        // Centering
+        if (css.TryGetValue("margin", out var margin) && margin.Contains("auto"))
+            tPr.Append(new TableJustification { Val = TableRowAlignmentValues.Center });
 
-        if (allBorders || style.ContainsKey("border"))
+        // Borders
+        if (allBorders || css.ContainsKey("border"))
         {
             tPr.Append(new TableBorders(
                 new TopBorder { Val = BorderValues.Single, Size = 4, Space = 0, Color = "000000" },
@@ -531,28 +546,37 @@ public class DocxGeneratorService
             ));
         }
 
-        if (esAnchoFijo)
+        // Cell margins (matching CSS: td, th { padding: 0 0.03in })
+        tPr.Append(new TableCellMarginDefault(
+            new TableCellLeftMargin { Width = 43, Type = TableWidthValues.Dxa },
+            new TableCellRightMargin { Width = 43, Type = TableWidthValues.Dxa }
+        ));
+
+        if (isFixed)
             tPr.Append(new TableLayout { Type = TableLayoutValues.Fixed });
 
-        return tPr;
+        // Indentation to match content indent
+        if (_contentIndentL > 0 || _contentIndentR > 0)
+            tPr.Append(new TableIndentation { Width = _contentIndentL, Type = TableWidthUnitValues.Dxa });
+
+        table.Append(tPr);
+        return table;
     }
 
-    private TableCell CrearCelda(string text, string? width, bool bold, Dictionary<string, string>? style,
-        int colspan = 1, bool borders = false, string? fontSize = null)
+    private TableCell CrearCeldaTexto(string text, int widthTwips, Dictionary<string, string>? css,
+        int colspan = 0, int fontSize = 0)
     {
         var tc = new TableCell();
         var tcPr = new TableCellProperties();
 
-        if (width != null)
-        {
-            var twips = ConvertirInchATwips(width);
-            tcPr.Append(new TableCellWidth { Width = twips.ToString(), Type = TableWidthUnitValues.Dxa });
-        }
+        if (widthTwips > 0)
+            tcPr.Append(new TableCellWidth { Width = widthTwips.ToString(), Type = TableWidthUnitValues.Dxa });
 
         if (colspan > 1)
             tcPr.Append(new GridSpan { Val = colspan });
 
-        if (borders && style != null && style.ContainsKey("border"))
+        // Cell borders from style
+        if (css != null && css.ContainsKey("border"))
         {
             tcPr.Append(new TableCellBorders(
                 new TopBorder { Val = BorderValues.Single, Size = 4, Space = 0, Color = "000000" },
@@ -561,34 +585,48 @@ public class DocxGeneratorService
                 new RightBorder { Val = BorderValues.Single, Size = 4, Space = 0, Color = "000000" }
             ));
         }
+        else if (css != null)
+        {
+            var borders = new TableCellBorders();
+            if (css.ContainsKey("border-bottom")) borders.Append(new BottomBorder { Val = BorderValues.Single, Size = 4, Space = 0, Color = "000000" });
+            if (css.ContainsKey("border-top")) borders.Append(new TopBorder { Val = BorderValues.Single, Size = 4, Space = 0, Color = "000000" });
+            if (css.ContainsKey("border-left")) borders.Append(new LeftBorder { Val = BorderValues.Single, Size = 4, Space = 0, Color = "000000" });
+            if (css.ContainsKey("border-right")) borders.Append(new RightBorder { Val = BorderValues.Single, Size = 4, Space = 0, Color = "000000" });
+            if (borders.HasChildren)
+                tcPr.Append(borders);
+        }
 
+        tcPr.Append(new TableCellVerticalAlignment { Val = TableVerticalAlignmentValues.Top });
         tc.Append(tcPr);
 
+        // Paragraph inside cell
         var para = new Paragraph();
         var pPr = new ParagraphProperties();
         pPr.Append(new SpacingBetweenLines { After = "0", Line = "240" });
 
-        if (style != null && style.TryGetValue("text-align", out var align))
-            pPr.Append(new Justification { Val = MapearAlineacion(align) });
+        if (css != null && css.TryGetValue("text-align", out var align))
+            pPr.Append(new Justification { Val = MapAlign(align) });
 
         para.Append(pPr);
 
+        // Run
         var run = new Run();
         var rPr = new RunProperties();
-        rPr.Append(new FontSize { Val = fontSize ?? "20" });
-        rPr.Append(new RunFonts { Ascii = "Calibri", HighAnsi = "Calibri" });
 
-        if (bold)
+        var hp = fontSize > 0 ? fontSize : (css != null && css.TryGetValue("font-size", out var fs) ? PtToHalfPt(fs) : _fontSizeHp);
+        rPr.Append(new FontSize { Val = hp.ToString() });
+        rPr.Append(new RunFonts { Ascii = _fontFamily, HighAnsi = _fontFamily, ComplexScript = _fontFamily });
+
+        if (css != null && css.GetValueOrDefault("font-weight") is "700" or "bold")
             rPr.Append(new Bold());
 
         run.Append(rPr);
 
-        // Handle multi-line text
+        // Multi-line support
         var lines = text.Split('\n');
         for (int i = 0; i < lines.Length; i++)
         {
-            if (i > 0)
-                run.Append(new Break());
+            if (i > 0) run.Append(new Break());
             run.Append(new Text(lines[i]) { Space = SpaceProcessingModeValues.Preserve });
         }
 
@@ -597,51 +635,27 @@ public class DocxGeneratorService
         return tc;
     }
 
-    private void AgregarEspaciado(ParagraphProperties pPr, Dictionary<string, string> style)
+    private void AgregarIndentacion(ParagraphProperties pPr)
     {
-        int before = 0, after = 0;
-
-        if (style.TryGetValue("margin", out var margin))
-        {
-            var parts = margin.Split(' ');
-            if (parts.Length >= 1) before = ConvertirPtATwips(parts[0]);
-            if (parts.Length >= 3) after = ConvertirPtATwips(parts[2]);
-            else if (parts.Length >= 2) after = ConvertirPtATwips(parts[0]);
-        }
-
-        if (style.TryGetValue("padding-top", out var pt))
-            before = ConvertirPtATwips(pt);
-        if (style.TryGetValue("padding-bottom", out var pb))
-            after = ConvertirPtATwips(pb);
-        if (style.TryGetValue("margin-top", out var mt))
-            before = ConvertirPtATwips(mt);
-        if (style.TryGetValue("margin-bottom", out var mb))
-            after = ConvertirPtATwips(mb);
-
-        pPr.Append(new SpacingBetweenLines
-        {
-            Before = before.ToString(),
-            After = after.ToString(),
-            Line = "276",
-            LineRule = LineSpacingRuleValues.Auto
-        });
+        if (_contentIndentL > 0 || _contentIndentR > 0)
+            pPr.Append(new Indentation { Left = _contentIndentL.ToString(), Right = _contentIndentR.ToString() });
     }
+
+    // ==================== CSS PARSING / CONVERSION ====================
 
     private static Dictionary<string, string> ParseCss(string? css)
     {
         var result = new Dictionary<string, string>();
         if (string.IsNullOrEmpty(css)) return result;
-
         foreach (var pair in css.Split(';', StringSplitOptions.RemoveEmptyEntries))
         {
             var kv = pair.Split(':', 2);
-            if (kv.Length == 2)
-                result[kv[0].Trim()] = kv[1].Trim();
+            if (kv.Length == 2) result[kv[0].Trim()] = kv[1].Trim();
         }
         return result;
     }
 
-    private static JustificationValues MapearAlineacion(string align) => align switch
+    private static JustificationValues MapAlign(string align) => align switch
     {
         "center" => JustificationValues.Center,
         "right" => JustificationValues.Right,
@@ -649,35 +663,27 @@ public class DocxGeneratorService
         _ => JustificationValues.Left
     };
 
-    private static string ConvertirPtAHalfPt(string pt)
+    private static int PtToHalfPt(string value)
     {
-        var match = Regex.Match(pt, @"([\d.]+)");
-        if (match.Success && double.TryParse(match.Groups[1].Value, out var val))
-            return ((int)(val * 2)).ToString();
-        return "20";
+        var m = Regex.Match(value, @"([\d.]+)");
+        return m.Success && double.TryParse(m.Groups[1].Value, System.Globalization.NumberStyles.Any, System.Globalization.CultureInfo.InvariantCulture, out var v)
+            ? (int)(v * 2)
+            : 20;
     }
 
-    private static int ConvertirPtATwips(string value)
+    private static int CssToHalfPt(string value)
     {
-        var match = Regex.Match(value, @"([\d.]+)\s*(pt|in|)");
-        if (!match.Success || !double.TryParse(match.Groups[1].Value, out var num))
-            return 0;
-
-        return match.Groups[2].Value switch
-        {
-            "in" => (int)(num * 1440),
-            "pt" => (int)(num * 20),
-            _ => (int)(num * 20)
-        };
+        if (string.IsNullOrEmpty(value)) return 0;
+        return PtToHalfPt(value);
     }
 
-    private static int ConvertirInchATwips(string value)
+    private static int CssToTwips(string value)
     {
-        var match = Regex.Match(value, @"([\d.]+)\s*(in|pt|)");
-        if (!match.Success || !double.TryParse(match.Groups[1].Value, out var num))
+        if (string.IsNullOrEmpty(value)) return 0;
+        var m = Regex.Match(value, @"([\d.]+)\s*(in|pt|)");
+        if (!m.Success || !double.TryParse(m.Groups[1].Value, System.Globalization.NumberStyles.Any, System.Globalization.CultureInfo.InvariantCulture, out var num))
             return 0;
-
-        return match.Groups[2].Value switch
+        return m.Groups[2].Value switch
         {
             "in" => (int)(num * 1440),
             "pt" => (int)(num * 20),
@@ -685,8 +691,16 @@ public class DocxGeneratorService
         };
     }
 
-    private static string? ExtraerAncho(Dictionary<string, string> style)
+    private static long CssToEmu(string value)
     {
-        return style.TryGetValue("width", out var w) ? w : null;
+        var m = Regex.Match(value, @"([\d.]+)\s*(in|pt|)");
+        if (!m.Success || !double.TryParse(m.Groups[1].Value, System.Globalization.NumberStyles.Any, System.Globalization.CultureInfo.InvariantCulture, out var num))
+            return 0;
+        return m.Groups[2].Value switch
+        {
+            "in" => (long)(num * 914400),
+            "pt" => (long)(num * 12700),
+            _ => (long)(num * 914400)
+        };
     }
 }
