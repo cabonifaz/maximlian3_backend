@@ -143,7 +143,9 @@ public partial class DocxGeneratorService
         if (rows is null || rows.Count == 0) return;
 
         var table = CrearTabla(tblCss);
-        var lblWidthTwips = CssToTwips(lblCss.GetValueOrDefault("width", ""));
+        var tblW = ObtenerAnchoTabla(tblCss);
+        var lblW = CssToTwips(lblCss.GetValueOrDefault("width", ""));
+        var valW = lblW > 0 && tblW > lblW ? tblW - lblW : 0;
 
         foreach (var row in rows)
         {
@@ -153,8 +155,8 @@ public partial class DocxGeneratorService
             var sep = row["separator"]?.GetValue<string>() ?? "";
 
             var tr = new TableRow();
-            tr.Append(CrearCeldaTexto(label, lblWidthTwips > 0 ? lblWidthTwips : 0, lblCss));
-            tr.Append(CrearCeldaTexto(sep + value, 0, null));
+            tr.Append(CrearCeldaTexto(label, lblW, lblCss));
+            tr.Append(CrearCeldaTexto(sep + value, valW, null));
             table.Append(tr);
         }
 
@@ -174,18 +176,20 @@ public partial class DocxGeneratorService
 
         var hasBorder = tblCss.ContainsKey("border") || cellCss.ContainsKey("border");
         var table = CrearTabla(tblCss, hasBorder);
-        var lblWidthTwips = CssToTwips(lblCss.GetValueOrDefault("width", ""));
+        var tblW = ObtenerAnchoTabla(tblCss);
+        var lblW = CssToTwips(lblCss.GetValueOrDefault("width", ""));
+        var valW = lblW > 0 && tblW > lblW ? tblW - lblW : 0;
 
         // Title row (colspan 2)
         var trTitle = new TableRow();
-        trTitle.Append(CrearCeldaTexto(title, 0, titleCss, colspan: 2));
+        trTitle.Append(CrearCeldaTexto(title, tblW, titleCss, colspan: 2));
         table.Append(trTitle);
 
         // Content row
         if (!string.IsNullOrEmpty(content))
         {
             var trContent = new TableRow();
-            trContent.Append(CrearCeldaTexto(content, 0, cellCss, colspan: 2));
+            trContent.Append(CrearCeldaTexto(content, tblW, cellCss, colspan: 2));
             table.Append(trContent);
         }
 
@@ -199,10 +203,13 @@ public partial class DocxGeneratorService
                 var value = row["value"]?.GetValue<string>() ?? "";
                 var rowCss = ParseCss(row["style"]?.GetValue<string>());
                 var effectiveLblCss = rowCss.Count > 0 ? rowCss : lblCss;
+                var effectiveLblW = CssToTwips(rowCss.GetValueOrDefault("width", ""));
+                if (effectiveLblW == 0) effectiveLblW = lblW;
+                var effectiveValW = effectiveLblW > 0 && tblW > effectiveLblW ? tblW - effectiveLblW : valW;
 
                 var tr = new TableRow();
-                tr.Append(CrearCeldaTexto(label, lblWidthTwips > 0 ? lblWidthTwips : 0, effectiveLblCss));
-                tr.Append(CrearCeldaTexto(value, 0, valCss));
+                tr.Append(CrearCeldaTexto(label, effectiveLblW, effectiveLblCss));
+                tr.Append(CrearCeldaTexto(value, effectiveValW, valCss));
                 table.Append(tr);
             }
         }
@@ -431,9 +438,10 @@ public partial class DocxGeneratorService
             pPrPage.Append(new Indentation { Left = fiL.ToString(), Right = fiR.ToString() });
         paraPage.Append(pPrPage);
 
+        var pageLabel = config?["footer"]?["pageLabel"]?.GetValue<string>() ?? "Page";
         var runPage = new Run();
         runPage.Append(new RunProperties(new FontSize { Val = footerFontSize }, new RunFonts { Ascii = _fontFamily, HighAnsi = _fontFamily }));
-        runPage.Append(new Text("Page ") { Space = SpaceProcessingModeValues.Preserve });
+        runPage.Append(new Text(pageLabel + " ") { Space = SpaceProcessingModeValues.Preserve });
         paraPage.Append(runPage);
 
         var runField = new Run();
@@ -709,6 +717,18 @@ public partial class DocxGeneratorService
     {
         if (_contentIndentL > 0 || _contentIndentR > 0)
             pPr.Append(new Indentation { Left = _contentIndentL.ToString(), Right = _contentIndentR.ToString() });
+    }
+
+    private int ObtenerAnchoTabla(Dictionary<string, string> css)
+    {
+        if (!css.TryGetValue("width", out var w)) return _contentWidth;
+        if (w.Contains('%'))
+        {
+            var m = Regex.Match(w, @"([\d.]+)");
+            var pct = m.Success && double.TryParse(m.Groups[1].Value, System.Globalization.NumberStyles.Any, System.Globalization.CultureInfo.InvariantCulture, out var p) ? p / 100.0 : 1.0;
+            return (int)(_contentWidth * pct);
+        }
+        return CssToTwips(w);
     }
 
     // ==================== CSS PARSING / CONVERSION ====================
