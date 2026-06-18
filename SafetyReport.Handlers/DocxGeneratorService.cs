@@ -419,7 +419,7 @@ public partial class DocxGeneratorService
         var para = new Paragraph();
         var pPr = new ParagraphProperties();
         pPr.Append(new Justification { Val = MapAlign(footerAlign) });
-        pPr.Append(new SpacingBetweenLines { After = "0", Line = "240" });
+        pPr.Append(new SpacingBetweenLines { Before = "40", After = "40", Line = "240" });
         if (fiL > 0 || fiR > 0)
             pPr.Append(new Indentation { Left = fiL.ToString(), Right = fiR.ToString() });
         para.Append(pPr);
@@ -685,7 +685,7 @@ public partial class DocxGeneratorService
         // Paragraph inside cell
         var para = new Paragraph();
         var pPr = new ParagraphProperties();
-        pPr.Append(new SpacingBetweenLines { After = "0", Line = "240" });
+        pPr.Append(new SpacingBetweenLines { Before = "40", After = "40", Line = "240" });
 
         if (css != null && css.TryGetValue("text-align", out var align))
             pPr.Append(new Justification { Val = MapAlign(align) });
