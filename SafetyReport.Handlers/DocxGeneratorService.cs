@@ -499,9 +499,9 @@ public partial class DocxGeneratorService
         if (tblCss.TryGetValue("margin", out var margin))
         {
             var parts = margin.Split(' ', StringSplitOptions.RemoveEmptyEntries);
-            if (parts.Length >= 1) before = CssToTwips(parts[0]);
-            if (parts.Length >= 3) after = CssToTwips(parts[2]);
-            else if (parts.Length == 2) after = 0;
+            if (parts.Length == 1) { before = CssToTwips(parts[0]); after = before; }
+            else if (parts.Length == 2) { before = CssToTwips(parts[0]); after = before; }
+            else if (parts.Length >= 3) { before = CssToTwips(parts[0]); after = CssToTwips(parts[2]); }
         }
         if (tblCss.TryGetValue("margin-top", out var mt)) before = CssToTwips(mt);
         if (tblCss.TryGetValue("margin-bottom", out var mb)) after = CssToTwips(mb);
@@ -539,8 +539,9 @@ public partial class DocxGeneratorService
         if (css.TryGetValue("margin", out var margin))
         {
             var parts = margin.Split(' ', StringSplitOptions.RemoveEmptyEntries);
-            if (parts.Length >= 1) before = CssToTwips(parts[0]);
-            if (parts.Length >= 3) after = CssToTwips(parts[2]);
+            if (parts.Length == 1) { before = CssToTwips(parts[0]); after = before; }
+            else if (parts.Length == 2) { before = CssToTwips(parts[0]); after = before; }
+            else if (parts.Length >= 3) { before = CssToTwips(parts[0]); after = CssToTwips(parts[2]); }
         }
         if (css.TryGetValue("padding-top", out var pt)) before = CssToTwips(pt);
         if (css.TryGetValue("padding-bottom", out var pb)) after = CssToTwips(pb);
