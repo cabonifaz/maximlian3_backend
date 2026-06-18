@@ -98,7 +98,29 @@ public partial class DocxGeneratorService
         var css = ParseCss(section["style"]?.GetValue<string>());
 
         var para = new Paragraph();
-        var pPr = CrearParagraphProps(css);
+        var pPr = new ParagraphProperties();
+
+        if (css.TryGetValue("text-align", out var align))
+            pPr.Append(new Justification { Val = MapAlign(align) });
+
+        int before = 0, after = 0;
+        if (css.TryGetValue("margin", out var margin))
+        {
+            var parts = margin.Split(' ', StringSplitOptions.RemoveEmptyEntries);
+            if (parts.Length == 1) { before = CssToTwips(parts[0]); after = before; }
+            else if (parts.Length == 2) { before = CssToTwips(parts[0]); after = before; }
+            else if (parts.Length >= 3) { before = CssToTwips(parts[0]); after = CssToTwips(parts[2]); }
+        }
+
+        pPr.Append(new SpacingBetweenLines
+        {
+            Before = before.ToString(),
+            After = "20",
+            Line = "320",
+            LineRule = LineSpacingRuleValues.AtLeast
+        });
+
+        AgregarIndentacion(pPr);
         para.Append(pPr);
         para.Append(CrearRun(text, css));
         body.Append(para);
@@ -610,9 +632,8 @@ public partial class DocxGeneratorService
             isFixed = true;
         }
 
-        // Centering
-        if (css.TryGetValue("margin", out var margin) && margin.Contains("auto"))
-            tPr.Append(new TableJustification { Val = TableRowAlignmentValues.Center });
+        // Center all tables (original DOCX uses jc:center for content indent)
+        tPr.Append(new TableJustification { Val = TableRowAlignmentValues.Center });
 
         // Borders
         if (allBorders || css.ContainsKey("border"))
@@ -638,9 +659,6 @@ public partial class DocxGeneratorService
         if (isFixed)
             tPr.Append(new TableLayout { Type = TableLayoutValues.Fixed });
 
-        // Indentation to match content indent
-        if (_contentIndentL > 0 || _contentIndentR > 0)
-            tPr.Append(new TableIndentation { Width = _contentIndentL, Type = TableWidthUnitValues.Dxa });
 
         table.Append(tPr);
         return table;
