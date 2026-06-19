@@ -492,7 +492,7 @@ public partial class DocxGeneratorService
         footerCell.Append(new TableCellProperties(
             new TableCellWidth { Width = "5000", Type = TableWidthUnitValues.Pct },
             new TableCellMargin(
-                new TopMargin { Width = gapBefore.ToString(), Type = TableWidthUnitValues.Dxa },
+                new TopMargin { Width = "0", Type = TableWidthUnitValues.Dxa },
                 new BottomMargin { Width = "0", Type = TableWidthUnitValues.Dxa },
                 new LeftMargin { Width = fiL.ToString(), Type = TableWidthUnitValues.Dxa },
                 new RightMargin { Width = fiR.ToString(), Type = TableWidthUnitValues.Dxa }),
@@ -570,13 +570,14 @@ public partial class DocxGeneratorService
         var logoHeight = CssToTwips(config["header"]?["logoHeight"]?.GetValue<string>() ?? "0.55in");
         var headerGap = CssToTwips(config["header"]?["gapAfter"]?.GetValue<string>() ?? "0");
         var headerDistance = Math.Max(0, mt - logoHeight - headerGap);
+        var footerGapBefore = CssToTwips(config["footer"]?["gapBefore"]?.GetValue<string>() ?? "0");
 
         var secPr = new SectionProperties();
         secPr.Append(new PageSize { Width = (uint)pageW, Height = (uint)pageH });
         secPr.Append(new PageMargin
         {
             Top = mt,
-            Bottom = mb,
+            Bottom = mb - footerGapBefore,
             Left = (uint)ml,
             Right = (uint)mr,
             Header = (uint)headerDistance,
