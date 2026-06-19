@@ -6,6 +6,7 @@ public interface IS3UploadService
     string GenerarRutaPedidoArchivo(int idPedido, string nombreArchivo,  int idArchivo);
     string GenerarUploadUrl(string rutaArchivo, string formatoArchivo);
     string GenerarDownloadUrl(string rutaArchivo);
+    string GenerarDownloadUrl(string rutaArchivo, string nombreDescarga);
     List<string> GenerarUploadUrlsBatch(List<string> sufijos, string formatoArchivo);
     List<string> GenerarDownloadUrlsBatch(List<string> sufijos);
     Task UploadFileAsync(string rutaArchivo, IFormFile file);

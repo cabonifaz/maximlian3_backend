@@ -451,6 +451,12 @@ namespace SafetyReport.Models
         public int IdInforme { get; set; }
     }
 
+    public class InformeDocumentoResult
+    {
+        public string UrlDocumento { get; set; } = string.Empty;
+        public string Nombre { get; set; } = string.Empty;
+    }
+
     public class InformeActualizarEstadoRequest
     {
         public int IdInforme { get; set; }

@@ -139,6 +139,13 @@ namespace SafetyReport.WebApi.Controllers
             return Ok(respuesta);
         }
 
+        [HttpGet("obtenerDocumento")]
+        public async Task<IActionResult> ObtenerDocumento([FromQuery] InformeIdRequest request)
+        {
+            var respuesta = await _informeHandler.ObtenerDocumentoAsync(UsuarioLogueado, request);
+            return Ok(respuesta);
+        }
+
         [HttpPost("actualizarEstado")]
         public async Task<IActionResult> ActualizarEstado([FromBody] InformeActualizarEstadoRequest request)
         {

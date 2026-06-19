@@ -367,6 +367,31 @@ namespace SafetyReport.Handlers
             }
         }
 
+        public async Task<Respuesta> ObtenerDocumentoAsync(UsuarioGeneral usuarioLogueado, InformeIdRequest request)
+        {
+            try
+            {
+                var respuesta = await _dao.ObtenerDocumentoAsync(usuarioLogueado, request.IdInforme);
+                if (respuesta.IdTipoMensaje != 2 || respuesta.Result is not List<InformeDocumentoResult> docs || docs.Count == 0)
+                    return respuesta;
+
+                var doc = docs[0];
+                var nombreDescarga = !string.IsNullOrWhiteSpace(doc.Nombre) ? $"{doc.Nombre}.docx" : "documento.docx";
+                var downloadUrl = _s3.GenerarDownloadUrl(doc.UrlDocumento, nombreDescarga);
+
+                return new Respuesta
+                {
+                    IdTipoMensaje = 2,
+                    Mensaje = respuesta.Mensaje,
+                    Result = new { url = downloadUrl, nombre = doc.Nombre }
+                };
+            }
+            catch (Exception)
+            {
+                return new Respuesta { IdTipoMensaje = 3, Mensaje = "Error interno del servidor.", Result = null };
+            }
+        }
+
         public async Task<Respuesta> AutocompletarAsync(InformeAutocompletar request)
         {
             try
@@ -509,18 +534,17 @@ namespace SafetyReport.Handlers
                 using var docxStream = generador.GenerarDocx(estructura!, logoBytes);
 
                 var nombreArchivo = !string.IsNullOrWhiteSpace(nombreInforme) ? nombreInforme : "documento";
-                var rutaS3 = $"informes/pedido-{request.IdPedido}/informe-{request.IdInforme}/{nombreArchivo}.docx";
+                var timestamp = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
+                var rutaS3 = $"informes/pedido-{request.IdPedido}/informe-{request.IdInforme}/{nombreArchivo}-{timestamp}.docx";
                 await _s3.UploadStreamAsync(rutaS3, docxStream, "application/vnd.openxmlformats-officedocument.wordprocessingml.document");
 
                 await _dao.ActualizarDocumentoAsync(usuarioLogueado, request.IdInforme, rutaS3);
-
-                var downloadUrl = _s3.GenerarDownloadUrl(rutaS3);
 
                 return new Respuesta
                 {
                     IdTipoMensaje = 2,
                     Mensaje = "Documento DOCX generado correctamente.",
-                    Result = new { url = downloadUrl, ruta = rutaS3, nombreInforme }
+                    Result = new { nombreInforme }
                 };
             }
             catch (Exception)

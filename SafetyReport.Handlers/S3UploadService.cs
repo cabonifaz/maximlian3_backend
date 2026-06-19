@@ -48,6 +48,20 @@ public class S3UploadService : IS3UploadService
         return _s3Client.GetPreSignedURL(request);
     }
 
+    public string GenerarDownloadUrl(string rutaArchivo, string nombreDescarga)
+    {
+        var request = new GetPreSignedUrlRequest
+        {
+            BucketName = _bucketName,
+            Key = rutaArchivo,
+            Verb = HttpVerb.GET,
+            Expires = DateTime.UtcNow.AddMinutes(_s3ExpirationMinutes),
+        };
+        request.ResponseHeaderOverrides.ContentDisposition = $"attachment; filename=\"{nombreDescarga}\"";
+
+        return _s3Client.GetPreSignedURL(request);
+    }
+
     public string GenerarUploadUrl(string rutaArchivo, string formatoArchivo)
     {
         var request = new GetPreSignedUrlRequest
