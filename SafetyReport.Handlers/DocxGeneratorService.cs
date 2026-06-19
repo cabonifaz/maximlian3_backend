@@ -476,16 +476,17 @@ public partial class DocxGeneratorService
         var fiR = CssToTwips(config?["footerIndent"]?["right"]?.GetValue<string>() ?? "0");
         var gapBefore = CssToTwips(config?["footer"]?["gapBefore"]?.GetValue<string>() ?? "0");
         var showPageNumber = config?["footer"]?["showPageNumber"]?.GetValue<bool>() ?? true;
-        var footerBoxHeight = CssToTwips(config?["margins"]?["bottom"]?.GetValue<string>() ?? "1in");
+        var footerPageW = CssToTwips(config?["pageSize"]?["width"]?.GetValue<string>());
+        var footerMl = CssToTwips(config?["margins"]?["left"]?.GetValue<string>());
+        var footerMr = CssToTwips(config?["margins"]?["right"]?.GetValue<string>());
+        var footerTableWidth = footerPageW - footerMl - footerMr;
 
         var footerTable = new Table();
         footerTable.Append(new TableProperties(
-            new TableWidth { Width = "5000", Type = TableWidthUnitValues.Pct },
+            new TableWidth { Width = footerTableWidth.ToString(), Type = TableWidthUnitValues.Dxa },
             new TableLayout { Type = TableLayoutValues.Fixed }));
 
         var footerRow = new TableRow();
-        footerRow.Append(new TableRowProperties(
-            new TableRowHeight { Val = (uint)footerBoxHeight, HeightType = HeightRuleValues.Exact }));
 
         var footerCell = new TableCell();
         footerCell.Append(new TableCellProperties(
@@ -579,7 +580,7 @@ public partial class DocxGeneratorService
             Left = (uint)ml,
             Right = (uint)mr,
             Header = (uint)headerDistance,
-            Footer = 0
+            Footer = (uint)mb
         });
 
         // Link header
