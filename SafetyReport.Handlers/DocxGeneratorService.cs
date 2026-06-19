@@ -13,7 +13,7 @@ public partial class DocxGeneratorService
 {
     private string _fontFamily = "Calibri";
     private int _fontSizeHp = 20;
-    private int _lineSpacing = 276;
+    private int _lineSpacing = 230;
     private int _contentIndentL = 0;
     private int _contentIndentR = 0;
     private int _contentWidth = 0; // available width for content in twips
@@ -58,7 +58,9 @@ public partial class DocxGeneratorService
         _fontSizeHp = PtToHalfPt(fs);
         var ls = config["font"]?["lineSpacing"]?.GetValue<double>() ?? 1.15;
         if (ls > 10) ls = ls / 100.0;
-        _lineSpacing = (int)(ls * 240);
+        // CSS unitless line-height is based on the font size. Word's "Auto"
+        // spacing is based on its own single-line metrics and renders taller.
+        _lineSpacing = (int)Math.Round(_fontSizeHp * 10 * ls);
         _contentIndentL = CssToTwips(config["contentIndent"]?["left"]?.GetValue<string>() ?? "0");
         _contentIndentR = CssToTwips(config["contentIndent"]?["right"]?.GetValue<string>() ?? "0");
 
@@ -111,7 +113,7 @@ public partial class DocxGeneratorService
             Before = before.ToString(),
             After = after.ToString(),
             Line = CssLineSpacing(css).ToString(),
-            LineRule = LineSpacingRuleValues.Auto
+            LineRule = LineSpacingRuleValues.Exact
         });
 
         AgregarIndentacion(pPr);
@@ -138,7 +140,7 @@ public partial class DocxGeneratorService
             Before = before.ToString(),
             After = after.ToString(),
             Line = CssLineSpacing(css).ToString(),
-            LineRule = LineSpacingRuleValues.Auto
+            LineRule = LineSpacingRuleValues.Exact
         });
 
         AgregarIndentacion(pPr);
@@ -158,7 +160,7 @@ public partial class DocxGeneratorService
         {
             var para = new Paragraph();
             var pPr = new ParagraphProperties();
-            pPr.Append(new SpacingBetweenLines { After = "0", Line = CssLineSpacing(css).ToString(), LineRule = LineSpacingRuleValues.Auto });
+            pPr.Append(new SpacingBetweenLines { After = "0", Line = CssLineSpacing(css).ToString(), LineRule = LineSpacingRuleValues.Exact });
             AgregarIndentacion(pPr);
             para.Append(pPr);
             para.Append(CrearRun(line, css));
@@ -357,7 +359,7 @@ public partial class DocxGeneratorService
                 {
                     var pContent = new Paragraph();
                     var pPr = new ParagraphProperties();
-                    pPr.Append(new SpacingBetweenLines { After = "0", Line = CssLineSpacing(contentCss).ToString(), LineRule = LineSpacingRuleValues.Auto });
+                    pPr.Append(new SpacingBetweenLines { After = "0", Line = CssLineSpacing(contentCss).ToString(), LineRule = LineSpacingRuleValues.Exact });
                     AgregarIndentacion(pPr);
                     pContent.Append(pPr);
                     pContent.Append(CrearRun(line, contentCss));
@@ -566,7 +568,7 @@ public partial class DocxGeneratorService
             Before = before.ToString(),
             After = after.ToString(),
             Line = CssLineSpacing(css).ToString(),
-            LineRule = LineSpacingRuleValues.Auto
+            LineRule = LineSpacingRuleValues.Exact
         });
 
         AgregarIndentacion(pPr);
@@ -691,10 +693,12 @@ public partial class DocxGeneratorService
         tcPr.Append(new TableCellVerticalAlignment { Val = TableVerticalAlignmentValues.Top });
         tc.Append(tcPr);
 
+        var hp = fontSize > 0 ? fontSize : (css != null && css.TryGetValue("font-size", out var fs) ? PtToHalfPt(fs) : _fontSizeHp);
+
         // Paragraph inside cell
         var para = new Paragraph();
         var pPr = new ParagraphProperties();
-        pPr.Append(new SpacingBetweenLines { Before = "0", After = "0", Line = CssLineSpacing(css).ToString(), LineRule = LineSpacingRuleValues.Auto });
+        pPr.Append(new SpacingBetweenLines { Before = "0", After = "0", Line = CssLineSpacing(css, hp).ToString(), LineRule = LineSpacingRuleValues.Exact });
 
         if (css != null && css.TryGetValue("text-align", out var align))
             pPr.Append(new Justification { Val = MapAlign(align) });
@@ -705,7 +709,6 @@ public partial class DocxGeneratorService
         var run = new Run();
         var rPr = new RunProperties();
 
-        var hp = fontSize > 0 ? fontSize : (css != null && css.TryGetValue("font-size", out var fs) ? PtToHalfPt(fs) : _fontSizeHp);
         rPr.Append(new FontSize { Val = hp.ToString() });
         rPr.Append(new RunFonts { Ascii = _fontFamily, HighAnsi = _fontFamily, ComplexScript = _fontFamily });
 
@@ -754,8 +757,14 @@ public partial class DocxGeneratorService
         return para;
     }
 
-    private int CssLineSpacing(Dictionary<string, string>? css)
+    private int CssLineSpacing(Dictionary<string, string>? css, int fontSizeHp = 0)
     {
+        var effectiveFontSizeHp = fontSizeHp > 0
+            ? fontSizeHp
+            : css != null && css.TryGetValue("font-size", out var fontSize)
+                ? PtToHalfPt(fontSize)
+                : _fontSizeHp;
+
         if (css != null && css.TryGetValue("line-height", out var lineHeight))
         {
             var trimmed = lineHeight.Trim();
@@ -763,7 +772,7 @@ public partial class DocxGeneratorService
                 return CssToTwips(trimmed);
             var m = Regex.Match(trimmed, @"([\d.]+)");
             if (m.Success && double.TryParse(m.Groups[1].Value, System.Globalization.NumberStyles.Any, System.Globalization.CultureInfo.InvariantCulture, out var multiplier))
-                return (int)(multiplier * 240);
+                return (int)Math.Round(effectiveFontSizeHp * 10 * multiplier);
         }
 
         return _lineSpacing;
