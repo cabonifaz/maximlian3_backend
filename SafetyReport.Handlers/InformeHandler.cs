@@ -443,7 +443,7 @@ namespace SafetyReport.Handlers
         {
             try
             {
-                var respuesta = await _dao.GenerarDocumentoAsync(usuarioLogueado, request.IdInforme, request.IdPedido, 1);
+                var (respuesta, nombreInforme) = await _dao.GenerarDocumentoAsync(usuarioLogueado, request.IdInforme, request.IdPedido, 1);
                 if (respuesta.IdTipoMensaje != 2 || respuesta.Result is not string jsonStr || string.IsNullOrWhiteSpace(jsonStr))
                     return new Respuesta { IdTipoMensaje = respuesta.IdTipoMensaje, Mensaje = respuesta.Mensaje, Result = null };
 
@@ -459,7 +459,7 @@ namespace SafetyReport.Handlers
                 {
                     IdTipoMensaje = 2,
                     Mensaje       = "Documento generado correctamente.",
-                    Result        = estructura
+                    Result        = new { documento = estructura, nombreInforme }
                 };
             }
             catch (Exception)
@@ -472,7 +472,7 @@ namespace SafetyReport.Handlers
         {
             try
             {
-                var respuesta = await _dao.GenerarDocumentoAsync(usuarioLogueado, request.IdInforme, request.IdPedido, 1);
+                var (respuesta, nombreInforme) = await _dao.GenerarDocumentoAsync(usuarioLogueado, request.IdInforme, request.IdPedido, 1);
                 if (respuesta.IdTipoMensaje != 2 || respuesta.Result is not string jsonStr || string.IsNullOrWhiteSpace(jsonStr))
                     return new Respuesta { IdTipoMensaje = respuesta.IdTipoMensaje, Mensaje = respuesta.Mensaje, Result = null };
 
@@ -505,7 +505,7 @@ namespace SafetyReport.Handlers
                 {
                     IdTipoMensaje = 2,
                     Mensaje = "Documento DOCX generado correctamente.",
-                    Result = new { url = downloadUrl, ruta = rutaS3 }
+                    Result = new { url = downloadUrl, ruta = rutaS3, nombreInforme }
                 };
             }
             catch (Exception)

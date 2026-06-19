@@ -1029,7 +1029,7 @@ namespace SafetyReport.DAO
             }
         }
 
-        public async Task<Respuesta> GenerarDocumentoAsync(UsuarioGeneral u, int idInforme, int idPedido, int idIdioma)
+        public async Task<(Respuesta respuesta, string? nombreInforme)> GenerarDocumentoAsync(UsuarioGeneral u, int idInforme, int idPedido, int idIdioma)
         {
             try
             {
@@ -1042,23 +1042,25 @@ namespace SafetyReport.DAO
                 await cn.OpenAsync();
 
                 var respuesta = new Respuesta();
+                string? nombreInforme = null;
                 using var dr = await cmd.ExecuteReaderAsync();
                 if (await dr.ReadAsync())
                 {
                     respuesta.IdTipoMensaje = dr["IdTipoMensaje"] != DBNull.Value ? Convert.ToInt32(dr["IdTipoMensaje"]) : 0;
                     respuesta.Mensaje = dr["Mensaje"]?.ToString() ?? string.Empty;
                     respuesta.Result = dr["Result"]?.ToString();
+                    nombreInforme = dr["NombreInforme"]?.ToString();
                 }
                 else
                 {
                     respuesta.IdTipoMensaje = 1;
                     respuesta.Mensaje = "No se obtuvo respuesta del procedimiento.";
                 }
-                return respuesta;
+                return (respuesta, nombreInforme);
             }
             catch (Exception ex)
             {
-                return new Respuesta { IdTipoMensaje = 3, Mensaje = ex.Message };
+                return (new Respuesta { IdTipoMensaje = 3, Mensaje = ex.Message }, null);
             }
         }
 
