@@ -741,7 +741,13 @@ public partial class DocxGeneratorService
         // Paragraph inside cell
         var para = new Paragraph();
         var pPr = new ParagraphProperties();
-        pPr.Append(new SpacingBetweenLines { Before = "0", After = "0", Line = CssLineSpacing(css, hp).ToString(), LineRule = LineSpacingRuleValues.Exact });
+        pPr.Append(new SpacingBetweenLines
+        {
+            Before = "0",
+            After = "0",
+            Line = CssCellLineSpacing(css, hp).ToString(),
+            LineRule = LineSpacingRuleValues.Exact
+        });
 
         if (css != null && css.TryGetValue("text-align", out var align))
             pPr.Append(new Justification { Val = MapAlign(align) });
@@ -1008,6 +1014,16 @@ public partial class DocxGeneratorService
         }
 
         return (int)Math.Round(effectiveFontSizeHp * 10 * _lineSpacingMultiplier);
+    }
+
+    private int CssCellLineSpacing(Dictionary<string, string>? css, int fontSizeHp)
+    {
+        if (css != null && css.ContainsKey("line-height"))
+            return CssLineSpacing(css, fontSizeHp);
+
+        // Word's table-cell line box renders visibly looser than Chromium's
+        // compact table text. Keep the fallback at the effective font height.
+        return fontSizeHp * 10;
     }
 
     private static (int Top, int Bottom) ObtenerEspaciadoVertical(Dictionary<string, string> css)
