@@ -1064,6 +1064,24 @@ namespace SafetyReport.DAO
             }
         }
 
+        public async Task<Respuesta> ActualizarEstadoAsync(UsuarioGeneral u, int idInforme, int idEstadoInforme)
+        {
+            try
+            {
+                using SqlConnection cn = new(_dbConfig.ConnectionString);
+                using SqlCommand cmd = new("Informe_ActualizarEstado", cn) { CommandType = CommandType.StoredProcedure };
+                AgregarParametrosAuditoria(cmd, u);
+                cmd.Parameters.Add("@intIdInforme", SqlDbType.Int).Value = idInforme;
+                cmd.Parameters.Add("@intIdEstadoInforme", SqlDbType.Int).Value = idEstadoInforme;
+                await cn.OpenAsync();
+                return await LeerRespuestaAsync<object>(cmd);
+            }
+            catch (Exception ex)
+            {
+                return new Respuesta { IdTipoMensaje = 3, Mensaje = ex.Message, Result = new List<object>() };
+            }
+        }
+
         public async Task<Respuesta> ActualizarDocumentoAsync(UsuarioGeneral u, int idInforme, string urlDocumento)
         {
             try

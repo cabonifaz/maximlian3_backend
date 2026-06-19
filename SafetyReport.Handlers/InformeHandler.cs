@@ -355,6 +355,18 @@ namespace SafetyReport.Handlers
             }
         }
 
+        public async Task<Respuesta> ActualizarEstadoAsync(UsuarioGeneral usuarioLogueado, InformeActualizarEstadoRequest request)
+        {
+            try
+            {
+                return await _dao.ActualizarEstadoAsync(usuarioLogueado, request.IdInforme, request.IdEstadoInforme);
+            }
+            catch (Exception)
+            {
+                return new Respuesta { IdTipoMensaje = 3, Mensaje = "Error interno del servidor.", Result = new List<object>() };
+            }
+        }
+
         public async Task<Respuesta> AutocompletarAsync(InformeAutocompletar request)
         {
             try

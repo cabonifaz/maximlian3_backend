@@ -451,6 +451,12 @@ namespace SafetyReport.Models
         public int IdInforme { get; set; }
     }
 
+    public class InformeActualizarEstadoRequest
+    {
+        public int IdInforme { get; set; }
+        public int IdEstadoInforme { get; set; }
+    }
+
     public class InformeBalanceTotalizadoCalcularRequest
     {
         public decimal TotalActivoCorriente { get; set; }

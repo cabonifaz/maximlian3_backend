@@ -139,6 +139,13 @@ namespace SafetyReport.WebApi.Controllers
             return Ok(respuesta);
         }
 
+        [HttpPost("actualizarEstado")]
+        public async Task<IActionResult> ActualizarEstado([FromBody] InformeActualizarEstadoRequest request)
+        {
+            var respuesta = await _informeHandler.ActualizarEstadoAsync(UsuarioLogueado, request);
+            return Ok(respuesta);
+        }
+
         [HttpPost("eliminar")]
         public async Task<IActionResult> Eliminar([FromBody] InformeIdRequest request)
         {
