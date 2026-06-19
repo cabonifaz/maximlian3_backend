@@ -14,6 +14,7 @@ public partial class DocxGeneratorService
     private string _fontFamily = "Calibri";
     private int _fontSizeHp = 20;
     private int _lineSpacing = 230;
+    private double _lineSpacingMultiplier = 1.15;
     private int _contentIndentL = 0;
     private int _contentIndentR = 0;
     private int _contentWidth = 0; // available width for content in twips
@@ -58,6 +59,7 @@ public partial class DocxGeneratorService
         _fontSizeHp = PtToHalfPt(fs);
         var ls = config["font"]?["lineSpacing"]?.GetValue<double>() ?? 1.15;
         if (ls > 10) ls = ls / 100.0;
+        _lineSpacingMultiplier = ls;
         // CSS unitless line-height is based on the font size. Word's "Auto"
         // spacing is based on its own single-line metrics and renders taller.
         _lineSpacing = (int)Math.Round(_fontSizeHp * 10 * ls);
@@ -155,17 +157,13 @@ public partial class DocxGeneratorService
         var css = ParseCss(section["style"]?.GetValue<string>());
         if (string.IsNullOrEmpty(text)) return;
 
-        var lines = text.Split('\n');
-        foreach (var line in lines)
-        {
-            var para = new Paragraph();
-            var pPr = new ParagraphProperties();
-            pPr.Append(new SpacingBetweenLines { After = "0", Line = CssLineSpacing(css).ToString(), LineRule = LineSpacingRuleValues.Exact });
-            AgregarIndentacion(pPr);
-            para.Append(pPr);
-            para.Append(CrearRun(line, css));
-            body.Append(para);
-        }
+        var para = new Paragraph();
+        var pPr = new ParagraphProperties();
+        pPr.Append(new SpacingBetweenLines { After = "0", Line = CssLineSpacing(css).ToString(), LineRule = LineSpacingRuleValues.Exact });
+        AgregarIndentacion(pPr);
+        para.Append(pPr);
+        para.Append(CrearRunConSaltos(text, css));
+        body.Append(para);
     }
 
     private void RenderKeyValue(Body body, JsonNode section)
@@ -176,6 +174,8 @@ public partial class DocxGeneratorService
         if (rows is null || rows.Count == 0) return;
 
         var table = CrearTabla(tblCss);
+        var effectiveLblCss = CombinarCssHeredable(tblCss, lblCss);
+        var effectiveValCss = CombinarCssHeredable(tblCss, null);
         var tblW = ObtenerAnchoTabla(tblCss);
         var lblW = CssToTwips(lblCss.GetValueOrDefault("width", ""));
         var valW = lblW > 0 && tblW > lblW ? tblW - lblW : 0;
@@ -187,9 +187,9 @@ public partial class DocxGeneratorService
             var value = row["value"]?.GetValue<string>() ?? "";
             var sep = row["separator"]?.GetValue<string>() ?? "";
 
-            var tr = new TableRow();
-            tr.Append(CrearCeldaTexto(label, lblW, lblCss));
-            tr.Append(CrearCeldaTexto(sep + value, valW, null));
+            var tr = CrearFilaTabla();
+            tr.Append(CrearCeldaTexto(label, lblW, effectiveLblCss));
+            tr.Append(CrearCeldaTexto(sep + value, valW, effectiveValCss));
             table.Append(tr);
         }
 
@@ -207,22 +207,21 @@ public partial class DocxGeneratorService
         var content = section["content"]?.GetValue<string>();
         var rows = section["rows"]?.AsArray();
 
-        var hasBorder = tblCss.ContainsKey("border") || cellCss.ContainsKey("border");
-        var table = CrearTabla(tblCss, hasBorder);
+        var table = CrearTabla(tblCss);
         var tblW = ObtenerAnchoTabla(tblCss);
         var lblW = CssToTwips(lblCss.GetValueOrDefault("width", ""));
         var valW = lblW > 0 && tblW > lblW ? tblW - lblW : 0;
 
         // Title row (colspan 2)
-        var trTitle = new TableRow();
-        trTitle.Append(CrearCeldaTexto(title, tblW, titleCss, colspan: 2));
+        var trTitle = CrearFilaTabla();
+        trTitle.Append(CrearCeldaTexto(title, tblW, CombinarCssHeredable(tblCss, titleCss), colspan: 2));
         table.Append(trTitle);
 
         // Content row
         if (!string.IsNullOrEmpty(content))
         {
-            var trContent = new TableRow();
-            trContent.Append(CrearCeldaTexto(content, tblW, cellCss, colspan: 2));
+            var trContent = CrearFilaTabla();
+            trContent.Append(CrearCeldaTexto(content, tblW, CombinarCssHeredable(tblCss, cellCss), colspan: 2));
             table.Append(trContent);
         }
 
@@ -235,14 +234,16 @@ public partial class DocxGeneratorService
                 var label = row["label"]?.GetValue<string>() ?? "";
                 var value = row["value"]?.GetValue<string>() ?? "";
                 var rowCss = ParseCss(row["style"]?.GetValue<string>());
-                var effectiveLblCss = rowCss.Count > 0 ? rowCss : lblCss;
+                var rawLblCss = rowCss.Count > 0 ? rowCss : lblCss;
+                var effectiveLblCss = CombinarCssHeredable(tblCss, rawLblCss);
+                var effectiveValCss = CombinarCssHeredable(tblCss, valCss);
                 var effectiveLblW = CssToTwips(rowCss.GetValueOrDefault("width", ""));
                 if (effectiveLblW == 0) effectiveLblW = lblW;
                 var effectiveValW = effectiveLblW > 0 && tblW > effectiveLblW ? tblW - effectiveLblW : valW;
 
-                var tr = new TableRow();
+                var tr = CrearFilaTabla();
                 tr.Append(CrearCeldaTexto(label, effectiveLblW, effectiveLblCss));
-                tr.Append(CrearCeldaTexto(value, effectiveValW, valCss));
+                tr.Append(CrearCeldaTexto(value, effectiveValW, effectiveValCss));
                 table.Append(tr);
             }
         }
@@ -259,10 +260,10 @@ public partial class DocxGeneratorService
         var title = section["title"]?.GetValue<string>() ?? "";
         var items = section["items"]?.AsArray();
 
-        var table = CrearTabla(tblCss, true);
+        var table = CrearTabla(tblCss);
 
-        var trTitle = new TableRow();
-        trTitle.Append(CrearCeldaTexto(title, 0, titleCss));
+        var trTitle = CrearFilaTabla();
+        trTitle.Append(CrearCeldaTexto(title, 0, CombinarCssHeredable(tblCss, titleCss)));
         table.Append(trTitle);
 
         if (items != null)
@@ -271,10 +272,11 @@ public partial class DocxGeneratorService
             {
                 var text = items[i]?.GetValue<string>() ?? "";
                 var isLast = i == items.Count - 1;
-                var css = isLast && lastCellCss.Count > 0 ? lastCellCss : cellCss;
+                var rawCss = isLast && lastCellCss.Count > 0 ? lastCellCss : cellCss;
+                var css = CombinarCssHeredable(tblCss, rawCss);
 
-                var tr = new TableRow();
-                tr.Append(CrearCeldaTexto(text, 0, css, fontSize: CssToHalfPt(tblCss.GetValueOrDefault("font-size", ""))));
+                var tr = CrearFilaTabla();
+                tr.Append(CrearCeldaTexto(text, 0, css));
                 table.Append(tr);
             }
         }
@@ -296,11 +298,16 @@ public partial class DocxGeneratorService
         var table = CrearTabla(tblCss);
 
         // Merge cell + header styles for header cells
-        var mergedHeaderCss = new Dictionary<string, string>(cellCss);
+        var effectiveCellCss = CombinarCssHeredable(tblCss, cellCss);
+        var mergedHeaderCss = new Dictionary<string, string>(effectiveCellCss)
+        {
+            ["font-weight"] = "bold",
+            ["text-align"] = "center"
+        };
         foreach (var kv in headerCss) mergedHeaderCss[kv.Key] = kv.Value;
 
         // Header row
-        var trHeader = new TableRow();
+        var trHeader = CrearFilaTabla(header: true);
         for (int i = 0; i < columns.Count; i++)
         {
             var header = columns[i]?["header"]?.GetValue<string>() ?? "";
@@ -315,7 +322,7 @@ public partial class DocxGeneratorService
             foreach (var row in rows)
             {
                 if (row is null) continue;
-                var tr = new TableRow();
+                var tr = CrearFilaTabla();
                 var values = new List<string>();
 
                 if (row is JsonArray arr)
@@ -326,7 +333,7 @@ public partial class DocxGeneratorService
                 for (int i = 0; i < values.Count; i++)
                 {
                     var w = columnWidths != null && i < columnWidths.Count ? CssToTwips(columnWidths[i]?.GetValue<string>() ?? "") : 0;
-                    tr.Append(CrearCeldaTexto(values[i], w, cellCss));
+                    tr.Append(CrearCeldaTexto(values[i], w, effectiveCellCss));
                 }
                 table.Append(tr);
             }
@@ -355,16 +362,13 @@ public partial class DocxGeneratorService
 
             if (!string.IsNullOrEmpty(content))
             {
-                foreach (var line in content.Split('\n'))
-                {
-                    var pContent = new Paragraph();
-                    var pPr = new ParagraphProperties();
-                    pPr.Append(new SpacingBetweenLines { After = "0", Line = CssLineSpacing(contentCss).ToString(), LineRule = LineSpacingRuleValues.Exact });
-                    AgregarIndentacion(pPr);
-                    pContent.Append(pPr);
-                    pContent.Append(CrearRun(line, contentCss));
-                    body.Append(pContent);
-                }
+                var pContent = new Paragraph();
+                var pPr = new ParagraphProperties();
+                pPr.Append(new SpacingBetweenLines { After = "0", Line = CssLineSpacing(contentCss).ToString(), LineRule = LineSpacingRuleValues.Exact });
+                AgregarIndentacion(pPr);
+                pContent.Append(pPr);
+                pContent.Append(CrearRunConSaltos(content, contentCss));
+                body.Append(pContent);
             }
         }
     }
@@ -372,11 +376,7 @@ public partial class DocxGeneratorService
     private void RenderSpacer(Body body, JsonNode section)
     {
         var height = section["height"]?.GetValue<string>() ?? "0.3in";
-        var para = new Paragraph();
-        var pPr = new ParagraphProperties();
-        pPr.Append(new SpacingBetweenLines { Before = CssToTwips(height).ToString(), After = "0" });
-        para.Append(pPr);
-        body.Append(para);
+        body.Append(CrearParrafoEspaciador(CssToTwips(height)));
     }
 
     // ==================== HEADER / FOOTER / PAGE ====================
@@ -388,11 +388,14 @@ public partial class DocxGeneratorService
         var headerPart = mainPart.AddNewPart<HeaderPart>();
         var header = new Header();
 
-        var logoW = CssToEmu(config?["header"]?["logoWidth"]?.GetValue<string>() ?? "1.3in");
-        var logoH = CssToEmu(config?["header"]?["logoHeight"]?.GetValue<string>() ?? "0.55in");
+        var logoBoxW = CssToEmu(config?["header"]?["logoWidth"]?.GetValue<string>() ?? "1.3in");
+        var logoBoxH = CssToEmu(config?["header"]?["logoHeight"]?.GetValue<string>() ?? "0.55in");
+        var (logoW, logoH) = AjustarImagenContain(_logoBytes, logoBoxW, logoBoxH);
         var align = config?["header"]?["align"]?.GetValue<string>() ?? "center";
 
-        var imagePart = headerPart.AddImagePart(ImagePartType.Png);
+        var imagePart = _logoBytes.Length >= 2 && _logoBytes[0] == 0xFF && _logoBytes[1] == 0xD8
+            ? headerPart.AddImagePart(ImagePartType.Jpeg)
+            : headerPart.AddImagePart(ImagePartType.Png);
         using (var imgStream = new MemoryStream(_logoBytes))
             imagePart.FeedData(imgStream);
 
@@ -426,8 +429,12 @@ public partial class DocxGeneratorService
         var pPr = new ParagraphProperties();
         pPr.Append(new Justification { Val = MapAlign(align) });
         var gapAfter = CssToTwips(config?["header"]?["gapAfter"]?.GetValue<string>() ?? "0");
-        if (gapAfter > 0)
-            pPr.Append(new SpacingBetweenLines { After = gapAfter.ToString(), Line = "240" });
+        var verticalPadding = Math.Max(0, (int)((logoBoxH - logoH) / 635 / 2));
+        pPr.Append(new SpacingBetweenLines
+        {
+            Before = verticalPadding.ToString(),
+            After = (gapAfter + verticalPadding).ToString()
+        });
         para.Append(pPr);
 
         var run = new Run();
@@ -444,7 +451,9 @@ public partial class DocxGeneratorService
         var footerText = config?["footer"]?["text"]?.GetValue<string>();
         var footerPart = mainPart.AddNewPart<FooterPart>();
         var footer = new Footer();
-        var footerFontSize = PtToHalfPt(config?["footer"]?["fontSize"]?.GetValue<string>() ?? "7pt").ToString();
+        var footerFontSizeHp = PtToHalfPt(config?["footer"]?["fontSize"]?.GetValue<string>() ?? "7pt");
+        var footerFontSize = footerFontSizeHp.ToString();
+        var footerLineHeight = (footerFontSizeHp * 10).ToString();
         var footerAlign = config?["footer"]?["align"]?.GetValue<string>() ?? "left";
         var fiL = CssToTwips(config?["footerIndent"]?["left"]?.GetValue<string>() ?? "0");
         var fiR = CssToTwips(config?["footerIndent"]?["right"]?.GetValue<string>() ?? "0");
@@ -457,7 +466,7 @@ public partial class DocxGeneratorService
             var para = new Paragraph();
             var pPr = new ParagraphProperties();
             pPr.Append(new Justification { Val = MapAlign(footerAlign) });
-            pPr.Append(new SpacingBetweenLines { Before = gapBefore.ToString(), After = "0", Line = "240" });
+            pPr.Append(new SpacingBetweenLines { Before = gapBefore.ToString(), After = "0", Line = footerLineHeight, LineRule = LineSpacingRuleValues.Exact });
             if (fiL > 0 || fiR > 0)
                 pPr.Append(new Indentation { Left = fiL.ToString(), Right = fiR.ToString() });
             para.Append(pPr);
@@ -482,7 +491,7 @@ public partial class DocxGeneratorService
         pPrPage.Append(new Justification { Val = MapAlign(footerAlign) });
         if (fiL > 0 || fiR > 0)
             pPrPage.Append(new Indentation { Left = fiL.ToString(), Right = fiR.ToString() });
-        pPrPage.Append(new SpacingBetweenLines { Before = string.IsNullOrEmpty(footerText) ? gapBefore.ToString() : "0", After = "0", Line = "240" });
+        pPrPage.Append(new SpacingBetweenLines { Before = string.IsNullOrEmpty(footerText) ? gapBefore.ToString() : "0", After = "0", Line = footerLineHeight, LineRule = LineSpacingRuleValues.Exact });
         paraPage.Append(pPrPage);
 
         var pageLabel = config?["footer"]?["pageLabel"]?.GetValue<string>() ?? "Page";
@@ -522,10 +531,26 @@ public partial class DocxGeneratorService
         var mb = CssToTwips(config["margins"]?["bottom"]?.GetValue<string>() ?? "1.0in");
         var ml = CssToTwips(config["margins"]?["left"]?.GetValue<string>() ?? "0.5in");
         var mr = CssToTwips(config["margins"]?["right"]?.GetValue<string>() ?? "0.5in");
+        var logoHeight = CssToTwips(config["header"]?["logoHeight"]?.GetValue<string>() ?? "0.55in");
+        var headerGap = CssToTwips(config["header"]?["gapAfter"]?.GetValue<string>() ?? "0");
+        var headerDistance = Math.Max(0, mt - logoHeight - headerGap);
+        var footerGap = CssToTwips(config["footer"]?["gapBefore"]?.GetValue<string>() ?? "0");
+        var footerFontHp = PtToHalfPt(config["footer"]?["fontSize"]?.GetValue<string>() ?? "7pt");
+        var footerLines = string.IsNullOrEmpty(config["footer"]?["text"]?.GetValue<string>()) ? 1 : 2;
+        var footerHeight = footerFontHp * 10 * footerLines;
+        var footerDistance = Math.Max(0, mb - footerGap - footerHeight);
 
         var secPr = new SectionProperties();
         secPr.Append(new PageSize { Width = (uint)pageW, Height = (uint)pageH });
-        secPr.Append(new PageMargin { Top = mt, Bottom = mb, Left = (uint)ml, Right = (uint)mr });
+        secPr.Append(new PageMargin
+        {
+            Top = mt,
+            Bottom = mb,
+            Left = (uint)ml,
+            Right = (uint)mr,
+            Header = (uint)headerDistance,
+            Footer = (uint)footerDistance
+        });
 
         // Link header
         var headerPart = mainPart.HeaderParts.FirstOrDefault();
@@ -579,24 +604,20 @@ public partial class DocxGeneratorService
     private Run CrearRun(string text, Dictionary<string, string> css)
     {
         var run = new Run();
-        var rPr = new RunProperties();
-
-        var hp = _fontSizeHp;
-        if (css.TryGetValue("font-size", out var fs))
-            hp = PtToHalfPt(fs);
-
-        rPr.Append(new FontSize { Val = hp.ToString() });
-        rPr.Append(new RunFonts { Ascii = _fontFamily, HighAnsi = _fontFamily, ComplexScript = _fontFamily });
-
-        if (css.GetValueOrDefault("font-weight") is "700" or "bold")
-            rPr.Append(new Bold());
-
-        run.Append(rPr);
-        run.Append(new Text(text) { Space = SpaceProcessingModeValues.Preserve });
+        run.Append(CrearRunProperties(css));
+        AgregarTextoAlRun(run, text, css, permitirSaltos: false);
         return run;
     }
 
-    private Table CrearTabla(Dictionary<string, string> css, bool allBorders = false)
+    private Run CrearRunConSaltos(string text, Dictionary<string, string> css)
+    {
+        var run = new Run();
+        run.Append(CrearRunProperties(css));
+        AgregarTextoAlRun(run, text, css, permitirSaltos: true);
+        return run;
+    }
+
+    private Table CrearTabla(Dictionary<string, string> css)
     {
         var table = new Table();
         var tPr = new TableProperties();
@@ -625,19 +646,17 @@ public partial class DocxGeneratorService
             isFixed = true;
         }
 
-        // Center all tables (original DOCX uses jc:center for content indent)
-        tPr.Append(new TableJustification { Val = TableRowAlignmentValues.Center });
+        tPr.Append(new TableJustification { Val = ObtenerAlineacionTabla(css) });
 
         // Borders
-        if (allBorders || css.ContainsKey("border"))
+        if (css.TryGetValue("border", out var tableBorder) && EsBordeVisible(tableBorder))
         {
+            var (size, color) = ObtenerBorde(tableBorder);
             tPr.Append(new TableBorders(
-                new TopBorder { Val = BorderValues.Single, Size = 4, Space = 0, Color = "000000" },
-                new BottomBorder { Val = BorderValues.Single, Size = 4, Space = 0, Color = "000000" },
-                new LeftBorder { Val = BorderValues.Single, Size = 4, Space = 0, Color = "000000" },
-                new RightBorder { Val = BorderValues.Single, Size = 4, Space = 0, Color = "000000" },
-                new InsideHorizontalBorder { Val = BorderValues.Single, Size = 4, Space = 0, Color = "000000" },
-                new InsideVerticalBorder { Val = BorderValues.Single, Size = 4, Space = 0, Color = "000000" }
+                new TopBorder { Val = BorderValues.Single, Size = size, Space = 0, Color = color },
+                new BottomBorder { Val = BorderValues.Single, Size = size, Space = 0, Color = color },
+                new LeftBorder { Val = BorderValues.Single, Size = size, Space = 0, Color = color },
+                new RightBorder { Val = BorderValues.Single, Size = size, Space = 0, Color = color }
             ));
         }
 
@@ -650,7 +669,7 @@ public partial class DocxGeneratorService
     }
 
     private TableCell CrearCeldaTexto(string text, int widthTwips, Dictionary<string, string>? css,
-        int colspan = 0, int fontSize = 0)
+        int colspan = 0)
     {
         var tc = new TableCell();
         var tcPr = new TableCellProperties();
@@ -662,22 +681,39 @@ public partial class DocxGeneratorService
             tcPr.Append(new GridSpan { Val = colspan });
 
         // Cell borders from style
-        if (css != null && css.ContainsKey("border"))
+        if (css != null && css.TryGetValue("border", out var allBorder) && EsBordeVisible(allBorder))
         {
+            var (size, color) = ObtenerBorde(allBorder);
             tcPr.Append(new TableCellBorders(
-                new TopBorder { Val = BorderValues.Single, Size = 4, Space = 0, Color = "000000" },
-                new BottomBorder { Val = BorderValues.Single, Size = 4, Space = 0, Color = "000000" },
-                new LeftBorder { Val = BorderValues.Single, Size = 4, Space = 0, Color = "000000" },
-                new RightBorder { Val = BorderValues.Single, Size = 4, Space = 0, Color = "000000" }
+                new TopBorder { Val = BorderValues.Single, Size = size, Space = 0, Color = color },
+                new BottomBorder { Val = BorderValues.Single, Size = size, Space = 0, Color = color },
+                new LeftBorder { Val = BorderValues.Single, Size = size, Space = 0, Color = color },
+                new RightBorder { Val = BorderValues.Single, Size = size, Space = 0, Color = color }
             ));
         }
         else if (css != null)
         {
             var borders = new TableCellBorders();
-            if (css.ContainsKey("border-bottom")) borders.Append(new BottomBorder { Val = BorderValues.Single, Size = 4, Space = 0, Color = "000000" });
-            if (css.ContainsKey("border-top")) borders.Append(new TopBorder { Val = BorderValues.Single, Size = 4, Space = 0, Color = "000000" });
-            if (css.ContainsKey("border-left")) borders.Append(new LeftBorder { Val = BorderValues.Single, Size = 4, Space = 0, Color = "000000" });
-            if (css.ContainsKey("border-right")) borders.Append(new RightBorder { Val = BorderValues.Single, Size = 4, Space = 0, Color = "000000" });
+            if (css.TryGetValue("border-bottom", out var bottom) && EsBordeVisible(bottom))
+            {
+                var (size, color) = ObtenerBorde(bottom);
+                borders.Append(new BottomBorder { Val = BorderValues.Single, Size = size, Space = 0, Color = color });
+            }
+            if (css.TryGetValue("border-top", out var top) && EsBordeVisible(top))
+            {
+                var (size, color) = ObtenerBorde(top);
+                borders.Append(new TopBorder { Val = BorderValues.Single, Size = size, Space = 0, Color = color });
+            }
+            if (css.TryGetValue("border-left", out var left) && EsBordeVisible(left))
+            {
+                var (size, color) = ObtenerBorde(left);
+                borders.Append(new LeftBorder { Val = BorderValues.Single, Size = size, Space = 0, Color = color });
+            }
+            if (css.TryGetValue("border-right", out var right) && EsBordeVisible(right))
+            {
+                var (size, color) = ObtenerBorde(right);
+                borders.Append(new RightBorder { Val = BorderValues.Single, Size = size, Space = 0, Color = color });
+            }
             if (borders.HasChildren)
                 tcPr.Append(borders);
         }
@@ -693,7 +729,7 @@ public partial class DocxGeneratorService
         tcPr.Append(new TableCellVerticalAlignment { Val = TableVerticalAlignmentValues.Top });
         tc.Append(tcPr);
 
-        var hp = fontSize > 0 ? fontSize : (css != null && css.TryGetValue("font-size", out var fs) ? PtToHalfPt(fs) : _fontSizeHp);
+        var hp = css != null && css.TryGetValue("font-size", out var fs) ? PtToHalfPt(fs) : _fontSizeHp;
 
         // Paragraph inside cell
         var para = new Paragraph();
@@ -707,28 +743,211 @@ public partial class DocxGeneratorService
 
         // Run
         var run = new Run();
-        var rPr = new RunProperties();
-
-        rPr.Append(new FontSize { Val = hp.ToString() });
-        rPr.Append(new RunFonts { Ascii = _fontFamily, HighAnsi = _fontFamily, ComplexScript = _fontFamily });
-
-        if (css != null && css.GetValueOrDefault("font-weight") is "700" or "bold")
-            rPr.Append(new Bold());
-
-        run.Append(rPr);
-
-        // Multi-line support
-        var lines = text.Split('\n');
-        for (int i = 0; i < lines.Length; i++)
-        {
-            if (i > 0) run.Append(new Break());
-            run.Append(new Text(lines[i]) { Space = SpaceProcessingModeValues.Preserve });
-        }
+        run.Append(CrearRunProperties(css));
+        AgregarTextoAlRun(run, text, css, permitirSaltos: true);
 
         para.Append(run);
         tc.Append(para);
         return tc;
     }
+
+    private TableRow CrearFilaTabla(bool header = false)
+    {
+        var row = new TableRow();
+        var properties = new TableRowProperties(new CantSplit());
+        if (header)
+            properties.Append(new TableHeader());
+        row.Append(properties);
+        return row;
+    }
+
+    private RunProperties CrearRunProperties(Dictionary<string, string>? css)
+    {
+        var properties = new RunProperties();
+        var hp = css != null && css.TryGetValue("font-size", out var fs) ? PtToHalfPt(fs) : _fontSizeHp;
+        var family = ObtenerFamiliaFuente(css);
+
+        properties.Append(new FontSize { Val = hp.ToString() });
+        properties.Append(new RunFonts { Ascii = family, HighAnsi = family, ComplexScript = family });
+
+        var weight = css?.GetValueOrDefault("font-weight");
+        if (weight is "700" or "bold" || int.TryParse(weight, out var numericWeight) && numericWeight >= 600)
+            properties.Append(new Bold());
+        if (css?.GetValueOrDefault("font-style") is "italic" or "oblique")
+            properties.Append(new Italic());
+        if (css?.GetValueOrDefault("text-decoration")?.Contains("underline", StringComparison.OrdinalIgnoreCase) == true)
+            properties.Append(new Underline { Val = UnderlineValues.Single });
+        if (css != null && css.TryGetValue("color", out var color))
+            properties.Append(new Color { Val = NormalizarColor(color) });
+
+        return properties;
+    }
+
+    private void AgregarTextoAlRun(Run run, string text, Dictionary<string, string>? css, bool permitirSaltos)
+    {
+        var whiteSpace = css?.GetValueOrDefault("white-space")?.ToLowerInvariant() ?? "normal";
+        var preservarSaltos = permitirSaltos && whiteSpace is "pre-line" or "pre-wrap" or "pre";
+
+        if (!preservarSaltos)
+        {
+            var collapsed = Regex.Replace(text, @"\s+", " ").Trim();
+            run.Append(new Text(collapsed) { Space = SpaceProcessingModeValues.Preserve });
+            return;
+        }
+
+        var preservarEspacios = whiteSpace is "pre-wrap" or "pre";
+        var lines = text.Replace("\r\n", "\n").Replace('\r', '\n').Split('\n');
+        for (var i = 0; i < lines.Length; i++)
+        {
+            if (i > 0) run.Append(new Break());
+            var line = preservarEspacios ? lines[i] : Regex.Replace(lines[i], @"[\t ]+", " ").Trim();
+            run.Append(new Text(line) { Space = SpaceProcessingModeValues.Preserve });
+        }
+    }
+
+    private Dictionary<string, string> CombinarCssHeredable(
+        Dictionary<string, string> parent,
+        Dictionary<string, string>? child)
+    {
+        string[] inheritedProperties =
+        [
+            "color", "font-family", "font-size", "font-style", "font-weight",
+            "line-height", "text-align", "text-decoration", "white-space"
+        ];
+
+        var result = new Dictionary<string, string>();
+        foreach (var property in inheritedProperties)
+            if (parent.TryGetValue(property, out var value))
+                result[property] = value;
+
+        if (child != null)
+            foreach (var pair in child)
+                result[pair.Key] = pair.Value;
+
+        return result;
+    }
+
+    private string ObtenerFamiliaFuente(Dictionary<string, string>? css)
+    {
+        if (css == null || !css.TryGetValue("font-family", out var value)) return _fontFamily;
+        return value.Split(',')[0].Trim().Trim('\'', '"');
+    }
+
+    private static TableRowAlignmentValues ObtenerAlineacionTabla(Dictionary<string, string> css)
+    {
+        var margin = css.GetValueOrDefault("margin", "");
+        var parts = margin.Split(' ', StringSplitOptions.RemoveEmptyEntries);
+        var horizontal = parts.Length switch
+        {
+            2 => parts[1],
+            3 => parts[1],
+            >= 4 when parts[1].Equals("auto", StringComparison.OrdinalIgnoreCase)
+                && parts[3].Equals("auto", StringComparison.OrdinalIgnoreCase) => "auto",
+            _ => ""
+        };
+
+        var leftAuto = css.GetValueOrDefault("margin-left", "").Equals("auto", StringComparison.OrdinalIgnoreCase);
+        var rightAuto = css.GetValueOrDefault("margin-right", "").Equals("auto", StringComparison.OrdinalIgnoreCase);
+        if (horizontal.Equals("auto", StringComparison.OrdinalIgnoreCase) || leftAuto && rightAuto)
+            return TableRowAlignmentValues.Center;
+        if (leftAuto)
+            return TableRowAlignmentValues.Right;
+        return TableRowAlignmentValues.Left;
+    }
+
+    private static bool EsBordeVisible(string value) =>
+        !value.Contains("none", StringComparison.OrdinalIgnoreCase) && ObtenerBorde(value).Size > 0;
+
+    private static (uint Size, string Color) ObtenerBorde(string value)
+    {
+        var widthMatch = Regex.Match(value, @"([\d.]+)\s*(px|pt)", RegexOptions.IgnoreCase);
+        var size = 4u;
+        if (widthMatch.Success && double.TryParse(widthMatch.Groups[1].Value,
+                System.Globalization.NumberStyles.Any,
+                System.Globalization.CultureInfo.InvariantCulture, out var width))
+        {
+            var points = widthMatch.Groups[2].Value.Equals("px", StringComparison.OrdinalIgnoreCase)
+                ? width * 0.75
+                : width;
+            size = (uint)Math.Max(0, Math.Round(points * 8));
+        }
+
+        var colorMatch = Regex.Match(value, @"#([0-9a-f]{3}|[0-9a-f]{6})\b", RegexOptions.IgnoreCase);
+        return (size, colorMatch.Success ? NormalizarColor(colorMatch.Value) : "000000");
+    }
+
+    private static string NormalizarColor(string value)
+    {
+        var color = value.Trim().TrimStart('#');
+        if (color.Length == 3)
+            color = string.Concat(color.Select(c => $"{c}{c}"));
+        return Regex.IsMatch(color, "^[0-9a-fA-F]{6}$") ? color.ToUpperInvariant() : "000000";
+    }
+
+    private static (long Width, long Height) AjustarImagenContain(byte[] bytes, long boxWidth, long boxHeight)
+    {
+        var (pixelWidth, pixelHeight) = ObtenerDimensionesImagen(bytes);
+        if (pixelWidth <= 0 || pixelHeight <= 0 || boxWidth <= 0 || boxHeight <= 0)
+            return (boxWidth, boxHeight);
+
+        var scale = Math.Min((double)boxWidth / pixelWidth, (double)boxHeight / pixelHeight);
+        return (
+            Math.Max(1, (long)Math.Round(pixelWidth * scale)),
+            Math.Max(1, (long)Math.Round(pixelHeight * scale))
+        );
+    }
+
+    private static (int Width, int Height) ObtenerDimensionesImagen(byte[] bytes)
+    {
+        if (bytes.Length >= 24
+            && bytes[0] == 0x89 && bytes[1] == 0x50 && bytes[2] == 0x4E && bytes[3] == 0x47)
+        {
+            return (
+                LeerInt32BigEndian(bytes, 16),
+                LeerInt32BigEndian(bytes, 20)
+            );
+        }
+
+        if (bytes.Length < 4 || bytes[0] != 0xFF || bytes[1] != 0xD8)
+            return (0, 0);
+
+        var offset = 2;
+        while (offset + 8 < bytes.Length)
+        {
+            if (bytes[offset] != 0xFF)
+            {
+                offset++;
+                continue;
+            }
+
+            var marker = bytes[offset + 1];
+            if (marker is 0xC0 or 0xC1 or 0xC2 or 0xC3 or 0xC5 or 0xC6 or 0xC7 or 0xC9 or 0xCA or 0xCB or 0xCD or 0xCE or 0xCF)
+            {
+                return (
+                    (bytes[offset + 7] << 8) | bytes[offset + 8],
+                    (bytes[offset + 5] << 8) | bytes[offset + 6]
+                );
+            }
+
+            if (marker is 0xD8 or 0xD9)
+            {
+                offset += 2;
+                continue;
+            }
+
+            var segmentLength = (bytes[offset + 2] << 8) | bytes[offset + 3];
+            if (segmentLength < 2) break;
+            offset += segmentLength + 2;
+        }
+
+        return (0, 0);
+    }
+
+    private static int LeerInt32BigEndian(byte[] bytes, int offset) =>
+        (bytes[offset] << 24)
+        | (bytes[offset + 1] << 16)
+        | (bytes[offset + 2] << 8)
+        | bytes[offset + 3];
 
     private void AgregarIndentacion(ParagraphProperties pPr)
     {
@@ -752,7 +971,13 @@ public partial class DocxGeneratorService
     {
         var para = new Paragraph();
         var pPr = new ParagraphProperties();
-        pPr.Append(new SpacingBetweenLines { Before = heightTwips.ToString(), After = "0", Line = "1", LineRule = LineSpacingRuleValues.Exact });
+        pPr.Append(new SpacingBetweenLines
+        {
+            Before = "0",
+            After = "0",
+            Line = Math.Max(1, heightTwips).ToString(),
+            LineRule = LineSpacingRuleValues.Exact
+        });
         para.Append(pPr);
         return para;
     }
@@ -775,38 +1000,54 @@ public partial class DocxGeneratorService
                 return (int)Math.Round(effectiveFontSizeHp * 10 * multiplier);
         }
 
-        return _lineSpacing;
+        return (int)Math.Round(effectiveFontSizeHp * 10 * _lineSpacingMultiplier);
     }
 
     private static (int Top, int Bottom) ObtenerEspaciadoVertical(Dictionary<string, string> css)
     {
-        var top = 0;
-        var bottom = 0;
+        var marginTop = 0;
+        var marginBottom = 0;
+        var paddingTop = 0;
+        var paddingBottom = 0;
 
         if (css.TryGetValue("margin", out var margin))
         {
             var parts = margin.Split(' ', StringSplitOptions.RemoveEmptyEntries);
             if (parts.Length == 1)
             {
-                top = bottom = CssToTwips(parts[0]);
+                marginTop = marginBottom = CssToTwips(parts[0]);
             }
             else if (parts.Length == 2)
             {
-                top = bottom = CssToTwips(parts[0]);
+                marginTop = marginBottom = CssToTwips(parts[0]);
             }
             else if (parts.Length >= 3)
             {
-                top = CssToTwips(parts[0]);
-                bottom = CssToTwips(parts[2]);
+                marginTop = CssToTwips(parts[0]);
+                marginBottom = CssToTwips(parts[2]);
             }
         }
 
-        if (css.TryGetValue("padding-top", out var pt)) top = CssToTwips(pt);
-        if (css.TryGetValue("padding-bottom", out var pb)) bottom = CssToTwips(pb);
-        if (css.TryGetValue("margin-top", out var mt)) top = CssToTwips(mt);
-        if (css.TryGetValue("margin-bottom", out var mb)) bottom = CssToTwips(mb);
+        if (css.TryGetValue("padding", out var padding))
+        {
+            var parts = padding.Split(' ', StringSplitOptions.RemoveEmptyEntries);
+            if (parts.Length == 1)
+                paddingTop = paddingBottom = CssToTwips(parts[0]);
+            else if (parts.Length == 2)
+                paddingTop = paddingBottom = CssToTwips(parts[0]);
+            else if (parts.Length >= 3)
+            {
+                paddingTop = CssToTwips(parts[0]);
+                paddingBottom = CssToTwips(parts[2]);
+            }
+        }
 
-        return (top, bottom);
+        if (css.TryGetValue("padding-top", out var pt)) paddingTop = CssToTwips(pt);
+        if (css.TryGetValue("padding-bottom", out var pb)) paddingBottom = CssToTwips(pb);
+        if (css.TryGetValue("margin-top", out var mt)) marginTop = CssToTwips(mt);
+        if (css.TryGetValue("margin-bottom", out var mb)) marginBottom = CssToTwips(mb);
+
+        return (marginTop + paddingTop, marginBottom + paddingBottom);
     }
 
     private static (int Top, int Right, int Bottom, int Left) ObtenerPadding(Dictionary<string, string>? css)
