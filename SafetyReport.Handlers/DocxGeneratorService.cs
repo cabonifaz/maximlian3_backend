@@ -18,6 +18,10 @@ public partial class DocxGeneratorService
     private int _contentIndentR = 0;
     private int _contentWidth = 0; // available width for content in twips
     private byte[]? _logoBytes;
+    private int _pendingTableBottomMargin;
+    private Paragraph? _lastBodyParagraph;
+    private int _lastBodyMarginBottom;
+    private int _lastBodyPaddingBottom;
 
     public MemoryStream GenerarDocx(JsonNode json, byte[]? logoBytes = null)
     {
@@ -32,11 +36,17 @@ public partial class DocxGeneratorService
             var sections = json["sections"]?.AsArray();
 
             _logoBytes = logoBytes;
+            _pendingTableBottomMargin = 0;
+            _lastBodyParagraph = null;
+            _lastBodyMarginBottom = 0;
+            _lastBodyPaddingBottom = 0;
             LeerConfigGlobal(config);
 
             if (sections != null)
                 foreach (var section in sections)
                     if (section != null) RenderizarSeccion(body, section);
+
+            FlushPendingTableMargin(body);
 
             AgregarHeaderLogo(mainPart, config);
             AgregarFooter(mainPart, config);
@@ -113,11 +123,13 @@ public partial class DocxGeneratorService
             Line = CssLineSpacing(css).ToString(),
             LineRule = LineSpacingRuleValues.Exact
         });
+        AplicarMargenPendienteTabla(pPr, css);
 
         AgregarIndentacion(pPr);
         para.Append(pPr);
         para.Append(CrearRun(text, css));
         body.Append(para);
+        RegistrarParrafoBody(para, css);
     }
 
     private void RenderSubtitle(Body body, JsonNode section)
@@ -140,11 +152,13 @@ public partial class DocxGeneratorService
             Line = CssLineSpacing(css).ToString(),
             LineRule = LineSpacingRuleValues.Exact
         });
+        AplicarMargenPendienteTabla(pPr, css);
 
         AgregarIndentacion(pPr);
         para.Append(pPr);
         para.Append(CrearRun(text, css));
         body.Append(para);
+        RegistrarParrafoBody(para, css);
     }
 
     private void RenderText(Body body, JsonNode section)
@@ -156,10 +170,12 @@ public partial class DocxGeneratorService
         var para = new Paragraph();
         var pPr = new ParagraphProperties();
         pPr.Append(new SpacingBetweenLines { After = "0", Line = CssLineSpacing(css).ToString(), LineRule = LineSpacingRuleValues.Exact });
+        AplicarMargenPendienteTabla(pPr, css);
         AgregarIndentacion(pPr);
         para.Append(pPr);
         para.Append(CrearRunConSaltos(text, css));
         body.Append(para);
+        RegistrarParrafoBody(para, css);
     }
 
     private void RenderKeyValue(Body body, JsonNode section)
@@ -355,16 +371,19 @@ public partial class DocxGeneratorService
             pTitle.Append(CrearParagraphProps(titleCss));
             pTitle.Append(CrearRun(title, titleCss));
             body.Append(pTitle);
+            RegistrarParrafoBody(pTitle, titleCss);
 
             if (!string.IsNullOrEmpty(content))
             {
                 var pContent = new Paragraph();
                 var pPr = new ParagraphProperties();
                 pPr.Append(new SpacingBetweenLines { After = "0", Line = CssLineSpacing(contentCss).ToString(), LineRule = LineSpacingRuleValues.Exact });
+                AplicarMargenPendienteTabla(pPr, contentCss);
                 AgregarIndentacion(pPr);
                 pContent.Append(pPr);
                 pContent.Append(CrearRunConSaltos(content, contentCss));
                 body.Append(pContent);
+                RegistrarParrafoBody(pContent, contentCss);
             }
         }
     }
@@ -372,7 +391,9 @@ public partial class DocxGeneratorService
     private void RenderSpacer(Body body, JsonNode section)
     {
         var height = section["height"]?.GetValue<string>() ?? "0.3in";
+        FlushPendingTableMargin(body);
         body.Append(CrearParrafoEspaciador(CssToTwips(height)));
+        LimpiarUltimoParrafoBody();
     }
 
     // ==================== HEADER / FOOTER / PAGE ====================
@@ -563,14 +584,29 @@ public partial class DocxGeneratorService
 
     private void AgregarTablaConMargen(Body body, Table table, Dictionary<string, string> tblCss)
     {
-        var (before, after) = ObtenerEspaciadoVertical(tblCss);
+        var (before, after) = ObtenerMargenVertical(tblCss);
+
+        if (_pendingTableBottomMargin > 0)
+        {
+            before = Math.Max(_pendingTableBottomMargin, before);
+            _pendingTableBottomMargin = 0;
+        }
+        else if (_lastBodyParagraph != null && ReferenceEquals(body.LastChild, _lastBodyParagraph))
+        {
+            var spacing = _lastBodyParagraph
+                .GetFirstChild<ParagraphProperties>()?
+                .GetFirstChild<SpacingBetweenLines>();
+            if (spacing != null)
+                spacing.After = (_lastBodyPaddingBottom + Math.Max(_lastBodyMarginBottom, before)).ToString();
+            before = 0;
+        }
+
         if (before > 0)
             body.Append(CrearParrafoEspaciador(before));
 
         body.Append(table);
-
-        if (after > 0)
-            body.Append(CrearParrafoEspaciador(after));
+        _pendingTableBottomMargin = after;
+        LimpiarUltimoParrafoBody();
     }
 
     // ==================== ELEMENT BUILDERS ====================
@@ -591,6 +627,7 @@ public partial class DocxGeneratorService
             Line = CssLineSpacing(css).ToString(),
             LineRule = LineSpacingRuleValues.Exact
         });
+        AplicarMargenPendienteTabla(pPr, css);
 
         AgregarIndentacion(pPr);
 
@@ -745,7 +782,7 @@ public partial class DocxGeneratorService
         {
             Before = "0",
             After = "0",
-            Line = CssCellLineSpacing(css, hp).ToString(),
+            Line = CssLineSpacing(css, hp).ToString(),
             LineRule = LineSpacingRuleValues.Exact
         });
 
@@ -1016,61 +1053,83 @@ public partial class DocxGeneratorService
         return (int)Math.Round(effectiveFontSizeHp * 10 * _lineSpacingMultiplier);
     }
 
-    private int CssCellLineSpacing(Dictionary<string, string>? css, int fontSizeHp)
+    private void AplicarMargenPendienteTabla(ParagraphProperties properties, Dictionary<string, string> css)
     {
-        if (css != null && css.ContainsKey("line-height"))
-            return CssLineSpacing(css, fontSizeHp);
+        if (_pendingTableBottomMargin <= 0) return;
 
-        // Word's table-cell line box renders visibly looser than Chromium's
-        // compact table text. Keep the fallback at the effective font height.
-        return fontSizeHp * 10;
+        var (marginTop, _) = ObtenerMargenVertical(css);
+        var (paddingTop, _) = ObtenerPaddingVertical(css);
+        var spacing = properties.GetFirstChild<SpacingBetweenLines>();
+        if (spacing != null)
+            spacing.Before = (paddingTop + Math.Max(_pendingTableBottomMargin, marginTop)).ToString();
+
+        _pendingTableBottomMargin = 0;
+    }
+
+    private void RegistrarParrafoBody(Paragraph paragraph, Dictionary<string, string> css)
+    {
+        _lastBodyParagraph = paragraph;
+        (_, _lastBodyMarginBottom) = ObtenerMargenVertical(css);
+        (_, _lastBodyPaddingBottom) = ObtenerPaddingVertical(css);
+    }
+
+    private void LimpiarUltimoParrafoBody()
+    {
+        _lastBodyParagraph = null;
+        _lastBodyMarginBottom = 0;
+        _lastBodyPaddingBottom = 0;
+    }
+
+    private void FlushPendingTableMargin(Body body)
+    {
+        if (_pendingTableBottomMargin <= 0) return;
+        body.Append(CrearParrafoEspaciador(_pendingTableBottomMargin));
+        _pendingTableBottomMargin = 0;
+        LimpiarUltimoParrafoBody();
     }
 
     private static (int Top, int Bottom) ObtenerEspaciadoVertical(Dictionary<string, string> css)
     {
-        var marginTop = 0;
-        var marginBottom = 0;
-        var paddingTop = 0;
-        var paddingBottom = 0;
-
-        if (css.TryGetValue("margin", out var margin))
-        {
-            var parts = margin.Split(' ', StringSplitOptions.RemoveEmptyEntries);
-            if (parts.Length == 1)
-            {
-                marginTop = marginBottom = CssToTwips(parts[0]);
-            }
-            else if (parts.Length == 2)
-            {
-                marginTop = marginBottom = CssToTwips(parts[0]);
-            }
-            else if (parts.Length >= 3)
-            {
-                marginTop = CssToTwips(parts[0]);
-                marginBottom = CssToTwips(parts[2]);
-            }
-        }
-
-        if (css.TryGetValue("padding", out var padding))
-        {
-            var parts = padding.Split(' ', StringSplitOptions.RemoveEmptyEntries);
-            if (parts.Length == 1)
-                paddingTop = paddingBottom = CssToTwips(parts[0]);
-            else if (parts.Length == 2)
-                paddingTop = paddingBottom = CssToTwips(parts[0]);
-            else if (parts.Length >= 3)
-            {
-                paddingTop = CssToTwips(parts[0]);
-                paddingBottom = CssToTwips(parts[2]);
-            }
-        }
-
-        if (css.TryGetValue("padding-top", out var pt)) paddingTop = CssToTwips(pt);
-        if (css.TryGetValue("padding-bottom", out var pb)) paddingBottom = CssToTwips(pb);
-        if (css.TryGetValue("margin-top", out var mt)) marginTop = CssToTwips(mt);
-        if (css.TryGetValue("margin-bottom", out var mb)) marginBottom = CssToTwips(mb);
-
+        var (marginTop, marginBottom) = ObtenerMargenVertical(css);
+        var (paddingTop, paddingBottom) = ObtenerPaddingVertical(css);
         return (marginTop + paddingTop, marginBottom + paddingBottom);
+    }
+
+    private static (int Top, int Bottom) ObtenerMargenVertical(Dictionary<string, string> css) =>
+        ObtenerEspaciadoVerticalCss(css, "margin");
+
+    private static (int Top, int Bottom) ObtenerPaddingVertical(Dictionary<string, string> css) =>
+        ObtenerEspaciadoVerticalCss(css, "padding");
+
+    private static (int Top, int Bottom) ObtenerEspaciadoVerticalCss(
+        Dictionary<string, string> css,
+        string property)
+    {
+        var top = 0;
+        var bottom = 0;
+
+        if (css.TryGetValue(property, out var shorthand))
+        {
+            var parts = shorthand.Split(' ', StringSplitOptions.RemoveEmptyEntries);
+            if (parts.Length == 1)
+            {
+                top = bottom = CssToTwips(parts[0]);
+            }
+            else if (parts.Length == 2)
+            {
+                top = bottom = CssToTwips(parts[0]);
+            }
+            else if (parts.Length >= 3)
+            {
+                top = CssToTwips(parts[0]);
+                bottom = CssToTwips(parts[2]);
+            }
+        }
+
+        if (css.TryGetValue($"{property}-top", out var explicitTop)) top = CssToTwips(explicitTop);
+        if (css.TryGetValue($"{property}-bottom", out var explicitBottom)) bottom = CssToTwips(explicitBottom);
+
+        return (top, bottom);
     }
 
     private static (int Top, int Right, int Bottom, int Left) ObtenerPadding(Dictionary<string, string>? css)
