@@ -496,8 +496,11 @@ namespace SafetyReport.Handlers
                 var generador = new DocxGeneratorService();
                 using var docxStream = generador.GenerarDocx(estructura!, logoBytes);
 
-                var rutaS3 = $"informes/pedido-{request.IdPedido}/informe-{request.IdInforme}/documento.docx";
+                var nombreArchivo = !string.IsNullOrWhiteSpace(nombreInforme) ? nombreInforme : "documento";
+                var rutaS3 = $"informes/pedido-{request.IdPedido}/informe-{request.IdInforme}/{nombreArchivo}.docx";
                 await _s3.UploadStreamAsync(rutaS3, docxStream, "application/vnd.openxmlformats-officedocument.wordprocessingml.document");
+
+                await _dao.ActualizarDocumentoAsync(usuarioLogueado, request.IdInforme, rutaS3);
 
                 var downloadUrl = _s3.GenerarDownloadUrl(rutaS3);
 
