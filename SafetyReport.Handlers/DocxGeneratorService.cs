@@ -13,7 +13,6 @@ public partial class DocxGeneratorService
 {
     private string _fontFamily = "Calibri";
     private int _fontSizeHp = 20;
-    private int _lineSpacing = 230;
     private double _lineSpacingMultiplier = 1.15;
     private int _contentIndentL = 0;
     private int _contentIndentR = 0;
@@ -60,9 +59,6 @@ public partial class DocxGeneratorService
         var ls = config["font"]?["lineSpacing"]?.GetValue<double>() ?? 1.15;
         if (ls > 10) ls = ls / 100.0;
         _lineSpacingMultiplier = ls;
-        // CSS unitless line-height is based on the font size. Word's "Auto"
-        // spacing is based on its own single-line metrics and renders taller.
-        _lineSpacing = (int)Math.Round(_fontSizeHp * 10 * ls);
         _contentIndentL = CssToTwips(config["contentIndent"]?["left"]?.GetValue<string>() ?? "0");
         _contentIndentR = CssToTwips(config["contentIndent"]?["right"]?.GetValue<string>() ?? "0");
 
@@ -622,6 +618,7 @@ public partial class DocxGeneratorService
         var table = new Table();
         var tPr = new TableProperties();
         var isFixed = false;
+        var tableWidth = _contentWidth;
 
         // Width — convert % to absolute twips using calculated content width
         if (css.TryGetValue("width", out var w))
@@ -630,13 +627,14 @@ public partial class DocxGeneratorService
             {
                 var m = Regex.Match(w, @"([\d.]+)");
                 var pct = m.Success && double.TryParse(m.Groups[1].Value, System.Globalization.NumberStyles.Any, System.Globalization.CultureInfo.InvariantCulture, out var p) ? p / 100.0 : 1.0;
-                var twips = (int)(_contentWidth * pct);
-                tPr.Append(new TableWidth { Width = twips.ToString(), Type = TableWidthUnitValues.Dxa });
+                tableWidth = (int)(_contentWidth * pct);
+                tPr.Append(new TableWidth { Width = tableWidth.ToString(), Type = TableWidthUnitValues.Dxa });
                 isFixed = true;
             }
             else
             {
-                tPr.Append(new TableWidth { Width = CssToTwips(w).ToString(), Type = TableWidthUnitValues.Dxa });
+                tableWidth = CssToTwips(w);
+                tPr.Append(new TableWidth { Width = tableWidth.ToString(), Type = TableWidthUnitValues.Dxa });
                 isFixed = true;
             }
         }
@@ -646,7 +644,16 @@ public partial class DocxGeneratorService
             isFixed = true;
         }
 
-        tPr.Append(new TableJustification { Val = ObtenerAlineacionTabla(css) });
+        var alignment = ObtenerAlineacionTabla(css);
+        var remainingWidth = Math.Max(0, _contentWidth - tableWidth);
+        var alignmentOffset = alignment == TableRowAlignmentValues.Center
+            ? remainingWidth / 2
+            : alignment == TableRowAlignmentValues.Right
+                ? remainingWidth
+                : 0;
+        var tableIndent = _contentIndentL + alignmentOffset;
+        tPr.Append(new TableJustification { Val = TableRowAlignmentValues.Left });
+        tPr.Append(new TableIndentation { Width = tableIndent, Type = TableWidthUnitValues.Dxa });
 
         // Borders
         if (css.TryGetValue("border", out var tableBorder) && EsBordeVisible(tableBorder))
@@ -1120,12 +1127,6 @@ public partial class DocxGeneratorService
         return m.Success && double.TryParse(m.Groups[1].Value, System.Globalization.NumberStyles.Any, System.Globalization.CultureInfo.InvariantCulture, out var v)
             ? (int)(v * 2)
             : 20;
-    }
-
-    private static int CssToHalfPt(string value)
-    {
-        if (string.IsNullOrEmpty(value)) return 0;
-        return PtToHalfPt(value);
     }
 
     private static int CssToTwips(string value)
