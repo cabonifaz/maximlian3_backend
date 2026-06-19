@@ -476,6 +476,26 @@ public partial class DocxGeneratorService
         var fiR = CssToTwips(config?["footerIndent"]?["right"]?.GetValue<string>() ?? "0");
         var gapBefore = CssToTwips(config?["footer"]?["gapBefore"]?.GetValue<string>() ?? "0");
         var showPageNumber = config?["footer"]?["showPageNumber"]?.GetValue<bool>() ?? true;
+        var footerBoxHeight = CssToTwips(config?["margins"]?["bottom"]?.GetValue<string>() ?? "1in");
+
+        var footerTable = new Table();
+        footerTable.Append(new TableProperties(
+            new TableWidth { Width = "5000", Type = TableWidthUnitValues.Pct },
+            new TableLayout { Type = TableLayoutValues.Fixed }));
+
+        var footerRow = new TableRow();
+        footerRow.Append(new TableRowProperties(
+            new TableRowHeight { Val = (uint)footerBoxHeight, HeightType = HeightRuleValues.Exact }));
+
+        var footerCell = new TableCell();
+        footerCell.Append(new TableCellProperties(
+            new TableCellWidth { Width = "5000", Type = TableWidthUnitValues.Pct },
+            new TableCellMargin(
+                new TopMargin { Width = gapBefore.ToString(), Type = TableWidthUnitValues.Dxa },
+                new BottomMargin { Width = "0", Type = TableWidthUnitValues.Dxa },
+                new LeftMargin { Width = fiL.ToString(), Type = TableWidthUnitValues.Dxa },
+                new RightMargin { Width = fiR.ToString(), Type = TableWidthUnitValues.Dxa }),
+            new TableCellVerticalAlignment { Val = TableVerticalAlignmentValues.Top }));
 
         // Footer text
         if (!string.IsNullOrEmpty(footerText))
@@ -483,56 +503,54 @@ public partial class DocxGeneratorService
             var para = new Paragraph();
             var pPr = new ParagraphProperties();
             pPr.Append(new Justification { Val = MapAlign(footerAlign) });
-            pPr.Append(new SpacingBetweenLines { Before = gapBefore.ToString(), After = "0", Line = footerLineHeight, LineRule = LineSpacingRuleValues.Exact });
-            if (fiL > 0 || fiR > 0)
-                pPr.Append(new Indentation { Left = fiL.ToString(), Right = fiR.ToString() });
+            pPr.Append(new SpacingBetweenLines { Before = "0", After = "0", Line = footerLineHeight, LineRule = LineSpacingRuleValues.Exact });
             para.Append(pPr);
 
             var run = new Run();
             run.Append(new RunProperties(new FontSize { Val = footerFontSize }, new RunFonts { Ascii = _fontFamily, HighAnsi = _fontFamily }));
             run.Append(new Text(footerText) { Space = SpaceProcessingModeValues.Preserve });
             para.Append(run);
-            footer.Append(para);
+            footerCell.Append(para);
         }
 
-        if (!showPageNumber)
+        if (showPageNumber)
         {
-            footerPart.Footer = footer;
-            footerPart.Footer.Save();
-            return;
+            var paraPage = new Paragraph();
+            var pPrPage = new ParagraphProperties();
+            pPrPage.Append(new Justification { Val = MapAlign(footerAlign) });
+            pPrPage.Append(new SpacingBetweenLines { Before = "0", After = "0", Line = footerLineHeight, LineRule = LineSpacingRuleValues.Exact });
+            paraPage.Append(pPrPage);
+
+            var pageLabel = config?["footer"]?["pageLabel"]?.GetValue<string>() ?? "Page";
+            var runPage = new Run();
+            runPage.Append(new RunProperties(new FontSize { Val = footerFontSize }, new RunFonts { Ascii = _fontFamily, HighAnsi = _fontFamily }));
+            runPage.Append(new Text(pageLabel + " ") { Space = SpaceProcessingModeValues.Preserve });
+            paraPage.Append(runPage);
+
+            var runField = new Run();
+            runField.Append(new RunProperties(new FontSize { Val = footerFontSize }, new RunFonts { Ascii = _fontFamily, HighAnsi = _fontFamily }));
+            runField.Append(new FieldChar { FieldCharType = FieldCharValues.Begin });
+            paraPage.Append(runField);
+
+            var runCode = new Run();
+            runCode.Append(new RunProperties(new FontSize { Val = footerFontSize }, new RunFonts { Ascii = _fontFamily, HighAnsi = _fontFamily }));
+            runCode.Append(new FieldCode(" PAGE ") { Space = SpaceProcessingModeValues.Preserve });
+            paraPage.Append(runCode);
+
+            var runEnd = new Run();
+            runEnd.Append(new RunProperties(new FontSize { Val = footerFontSize }, new RunFonts { Ascii = _fontFamily, HighAnsi = _fontFamily }));
+            runEnd.Append(new FieldChar { FieldCharType = FieldCharValues.End });
+            paraPage.Append(runEnd);
+
+            footerCell.Append(paraPage);
         }
 
-        // Page number
-        var paraPage = new Paragraph();
-        var pPrPage = new ParagraphProperties();
-        pPrPage.Append(new Justification { Val = MapAlign(footerAlign) });
-        if (fiL > 0 || fiR > 0)
-            pPrPage.Append(new Indentation { Left = fiL.ToString(), Right = fiR.ToString() });
-        pPrPage.Append(new SpacingBetweenLines { Before = string.IsNullOrEmpty(footerText) ? gapBefore.ToString() : "0", After = "0", Line = footerLineHeight, LineRule = LineSpacingRuleValues.Exact });
-        paraPage.Append(pPrPage);
+        if (!footerCell.Elements<Paragraph>().Any())
+            footerCell.Append(new Paragraph());
 
-        var pageLabel = config?["footer"]?["pageLabel"]?.GetValue<string>() ?? "Page";
-        var runPage = new Run();
-        runPage.Append(new RunProperties(new FontSize { Val = footerFontSize }, new RunFonts { Ascii = _fontFamily, HighAnsi = _fontFamily }));
-        runPage.Append(new Text(pageLabel + " ") { Space = SpaceProcessingModeValues.Preserve });
-        paraPage.Append(runPage);
-
-        var runField = new Run();
-        runField.Append(new RunProperties(new FontSize { Val = footerFontSize }, new RunFonts { Ascii = _fontFamily, HighAnsi = _fontFamily }));
-        runField.Append(new FieldChar { FieldCharType = FieldCharValues.Begin });
-        paraPage.Append(runField);
-
-        var runCode = new Run();
-        runCode.Append(new RunProperties(new FontSize { Val = footerFontSize }, new RunFonts { Ascii = _fontFamily, HighAnsi = _fontFamily }));
-        runCode.Append(new FieldCode(" PAGE ") { Space = SpaceProcessingModeValues.Preserve });
-        paraPage.Append(runCode);
-
-        var runEnd = new Run();
-        runEnd.Append(new RunProperties(new FontSize { Val = footerFontSize }, new RunFonts { Ascii = _fontFamily, HighAnsi = _fontFamily }));
-        runEnd.Append(new FieldChar { FieldCharType = FieldCharValues.End });
-        paraPage.Append(runEnd);
-
-        footer.Append(paraPage);
+        footerRow.Append(footerCell);
+        footerTable.Append(footerRow);
+        footer.Append(footerTable);
 
         footerPart.Footer = footer;
         footerPart.Footer.Save();
@@ -551,11 +569,6 @@ public partial class DocxGeneratorService
         var logoHeight = CssToTwips(config["header"]?["logoHeight"]?.GetValue<string>() ?? "0.55in");
         var headerGap = CssToTwips(config["header"]?["gapAfter"]?.GetValue<string>() ?? "0");
         var headerDistance = Math.Max(0, mt - logoHeight - headerGap);
-        var footerGap = CssToTwips(config["footer"]?["gapBefore"]?.GetValue<string>() ?? "0");
-        var footerFontHp = PtToHalfPt(config["footer"]?["fontSize"]?.GetValue<string>() ?? "7pt");
-        var footerLines = string.IsNullOrEmpty(config["footer"]?["text"]?.GetValue<string>()) ? 1 : 2;
-        var footerHeight = footerFontHp * 10 * footerLines;
-        var footerDistance = Math.Max(0, mb - footerGap - footerHeight);
 
         var secPr = new SectionProperties();
         secPr.Append(new PageSize { Width = (uint)pageW, Height = (uint)pageH });
@@ -566,7 +579,7 @@ public partial class DocxGeneratorService
             Left = (uint)ml,
             Right = (uint)mr,
             Header = (uint)headerDistance,
-            Footer = (uint)footerDistance
+            Footer = 0
         });
 
         // Link header
