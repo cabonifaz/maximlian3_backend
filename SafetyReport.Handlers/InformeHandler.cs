@@ -367,11 +367,11 @@ namespace SafetyReport.Handlers
             }
         }
 
-        public async Task<Respuesta> ObtenerDocumentoAsync(UsuarioGeneral usuarioLogueado, InformeIdRequest request)
+        public async Task<Respuesta> ObtenerDocumentoAsync(UsuarioGeneral usuarioLogueado, FiltroGenerarDocumento request)
         {
             try
             {
-                var respuesta = await _dao.ObtenerDocumentoAsync(usuarioLogueado, request.IdInforme);
+                var respuesta = await _dao.ObtenerDocumentoAsync(usuarioLogueado, request.IdInforme, request.IdPedido);
                 if (respuesta.IdTipoMensaje != 2 || respuesta.Result is not List<InformeDocumentoResult> docs || docs.Count == 0)
                     return respuesta;
 

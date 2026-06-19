@@ -140,7 +140,7 @@ namespace SafetyReport.WebApi.Controllers
         }
 
         [HttpGet("obtenerDocumento")]
-        public async Task<IActionResult> ObtenerDocumento([FromQuery] InformeIdRequest request)
+        public async Task<IActionResult> ObtenerDocumento([FromQuery] FiltroGenerarDocumento request)
         {
             var respuesta = await _informeHandler.ObtenerDocumentoAsync(UsuarioLogueado, request);
             return Ok(respuesta);
