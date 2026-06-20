@@ -486,7 +486,7 @@ public partial class DocxGeneratorService
             new TableWidth { Width = footerTableWidth.ToString(), Type = TableWidthUnitValues.Dxa },
             new TableLayout { Type = TableLayoutValues.Fixed }));
 
-        var footerBoxHeight = CssToTwips(config?["margins"]?["bottom"]?.GetValue<string>());
+        var footerBoxHeight = CssToTwips(config?["margins"]?["bottom"]?.GetValue<string>()) - gapBefore * 3 / 4;
 
         var footerRow = new TableRow();
         footerRow.Append(new TableRowProperties(
@@ -581,7 +581,7 @@ public partial class DocxGeneratorService
         secPr.Append(new PageMargin
         {
             Top = mt,
-            Bottom = mb - footerGapBefore,
+            Bottom = mb,
             Left = (uint)ml,
             Right = (uint)mr,
             Header = (uint)headerDistance,
