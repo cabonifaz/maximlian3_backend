@@ -581,7 +581,7 @@ public partial class DocxGeneratorService
         secPr.Append(new PageMargin
         {
             Top = mt,
-            Bottom = mb - footerGapBefore * 3 / 4,
+            Bottom = mb - footerGapBefore * 7 / 8,
             Left = (uint)ml,
             Right = (uint)mr,
             Header = (uint)headerDistance,
