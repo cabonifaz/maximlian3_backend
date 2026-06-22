@@ -35,6 +35,8 @@ namespace SafetyReport.Handlers
         {
             try
             {
+                var rutasAnteriores = await ObtenerRutasImagenesExistentesAsync(usuarioLogueado, request.lstLocales);
+
                 var error = AsignarRutasLocalImagenes(request.lstLocales, request.IdPedido ?? 0);
                 if (error != null)
                     return new Respuesta { IdTipoMensaje = 1, Mensaje = error, Result = new List<InformeCreado>() };
@@ -42,7 +44,7 @@ namespace SafetyReport.Handlers
                 var (respuesta, imagenes) = await _dao.InsertarAsync(usuarioLogueado, request);
 
                 if (respuesta.IdTipoMensaje == 2 && respuesta.Result is List<InformeCreado> creados && creados.Count > 0)
-                    await ProcesarImagenesPostInsercionAsync(usuarioLogueado, imagenes, request.lstLocales, request.IdPedido ?? 0, creados[0].IdInforme);
+                    await ProcesarImagenesPostInsercionAsync(usuarioLogueado, imagenes, rutasAnteriores, request.IdPedido ?? 0, creados[0].IdInforme);
 
                 AgregarUrlsPrefirmadas(respuesta, imagenes);
                 return respuesta;
@@ -95,24 +97,36 @@ namespace SafetyReport.Handlers
             }
         }
 
-        private async Task ProcesarImagenesPostInsercionAsync(UsuarioGeneral u, List<InformeLocalImagenPendiente> imagenes, List<InformeLocalItem> locales, int idPedido, int idInforme)
+        private async Task<Dictionary<string, string>> ObtenerRutasImagenesExistentesAsync(UsuarioGeneral u, List<InformeLocalItem> locales)
         {
-            var imagenesExistentes = new HashSet<string>(
-                locales.SelectMany(l => l.Imagenes)
-                    .Where(i => i.IdInformeLocalImagen is not null and not 0 && !string.IsNullOrWhiteSpace(i.ImagenURL))
-                    .Select(i => i.ImagenURL),
-                StringComparer.OrdinalIgnoreCase);
+            var idsExistentes = locales.SelectMany(l => l.Imagenes)
+                .Where(i => i.IdInformeLocalImagen is not null and not 0)
+                .Select(i => i.IdInformeLocalImagen!.Value)
+                .ToList();
 
+            if (idsExistentes.Count == 0)
+                return new Dictionary<string, string>();
+
+            var respuesta = await _dao.ObtenerUrlsImagenesAsync(u, idsExistentes);
+
+            if (respuesta.Result is List<InformeLocalImagenUrl> urls)
+                return urls
+                    .Where(x => !string.IsNullOrWhiteSpace(x.ImagenURL))
+                    .ToDictionary(x => x.Nombre, x => x.ImagenURL, StringComparer.OrdinalIgnoreCase);
+
+            return new Dictionary<string, string>();
+        }
+
+        private async Task ProcesarImagenesPostInsercionAsync(UsuarioGeneral u, List<InformeLocalImagenPendiente> imagenes, Dictionary<string, string> rutasAnteriores, int idPedido, int idInforme)
+        {
             foreach (var imagen in imagenes)
             {
-                if (string.IsNullOrWhiteSpace(imagen.S3Key)) continue;
-
                 var ext = Path.GetExtension(imagen.Nombre);
                 var nombre = Path.GetFileNameWithoutExtension(imagen.Nombre);
                 var rutaDestino = $"informes/pedido-{idPedido}/informe-{idInforme}/locales/{nombre}-{DateTimeOffset.UtcNow.ToUnixTimeMilliseconds()}{ext}";
 
-                if (imagenesExistentes.Contains(imagen.S3Key))
-                    await _s3.CopiarArchivoAsync(imagen.S3Key, rutaDestino);
+                if (rutasAnteriores.TryGetValue(imagen.Nombre, out var rutaOrigen))
+                    await _s3.CopiarArchivoAsync(rutaOrigen, rutaDestino);
 
                 await _dao.ActualizarImagenUrlAsync(u, imagen.IdInformeLocalImagen, rutaDestino);
                 imagen.S3Key = rutaDestino;
