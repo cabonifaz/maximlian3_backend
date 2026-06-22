@@ -186,4 +186,23 @@ public class S3UploadService : IS3UploadService
         await DeleteFileAsync(rutaOrigen);
     }
 
+    public async Task CopiarArchivoAsync(string rutaOrigen, string rutaDestino)
+    {
+        if (string.IsNullOrWhiteSpace(rutaOrigen))
+            throw new ArgumentException("rutaOrigen es requerido", nameof(rutaOrigen));
+        if (string.IsNullOrWhiteSpace(rutaDestino))
+            throw new ArgumentException("rutaDestino es requerido", nameof(rutaDestino));
+
+        var copyRequest = new CopyObjectRequest
+        {
+            SourceBucket = _bucketName,
+            SourceKey = rutaOrigen,
+            DestinationBucket = _bucketName,
+            DestinationKey = rutaDestino,
+            MetadataDirective = S3MetadataDirective.COPY
+        };
+
+        await _s3Client.CopyObjectAsync(copyRequest);
+    }
+
 }

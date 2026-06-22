@@ -1523,5 +1523,16 @@ namespace SafetyReport.DAO
                 return new Respuesta { IdTipoMensaje = 3, Mensaje = ex.Message, Result = new List<object>() };
             }
         }
+
+        public async Task ActualizarImagenUrlAsync(UsuarioGeneral u, int idInformeLocalImagen, string imagenUrl)
+        {
+            using SqlConnection cn = new(_dbConfig.ConnectionString);
+            using SqlCommand cmd = new("InformeLocalImagen_ActualizarUrl", cn) { CommandType = CommandType.StoredProcedure };
+            AgregarParametrosAuditoria(cmd, u);
+            cmd.Parameters.Add("@intIdInformeLocalImagen", SqlDbType.Int).Value = idInformeLocalImagen;
+            cmd.Parameters.Add("@vchImagenURL", SqlDbType.VarChar, 2048).Value = imagenUrl;
+            await cn.OpenAsync();
+            await cmd.ExecuteNonQueryAsync();
+        }
     }
 }

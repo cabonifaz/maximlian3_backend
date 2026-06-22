@@ -14,4 +14,5 @@ public interface IS3UploadService
     Task<byte[]?> DescargarBytesAsync(string rutaArchivo);
     Task DeleteFileAsync(string rutaArchivo);
     Task MoverArchivoAsync(string rutaOrigen, string rutaDestino);
+    Task CopiarArchivoAsync(string rutaOrigen, string rutaDestino);
 }

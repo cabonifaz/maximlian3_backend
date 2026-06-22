@@ -40,6 +40,10 @@ namespace SafetyReport.Handlers
                     return new Respuesta { IdTipoMensaje = 1, Mensaje = error, Result = new List<InformeCreado>() };
 
                 var (respuesta, imagenes) = await _dao.InsertarAsync(usuarioLogueado, request);
+
+                if (respuesta.IdTipoMensaje == 2 && respuesta.Result is List<InformeCreado> creados && creados.Count > 0)
+                    await ProcesarImagenesPostInsercionAsync(usuarioLogueado, imagenes, request.lstLocales, request.IdPedido ?? 0, creados[0].IdInforme);
+
                 AgregarUrlsPrefirmadas(respuesta, imagenes);
                 return respuesta;
             }
@@ -88,6 +92,30 @@ namespace SafetyReport.Handlers
                     img.UploadUrl = _s3.GenerarUploadUrl(img.S3Key, mime);
                     return img;
                 }).ToList();
+            }
+        }
+
+        private async Task ProcesarImagenesPostInsercionAsync(UsuarioGeneral u, List<InformeLocalImagenPendiente> imagenes, List<InformeLocalItem> locales, int idPedido, int idInforme)
+        {
+            var imagenesExistentes = new HashSet<string>(
+                locales.SelectMany(l => l.Imagenes)
+                    .Where(i => i.IdInformeLocalImagen is not null and not 0 && !string.IsNullOrWhiteSpace(i.ImagenURL))
+                    .Select(i => i.ImagenURL),
+                StringComparer.OrdinalIgnoreCase);
+
+            foreach (var imagen in imagenes)
+            {
+                if (string.IsNullOrWhiteSpace(imagen.S3Key)) continue;
+
+                var ext = Path.GetExtension(imagen.Nombre);
+                var nombre = Path.GetFileNameWithoutExtension(imagen.Nombre);
+                var rutaDestino = $"informes/pedido-{idPedido}/informe-{idInforme}/locales/{nombre}-{DateTimeOffset.UtcNow.ToUnixTimeMilliseconds()}{ext}";
+
+                if (imagenesExistentes.Contains(imagen.S3Key))
+                    await _s3.CopiarArchivoAsync(imagen.S3Key, rutaDestino);
+
+                await _dao.ActualizarImagenUrlAsync(u, imagen.IdInformeLocalImagen, rutaDestino);
+                imagen.S3Key = rutaDestino;
             }
         }
 
