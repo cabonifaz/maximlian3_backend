@@ -134,6 +134,21 @@ public class S3UploadService : IS3UploadService
         await _s3Client.PutObjectAsync(putRequest);
     }
 
+    public async Task<byte[]?> DescargarBytesAsync(string rutaArchivo)
+    {
+        try
+        {
+            var response = await _s3Client.GetObjectAsync(_bucketName, rutaArchivo);
+            using var ms = new MemoryStream();
+            await response.ResponseStream.CopyToAsync(ms);
+            return ms.ToArray();
+        }
+        catch
+        {
+            return null;
+        }
+    }
+
     public async Task DeleteFileAsync(string rutaArchivo)
     {
         if (string.IsNullOrWhiteSpace(rutaArchivo))

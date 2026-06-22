@@ -46,9 +46,23 @@ public class PdfGeneratorService
     private double _pendingTableBottomMargin;
     private bool _hasLastParagraph;
 
+    private static S3FontResolver? _fontResolver;
+    private static readonly object _fontLock = new();
+
     public static void ConfigurarFuentes(Dictionary<string, byte[]> fuentes)
     {
-        GlobalFontSettings.FontResolver = new S3FontResolver(fuentes);
+        lock (_fontLock)
+        {
+            if (_fontResolver == null)
+            {
+                _fontResolver = new S3FontResolver(fuentes);
+                GlobalFontSettings.FontResolver = _fontResolver;
+            }
+            else
+            {
+                _fontResolver.AgregarFuentes(fuentes);
+            }
+        }
     }
 
     public MemoryStream GenerarPdf(JsonNode json, byte[]? logoBytes = null)
@@ -1148,6 +1162,12 @@ public class PdfGeneratorService
         public S3FontResolver(Dictionary<string, byte[]> fonts)
         {
             _fonts = new Dictionary<string, byte[]>(fonts, StringComparer.OrdinalIgnoreCase);
+        }
+
+        public void AgregarFuentes(Dictionary<string, byte[]> fuentes)
+        {
+            foreach (var (nombre, bytes) in fuentes)
+                _fonts[nombre] = bytes;
         }
 
         public FontResolverInfo? ResolveTypeface(string familyName, bool isBold, bool isItalic)

@@ -636,17 +636,11 @@ namespace SafetyReport.Handlers
             var rutasS3 = PdfGeneratorService.ObtenerRutasS3Fuentes(fontFamily, variantes);
 
             var fuentes = new Dictionary<string, byte[]>(StringComparer.OrdinalIgnoreCase);
-            using var http = new HttpClient();
 
             var tareas = rutasS3.Select(async kv =>
             {
-                try
-                {
-                    var url = _s3.GenerarDownloadUrl(kv.Value);
-                    var bytes = await http.GetByteArrayAsync(url);
-                    return (Nombre: kv.Key, Bytes: (byte[]?)bytes);
-                }
-                catch { return (Nombre: kv.Key, Bytes: (byte[]?)null); }
+                var bytes = await _s3.DescargarBytesAsync(kv.Value);
+                return (Nombre: kv.Key, Bytes: bytes);
             });
 
             foreach (var resultado in await Task.WhenAll(tareas))
