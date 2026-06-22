@@ -46,10 +46,9 @@ public class PdfGeneratorService
     private double _pendingTableBottomMargin;
     private bool _hasLastParagraph;
 
-    static PdfGeneratorService()
+    public static void ConfigurarFuentes(Dictionary<string, byte[]> fuentes)
     {
-        if (GlobalFontSettings.FontResolver is null)
-            GlobalFontSettings.FontResolver = new SystemFontResolver();
+        GlobalFontSettings.FontResolver = new S3FontResolver(fuentes);
     }
 
     public MemoryStream GenerarPdf(JsonNode json, byte[]? logoBytes = null)
@@ -1099,38 +1098,56 @@ public class PdfGeneratorService
 
     // ==================== FONT RESOLVER ====================
 
-    private class SystemFontResolver : IFontResolver
+    public static HashSet<string> DetectarVariantesFuente(JsonNode json)
     {
-        private static readonly string[] FontPaths =
-        [
-            "/usr/share/fonts",
-            "/usr/local/share/fonts",
-            "/mnt/c/Windows/Fonts",
-            Environment.GetFolderPath(Environment.SpecialFolder.Fonts)
-        ];
+        var variantes = new HashSet<string> { "" };
+        DetectarVariantesEnNodo(json, variantes);
+        return variantes;
+    }
 
-        private readonly Dictionary<string, string> _fontFiles = new(StringComparer.OrdinalIgnoreCase);
-
-        public SystemFontResolver()
+    private static void DetectarVariantesEnNodo(JsonNode? node, HashSet<string> variantes)
+    {
+        if (node is JsonObject obj)
         {
-            foreach (var basePath in FontPaths)
+            foreach (var prop in obj)
             {
-                if (!Directory.Exists(basePath)) continue;
-                try
+                var val = prop.Value?.ToString() ?? "";
+                if (prop.Key.Contains("style", StringComparison.OrdinalIgnoreCase) ||
+                    prop.Key.Contains("Style", StringComparison.Ordinal))
                 {
-                    foreach (var file in Directory.EnumerateFiles(basePath, "*.ttf", SearchOption.AllDirectories))
-                    {
-                        var name = Path.GetFileNameWithoutExtension(file).ToLowerInvariant();
-                        _fontFiles.TryAdd(name, file);
-                    }
-                    foreach (var file in Directory.EnumerateFiles(basePath, "*.ttc", SearchOption.AllDirectories))
-                    {
-                        var name = Path.GetFileNameWithoutExtension(file).ToLowerInvariant();
-                        _fontFiles.TryAdd(name, file);
-                    }
+                    if (Regex.IsMatch(val, @"font-weight\s*:\s*(bold|[6-9]\d\d|[1-9]\d{3})", RegexOptions.IgnoreCase))
+                        variantes.Add("b");
+                    if (Regex.IsMatch(val, @"font-style\s*:\s*(italic|oblique)", RegexOptions.IgnoreCase))
+                        variantes.Add("i");
+                    if (variantes.Contains("b") && variantes.Contains("i"))
+                        variantes.Add("bi");
                 }
-                catch { }
+                DetectarVariantesEnNodo(prop.Value, variantes);
             }
+        }
+        else if (node is JsonArray arr)
+        {
+            foreach (var item in arr)
+                DetectarVariantesEnNodo(item, variantes);
+        }
+    }
+
+    public static Dictionary<string, string> ObtenerRutasS3Fuentes(string fontFamily, HashSet<string> variantes)
+    {
+        var baseName = fontFamily.Split(',')[0].Trim().ToLowerInvariant().Replace(" ", "");
+        var rutas = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+        foreach (var variante in variantes)
+            rutas[baseName + variante] = $"fuentes/{baseName}{variante}.ttf";
+        return rutas;
+    }
+
+    private class S3FontResolver : IFontResolver
+    {
+        private readonly Dictionary<string, byte[]> _fonts;
+
+        public S3FontResolver(Dictionary<string, byte[]> fonts)
+        {
+            _fonts = new Dictionary<string, byte[]>(fonts, StringComparer.OrdinalIgnoreCase);
         }
 
         public FontResolverInfo? ResolveTypeface(string familyName, bool isBold, bool isItalic)
@@ -1147,30 +1164,22 @@ public class PdfGeneratorService
             var candidates = new[]
             {
                 baseName + suffix,
-                baseName + (isBold ? "bold" : "") + (isItalic ? "italic" : ""),
-                baseName + "-" + (isBold ? "bold" : "regular") + (isItalic ? "italic" : ""),
                 baseName,
-                "calibri" + suffix,
-                "calibri",
-                "arial" + suffix,
-                "arial",
-                "liberationsans-" + (isBold ? "bold" : "regular") + (isItalic ? "italic" : ""),
-                "liberationsans-regular",
             };
 
             foreach (var candidate in candidates)
-                if (_fontFiles.ContainsKey(candidate))
+                if (_fonts.ContainsKey(candidate))
                     return new FontResolverInfo(candidate);
 
-            if (_fontFiles.Count > 0)
-                return new FontResolverInfo(_fontFiles.Keys.First());
+            if (_fonts.Count > 0)
+                return new FontResolverInfo(_fonts.Keys.First());
 
             return null;
         }
 
         public byte[]? GetFont(string faceName)
         {
-            return _fontFiles.TryGetValue(faceName, out var path) ? File.ReadAllBytes(path) : null;
+            return _fonts.TryGetValue(faceName, out var bytes) ? bytes : null;
         }
     }
 }

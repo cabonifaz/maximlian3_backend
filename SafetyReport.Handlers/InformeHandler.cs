@@ -592,6 +592,7 @@ namespace SafetyReport.Handlers
                     return new Respuesta { IdTipoMensaje = 1, Mensaje = "Error al procesar el documento.", Result = null };
 
                 var logoBytes = await DescargarLogoAsync(estructura);
+                await DescargarFuentesAsync(estructura!);
 
                 var generador = new PdfGeneratorService();
                 using var pdfStream = generador.GenerarPdf(estructura!, logoBytes);
@@ -626,6 +627,36 @@ namespace SafetyReport.Handlers
                 return await http.GetByteArrayAsync(logoUrl);
             }
             catch { return null; }
+        }
+
+        private async Task DescargarFuentesAsync(JsonNode estructura)
+        {
+            var fontFamily = estructura["document"]?["font"]?["family"]?.GetValue<string>() ?? "Calibri";
+            var variantes = PdfGeneratorService.DetectarVariantesFuente(estructura);
+            var rutasS3 = PdfGeneratorService.ObtenerRutasS3Fuentes(fontFamily, variantes);
+
+            var fuentes = new Dictionary<string, byte[]>(StringComparer.OrdinalIgnoreCase);
+            using var http = new HttpClient();
+
+            var tareas = rutasS3.Select(async kv =>
+            {
+                try
+                {
+                    var url = _s3.GenerarDownloadUrl(kv.Value);
+                    var bytes = await http.GetByteArrayAsync(url);
+                    return (Nombre: kv.Key, Bytes: (byte[]?)bytes);
+                }
+                catch { return (Nombre: kv.Key, Bytes: (byte[]?)null); }
+            });
+
+            foreach (var resultado in await Task.WhenAll(tareas))
+            {
+                if (resultado.Bytes != null)
+                    fuentes[resultado.Nombre] = resultado.Bytes;
+            }
+
+            if (fuentes.Count > 0)
+                PdfGeneratorService.ConfigurarFuentes(fuentes);
         }
 
         private async Task<Respuesta?> ObtenerDocumentoExistente(UsuarioGeneral usuarioLogueado, FiltroGenerarDocumento request, string formato)
