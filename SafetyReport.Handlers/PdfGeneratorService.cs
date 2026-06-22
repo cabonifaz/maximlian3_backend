@@ -202,7 +202,7 @@ public class PdfGeneratorService
             var lines = PartirEnLineas(_footerText, footerFont, footerW);
             foreach (var line in lines)
             {
-                DibujarLineaTexto(line, footerFont, footerX, footerW, footerY, align);
+                DibujarLineaTexto(line, footerFont, footerX, footerW, footerY, align, lineH);
                 footerY += lineH;
             }
         }
@@ -210,7 +210,7 @@ public class PdfGeneratorService
         if (_showPageNumber)
         {
             var pageText = $"{_pageLabel} {_pageNumber}";
-            DibujarLineaTexto(pageText, footerFont, footerX, footerW, footerY, align);
+            DibujarLineaTexto(pageText, footerFont, footerX, footerW, footerY, align, lineH);
         }
     }
 
@@ -260,7 +260,7 @@ public class PdfGeneratorService
         var x = _mLeft + _contentIndentL;
         var w = _contentWidth;
         var align = MapXAlign(css.GetValueOrDefault("text-align", "left"));
-        DibujarLineaTexto(text, font, x, w, _y, align);
+        DibujarLineaTexto(text, font, x, w, _y, align, lineH);
         _y += textH;
         _y += after;
 
@@ -287,7 +287,7 @@ public class PdfGeneratorService
         _y += before;
         var x = _mLeft + _contentIndentL;
         var align = MapXAlign(css.GetValueOrDefault("text-align", "left"));
-        DibujarLineaTexto(text, font, x, _contentWidth, _y, align);
+        DibujarLineaTexto(text, font, x, _contentWidth, _y, align, lineH);
         _y += textH;
         _y += after;
 
@@ -329,7 +329,7 @@ public class PdfGeneratorService
             foreach (var wl in wrapped)
             {
                 AsegurarEspacio(lineH);
-                DibujarLineaTexto(wl, font, x, w, _y, XStringAlignment.Near);
+                DibujarLineaTexto(wl, font, x, w, _y, XStringAlignment.Near, lineH);
                 _y += lineH;
             }
         }
@@ -528,7 +528,7 @@ public class PdfGeneratorService
 
             AsegurarEspacio(before + titleLineH + after);
             _y += before;
-            DibujarLineaTexto(title, titleFont, _mLeft + _contentIndentL, _contentWidth, _y, XStringAlignment.Near);
+            DibujarLineaTexto(title, titleFont, _mLeft + _contentIndentL, _contentWidth, _y, XStringAlignment.Near, titleLineH);
             _y += titleLineH + after;
             RegistrarParrafo(tAfterM, tAfterP, after);
 
@@ -558,7 +558,7 @@ public class PdfGeneratorService
                     foreach (var wl in PartirEnLineas(line, contentFont, _contentWidth))
                     {
                         AsegurarEspacio(contentLineH);
-                        DibujarLineaTexto(wl, contentFont, _mLeft + _contentIndentL, _contentWidth, _y, XStringAlignment.Near);
+                        DibujarLineaTexto(wl, contentFont, _mLeft + _contentIndentL, _contentWidth, _y, XStringAlignment.Near, contentLineH);
                         _y += contentLineH;
                     }
                 }
@@ -664,7 +664,7 @@ public class PdfGeneratorService
             var textY = _y + padT;
             foreach (var line in lines)
             {
-                DibujarLineaTexto(line, font, cellX + padL, textW, textY, align);
+                DibujarLineaTexto(line, font, cellX + padL, textW, textY, align, lineH);
                 textY += lineH;
             }
 
@@ -867,12 +867,16 @@ public class PdfGeneratorService
 
     // ==================== DRAWING HELPERS ====================
 
-    private void DibujarLineaTexto(string text, XFont font, double x, double width, double y, XStringAlignment align)
+    private void DibujarLineaTexto(string text, XFont font, double x, double width, double y, XStringAlignment align, double lineHeight = 0)
     {
         if (string.IsNullOrEmpty(text)) return;
-        var format = new XStringFormat { Alignment = align, LineAlignment = XLineAlignment.Near };
-        var rect = new XRect(x, y, width, font.GetHeight());
-        _gfx.DrawString(text, font, XBrushes.Black, rect, format);
+        var lh = lineHeight > 0 ? lineHeight : font.GetHeight();
+        var ascent = font.Size * font.Metrics.Ascent / font.Metrics.UnitsPerEm;
+        var descent = font.Size * Math.Abs(font.Metrics.Descent) / font.Metrics.UnitsPerEm;
+        var textHeight = ascent + descent;
+        var baselineY = y + (lh - textHeight) / 2 + ascent;
+        var format = new XStringFormat { Alignment = align, LineAlignment = XLineAlignment.BaseLine };
+        _gfx.DrawString(text, font, XBrushes.Black, new XPoint(align == XStringAlignment.Center ? x + width / 2 : align == XStringAlignment.Far ? x + width : x, baselineY), format);
     }
 
     private List<string> PartirEnLineas(string text, XFont font, double maxWidth)
