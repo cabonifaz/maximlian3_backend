@@ -1445,5 +1445,66 @@ namespace SafetyReport.DAO
                 return new Respuesta { IdTipoMensaje = 3, Mensaje = ex.Message, Result = new List<InformeEliminado>() };
             }
         }
+
+        public async Task<Respuesta> ListarObservacionesAsync(UsuarioGeneral u, int idPedido)
+        {
+            try
+            {
+                using SqlConnection cn = new(_dbConfig.ConnectionString);
+                using SqlCommand cmd = new("InformeObservacion_Listar", cn) { CommandType = CommandType.StoredProcedure };
+                AgregarParametrosAuditoria(cmd, u);
+                cmd.Parameters.Add("@intIdPedido", SqlDbType.Int).Value = idPedido;
+                await cn.OpenAsync();
+                return await LeerRespuestaAsync<InformeObservacionConsulta>(cmd);
+            }
+            catch (Exception ex)
+            {
+                return new Respuesta { IdTipoMensaje = 3, Mensaje = ex.Message, Result = new List<InformeObservacionConsulta>() };
+            }
+        }
+
+        public async Task<Respuesta> InsertarObservacionesLoteAsync(UsuarioGeneral u, int idInforme, int idPedido, List<InformeObservacionItem> observaciones)
+        {
+            try
+            {
+                var t = new DataTable();
+                t.Columns.Add("Observacion", typeof(string));
+                t.Columns.Add("Checked", typeof(bool));
+                foreach (var o in observaciones)
+                    t.Rows.Add((object?)o.Observacion ?? DBNull.Value, o.Checked);
+
+                using SqlConnection cn = new(_dbConfig.ConnectionString);
+                using SqlCommand cmd = new("InformeObservacion_InsertarLote", cn) { CommandType = CommandType.StoredProcedure };
+                AgregarParametrosAuditoria(cmd, u);
+                cmd.Parameters.Add("@intIdInforme", SqlDbType.Int).Value = idInforme;
+                cmd.Parameters.Add("@intIdPedido", SqlDbType.Int).Value = idPedido;
+                AgregarTvp(cmd, "@lstObservaciones", t, "LISTA_INFORME_OBSERVACION");
+                await cn.OpenAsync();
+                return await LeerRespuestaAsync<object>(cmd);
+            }
+            catch (Exception ex)
+            {
+                return new Respuesta { IdTipoMensaje = 3, Mensaje = ex.Message, Result = new List<object>() };
+            }
+        }
+
+        public async Task<Respuesta> EditarObservacionAsync(UsuarioGeneral u, InformeObservacionEditarRequest request)
+        {
+            try
+            {
+                using SqlConnection cn = new(_dbConfig.ConnectionString);
+                using SqlCommand cmd = new("InformeObservacion_Editar", cn) { CommandType = CommandType.StoredProcedure };
+                AgregarParametrosAuditoria(cmd, u);
+                cmd.Parameters.Add("@intIdInformeObservacion", SqlDbType.Int).Value = request.IdInformeObservacion;
+                cmd.Parameters.Add("@vchObservacion", SqlDbType.VarChar, 500).Value = (object?)request.Observacion ?? DBNull.Value;
+                cmd.Parameters.Add("@bitChecked", SqlDbType.Bit).Value = request.Checked;
+                await cn.OpenAsync();
+                return await LeerRespuestaAsync<object>(cmd);
+            }
+            catch (Exception ex)
+            {
+                return new Respuesta { IdTipoMensaje = 3, Mensaje = ex.Message, Result = new List<object>() };
+            }
+        }
     }
 }
