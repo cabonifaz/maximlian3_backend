@@ -49,8 +49,10 @@ namespace SafetyReport.Handlers
                 AgregarUrlsPrefirmadas(respuesta, imagenes);
                 return respuesta;
             }
-            catch (Exception)
+            catch (Exception ex)
             {
+                Console.WriteLine($"[InsertarAsync] Error: {ex.Message}");
+                Console.WriteLine($"[InsertarAsync] StackTrace: {ex.StackTrace}");
                 return new Respuesta { IdTipoMensaje = 3, Mensaje = "Error interno del servidor.", Result = new List<InformeCreado>() };
             }
         }
