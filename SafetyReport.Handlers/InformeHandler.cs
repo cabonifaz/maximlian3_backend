@@ -553,6 +553,54 @@ namespace SafetyReport.Handlers
             }
         }
 
+        public async Task<Respuesta> GenerarDocumentoPdfAsync(UsuarioGeneral usuarioLogueado, FiltroGenerarDocumento request)
+        {
+            try
+            {
+                var (respuesta, nombreInforme) = await _dao.GenerarDocumentoAsync(usuarioLogueado, request.IdInforme, request.IdPedido, 1);
+                if (respuesta.IdTipoMensaje != 2 || respuesta.Result is not string jsonStr || string.IsNullOrWhiteSpace(jsonStr))
+                    return new Respuesta { IdTipoMensaje = respuesta.IdTipoMensaje, Mensaje = respuesta.Mensaje, Result = null };
+
+                var estructura = JsonNode.Parse(jsonStr);
+                if (estructura is null)
+                    return new Respuesta { IdTipoMensaje = 1, Mensaje = "Error al procesar el documento.", Result = null };
+
+                byte[]? logoBytes = null;
+                var logoKey = estructura?["document"]?["header"]?["logo"]?.GetValue<string>();
+                if (!string.IsNullOrWhiteSpace(logoKey))
+                {
+                    try
+                    {
+                        var logoUrl = _s3.GenerarDownloadUrl(logoKey);
+                        using var http = new HttpClient();
+                        logoBytes = await http.GetByteArrayAsync(logoUrl);
+                    }
+                    catch { }
+                }
+
+                var generador = new PdfGeneratorService();
+                using var pdfStream = generador.GenerarPdf(estructura!, logoBytes);
+
+                var nombreArchivo = !string.IsNullOrWhiteSpace(nombreInforme) ? nombreInforme : "documento";
+                var timestamp = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
+                var rutaS3 = $"informes/pedido-{request.IdPedido}/informe-{request.IdInforme}/{nombreArchivo}-{timestamp}.pdf";
+                await _s3.UploadStreamAsync(rutaS3, pdfStream, "application/pdf");
+
+                await _dao.ActualizarDocumentoAsync(usuarioLogueado, request.IdInforme, rutaS3);
+
+                return new Respuesta
+                {
+                    IdTipoMensaje = 2,
+                    Mensaje = "Documento PDF generado correctamente.",
+                    Result = new { nombreInforme }
+                };
+            }
+            catch (Exception)
+            {
+                return new Respuesta { IdTipoMensaje = 3, Mensaje = "Error interno del servidor.", Result = null };
+            }
+        }
+
         private static string MapearPlantillaHtml(string html, JsonNode? informe, JsonNode? pedido)
         {
             html = System.Text.RegularExpressions.Regex.Replace(
