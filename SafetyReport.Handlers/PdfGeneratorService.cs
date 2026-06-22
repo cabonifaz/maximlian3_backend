@@ -254,7 +254,7 @@ public class PdfGeneratorService
         AplicarMargenPendienteTabla(css, ref before);
 
         var textH = lineH;
-        AsegurarEspacio(before + textH + after);
+        AsegurarEspacio(before + textH);
 
         _y += before;
         var x = _mLeft + _contentIndentL;
@@ -282,7 +282,7 @@ public class PdfGeneratorService
         AplicarMargenPendienteTabla(css, ref before);
 
         var textH = lineH;
-        AsegurarEspacio(before + textH + after);
+        AsegurarEspacio(before + textH);
 
         _y += before;
         var x = _mLeft + _contentIndentL;
@@ -526,7 +526,7 @@ public class PdfGeneratorService
             ColapsarMargenParrafoAnterior(titleCss, ref before);
             AplicarMargenPendienteTabla(titleCss, ref before);
 
-            AsegurarEspacio(before + titleLineH + after);
+            AsegurarEspacio(before + titleLineH);
             _y += before;
             DibujarLineaTexto(title, titleFont, _mLeft + _contentIndentL, _contentWidth, _y, XStringAlignment.Near, titleLineH);
             _y += titleLineH + after;
