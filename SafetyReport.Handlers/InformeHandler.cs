@@ -104,22 +104,32 @@ namespace SafetyReport.Handlers
                 .Select(i => i.IdInformeLocalImagen!.Value)
                 .ToList();
 
+            Console.WriteLine($"[CopiarImagenes] IDs existentes encontrados en request: {idsExistentes.Count} -> [{string.Join(", ", idsExistentes)}]");
+
             if (idsExistentes.Count == 0)
                 return new Dictionary<int, string>();
 
             var respuesta = await _dao.ObtenerUrlsImagenesAsync(u, idsExistentes);
+            Console.WriteLine($"[CopiarImagenes] Respuesta ObtenerUrls: TipoMensaje={respuesta.IdTipoMensaje}, ResultType={respuesta.Result?.GetType().Name}");
 
             if (respuesta.Result is List<InformeLocalImagenUrl> urls)
-                return urls
+            {
+                var dict = urls
                     .Where(x => !string.IsNullOrWhiteSpace(x.ImagenURL))
                     .ToDictionary(x => x.IdInformeLocalImagen, x => x.ImagenURL);
+                foreach (var kv in dict)
+                    Console.WriteLine($"[CopiarImagenes] Ruta anterior: ID={kv.Key} -> {kv.Value}");
+                return dict;
+            }
 
+            Console.WriteLine("[CopiarImagenes] No se pudieron obtener las rutas anteriores");
             return new Dictionary<int, string>();
         }
 
         private async Task ProcesarImagenesPostInsercionAsync(UsuarioGeneral u, List<InformeLocalImagenPendiente> imagenes, Dictionary<int, string> rutasAnteriores, List<InformeLocalItem> locales, int idPedido, int idInforme)
         {
             var imagenesRequest = locales.SelectMany(l => l.Imagenes).ToList();
+            Console.WriteLine($"[CopiarImagenes] ProcesarPost: imagenes={imagenes.Count}, imagenesRequest={imagenesRequest.Count}, rutasAnteriores={rutasAnteriores.Count}, idPedido={idPedido}, idInforme={idInforme}");
 
             for (int i = 0; i < imagenes.Count; i++)
             {
@@ -128,10 +138,20 @@ namespace SafetyReport.Handlers
                 var nombre = Path.GetFileNameWithoutExtension(imagen.Nombre);
                 var rutaDestino = $"informes/pedido-{idPedido}/informe-{idInforme}/locales/{nombre}-{DateTimeOffset.UtcNow.ToUnixTimeMilliseconds()}{ext}";
 
+                var oldId = i < imagenesRequest.Count ? imagenesRequest[i].IdInformeLocalImagen : null;
+                Console.WriteLine($"[CopiarImagenes] Imagen[{i}]: Nombre={imagen.Nombre}, NewId={imagen.IdInformeLocalImagen}, OldId={oldId}, S3Key={imagen.S3Key}");
+
                 if (i < imagenesRequest.Count
                     && imagenesRequest[i].IdInformeLocalImagen is not null and not 0
                     && rutasAnteriores.TryGetValue(imagenesRequest[i].IdInformeLocalImagen!.Value, out var rutaOrigen))
+                {
+                    Console.WriteLine($"[CopiarImagenes] COPIANDO: {rutaOrigen} -> {rutaDestino}");
                     await _s3.CopiarArchivoAsync(rutaOrigen, rutaDestino);
+                }
+                else
+                {
+                    Console.WriteLine($"[CopiarImagenes] Nueva imagen, solo actualizar URL: {rutaDestino}");
+                }
 
                 await _dao.ActualizarImagenUrlAsync(u, imagen.IdInformeLocalImagen, rutaDestino);
                 imagen.S3Key = rutaDestino;
