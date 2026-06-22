@@ -1087,5 +1087,17 @@ namespace SafetyReport.Handlers
                 return new Respuesta { IdTipoMensaje = 3, Mensaje = "Error interno del servidor.", Result = new List<object>() };
             }
         }
+
+        public async Task<Respuesta> EliminarObservacionAsync(UsuarioGeneral usuarioLogueado, InformeObservacionIdRequest request)
+        {
+            try
+            {
+                return await _dao.EliminarObservacionAsync(usuarioLogueado, request.IdInformeObservacion);
+            }
+            catch (Exception)
+            {
+                return new Respuesta { IdTipoMensaje = 3, Mensaje = "Error interno del servidor.", Result = new List<object>() };
+            }
+        }
     }
 }

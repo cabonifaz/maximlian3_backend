@@ -1506,5 +1506,22 @@ namespace SafetyReport.DAO
                 return new Respuesta { IdTipoMensaje = 3, Mensaje = ex.Message, Result = new List<object>() };
             }
         }
+
+        public async Task<Respuesta> EliminarObservacionAsync(UsuarioGeneral u, int idInformeObservacion)
+        {
+            try
+            {
+                using SqlConnection cn = new(_dbConfig.ConnectionString);
+                using SqlCommand cmd = new("InformeObservacion_Eliminar", cn) { CommandType = CommandType.StoredProcedure };
+                AgregarParametrosAuditoria(cmd, u);
+                cmd.Parameters.Add("@intIdInformeObservacion", SqlDbType.Int).Value = idInformeObservacion;
+                await cn.OpenAsync();
+                return await LeerRespuestaAsync<object>(cmd);
+            }
+            catch (Exception ex)
+            {
+                return new Respuesta { IdTipoMensaje = 3, Mensaje = ex.Message, Result = new List<object>() };
+            }
+        }
     }
 }

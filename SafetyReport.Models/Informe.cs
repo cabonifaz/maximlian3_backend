@@ -1097,4 +1097,9 @@ namespace SafetyReport.Models
         public string? Observacion { get; set; }
         public bool Checked { get; set; }
     }
+
+    public class InformeObservacionIdRequest
+    {
+        public int IdInformeObservacion { get; set; }
+    }
 }
