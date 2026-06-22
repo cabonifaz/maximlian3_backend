@@ -44,7 +44,7 @@ namespace SafetyReport.Handlers
                 var (respuesta, imagenes) = await _dao.InsertarAsync(usuarioLogueado, request);
 
                 if (respuesta.IdTipoMensaje == 2 && respuesta.Result is List<InformeCreado> creados && creados.Count > 0)
-                    await ProcesarImagenesPostInsercionAsync(usuarioLogueado, imagenes, rutasAnteriores, request.IdPedido ?? 0, creados[0].IdInforme);
+                    await ProcesarImagenesPostInsercionAsync(usuarioLogueado, imagenes, rutasAnteriores, request.lstLocales, request.IdPedido ?? 0, creados[0].IdInforme);
 
                 AgregarUrlsPrefirmadas(respuesta, imagenes);
                 return respuesta;
@@ -97,7 +97,7 @@ namespace SafetyReport.Handlers
             }
         }
 
-        private async Task<Dictionary<string, string>> ObtenerRutasImagenesExistentesAsync(UsuarioGeneral u, List<InformeLocalItem> locales)
+        private async Task<Dictionary<int, string>> ObtenerRutasImagenesExistentesAsync(UsuarioGeneral u, List<InformeLocalItem> locales)
         {
             var idsExistentes = locales.SelectMany(l => l.Imagenes)
                 .Where(i => i.IdInformeLocalImagen is not null and not 0)
@@ -105,27 +105,32 @@ namespace SafetyReport.Handlers
                 .ToList();
 
             if (idsExistentes.Count == 0)
-                return new Dictionary<string, string>();
+                return new Dictionary<int, string>();
 
             var respuesta = await _dao.ObtenerUrlsImagenesAsync(u, idsExistentes);
 
             if (respuesta.Result is List<InformeLocalImagenUrl> urls)
                 return urls
                     .Where(x => !string.IsNullOrWhiteSpace(x.ImagenURL))
-                    .ToDictionary(x => x.Nombre, x => x.ImagenURL, StringComparer.OrdinalIgnoreCase);
+                    .ToDictionary(x => x.IdInformeLocalImagen, x => x.ImagenURL);
 
-            return new Dictionary<string, string>();
+            return new Dictionary<int, string>();
         }
 
-        private async Task ProcesarImagenesPostInsercionAsync(UsuarioGeneral u, List<InformeLocalImagenPendiente> imagenes, Dictionary<string, string> rutasAnteriores, int idPedido, int idInforme)
+        private async Task ProcesarImagenesPostInsercionAsync(UsuarioGeneral u, List<InformeLocalImagenPendiente> imagenes, Dictionary<int, string> rutasAnteriores, List<InformeLocalItem> locales, int idPedido, int idInforme)
         {
-            foreach (var imagen in imagenes)
+            var imagenesRequest = locales.SelectMany(l => l.Imagenes).ToList();
+
+            for (int i = 0; i < imagenes.Count; i++)
             {
+                var imagen = imagenes[i];
                 var ext = Path.GetExtension(imagen.Nombre);
                 var nombre = Path.GetFileNameWithoutExtension(imagen.Nombre);
                 var rutaDestino = $"informes/pedido-{idPedido}/informe-{idInforme}/locales/{nombre}-{DateTimeOffset.UtcNow.ToUnixTimeMilliseconds()}{ext}";
 
-                if (rutasAnteriores.TryGetValue(imagen.Nombre, out var rutaOrigen))
+                if (i < imagenesRequest.Count
+                    && imagenesRequest[i].IdInformeLocalImagen is not null and not 0
+                    && rutasAnteriores.TryGetValue(imagenesRequest[i].IdInformeLocalImagen!.Value, out var rutaOrigen))
                     await _s3.CopiarArchivoAsync(rutaOrigen, rutaDestino);
 
                 await _dao.ActualizarImagenUrlAsync(u, imagen.IdInformeLocalImagen, rutaDestino);
