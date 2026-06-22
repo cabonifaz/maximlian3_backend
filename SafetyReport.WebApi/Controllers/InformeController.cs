@@ -41,6 +41,20 @@ namespace SafetyReport.WebApi.Controllers
             return Ok(respuesta);
         }
 
+        [HttpGet("generarDocumentoDocx")]
+        public async Task<IActionResult> GenerarDocumentoDocx([FromQuery] FiltroGenerarDocumento request)
+        {
+            var respuesta = await _informeHandler.GenerarDocumentoDocxAsync(UsuarioLogueado, request);
+            return Ok(respuesta);
+        }
+
+        [HttpGet("generarDocumentoPdf")]
+        public async Task<IActionResult> GenerarDocumentoPdf([FromQuery] FiltroGenerarDocumento request)
+        {
+            var respuesta = await _informeHandler.GenerarDocumentoPdfAsync(UsuarioLogueado, request);
+            return Ok(respuesta);
+        }
+
         [HttpGet("listar")]
         public async Task<IActionResult> Listar([FromQuery] FiltroInforme request)
         {
@@ -132,6 +146,20 @@ namespace SafetyReport.WebApi.Controllers
             return Ok(respuesta);
         }
 
+        [HttpGet("obtenerDocumento")]
+        public async Task<IActionResult> ObtenerDocumento([FromQuery] FiltroGenerarDocumento request)
+        {
+            var respuesta = await _informeHandler.ObtenerDocumentoAsync(UsuarioLogueado, request);
+            return Ok(respuesta);
+        }
+
+        [HttpPost("actualizarEstado")]
+        public async Task<IActionResult> ActualizarEstado([FromBody] InformeActualizarEstadoRequest request)
+        {
+            var respuesta = await _informeHandler.ActualizarEstadoAsync(UsuarioLogueado, request);
+            return Ok(respuesta);
+        }
+
         [HttpPost("eliminar")]
         public async Task<IActionResult> Eliminar([FromBody] InformeIdRequest request)
         {
@@ -162,6 +190,34 @@ namespace SafetyReport.WebApi.Controllers
             [FromForm] string? prompt)
         {
             var respuesta = await _informeHandler.ExtraerDocumentoAsync(archivo, secciones, prompt);
+            return Ok(respuesta);
+        }
+
+        [HttpGet("listarObservaciones")]
+        public async Task<IActionResult> ListarObservaciones([FromQuery] InformeObservacionListarRequest request)
+        {
+            var respuesta = await _informeHandler.ListarObservacionesAsync(UsuarioLogueado, request);
+            return Ok(respuesta);
+        }
+
+        [HttpPost("insertarObservacionesLote")]
+        public async Task<IActionResult> InsertarObservacionesLote([FromBody] InformeObservacionInsertarRequest request)
+        {
+            var respuesta = await _informeHandler.InsertarObservacionesLoteAsync(UsuarioLogueado, request);
+            return Ok(respuesta);
+        }
+
+        [HttpPost("editarObservacion")]
+        public async Task<IActionResult> EditarObservacion([FromBody] InformeObservacionEditarRequest request)
+        {
+            var respuesta = await _informeHandler.EditarObservacionAsync(UsuarioLogueado, request);
+            return Ok(respuesta);
+        }
+
+        [HttpPost("eliminarObservacion")]
+        public async Task<IActionResult> EliminarObservacion([FromBody] InformeObservacionIdRequest request)
+        {
+            var respuesta = await _informeHandler.EliminarObservacionAsync(UsuarioLogueado, request);
             return Ok(respuesta);
         }
     }

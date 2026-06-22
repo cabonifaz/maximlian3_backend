@@ -35,11 +35,17 @@ namespace SafetyReport.Handlers
         {
             try
             {
-                var error = AsignarRutasLocalImagenes(request.lstLocales, request.IdPedido ?? 0);
+                var rutasAnteriores = await ObtenerRutasImagenesExistentesAsync(usuarioLogueado, request.lstLocales);
+
+                var error = ValidarExtensionesImagenes(request.lstLocales);
                 if (error != null)
                     return new Respuesta { IdTipoMensaje = 1, Mensaje = error, Result = new List<InformeCreado>() };
 
                 var (respuesta, imagenes) = await _dao.InsertarAsync(usuarioLogueado, request);
+
+                if (respuesta.IdTipoMensaje == 2 && respuesta.Result is List<InformeCreado> creados && creados.Count > 0)
+                    await ProcesarImagenesPostInsercionAsync(usuarioLogueado, imagenes, rutasAnteriores, request.lstLocales, request.IdPedido ?? 0, creados[0].IdInforme);
+
                 AgregarUrlsPrefirmadas(respuesta, imagenes);
                 return respuesta;
             }
@@ -53,7 +59,7 @@ namespace SafetyReport.Handlers
         {
             try
             {
-                var error = AsignarRutasLocalImagenes(request.lstLocales, request.IdInforme);
+                var error = AsignarRutasLocalImagenes(request.lstLocales, request.IdPedido ?? 0, request.IdInforme);
                 if (error != null)
                     return new Respuesta { IdTipoMensaje = 1, Mensaje = error, Result = new List<InformeCreado>() };
 
@@ -91,7 +97,61 @@ namespace SafetyReport.Handlers
             }
         }
 
-        private static string? AsignarRutasLocalImagenes(List<InformeLocalItem> locales, int id)
+        private async Task<Dictionary<int, string>> ObtenerRutasImagenesExistentesAsync(UsuarioGeneral u, List<InformeLocalItem> locales)
+        {
+            var idsExistentes = locales.SelectMany(l => l.Imagenes)
+                .Where(i => i.IdInformeLocalImagen is not null and not 0)
+                .Select(i => i.IdInformeLocalImagen!.Value)
+                .ToList();
+
+            if (idsExistentes.Count == 0)
+                return new Dictionary<int, string>();
+
+            var respuesta = await _dao.ObtenerUrlsImagenesAsync(u, idsExistentes);
+
+            if (respuesta.Result is List<InformeLocalImagenUrl> urls)
+                return urls
+                    .Where(x => !string.IsNullOrWhiteSpace(x.ImagenURL))
+                    .ToDictionary(x => x.IdInformeLocalImagen, x => x.ImagenURL);
+
+            return new Dictionary<int, string>();
+        }
+
+        private async Task ProcesarImagenesPostInsercionAsync(UsuarioGeneral u, List<InformeLocalImagenPendiente> imagenes, Dictionary<int, string> rutasAnteriores, List<InformeLocalItem> locales, int idPedido, int idInforme)
+        {
+            var imagenesRequest = locales.SelectMany(l => l.Imagenes).ToList();
+
+            for (int i = 0; i < imagenes.Count; i++)
+            {
+                var imagen = imagenes[i];
+                var ext = Path.GetExtension(imagen.Nombre);
+                var nombre = Path.GetFileNameWithoutExtension(imagen.Nombre);
+                var rutaDestino = $"informes/pedido-{idPedido}/informe-{idInforme}/locales/{nombre}-{DateTimeOffset.UtcNow.ToUnixTimeMilliseconds()}{ext}";
+
+                if (i < imagenesRequest.Count
+                    && imagenesRequest[i].IdInformeLocalImagen is not null and not 0
+                    && rutasAnteriores.TryGetValue(imagenesRequest[i].IdInformeLocalImagen!.Value, out var rutaOrigen))
+                    await _s3.CopiarArchivoAsync(rutaOrigen, rutaDestino);
+
+                await _dao.ActualizarImagenUrlAsync(u, imagen.IdInformeLocalImagen, rutaDestino);
+                imagen.S3Key = rutaDestino;
+            }
+        }
+
+        private static string? ValidarExtensionesImagenes(List<InformeLocalItem> locales)
+        {
+            foreach (var local in locales)
+                foreach (var imagen in local.Imagenes)
+                    if (imagen.IdInformeLocalImagen is null or 0)
+                    {
+                        var ext = Path.GetExtension(imagen.Nombre);
+                        if (!_extensionesImagenPermitidas.Contains(ext))
+                            return $"El archivo '{imagen.Nombre}' no es una imagen válida. Extensiones permitidas: {string.Join(", ", _extensionesImagenPermitidas)}.";
+                    }
+            return null;
+        }
+
+        private static string? AsignarRutasLocalImagenes(List<InformeLocalItem> locales, int idPedido, int idInforme)
         {
             foreach (var local in locales)
                 foreach (var imagen in local.Imagenes)
@@ -101,7 +161,7 @@ namespace SafetyReport.Handlers
                         if (!_extensionesImagenPermitidas.Contains(ext))
                             return $"El archivo '{imagen.Nombre}' no es una imagen válida. Extensiones permitidas: {string.Join(", ", _extensionesImagenPermitidas)}.";
                         var nombre = Path.GetFileNameWithoutExtension(imagen.Nombre);
-                        imagen.ImagenURL = $"informes/pedido-{id}/locales/{nombre}-{DateTimeOffset.UtcNow.ToUnixTimeMilliseconds()}{ext}";
+                        imagen.ImagenURL = $"informes/pedido-{idPedido}/informe-{idInforme}/locales/{nombre}-{DateTimeOffset.UtcNow.ToUnixTimeMilliseconds()}{ext}";
                     }
             return null;
         }
@@ -355,6 +415,75 @@ namespace SafetyReport.Handlers
             }
         }
 
+        public async Task<Respuesta> ActualizarEstadoAsync(UsuarioGeneral usuarioLogueado, InformeActualizarEstadoRequest request)
+        {
+            try
+            {
+                return await _dao.ActualizarEstadoAsync(usuarioLogueado, request.IdInforme, request.IdEstadoInforme);
+            }
+            catch (Exception)
+            {
+                return new Respuesta { IdTipoMensaje = 3, Mensaje = "Error interno del servidor.", Result = new List<object>() };
+            }
+        }
+
+        public async Task<Respuesta> ObtenerDocumentoAsync(UsuarioGeneral usuarioLogueado, FiltroGenerarDocumento request)
+        {
+            try
+            {
+                var formato = string.IsNullOrWhiteSpace(request.Formato) ? ".pdf" : request.Formato;
+
+                var respuestaRuta = await _dao.ObtenerRutaDocumentoAsync(usuarioLogueado, request.IdInforme, request.IdPedido);
+
+                string? ruta = null;
+                JsonArray? formatos = null;
+
+                if (respuestaRuta.IdTipoMensaje == 2 && respuestaRuta.Result is string urlDocumento && !string.IsNullOrWhiteSpace(urlDocumento))
+                {
+                    try
+                    {
+                        var docJson = JsonNode.Parse(urlDocumento);
+                        ruta = docJson?["ruta"]?.GetValue<string>();
+                        formatos = docJson?["formatos"]?.AsArray();
+                    }
+                    catch { }
+                }
+
+                var tieneFormato = formatos?.Any(f => f?.GetValue<string>() == formato) == true;
+
+                if (ruta == null || formatos == null || formatos.Count == 0 || !tieneFormato)
+                {
+                    var generado = formato == ".docx"
+                        ? await GenerarDocumentoDocxAsync(usuarioLogueado, request)
+                        : await GenerarDocumentoPdfAsync(usuarioLogueado, request);
+                    if (generado.IdTipoMensaje != 2) return generado;
+
+                    respuestaRuta = await _dao.ObtenerRutaDocumentoAsync(usuarioLogueado, request.IdInforme, request.IdPedido);
+                    if (respuestaRuta.IdTipoMensaje != 2 || respuestaRuta.Result is not string urlGenerado || string.IsNullOrWhiteSpace(urlGenerado))
+                        return new Respuesta { IdTipoMensaje = 1, Mensaje = "Error al obtener el documento generado.", Result = null };
+
+                    var docJson = JsonNode.Parse(urlGenerado);
+                    ruta = docJson?["ruta"]?.GetValue<string>();
+                }
+
+                var nombreBase = ruta!.Split('/').Last();
+                var s3Key = ruta + formato;
+                var nombreDescarga = nombreBase + formato;
+                var downloadUrl = _s3.GenerarDownloadUrl(s3Key, nombreDescarga);
+
+                return new Respuesta
+                {
+                    IdTipoMensaje = 2,
+                    Mensaje = "Documento obtenido correctamente.",
+                    Result = new { url = downloadUrl, nombre = nombreDescarga }
+                };
+            }
+            catch (Exception)
+            {
+                return new Respuesta { IdTipoMensaje = 3, Mensaje = "Error interno del servidor.", Result = null };
+            }
+        }
+
         public async Task<Respuesta> AutocompletarAsync(InformeAutocompletar request)
         {
             try
@@ -443,7 +572,7 @@ namespace SafetyReport.Handlers
         {
             try
             {
-                var respuesta = await _dao.GenerarDocumentoAsync(usuarioLogueado, request.IdPedido);
+                var (respuesta, nombreInforme) = await _dao.GenerarDocumentoAsync(usuarioLogueado, request.IdInforme, request.IdPedido, 1);
                 if (respuesta.IdTipoMensaje != 2 || respuesta.Result is not string jsonStr || string.IsNullOrWhiteSpace(jsonStr))
                     return new Respuesta { IdTipoMensaje = respuesta.IdTipoMensaje, Mensaje = respuesta.Mensaje, Result = null };
 
@@ -459,13 +588,189 @@ namespace SafetyReport.Handlers
                 {
                     IdTipoMensaje = 2,
                     Mensaje       = "Documento generado correctamente.",
-                    Result        = estructura
+                    Result        = new { documento = estructura, nombreInforme }
                 };
             }
             catch (Exception)
             {
                 return new Respuesta { IdTipoMensaje = 3, Mensaje = "Error interno del servidor.", Result = null };
             }
+        }
+
+        public async Task<Respuesta> GenerarDocumentoDocxAsync(UsuarioGeneral usuarioLogueado, FiltroGenerarDocumento request)
+        {
+            try
+            {
+                var docExistente = await ObtenerDocumentoExistente(usuarioLogueado, request, ".docx");
+                if (docExistente != null) return docExistente;
+
+                var (respuesta, nombreInforme) = await _dao.GenerarDocumentoAsync(usuarioLogueado, request.IdInforme, request.IdPedido, 1);
+                if (respuesta.IdTipoMensaje != 2 || respuesta.Result is not string jsonStr || string.IsNullOrWhiteSpace(jsonStr))
+                    return new Respuesta { IdTipoMensaje = respuesta.IdTipoMensaje, Mensaje = respuesta.Mensaje, Result = null };
+
+                var estructura = JsonNode.Parse(jsonStr);
+                if (estructura is null)
+                    return new Respuesta { IdTipoMensaje = 1, Mensaje = "Error al procesar el documento.", Result = null };
+
+                var logoBytes = await DescargarLogoAsync(estructura);
+
+                var generador = new DocxGeneratorService();
+                using var docxStream = generador.GenerarDocx(estructura!, logoBytes);
+
+                var nombreArchivo = !string.IsNullOrWhiteSpace(nombreInforme) ? nombreInforme : "documento";
+                var rutaBase = $"informes/pedido-{request.IdPedido}/informe-{request.IdInforme}/{nombreArchivo}";
+                await _s3.UploadStreamAsync(rutaBase + ".docx", docxStream, "application/vnd.openxmlformats-officedocument.wordprocessingml.document");
+
+                await ActualizarDocumentoJsonAsync(usuarioLogueado, request, rutaBase, ".docx");
+
+                return new Respuesta
+                {
+                    IdTipoMensaje = 2,
+                    Mensaje = "Documento DOCX generado correctamente.",
+                    Result = new { nombreInforme }
+                };
+            }
+            catch (Exception)
+            {
+                return new Respuesta { IdTipoMensaje = 3, Mensaje = "Error interno del servidor.", Result = null };
+            }
+        }
+
+        public async Task<Respuesta> GenerarDocumentoPdfAsync(UsuarioGeneral usuarioLogueado, FiltroGenerarDocumento request)
+        {
+            try
+            {
+                var docExistente = await ObtenerDocumentoExistente(usuarioLogueado, request, ".pdf");
+                if (docExistente != null) return docExistente;
+
+                var (respuesta, nombreInforme) = await _dao.GenerarDocumentoAsync(usuarioLogueado, request.IdInforme, request.IdPedido, 1);
+                if (respuesta.IdTipoMensaje != 2 || respuesta.Result is not string jsonStr || string.IsNullOrWhiteSpace(jsonStr))
+                    return new Respuesta { IdTipoMensaje = respuesta.IdTipoMensaje, Mensaje = respuesta.Mensaje, Result = null };
+
+                var estructura = JsonNode.Parse(jsonStr);
+                if (estructura is null)
+                    return new Respuesta { IdTipoMensaje = 1, Mensaje = "Error al procesar el documento.", Result = null };
+
+                var logoBytes = await DescargarLogoAsync(estructura);
+                await DescargarFuentesAsync(estructura!);
+
+                var generador = new PdfGeneratorService();
+                using var pdfStream = generador.GenerarPdf(estructura!, logoBytes);
+
+                var nombreArchivo = !string.IsNullOrWhiteSpace(nombreInforme) ? nombreInforme : "documento";
+                var rutaBase = $"informes/pedido-{request.IdPedido}/informe-{request.IdInforme}/{nombreArchivo}";
+                await _s3.UploadStreamAsync(rutaBase + ".pdf", pdfStream, "application/pdf");
+
+                await ActualizarDocumentoJsonAsync(usuarioLogueado, request, rutaBase, ".pdf");
+
+                return new Respuesta
+                {
+                    IdTipoMensaje = 2,
+                    Mensaje = "Documento PDF generado correctamente.",
+                    Result = new { nombreInforme }
+                };
+            }
+            catch (Exception)
+            {
+                return new Respuesta { IdTipoMensaje = 3, Mensaje = "Error interno del servidor.", Result = null };
+            }
+        }
+
+        private async Task<byte[]?> DescargarLogoAsync(JsonNode? estructura)
+        {
+            var logoKey = estructura?["document"]?["header"]?["logo"]?.GetValue<string>();
+            if (string.IsNullOrWhiteSpace(logoKey)) return null;
+            try
+            {
+                var logoUrl = _s3.GenerarDownloadUrl(logoKey);
+                using var http = new HttpClient();
+                return await http.GetByteArrayAsync(logoUrl);
+            }
+            catch { return null; }
+        }
+
+        private async Task DescargarFuentesAsync(JsonNode estructura)
+        {
+            var fontFamily = estructura["document"]?["font"]?["family"]?.GetValue<string>() ?? "Calibri";
+            var variantes = PdfGeneratorService.DetectarVariantesFuente(estructura);
+            var rutasS3 = PdfGeneratorService.ObtenerRutasS3Fuentes(fontFamily, variantes);
+
+            var fuentes = new Dictionary<string, byte[]>(StringComparer.OrdinalIgnoreCase);
+
+            var tareas = rutasS3.Select(async kv =>
+            {
+                var bytes = await _s3.DescargarBytesAsync(kv.Value);
+                return (Nombre: kv.Key, Bytes: bytes);
+            });
+
+            foreach (var resultado in await Task.WhenAll(tareas))
+            {
+                if (resultado.Bytes != null)
+                    fuentes[resultado.Nombre] = resultado.Bytes;
+            }
+
+            if (fuentes.Count > 0)
+                PdfGeneratorService.ConfigurarFuentes(fuentes);
+        }
+
+        private async Task<Respuesta?> ObtenerDocumentoExistente(UsuarioGeneral usuarioLogueado, FiltroGenerarDocumento request, string formato)
+        {
+            var respuestaDoc = await _dao.ObtenerRutaDocumentoAsync(usuarioLogueado, request.IdInforme, request.IdPedido);
+            if (respuestaDoc.IdTipoMensaje != 2 || respuestaDoc.Result is not string urlDocumento || string.IsNullOrWhiteSpace(urlDocumento))
+                return null;
+
+            try
+            {
+                var docJson = JsonNode.Parse(urlDocumento);
+                var ruta = docJson?["ruta"]?.GetValue<string>();
+                var formatos = docJson?["formatos"]?.AsArray();
+                if (ruta == null || formatos == null) return null;
+
+                if (!formatos.Any(f => f?.GetValue<string>() == formato)) return null;
+
+                return new Respuesta
+                {
+                    IdTipoMensaje = 2,
+                    Mensaje = formato == ".pdf" ? "Documento PDF ya existe." : "Documento DOCX ya existe.",
+                    Result = new { nombreInforme = ruta.Split('/').Last() }
+                };
+            }
+            catch { return null; }
+        }
+
+        private async Task ActualizarDocumentoJsonAsync(UsuarioGeneral usuarioLogueado, FiltroGenerarDocumento request, string rutaBase, string formato)
+        {
+            var formatos = new JsonArray { JsonValue.Create(formato) };
+
+            var respuestaDoc = await _dao.ObtenerRutaDocumentoAsync(usuarioLogueado, request.IdInforme, request.IdPedido);
+            if (respuestaDoc.IdTipoMensaje == 2 && respuestaDoc.Result is string urlDocumento && !string.IsNullOrWhiteSpace(urlDocumento))
+            {
+                try
+                {
+                    var existente = JsonNode.Parse(urlDocumento);
+                    var formatosExistentes = existente?["formatos"]?.AsArray();
+                    if (formatosExistentes != null)
+                    {
+                        formatos = new JsonArray();
+                        foreach (var f in formatosExistentes)
+                        {
+                            var val = f?.GetValue<string>();
+                            if (val != null && val != formato)
+                                formatos.Add(JsonValue.Create(val));
+                        }
+                        formatos.Add(JsonValue.Create(formato));
+                    }
+                }
+                catch { }
+            }
+
+            var docJson = new JsonObject
+            {
+                ["ruta"] = rutaBase,
+                ["formatos"] = formatos
+            };
+
+            await _dao.ActualizarDocumentoAsync(usuarioLogueado, request.IdInforme, docJson.ToJsonString());
         }
 
         private static string MapearPlantillaHtml(string html, JsonNode? informe, JsonNode? pedido)
@@ -805,6 +1110,54 @@ namespace SafetyReport.Handlers
             return valor is null || valor.GetValueKind() == System.Text.Json.JsonValueKind.Null
                 ? null
                 : valor.ToString();
+        }
+
+        public async Task<Respuesta> ListarObservacionesAsync(UsuarioGeneral usuarioLogueado, InformeObservacionListarRequest request)
+        {
+            try
+            {
+                return await _dao.ListarObservacionesAsync(usuarioLogueado, request.IdPedido);
+            }
+            catch (Exception)
+            {
+                return new Respuesta { IdTipoMensaje = 3, Mensaje = "Error interno del servidor.", Result = new List<InformeObservacionConsulta>() };
+            }
+        }
+
+        public async Task<Respuesta> InsertarObservacionesLoteAsync(UsuarioGeneral usuarioLogueado, InformeObservacionInsertarRequest request)
+        {
+            try
+            {
+                return await _dao.InsertarObservacionesLoteAsync(usuarioLogueado, request.IdInforme, request.IdPedido, request.Observaciones);
+            }
+            catch (Exception)
+            {
+                return new Respuesta { IdTipoMensaje = 3, Mensaje = "Error interno del servidor.", Result = new List<object>() };
+            }
+        }
+
+        public async Task<Respuesta> EditarObservacionAsync(UsuarioGeneral usuarioLogueado, InformeObservacionEditarRequest request)
+        {
+            try
+            {
+                return await _dao.EditarObservacionAsync(usuarioLogueado, request);
+            }
+            catch (Exception)
+            {
+                return new Respuesta { IdTipoMensaje = 3, Mensaje = "Error interno del servidor.", Result = new List<object>() };
+            }
+        }
+
+        public async Task<Respuesta> EliminarObservacionAsync(UsuarioGeneral usuarioLogueado, InformeObservacionIdRequest request)
+        {
+            try
+            {
+                return await _dao.EliminarObservacionAsync(usuarioLogueado, request.IdInformeObservacion);
+            }
+            catch (Exception)
+            {
+                return new Respuesta { IdTipoMensaje = 3, Mensaje = "Error interno del servidor.", Result = new List<object>() };
+            }
         }
     }
 }
