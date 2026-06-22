@@ -10,5 +10,6 @@ namespace SafetyReport.Models
     {
         public int IdInforme { get; set; }
         public int IdPedido { get; set; }
+        public string? Formato { get; set; }
     }
 }

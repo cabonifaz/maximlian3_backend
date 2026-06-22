@@ -1100,6 +1100,35 @@ namespace SafetyReport.DAO
             }
         }
 
+        public async Task<Respuesta> ObtenerRutaDocumentoAsync(UsuarioGeneral u, int idInforme, int idPedido)
+        {
+            try
+            {
+                using SqlConnection cn = new(_dbConfig.ConnectionString);
+                using SqlCommand cmd = new("Informe_ObtenerRutaDocumento", cn) { CommandType = CommandType.StoredProcedure };
+                AgregarParametrosAuditoria(cmd, u);
+                cmd.Parameters.Add("@intIdInforme", SqlDbType.Int).Value = idInforme;
+                cmd.Parameters.Add("@intIdPedido", SqlDbType.Int).Value = idPedido;
+                await cn.OpenAsync();
+
+                var respuesta = new Respuesta();
+                using var dr = await cmd.ExecuteReaderAsync();
+                if (await dr.ReadAsync())
+                {
+                    respuesta.IdTipoMensaje = dr["IdTipoMensaje"] != DBNull.Value ? Convert.ToInt32(dr["IdTipoMensaje"]) : 0;
+                    respuesta.Mensaje = dr["Mensaje"]?.ToString() ?? string.Empty;
+                    var columnas = Enumerable.Range(0, dr.FieldCount).Select(dr.GetName).ToHashSet(StringComparer.OrdinalIgnoreCase);
+                    if (columnas.Contains("Result"))
+                        respuesta.Result = dr["Result"]?.ToString();
+                }
+                return respuesta;
+            }
+            catch (Exception ex)
+            {
+                return new Respuesta { IdTipoMensaje = 3, Mensaje = ex.Message, Result = null };
+            }
+        }
+
         public async Task<Respuesta> ActualizarDocumentoAsync(UsuarioGeneral u, int idInforme, string urlDocumento)
         {
             try

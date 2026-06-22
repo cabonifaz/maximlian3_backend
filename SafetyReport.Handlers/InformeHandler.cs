@@ -371,19 +371,51 @@ namespace SafetyReport.Handlers
         {
             try
             {
-                var respuesta = await _dao.ObtenerDocumentoAsync(usuarioLogueado, request.IdInforme, request.IdPedido);
-                if (respuesta.IdTipoMensaje != 2 || respuesta.Result is not List<InformeDocumentoResult> docs || docs.Count == 0)
-                    return respuesta;
+                var formato = string.IsNullOrWhiteSpace(request.Formato) ? ".pdf" : request.Formato;
 
-                var doc = docs[0];
-                var nombreDescarga = !string.IsNullOrWhiteSpace(doc.Nombre) ? $"{doc.Nombre}.docx" : "documento.docx";
-                var downloadUrl = _s3.GenerarDownloadUrl(doc.UrlDocumento, nombreDescarga);
+                var respuestaRuta = await _dao.ObtenerRutaDocumentoAsync(usuarioLogueado, request.IdInforme, request.IdPedido);
+
+                string? ruta = null;
+                JsonArray? formatos = null;
+
+                if (respuestaRuta.IdTipoMensaje == 2 && respuestaRuta.Result is string urlDocumento && !string.IsNullOrWhiteSpace(urlDocumento))
+                {
+                    try
+                    {
+                        var docJson = JsonNode.Parse(urlDocumento);
+                        ruta = docJson?["ruta"]?.GetValue<string>();
+                        formatos = docJson?["formatos"]?.AsArray();
+                    }
+                    catch { }
+                }
+
+                var tieneFormato = formatos?.Any(f => f?.GetValue<string>() == formato) == true;
+
+                if (ruta == null || formatos == null || formatos.Count == 0 || !tieneFormato)
+                {
+                    var generado = formato == ".docx"
+                        ? await GenerarDocumentoDocxAsync(usuarioLogueado, request)
+                        : await GenerarDocumentoPdfAsync(usuarioLogueado, request);
+                    if (generado.IdTipoMensaje != 2) return generado;
+
+                    respuestaRuta = await _dao.ObtenerRutaDocumentoAsync(usuarioLogueado, request.IdInforme, request.IdPedido);
+                    if (respuestaRuta.IdTipoMensaje != 2 || respuestaRuta.Result is not string urlGenerado || string.IsNullOrWhiteSpace(urlGenerado))
+                        return new Respuesta { IdTipoMensaje = 1, Mensaje = "Error al obtener el documento generado.", Result = null };
+
+                    var docJson = JsonNode.Parse(urlGenerado);
+                    ruta = docJson?["ruta"]?.GetValue<string>();
+                }
+
+                var nombreBase = ruta!.Split('/').Last();
+                var s3Key = ruta + formato;
+                var nombreDescarga = nombreBase + formato;
+                var downloadUrl = _s3.GenerarDownloadUrl(s3Key, nombreDescarga);
 
                 return new Respuesta
                 {
                     IdTipoMensaje = 2,
-                    Mensaje = respuesta.Mensaje,
-                    Result = new { url = downloadUrl, nombre = doc.Nombre }
+                    Mensaje = "Documento obtenido correctamente.",
+                    Result = new { url = downloadUrl, nombre = nombreDescarga }
                 };
             }
             catch (Exception)
@@ -509,6 +541,9 @@ namespace SafetyReport.Handlers
         {
             try
             {
+                var docExistente = await ObtenerDocumentoExistente(usuarioLogueado, request, ".docx");
+                if (docExistente != null) return docExistente;
+
                 var (respuesta, nombreInforme) = await _dao.GenerarDocumentoAsync(usuarioLogueado, request.IdInforme, request.IdPedido, 1);
                 if (respuesta.IdTipoMensaje != 2 || respuesta.Result is not string jsonStr || string.IsNullOrWhiteSpace(jsonStr))
                     return new Respuesta { IdTipoMensaje = respuesta.IdTipoMensaje, Mensaje = respuesta.Mensaje, Result = null };
@@ -517,28 +552,16 @@ namespace SafetyReport.Handlers
                 if (estructura is null)
                     return new Respuesta { IdTipoMensaje = 1, Mensaje = "Error al procesar el documento.", Result = null };
 
-                byte[]? logoBytes = null;
-                var logoKey = estructura?["document"]?["header"]?["logo"]?.GetValue<string>();
-                if (!string.IsNullOrWhiteSpace(logoKey))
-                {
-                    try
-                    {
-                        var logoUrl = _s3.GenerarDownloadUrl(logoKey);
-                        using var http = new HttpClient();
-                        logoBytes = await http.GetByteArrayAsync(logoUrl);
-                    }
-                    catch { }
-                }
+                var logoBytes = await DescargarLogoAsync(estructura);
 
                 var generador = new DocxGeneratorService();
                 using var docxStream = generador.GenerarDocx(estructura!, logoBytes);
 
                 var nombreArchivo = !string.IsNullOrWhiteSpace(nombreInforme) ? nombreInforme : "documento";
-                var timestamp = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
-                var rutaS3 = $"informes/pedido-{request.IdPedido}/informe-{request.IdInforme}/{nombreArchivo}-{timestamp}.docx";
-                await _s3.UploadStreamAsync(rutaS3, docxStream, "application/vnd.openxmlformats-officedocument.wordprocessingml.document");
+                var rutaBase = $"informes/pedido-{request.IdPedido}/informe-{request.IdInforme}/{nombreArchivo}";
+                await _s3.UploadStreamAsync(rutaBase + ".docx", docxStream, "application/vnd.openxmlformats-officedocument.wordprocessingml.document");
 
-                await _dao.ActualizarDocumentoAsync(usuarioLogueado, request.IdInforme, rutaS3);
+                await ActualizarDocumentoJsonAsync(usuarioLogueado, request, rutaBase, ".docx");
 
                 return new Respuesta
                 {
@@ -557,6 +580,9 @@ namespace SafetyReport.Handlers
         {
             try
             {
+                var docExistente = await ObtenerDocumentoExistente(usuarioLogueado, request, ".pdf");
+                if (docExistente != null) return docExistente;
+
                 var (respuesta, nombreInforme) = await _dao.GenerarDocumentoAsync(usuarioLogueado, request.IdInforme, request.IdPedido, 1);
                 if (respuesta.IdTipoMensaje != 2 || respuesta.Result is not string jsonStr || string.IsNullOrWhiteSpace(jsonStr))
                     return new Respuesta { IdTipoMensaje = respuesta.IdTipoMensaje, Mensaje = respuesta.Mensaje, Result = null };
@@ -565,28 +591,16 @@ namespace SafetyReport.Handlers
                 if (estructura is null)
                     return new Respuesta { IdTipoMensaje = 1, Mensaje = "Error al procesar el documento.", Result = null };
 
-                byte[]? logoBytes = null;
-                var logoKey = estructura?["document"]?["header"]?["logo"]?.GetValue<string>();
-                if (!string.IsNullOrWhiteSpace(logoKey))
-                {
-                    try
-                    {
-                        var logoUrl = _s3.GenerarDownloadUrl(logoKey);
-                        using var http = new HttpClient();
-                        logoBytes = await http.GetByteArrayAsync(logoUrl);
-                    }
-                    catch { }
-                }
+                var logoBytes = await DescargarLogoAsync(estructura);
 
                 var generador = new PdfGeneratorService();
                 using var pdfStream = generador.GenerarPdf(estructura!, logoBytes);
 
                 var nombreArchivo = !string.IsNullOrWhiteSpace(nombreInforme) ? nombreInforme : "documento";
-                var timestamp = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
-                var rutaS3 = $"informes/pedido-{request.IdPedido}/informe-{request.IdInforme}/{nombreArchivo}-{timestamp}.pdf";
-                await _s3.UploadStreamAsync(rutaS3, pdfStream, "application/pdf");
+                var rutaBase = $"informes/pedido-{request.IdPedido}/informe-{request.IdInforme}/{nombreArchivo}";
+                await _s3.UploadStreamAsync(rutaBase + ".pdf", pdfStream, "application/pdf");
 
-                await _dao.ActualizarDocumentoAsync(usuarioLogueado, request.IdInforme, rutaS3);
+                await ActualizarDocumentoJsonAsync(usuarioLogueado, request, rutaBase, ".pdf");
 
                 return new Respuesta
                 {
@@ -599,6 +613,79 @@ namespace SafetyReport.Handlers
             {
                 return new Respuesta { IdTipoMensaje = 3, Mensaje = "Error interno del servidor.", Result = null };
             }
+        }
+
+        private async Task<byte[]?> DescargarLogoAsync(JsonNode? estructura)
+        {
+            var logoKey = estructura?["document"]?["header"]?["logo"]?.GetValue<string>();
+            if (string.IsNullOrWhiteSpace(logoKey)) return null;
+            try
+            {
+                var logoUrl = _s3.GenerarDownloadUrl(logoKey);
+                using var http = new HttpClient();
+                return await http.GetByteArrayAsync(logoUrl);
+            }
+            catch { return null; }
+        }
+
+        private async Task<Respuesta?> ObtenerDocumentoExistente(UsuarioGeneral usuarioLogueado, FiltroGenerarDocumento request, string formato)
+        {
+            var respuestaDoc = await _dao.ObtenerRutaDocumentoAsync(usuarioLogueado, request.IdInforme, request.IdPedido);
+            if (respuestaDoc.IdTipoMensaje != 2 || respuestaDoc.Result is not string urlDocumento || string.IsNullOrWhiteSpace(urlDocumento))
+                return null;
+
+            try
+            {
+                var docJson = JsonNode.Parse(urlDocumento);
+                var ruta = docJson?["ruta"]?.GetValue<string>();
+                var formatos = docJson?["formatos"]?.AsArray();
+                if (ruta == null || formatos == null) return null;
+
+                if (!formatos.Any(f => f?.GetValue<string>() == formato)) return null;
+
+                return new Respuesta
+                {
+                    IdTipoMensaje = 2,
+                    Mensaje = formato == ".pdf" ? "Documento PDF ya existe." : "Documento DOCX ya existe.",
+                    Result = new { nombreInforme = ruta.Split('/').Last() }
+                };
+            }
+            catch { return null; }
+        }
+
+        private async Task ActualizarDocumentoJsonAsync(UsuarioGeneral usuarioLogueado, FiltroGenerarDocumento request, string rutaBase, string formato)
+        {
+            var formatos = new JsonArray { JsonValue.Create(formato) };
+
+            var respuestaDoc = await _dao.ObtenerRutaDocumentoAsync(usuarioLogueado, request.IdInforme, request.IdPedido);
+            if (respuestaDoc.IdTipoMensaje == 2 && respuestaDoc.Result is string urlDocumento && !string.IsNullOrWhiteSpace(urlDocumento))
+            {
+                try
+                {
+                    var existente = JsonNode.Parse(urlDocumento);
+                    var formatosExistentes = existente?["formatos"]?.AsArray();
+                    if (formatosExistentes != null)
+                    {
+                        formatos = new JsonArray();
+                        foreach (var f in formatosExistentes)
+                        {
+                            var val = f?.GetValue<string>();
+                            if (val != null && val != formato)
+                                formatos.Add(JsonValue.Create(val));
+                        }
+                        formatos.Add(JsonValue.Create(formato));
+                    }
+                }
+                catch { }
+            }
+
+            var docJson = new JsonObject
+            {
+                ["ruta"] = rutaBase,
+                ["formatos"] = formatos
+            };
+
+            await _dao.ActualizarDocumentoAsync(usuarioLogueado, request.IdInforme, docJson.ToJsonString());
         }
 
         private static string MapearPlantillaHtml(string html, JsonNode? informe, JsonNode? pedido)
