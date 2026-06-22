@@ -37,7 +37,7 @@ namespace SafetyReport.Handlers
             {
                 var rutasAnteriores = await ObtenerRutasImagenesExistentesAsync(usuarioLogueado, request.lstLocales);
 
-                var error = AsignarRutasLocalImagenes(request.lstLocales, request.IdPedido ?? 0);
+                var error = ValidarExtensionesImagenes(request.lstLocales);
                 if (error != null)
                     return new Respuesta { IdTipoMensaje = 1, Mensaje = error, Result = new List<InformeCreado>() };
 
@@ -59,7 +59,7 @@ namespace SafetyReport.Handlers
         {
             try
             {
-                var error = AsignarRutasLocalImagenes(request.lstLocales, request.IdInforme);
+                var error = AsignarRutasLocalImagenes(request.lstLocales, request.IdPedido ?? 0, request.IdInforme);
                 if (error != null)
                     return new Respuesta { IdTipoMensaje = 1, Mensaje = error, Result = new List<InformeCreado>() };
 
@@ -133,7 +133,20 @@ namespace SafetyReport.Handlers
             }
         }
 
-        private static string? AsignarRutasLocalImagenes(List<InformeLocalItem> locales, int id)
+        private static string? ValidarExtensionesImagenes(List<InformeLocalItem> locales)
+        {
+            foreach (var local in locales)
+                foreach (var imagen in local.Imagenes)
+                    if (imagen.IdInformeLocalImagen is null or 0)
+                    {
+                        var ext = Path.GetExtension(imagen.Nombre);
+                        if (!_extensionesImagenPermitidas.Contains(ext))
+                            return $"El archivo '{imagen.Nombre}' no es una imagen válida. Extensiones permitidas: {string.Join(", ", _extensionesImagenPermitidas)}.";
+                    }
+            return null;
+        }
+
+        private static string? AsignarRutasLocalImagenes(List<InformeLocalItem> locales, int idPedido, int idInforme)
         {
             foreach (var local in locales)
                 foreach (var imagen in local.Imagenes)
@@ -143,7 +156,7 @@ namespace SafetyReport.Handlers
                         if (!_extensionesImagenPermitidas.Contains(ext))
                             return $"El archivo '{imagen.Nombre}' no es una imagen válida. Extensiones permitidas: {string.Join(", ", _extensionesImagenPermitidas)}.";
                         var nombre = Path.GetFileNameWithoutExtension(imagen.Nombre);
-                        imagen.ImagenURL = $"informes/pedido-{id}/locales/{nombre}-{DateTimeOffset.UtcNow.ToUnixTimeMilliseconds()}{ext}";
+                        imagen.ImagenURL = $"informes/pedido-{idPedido}/informe-{idInforme}/locales/{nombre}-{DateTimeOffset.UtcNow.ToUnixTimeMilliseconds()}{ext}";
                     }
             return null;
         }
