@@ -124,6 +124,7 @@ public partial class DocxGeneratorService
             LineRule = LineSpacingRuleValues.Exact
         });
         AplicarMargenPendienteTabla(pPr, css);
+        ColapsarMargenParrafoAnterior(body, pPr, css);
 
         AgregarIndentacion(pPr);
         para.Append(pPr);
@@ -153,6 +154,7 @@ public partial class DocxGeneratorService
             LineRule = LineSpacingRuleValues.Exact
         });
         AplicarMargenPendienteTabla(pPr, css);
+        ColapsarMargenParrafoAnterior(body, pPr, css);
 
         AgregarIndentacion(pPr);
         para.Append(pPr);
@@ -171,6 +173,7 @@ public partial class DocxGeneratorService
         var pPr = new ParagraphProperties();
         pPr.Append(new SpacingBetweenLines { After = "0", Line = CssLineSpacing(css).ToString(), LineRule = LineSpacingRuleValues.Exact });
         AplicarMargenPendienteTabla(pPr, css);
+        ColapsarMargenParrafoAnterior(body, pPr, css);
         AgregarIndentacion(pPr);
         para.Append(pPr);
         para.Append(CrearRunConSaltos(text, css));
@@ -368,7 +371,9 @@ public partial class DocxGeneratorService
             var content = item["content"]?.GetValue<string>() ?? "";
 
             var pTitle = new Paragraph();
-            pTitle.Append(CrearParagraphProps(titleCss));
+            var titlePPr = CrearParagraphProps(titleCss);
+            ColapsarMargenParrafoAnterior(body, titlePPr, titleCss);
+            pTitle.Append(titlePPr);
             pTitle.Append(CrearRun(title, titleCss));
             body.Append(pTitle);
             RegistrarParrafoBody(pTitle, titleCss);
@@ -379,6 +384,7 @@ public partial class DocxGeneratorService
                 var pPr = new ParagraphProperties();
                 pPr.Append(new SpacingBetweenLines { After = "0", Line = CssLineSpacing(contentCss).ToString(), LineRule = LineSpacingRuleValues.Exact });
                 AplicarMargenPendienteTabla(pPr, contentCss);
+                ColapsarMargenParrafoAnterior(body, pPr, contentCss);
                 AgregarIndentacion(pPr);
                 pContent.Append(pPr);
                 pContent.Append(CrearRunConSaltos(content, contentCss));
@@ -450,7 +456,9 @@ public partial class DocxGeneratorService
         pPr.Append(new SpacingBetweenLines
         {
             Before = verticalPadding.ToString(),
-            After = (gapAfter + verticalPadding).ToString()
+            After = (gapAfter + verticalPadding).ToString(),
+            Line = (1 * 240).ToString(),
+            LineRule = LineSpacingRuleValues.Auto
         });
         para.Append(pPr);
 
@@ -486,7 +494,7 @@ public partial class DocxGeneratorService
             new TableWidth { Width = footerTableWidth.ToString(), Type = TableWidthUnitValues.Dxa },
             new TableLayout { Type = TableLayoutValues.Fixed }));
 
-        var footerBoxHeight = CssToTwips(config?["margins"]?["bottom"]?.GetValue<string>()) - gapBefore * 2;
+        var footerBoxHeight = CssToTwips(config?["margins"]?["bottom"]?.GetValue<string>()) - gapBefore;
 
         var footerRow = new TableRow();
         footerRow.Append(new TableRowProperties(
@@ -1083,6 +1091,26 @@ public partial class DocxGeneratorService
             spacing.Before = (paddingTop + Math.Max(_pendingTableBottomMargin, marginTop)).ToString();
 
         _pendingTableBottomMargin = 0;
+    }
+
+    private void ColapsarMargenParrafoAnterior(Body body, ParagraphProperties properties, Dictionary<string, string> css)
+    {
+        if (_lastBodyParagraph == null || !ReferenceEquals(body.LastChild, _lastBodyParagraph))
+            return;
+
+        var (marginTop, _) = ObtenerMargenVertical(css);
+        if (_lastBodyMarginBottom <= 0 && marginTop <= 0) return;
+
+        var prevSpacing = _lastBodyParagraph
+            .GetFirstChild<ParagraphProperties>()?
+            .GetFirstChild<SpacingBetweenLines>();
+        if (prevSpacing != null)
+            prevSpacing.After = _lastBodyPaddingBottom.ToString();
+
+        var (paddingTop, _) = ObtenerPaddingVertical(css);
+        var spacing = properties.GetFirstChild<SpacingBetweenLines>();
+        if (spacing != null)
+            spacing.Before = (paddingTop + Math.Max(_lastBodyMarginBottom, marginTop)).ToString();
     }
 
     private void RegistrarParrafoBody(Paragraph paragraph, Dictionary<string, string> css)
