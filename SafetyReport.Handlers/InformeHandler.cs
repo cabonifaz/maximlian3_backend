@@ -452,6 +452,10 @@ namespace SafetyReport.Handlers
                 if (!string.IsNullOrWhiteSpace(logoKey))
                     estructura!["document"]!["header"]!["logo"] = _s3.GenerarDownloadUrl(logoKey);
 
+                var watermarkKey = estructura?["document"]?["watermark"]?["image"]?.GetValue<string>();
+                if (!string.IsNullOrWhiteSpace(watermarkKey))
+                    estructura!["document"]!["watermark"]!["image"] = _s3.GenerarDownloadUrl(watermarkKey);
+
                 return new Respuesta
                 {
                     IdTipoMensaje = 2,
