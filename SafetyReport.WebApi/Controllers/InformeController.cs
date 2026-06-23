@@ -99,7 +99,7 @@ namespace SafetyReport.WebApi.Controllers
             return Ok(respuesta);
         }
 
-        [HttpPost("eliminar")]
+        [HttpDelete("eliminar")]
         public async Task<IActionResult> Eliminar([FromBody] InformeIdRequest request)
         {
             var respuesta = await _informeHandler.EliminarAsync(UsuarioLogueado, request);

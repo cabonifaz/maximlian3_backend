@@ -33,7 +33,7 @@ namespace SafetyReport.WebApi.Controllers
             return Ok(respuesta);
         }
 
-        [HttpPost("eliminar")]
+        [HttpDelete("eliminar")]
         public async Task<IActionResult> Eliminar([FromBody] InformeObservacionIdRequest request)
         {
             var respuesta = await _informeObservacionHandler.EliminarObservacionAsync(UsuarioLogueado, request);
