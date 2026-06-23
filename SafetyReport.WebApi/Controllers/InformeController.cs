@@ -34,26 +34,13 @@ namespace SafetyReport.WebApi.Controllers
             return Ok(respuesta);
         }
 
-        [HttpGet("generarDocumento")]
-        public async Task<IActionResult> GenerarDocumento([FromQuery] FiltroGenerarDocumento request)
+        [HttpGet("previsualizarDocumento")]
+        public async Task<IActionResult> PrevisualizarDocumento([FromQuery] FiltroGenerarDocumento request)
         {
-            var respuesta = await _informeHandler.GenerarDocumentoAsync(UsuarioLogueado, request);
+            var respuesta = await _informeHandler.PrevisualizarDocumentoAsync(UsuarioLogueado, request);
             return Ok(respuesta);
         }
 
-        [HttpGet("generarDocumentoDocx")]
-        public async Task<IActionResult> GenerarDocumentoDocx([FromQuery] FiltroGenerarDocumento request)
-        {
-            var respuesta = await _informeHandler.GenerarDocumentoDocxAsync(UsuarioLogueado, request);
-            return Ok(respuesta);
-        }
-
-        [HttpGet("generarDocumentoPdf")]
-        public async Task<IActionResult> GenerarDocumentoPdf([FromQuery] FiltroGenerarDocumento request)
-        {
-            var respuesta = await _informeHandler.GenerarDocumentoPdfAsync(UsuarioLogueado, request);
-            return Ok(respuesta);
-        }
 
         [HttpGet("listar")]
         public async Task<IActionResult> Listar([FromQuery] FiltroInforme request)

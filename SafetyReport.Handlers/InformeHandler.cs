@@ -568,7 +568,7 @@ namespace SafetyReport.Handlers
             }
         }
 
-        public async Task<Respuesta> GenerarDocumentoAsync(UsuarioGeneral usuarioLogueado, FiltroGenerarDocumento request)
+        public async Task<Respuesta> PrevisualizarDocumentoAsync(UsuarioGeneral usuarioLogueado, FiltroGenerarDocumento request)
         {
             try
             {
