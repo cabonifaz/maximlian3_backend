@@ -535,7 +535,7 @@ public partial class DocxGeneratorService
             CoordinateSize = "21600,21600",
             OptionalString = "75"
         };
-        vmlPict.Append(new DocumentFormat.OpenXml.Vml.ImageData { RelationshipId = relId });
+        vmlPict.Append(new DocumentFormat.OpenXml.Vml.ImageData { RelId = relId });
 
         var pict = new DocumentFormat.OpenXml.Wordprocessing.Picture();
         pict.Append(vmlPict);
