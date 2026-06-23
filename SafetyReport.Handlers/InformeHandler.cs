@@ -485,9 +485,10 @@ namespace SafetyReport.Handlers
                     return new Respuesta { IdTipoMensaje = 1, Mensaje = "Error al procesar el documento.", Result = null };
 
                 var logoBytes = await DescargarLogoAsync(estructura);
+                var watermarkBytes = await DescargarMarcaAguaAsync(estructura);
 
                 var generador = new DocxGeneratorService();
-                using var docxStream = generador.GenerarDocx(estructura!, logoBytes);
+                using var docxStream = generador.GenerarDocx(estructura!, logoBytes, watermarkBytes);
 
                 var nombreArchivo = !string.IsNullOrWhiteSpace(nombreInforme) ? nombreInforme : "documento";
                 var rutaBase = $"informes/pedido-{request.IdPedido}/informe-{request.IdInforme}/{nombreArchivo}";
@@ -524,10 +525,11 @@ namespace SafetyReport.Handlers
                     return new Respuesta { IdTipoMensaje = 1, Mensaje = "Error al procesar el documento.", Result = null };
 
                 var logoBytes = await DescargarLogoAsync(estructura);
+                var watermarkBytes = await DescargarMarcaAguaAsync(estructura);
                 await DescargarFuentesAsync(estructura!);
 
                 var generador = new PdfGeneratorService();
-                using var pdfStream = generador.GenerarPdf(estructura!, logoBytes);
+                using var pdfStream = generador.GenerarPdf(estructura!, logoBytes, watermarkBytes);
 
                 var nombreArchivo = !string.IsNullOrWhiteSpace(nombreInforme) ? nombreInforme : "documento";
                 var rutaBase = $"informes/pedido-{request.IdPedido}/informe-{request.IdInforme}/{nombreArchivo}";
@@ -557,6 +559,19 @@ namespace SafetyReport.Handlers
                 var logoUrl = _s3.GenerarDownloadUrl(logoKey);
                 using var http = new HttpClient();
                 return await http.GetByteArrayAsync(logoUrl);
+            }
+            catch { return null; }
+        }
+
+        private async Task<byte[]?> DescargarMarcaAguaAsync(JsonNode? estructura)
+        {
+            var key = estructura?["document"]?["watermark"]?["image"]?.GetValue<string>();
+            if (string.IsNullOrWhiteSpace(key)) return null;
+            try
+            {
+                var url = _s3.GenerarDownloadUrl(key);
+                using var http = new HttpClient();
+                return await http.GetByteArrayAsync(url);
             }
             catch { return null; }
         }

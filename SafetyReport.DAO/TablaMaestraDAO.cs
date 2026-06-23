@@ -132,6 +132,10 @@ namespace SafetyReport.DAO
                 cmd.Parameters.Add("@vchString1", SqlDbType.VarChar, 255).Value = (object?)request.String1 ?? DBNull.Value;
                 cmd.Parameters.Add("@vchString2", SqlDbType.VarChar, 255).Value = (object?)request.String2 ?? DBNull.Value;
                 cmd.Parameters.Add("@vchString3", SqlDbType.NVarChar, 255).Value = (object?)request.String3 ?? DBNull.Value;
+                cmd.Parameters.Add("@vchString4", SqlDbType.VarChar, 255).Value = (object?)request.String4 ?? DBNull.Value;
+                cmd.Parameters.Add("@vchString5", SqlDbType.VarChar, 255).Value = (object?)request.String5 ?? DBNull.Value;
+                cmd.Parameters.Add("@vchString6", SqlDbType.VarChar, 255).Value = (object?)request.String6 ?? DBNull.Value;
+                cmd.Parameters.Add("@vchString7", SqlDbType.VarChar, 255).Value = (object?)request.String7 ?? DBNull.Value;
                 cmd.Parameters.Add("@dtDate1", SqlDbType.DateTime).Value = (object?)request.Date1 ?? DBNull.Value;
                 cmd.Parameters.Add("@dtDate2", SqlDbType.DateTime).Value = (object?)request.Date2 ?? DBNull.Value;
                 cmd.Parameters.Add("@dtDate3", SqlDbType.DateTime).Value = (object?)request.Date3 ?? DBNull.Value;
@@ -177,6 +181,10 @@ namespace SafetyReport.DAO
                 cmd.Parameters.Add("@vchString1", SqlDbType.VarChar, 255).Value = (object?)request.String1 ?? DBNull.Value;
                 cmd.Parameters.Add("@vchString2", SqlDbType.VarChar, 255).Value = (object?)request.String2 ?? DBNull.Value;
                 cmd.Parameters.Add("@vchString3", SqlDbType.NVarChar, 255).Value = (object?)request.String3 ?? DBNull.Value;
+                cmd.Parameters.Add("@vchString4", SqlDbType.VarChar, 255).Value = (object?)request.String4 ?? DBNull.Value;
+                cmd.Parameters.Add("@vchString5", SqlDbType.VarChar, 255).Value = (object?)request.String5 ?? DBNull.Value;
+                cmd.Parameters.Add("@vchString6", SqlDbType.VarChar, 255).Value = (object?)request.String6 ?? DBNull.Value;
+                cmd.Parameters.Add("@vchString7", SqlDbType.VarChar, 255).Value = (object?)request.String7 ?? DBNull.Value;
                 cmd.Parameters.Add("@dtDate1", SqlDbType.DateTime).Value = (object?)request.Date1 ?? DBNull.Value;
                 cmd.Parameters.Add("@dtDate2", SqlDbType.DateTime).Value = (object?)request.Date2 ?? DBNull.Value;
                 cmd.Parameters.Add("@dtDate3", SqlDbType.DateTime).Value = (object?)request.Date3 ?? DBNull.Value;

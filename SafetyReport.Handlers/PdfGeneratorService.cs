@@ -17,6 +17,9 @@ public class PdfGeneratorService
     private double _contentIndentR = 0;
     private double _contentWidth = 0;
     private byte[]? _logoBytes;
+    private byte[]? _watermarkBytes;
+    private double _wmWidth, _wmHeight, _wmOpacity;
+    private string _wmPosition = "";
 
     private double _pageW, _pageH;
     private double _mTop, _mBottom, _mLeft, _mRight;
@@ -73,10 +76,11 @@ public class PdfGeneratorService
         }
     }
 
-    public MemoryStream GenerarPdf(JsonNode json, byte[]? logoBytes = null)
+    public MemoryStream GenerarPdf(JsonNode json, byte[]? logoBytes = null, byte[]? watermarkBytes = null)
     {
         _doc = new PdfDocument();
         _logoBytes = logoBytes;
+        _watermarkBytes = watermarkBytes;
         _pendingTableBottomMargin = 0;
         _lastMarginBottom = 0;
         _lastPaddingBottom = 0;
@@ -151,6 +155,15 @@ public class PdfGeneratorService
         _contentTop = _mTop;
         _contentBottom = _pageH - _mBottom;
 
+        var wmNode = config["watermark"];
+        if (wmNode is JsonObject)
+        {
+            _wmWidth = CssToPoints(wmNode["width"]?.GetValue<string>() ?? "0");
+            _wmHeight = CssToPoints(wmNode["height"]?.GetValue<string>() ?? "0");
+            _wmOpacity = wmNode["opacity"]?.GetValue<double>() ?? 1.0;
+            _wmPosition = wmNode["position"]?.GetValue<string>() ?? "center center";
+        }
+
         var pageBorderNode = config["pageBorder"];
         if (pageBorderNode is JsonObject)
         {
@@ -184,6 +197,7 @@ public class PdfGeneratorService
         _y = _contentTop;
         _drawnBorderLines.Clear();
 
+        DibujarMarcaAgua();
         DibujarEncabezado();
         DibujarPiePagina();
         DibujarBordePagina();
@@ -197,6 +211,43 @@ public class PdfGeneratorService
             return true;
         }
         return false;
+    }
+
+    private void DibujarMarcaAgua()
+    {
+        if (_watermarkBytes is null || _watermarkBytes.Length == 0 || _wmWidth <= 0 || _wmHeight <= 0) return;
+
+        try
+        {
+            using var imgStream = new MemoryStream(_watermarkBytes);
+            var image = XImage.FromStream(imgStream);
+
+            var scaleW = _wmWidth / image.PointWidth;
+            var scaleH = _wmHeight / image.PointHeight;
+            var scale = Math.Min(scaleW, scaleH);
+            var imgW = image.PointWidth * scale;
+            var imgH = image.PointHeight * scale;
+
+            var parts = _wmPosition.Split(' ', StringSplitOptions.RemoveEmptyEntries);
+            var hPos = parts.Length > 0 ? parts[0] : "center";
+            var vPos = parts.Length > 1 ? parts[1] : "center";
+
+            var x = hPos switch
+            {
+                "left" => 0.0,
+                "right" => _pageW - imgW,
+                _ => (_pageW - imgW) / 2
+            };
+            var y = vPos switch
+            {
+                "top" => 0.0,
+                "bottom" => _pageH - imgH,
+                _ => (_pageH - imgH) / 2
+            };
+
+            _gfx.DrawImage(image, x, y, imgW, imgH);
+        }
+        catch { }
     }
 
     private void DibujarEncabezado()
