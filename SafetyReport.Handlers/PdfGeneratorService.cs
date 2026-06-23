@@ -31,6 +31,14 @@ public class PdfGeneratorService
     private double _footerIndentL = 0;
     private double _footerIndentR = 0;
     private bool _showPageNumber = true;
+    private double _pageFontSize;
+    private double _pageGapBefore;
+    private XColor _pageColor;
+    private bool _hasPageColor;
+    private bool _hasPageBorder;
+    private double _pageBorderWidth;
+    private XColor _pageBorderColor;
+    private double _pageBorderTop, _pageBorderBottom, _pageBorderLeft, _pageBorderRight;
 
     private PdfDocument _doc = null!;
     private XGraphics _gfx = null!;
@@ -126,9 +134,40 @@ public class PdfGeneratorService
         _footerIndentL = CssToPoints(config["footerIndent"]?["left"]?.GetValue<string>() ?? "0");
         _footerIndentR = CssToPoints(config["footerIndent"]?["right"]?.GetValue<string>() ?? "0");
         _showPageNumber = config["footer"]?["showPageNumber"]?.GetValue<bool>() ?? true;
+        _pageFontSize = PtValue(config["footer"]?["pageFontSize"]?.GetValue<string>() ?? config["footer"]?["fontSize"]?.GetValue<string>() ?? "7pt");
+        _pageGapBefore = CssToPoints(config["footer"]?["pageGapBefore"]?.GetValue<string>() ?? "0");
+        var pageColorHex = config["footer"]?["pageColor"]?.GetValue<string>();
+        if (!string.IsNullOrEmpty(pageColorHex))
+        {
+            _hasPageColor = true;
+            var pc = pageColorHex.TrimStart('#');
+            if (pc.Length == 3) pc = string.Concat(pc.Select(ch => $"{ch}{ch}"));
+            _pageColor = XColor.FromArgb(
+                Convert.ToInt32(pc[..2], 16),
+                Convert.ToInt32(pc[2..4], 16),
+                Convert.ToInt32(pc[4..6], 16));
+        }
 
         _contentTop = _mTop;
         _contentBottom = _pageH - _mBottom;
+
+        var pageBorderNode = config["pageBorder"];
+        if (pageBorderNode is JsonObject)
+        {
+            _hasPageBorder = true;
+            _pageBorderWidth = PtValue(pageBorderNode["width"]?.GetValue<string>() ?? "1pt");
+            var colorHex = pageBorderNode["color"]?.GetValue<string>() ?? "#000000";
+            var c = colorHex.TrimStart('#');
+            if (c.Length == 3) c = string.Concat(c.Select(ch => $"{ch}{ch}"));
+            _pageBorderColor = XColor.FromArgb(
+                Convert.ToInt32(c[..2], 16),
+                Convert.ToInt32(c[2..4], 16),
+                Convert.ToInt32(c[4..6], 16));
+            _pageBorderTop = CssToPoints(pageBorderNode["top"]?.GetValue<string>() ?? "24pt");
+            _pageBorderBottom = CssToPoints(pageBorderNode["bottom"]?.GetValue<string>() ?? "24pt");
+            _pageBorderLeft = CssToPoints(pageBorderNode["left"]?.GetValue<string>() ?? "24pt");
+            _pageBorderRight = CssToPoints(pageBorderNode["right"]?.GetValue<string>() ?? "24pt");
+        }
     }
 
     // ==================== PAGE MANAGEMENT ====================
@@ -147,6 +186,7 @@ public class PdfGeneratorService
 
         DibujarEncabezado();
         DibujarPiePagina();
+        DibujarBordePagina();
     }
 
     private bool AsegurarEspacio(double height)
@@ -209,9 +249,29 @@ public class PdfGeneratorService
 
         if (_showPageNumber)
         {
+            footerY += _pageGapBefore;
+            var pageFont = CrearFuente(null, _pageFontSize);
+            var pageLineH = _pageFontSize;
+            var pageBrush = _hasPageColor ? new XSolidBrush(_pageColor) : XBrushes.Black;
             var pageText = $"{_pageLabel} {_pageNumber}";
-            DibujarLineaTexto(pageText, footerFont, footerX, footerW, footerY, align, lineH);
+            var ascent = pageFont.Size * pageFont.Metrics.Ascent / pageFont.Metrics.UnitsPerEm;
+            var descent = pageFont.Size * Math.Abs(pageFont.Metrics.Descent) / pageFont.Metrics.UnitsPerEm;
+            var textHeight = ascent + descent;
+            var baselineY = footerY + (pageLineH - textHeight) / 2 + ascent;
+            var format = new XStringFormat { Alignment = align, LineAlignment = XLineAlignment.BaseLine };
+            _gfx.DrawString(pageText, pageFont, pageBrush, new XPoint(align == XStringAlignment.Center ? footerX + footerW / 2 : align == XStringAlignment.Far ? footerX + footerW : footerX, baselineY), format);
         }
+    }
+
+    private void DibujarBordePagina()
+    {
+        if (!_hasPageBorder) return;
+        var pen = new XPen(_pageBorderColor, _pageBorderWidth);
+        var x = _pageBorderLeft;
+        var y = _pageBorderTop;
+        var w = _pageW - _pageBorderLeft - _pageBorderRight;
+        var h = _pageH - _pageBorderTop - _pageBorderBottom;
+        _gfx.DrawRectangle(pen, x, y, w, h);
     }
 
     // ==================== SECTION RENDERERS ====================

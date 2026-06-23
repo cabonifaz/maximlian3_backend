@@ -528,30 +528,44 @@ public partial class DocxGeneratorService
 
         if (showPageNumber)
         {
+            var pageFontSizeHp = PtToHalfPt(config?["footer"]?["pageFontSize"]?.GetValue<string>() ?? config?["footer"]?["fontSize"]?.GetValue<string>() ?? "7pt");
+            var pageFontSizeStr = pageFontSizeHp.ToString();
+            var pageLineHeight = (pageFontSizeHp * 10).ToString();
+            var pageColorVal = config?["footer"]?["pageColor"]?.GetValue<string>();
+
+            RunProperties BuildPageRunProps()
+            {
+                var rp = new RunProperties(new FontSize { Val = pageFontSizeStr }, new RunFonts { Ascii = _fontFamily, HighAnsi = _fontFamily });
+                if (!string.IsNullOrEmpty(pageColorVal))
+                    rp.Append(new Color { Val = NormalizarColor(pageColorVal) });
+                return rp;
+            }
+
             var paraPage = new Paragraph();
             var pPrPage = new ParagraphProperties();
             pPrPage.Append(new Justification { Val = MapAlign(footerAlign) });
-            pPrPage.Append(new SpacingBetweenLines { Before = "0", After = "0", Line = footerLineHeight, LineRule = LineSpacingRuleValues.Exact });
+            var pageGapBefore = CssToTwips(config?["footer"]?["pageGapBefore"]?.GetValue<string>() ?? "0");
+            pPrPage.Append(new SpacingBetweenLines { Before = pageGapBefore.ToString(), After = "0", Line = pageLineHeight, LineRule = LineSpacingRuleValues.Exact });
             paraPage.Append(pPrPage);
 
             var pageLabel = config?["footer"]?["pageLabel"]?.GetValue<string>() ?? "Page";
             var runPage = new Run();
-            runPage.Append(new RunProperties(new FontSize { Val = footerFontSize }, new RunFonts { Ascii = _fontFamily, HighAnsi = _fontFamily }));
+            runPage.Append(BuildPageRunProps());
             runPage.Append(new Text(pageLabel + " ") { Space = SpaceProcessingModeValues.Preserve });
             paraPage.Append(runPage);
 
             var runField = new Run();
-            runField.Append(new RunProperties(new FontSize { Val = footerFontSize }, new RunFonts { Ascii = _fontFamily, HighAnsi = _fontFamily }));
+            runField.Append(BuildPageRunProps());
             runField.Append(new FieldChar { FieldCharType = FieldCharValues.Begin });
             paraPage.Append(runField);
 
             var runCode = new Run();
-            runCode.Append(new RunProperties(new FontSize { Val = footerFontSize }, new RunFonts { Ascii = _fontFamily, HighAnsi = _fontFamily }));
+            runCode.Append(BuildPageRunProps());
             runCode.Append(new FieldCode(" PAGE ") { Space = SpaceProcessingModeValues.Preserve });
             paraPage.Append(runCode);
 
             var runEnd = new Run();
-            runEnd.Append(new RunProperties(new FontSize { Val = footerFontSize }, new RunFonts { Ascii = _fontFamily, HighAnsi = _fontFamily }));
+            runEnd.Append(BuildPageRunProps());
             runEnd.Append(new FieldChar { FieldCharType = FieldCharValues.End });
             paraPage.Append(runEnd);
 
@@ -595,6 +609,26 @@ public partial class DocxGeneratorService
             Header = (uint)headerDistance,
             Footer = 0
         });
+
+        // Page border
+        var pageBorderNode = config["pageBorder"];
+        if (pageBorderNode is JsonObject)
+        {
+            var bWidth = pageBorderNode["width"]?.GetValue<string>() ?? "1pt";
+            var bColor = pageBorderNode["color"]?.GetValue<string>() ?? "#000000";
+            var (bSize, _) = ObtenerBorde($"{bWidth} solid {bColor}");
+            var color = NormalizarColor(bColor);
+            var spTop = (uint)(CssToTwips(pageBorderNode["top"]?.GetValue<string>() ?? "24pt") / 20);
+            var spBottom = (uint)(CssToTwips(pageBorderNode["bottom"]?.GetValue<string>() ?? "24pt") / 20);
+            var spLeft = (uint)(CssToTwips(pageBorderNode["left"]?.GetValue<string>() ?? "24pt") / 20);
+            var spRight = (uint)(CssToTwips(pageBorderNode["right"]?.GetValue<string>() ?? "24pt") / 20);
+            secPr.Append(new PageBorders(
+                new TopBorder { Val = BorderValues.Single, Size = bSize, Space = spTop, Color = color },
+                new BottomBorder { Val = BorderValues.Single, Size = bSize, Space = spBottom, Color = color },
+                new LeftBorder { Val = BorderValues.Single, Size = bSize, Space = spLeft, Color = color },
+                new RightBorder { Val = BorderValues.Single, Size = bSize, Space = spRight, Color = color }
+            ) { OffsetFrom = PageBorderOffsetValues.Page });
+        }
 
         // Link header
         var headerPart = mainPart.HeaderParts.FirstOrDefault();
