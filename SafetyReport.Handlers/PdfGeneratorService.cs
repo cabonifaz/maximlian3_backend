@@ -20,6 +20,8 @@ public class PdfGeneratorService
     private byte[]? _watermarkBytes;
     private double _wmWidth, _wmHeight, _wmOpacity;
     private string _wmPosition = "";
+    private XImage? _wmImage;
+    private double _wmImgW, _wmImgH, _wmX, _wmY;
 
     private double _pageW, _pageH;
     private double _mTop, _mBottom, _mLeft, _mRight;
@@ -90,6 +92,7 @@ public class PdfGeneratorService
 
         var config = json["document"];
         LeerConfigGlobal(config);
+        PrepararMarcaAgua();
         NuevaPagina();
 
         var sections = json["sections"]?.AsArray();
@@ -213,41 +216,45 @@ public class PdfGeneratorService
         return false;
     }
 
-    private void DibujarMarcaAgua()
+    private void PrepararMarcaAgua()
     {
         if (_watermarkBytes is null || _watermarkBytes.Length == 0 || _wmWidth <= 0 || _wmHeight <= 0) return;
 
         try
         {
-            using var imgStream = new MemoryStream(_watermarkBytes);
-            var image = XImage.FromStream(imgStream);
+            var imgStream = new MemoryStream(_watermarkBytes);
+            _wmImage = XImage.FromStream(imgStream);
 
-            var scaleW = _wmWidth / image.PointWidth;
-            var scaleH = _wmHeight / image.PointHeight;
+            var scaleW = _wmWidth / _wmImage.PointWidth;
+            var scaleH = _wmHeight / _wmImage.PointHeight;
             var scale = Math.Min(scaleW, scaleH);
-            var imgW = image.PointWidth * scale;
-            var imgH = image.PointHeight * scale;
+            _wmImgW = _wmImage.PointWidth * scale;
+            _wmImgH = _wmImage.PointHeight * scale;
 
             var parts = _wmPosition.Split(' ', StringSplitOptions.RemoveEmptyEntries);
             var hPos = parts.Length > 0 ? parts[0] : "center";
             var vPos = parts.Length > 1 ? parts[1] : "center";
 
-            var x = hPos switch
+            _wmX = hPos switch
             {
                 "left" => 0.0,
-                "right" => _pageW - imgW,
-                _ => (_pageW - imgW) / 2
+                "right" => _pageW - _wmImgW,
+                _ => (_pageW - _wmImgW) / 2
             };
-            var y = vPos switch
+            _wmY = vPos switch
             {
                 "top" => 0.0,
-                "bottom" => _pageH - imgH,
-                _ => (_pageH - imgH) / 2
+                "bottom" => _pageH - _wmImgH,
+                _ => (_pageH - _wmImgH) / 2
             };
-
-            _gfx.DrawImage(image, x, y, imgW, imgH);
         }
-        catch { }
+        catch { _wmImage = null; }
+    }
+
+    private void DibujarMarcaAgua()
+    {
+        if (_wmImage is null) return;
+        _gfx.DrawImage(_wmImage, _wmX, _wmY, _wmImgW, _wmImgH);
     }
 
     private void DibujarEncabezado()

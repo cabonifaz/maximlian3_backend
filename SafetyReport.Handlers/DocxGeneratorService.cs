@@ -525,24 +525,52 @@ public partial class DocxGeneratorService
             imagePart.FeedData(imgStream);
 
         var relId = headerPart.GetIdOfPart(imagePart);
+        var (wmW, wmH) = AjustarImagenContain(_watermarkBytes, CssToEmu(wmNode["width"]?.GetValue<string>() ?? "0"), CssToEmu(wmNode["height"]?.GetValue<string>() ?? "0"));
+        var marginLeftEmu = (long)(marginLeft * 12700);
+        var marginTopEmu = (long)(marginTop * 12700);
 
-        var vmlPict = new DocumentFormat.OpenXml.Vml.Shape
-        {
-            Id = "watermark",
-            Style = new DocumentFormat.OpenXml.StringValue(
-                $"position:absolute;margin-left:{marginLeft:F1}pt;margin-top:{marginTop:F1}pt;" +
-                $"width:{wmWidthPt:F1}pt;height:{wmHeightPt:F1}pt;z-index:-1;visibility:visible"),
-            CoordinateSize = "21600,21600",
-            OptionalString = "75"
-        };
-        vmlPict.Append(new DocumentFormat.OpenXml.Vml.ImageData { RelId = relId });
-
-        var pict = new DocumentFormat.OpenXml.Wordprocessing.Picture();
-        pict.Append(vmlPict);
+        var drawing = new Drawing(
+            new DW.Anchor(
+                new DW.SimplePosition { X = 0, Y = 0 },
+                new DW.HorizontalPosition(
+                    new DW.PositionOffset(marginLeftEmu.ToString())
+                ) { RelativeFrom = DW.HorizontalRelativePositionValues.Page },
+                new DW.VerticalPosition(
+                    new DW.PositionOffset(marginTopEmu.ToString())
+                ) { RelativeFrom = DW.VerticalRelativePositionValues.Page },
+                new DW.Extent { Cx = wmW, Cy = wmH },
+                new DW.EffectExtent { LeftEdge = 0, TopEdge = 0, RightEdge = 0, BottomEdge = 0 },
+                new DW.WrapNone(),
+                new DW.DocProperties { Id = 2, Name = "Watermark" },
+                new DW.NonVisualGraphicFrameDrawingProperties(
+                    new A.GraphicFrameLocks { NoChangeAspect = true }),
+                new A.Graphic(
+                    new A.GraphicData(
+                        new PIC.Picture(
+                            new PIC.NonVisualPictureProperties(
+                                new PIC.NonVisualDrawingProperties { Id = 0, Name = "watermark.png" },
+                                new PIC.NonVisualPictureDrawingProperties()),
+                            new PIC.BlipFill(
+                                new A.Blip { Embed = relId },
+                                new A.Stretch(new A.FillRectangle())),
+                            new PIC.ShapeProperties(
+                                new A.Transform2D(
+                                    new A.Offset { X = 0, Y = 0 },
+                                    new A.Extents { Cx = wmW, Cy = wmH }),
+                                new A.PresetGeometry(new A.AdjustValueList()) { Preset = A.ShapeTypeValues.Rectangle }))
+                    ) { Uri = "http://schemas.openxmlformats.org/drawingml/2006/picture" })
+            )
+            {
+                DistanceFromTop = 0, DistanceFromBottom = 0,
+                DistanceFromLeft = 0, DistanceFromRight = 0,
+                SimplePos = false, RelativeHeight = 0,
+                BehindDoc = true, Locked = false,
+                LayoutInCell = true, AllowOverlap = true
+            });
 
         var wmPara = new Paragraph();
         var wmRun = new Run();
-        wmRun.Append(pict);
+        wmRun.Append(drawing);
         wmPara.Append(wmRun);
         header.Append(wmPara);
     }
