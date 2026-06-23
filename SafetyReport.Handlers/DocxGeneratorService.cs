@@ -528,30 +528,43 @@ public partial class DocxGeneratorService
 
         if (showPageNumber)
         {
+            var pageFontSizeHp = PtToHalfPt(config?["footer"]?["pageFontSize"]?.GetValue<string>() ?? config?["footer"]?["fontSize"]?.GetValue<string>() ?? "7pt");
+            var pageFontSizeStr = pageFontSizeHp.ToString();
+            var pageLineHeight = (pageFontSizeHp * 10).ToString();
+            var pageColorVal = config?["footer"]?["pageColor"]?.GetValue<string>();
+
+            RunProperties BuildPageRunProps()
+            {
+                var rp = new RunProperties(new FontSize { Val = pageFontSizeStr }, new RunFonts { Ascii = _fontFamily, HighAnsi = _fontFamily });
+                if (!string.IsNullOrEmpty(pageColorVal))
+                    rp.Append(new Color { Val = NormalizarColor(pageColorVal) });
+                return rp;
+            }
+
             var paraPage = new Paragraph();
             var pPrPage = new ParagraphProperties();
             pPrPage.Append(new Justification { Val = MapAlign(footerAlign) });
-            pPrPage.Append(new SpacingBetweenLines { Before = "0", After = "0", Line = footerLineHeight, LineRule = LineSpacingRuleValues.Exact });
+            pPrPage.Append(new SpacingBetweenLines { Before = "0", After = "0", Line = pageLineHeight, LineRule = LineSpacingRuleValues.Exact });
             paraPage.Append(pPrPage);
 
             var pageLabel = config?["footer"]?["pageLabel"]?.GetValue<string>() ?? "Page";
             var runPage = new Run();
-            runPage.Append(new RunProperties(new FontSize { Val = footerFontSize }, new RunFonts { Ascii = _fontFamily, HighAnsi = _fontFamily }));
+            runPage.Append(BuildPageRunProps());
             runPage.Append(new Text(pageLabel + " ") { Space = SpaceProcessingModeValues.Preserve });
             paraPage.Append(runPage);
 
             var runField = new Run();
-            runField.Append(new RunProperties(new FontSize { Val = footerFontSize }, new RunFonts { Ascii = _fontFamily, HighAnsi = _fontFamily }));
+            runField.Append(BuildPageRunProps());
             runField.Append(new FieldChar { FieldCharType = FieldCharValues.Begin });
             paraPage.Append(runField);
 
             var runCode = new Run();
-            runCode.Append(new RunProperties(new FontSize { Val = footerFontSize }, new RunFonts { Ascii = _fontFamily, HighAnsi = _fontFamily }));
+            runCode.Append(BuildPageRunProps());
             runCode.Append(new FieldCode(" PAGE ") { Space = SpaceProcessingModeValues.Preserve });
             paraPage.Append(runCode);
 
             var runEnd = new Run();
-            runEnd.Append(new RunProperties(new FontSize { Val = footerFontSize }, new RunFonts { Ascii = _fontFamily, HighAnsi = _fontFamily }));
+            runEnd.Append(BuildPageRunProps());
             runEnd.Append(new FieldChar { FieldCharType = FieldCharValues.End });
             paraPage.Append(runEnd);
 

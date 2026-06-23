@@ -31,6 +31,9 @@ public class PdfGeneratorService
     private double _footerIndentL = 0;
     private double _footerIndentR = 0;
     private bool _showPageNumber = true;
+    private double _pageFontSize;
+    private XColor _pageColor;
+    private bool _hasPageColor;
     private bool _hasPageBorder;
     private double _pageBorderWidth;
     private XColor _pageBorderColor;
@@ -130,6 +133,18 @@ public class PdfGeneratorService
         _footerIndentL = CssToPoints(config["footerIndent"]?["left"]?.GetValue<string>() ?? "0");
         _footerIndentR = CssToPoints(config["footerIndent"]?["right"]?.GetValue<string>() ?? "0");
         _showPageNumber = config["footer"]?["showPageNumber"]?.GetValue<bool>() ?? true;
+        _pageFontSize = PtValue(config["footer"]?["pageFontSize"]?.GetValue<string>() ?? config["footer"]?["fontSize"]?.GetValue<string>() ?? "7pt");
+        var pageColorHex = config["footer"]?["pageColor"]?.GetValue<string>();
+        if (!string.IsNullOrEmpty(pageColorHex))
+        {
+            _hasPageColor = true;
+            var pc = pageColorHex.TrimStart('#');
+            if (pc.Length == 3) pc = string.Concat(pc.Select(ch => $"{ch}{ch}"));
+            _pageColor = XColor.FromArgb(
+                Convert.ToInt32(pc[..2], 16),
+                Convert.ToInt32(pc[2..4], 16),
+                Convert.ToInt32(pc[4..6], 16));
+        }
 
         _contentTop = _mTop;
         _contentBottom = _pageH - _mBottom;
@@ -232,8 +247,16 @@ public class PdfGeneratorService
 
         if (_showPageNumber)
         {
+            var pageFont = CrearFuente(null, _pageFontSize);
+            var pageLineH = _pageFontSize;
+            var pageBrush = _hasPageColor ? new XSolidBrush(_pageColor) : XBrushes.Black;
             var pageText = $"{_pageLabel} {_pageNumber}";
-            DibujarLineaTexto(pageText, footerFont, footerX, footerW, footerY, align, lineH);
+            var ascent = pageFont.Size * pageFont.Metrics.Ascent / pageFont.Metrics.UnitsPerEm;
+            var descent = pageFont.Size * Math.Abs(pageFont.Metrics.Descent) / pageFont.Metrics.UnitsPerEm;
+            var textHeight = ascent + descent;
+            var baselineY = footerY + (pageLineH - textHeight) / 2 + ascent;
+            var format = new XStringFormat { Alignment = align, LineAlignment = XLineAlignment.BaseLine };
+            _gfx.DrawString(pageText, pageFont, pageBrush, new XPoint(align == XStringAlignment.Center ? footerX + footerW / 2 : align == XStringAlignment.Far ? footerX + footerW : footerX, baselineY), format);
         }
     }
 
