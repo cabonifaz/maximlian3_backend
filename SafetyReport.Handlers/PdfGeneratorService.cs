@@ -5,6 +5,7 @@ using PdfSharp.Drawing;
 using PdfSharp.Drawing.Layout;
 using PdfSharp.Fonts;
 using PdfSharp.Pdf;
+using PdfSharp.Pdf.Advanced;
 
 namespace SafetyReport.Handlers;
 
@@ -104,6 +105,7 @@ public class PdfGeneratorService
 
         var ms = new MemoryStream();
         _gfx.Dispose();
+        AplicarOpacidadMarcaAgua();
         _doc.Save(ms);
         ms.Position = 0;
         return ms;
@@ -253,8 +255,49 @@ public class PdfGeneratorService
 
     private void DibujarMarcaAgua()
     {
-        if (_wmImage is null) return;
-        _gfx.DrawImage(_wmImage, _wmX, _wmY, _wmImgW, _wmImgH);
+    }
+
+    private void AplicarOpacidadMarcaAgua()
+    {
+        if (_wmImage is null || _wmOpacity >= 1.0) return;
+
+        var extGState = new PdfExtGState(_doc);
+        extGState.StrokeAlpha = _wmOpacity;
+        extGState.NonStrokeAlpha = _wmOpacity;
+        _doc.Internals.AddObject(extGState);
+
+        foreach (var page in _doc.Pages)
+        {
+            using var wmGfx = XGraphics.FromPdfPage(page, XGraphicsPdfPageOptions.Prepend);
+            wmGfx.DrawImage(_wmImage, _wmX, _wmY, _wmImgW, _wmImgH);
+        }
+
+        foreach (var page in _doc.Pages)
+        {
+            var resources = page.Elements.GetDictionary("/Resources");
+            if (resources is null) continue;
+
+            var gsDict = resources.Elements.GetDictionary("/ExtGState");
+            if (gsDict is null)
+            {
+                gsDict = new PdfDictionary(_doc);
+                resources.Elements["/ExtGState"] = gsDict;
+            }
+            gsDict.Elements["/GSwm"] = extGState.Reference!;
+
+            var wmContent = page.Contents.Elements[0];
+            if (wmContent is PdfReference wmRef)
+                wmContent = wmRef.Value;
+            if (wmContent is PdfDictionary wmDict)
+            {
+                var stream = wmDict.Stream;
+                stream.TryUnfilter();
+                var str = System.Text.Encoding.Latin1.GetString(stream.Value);
+                str = str.Replace("/GS0 gs", "");
+                str = "q /GSwm gs\n" + str + "\nQ\n";
+                stream.Value = System.Text.Encoding.Latin1.GetBytes(str);
+            }
+        }
     }
 
     private void DibujarEncabezado()
