@@ -10,6 +10,7 @@ namespace SafetyReport.Handlers
     public class InformeHandler
     {
         private readonly InformeDAO _dao;
+        private readonly InformeLocalImagenDAO _localImagenDAO;
         private readonly PedidoDAO _pedidoDAO;
         private readonly PlantillaDocumentoDAO _plantillaDAO;
         private readonly IS3UploadService _s3;
@@ -17,9 +18,10 @@ namespace SafetyReport.Handlers
         private readonly N8nConfig _n8nConfig;
         private readonly int _s3ExpirationMinutes;
 
-        public InformeHandler(InformeDAO dao, PedidoDAO pedidoDAO, PlantillaDocumentoDAO plantillaDAO, IS3UploadService s3, N8nService n8n, N8nConfig n8nConfig, IConfiguration configuration)
+        public InformeHandler(InformeDAO dao, InformeLocalImagenDAO localImagenDAO, PedidoDAO pedidoDAO, PlantillaDocumentoDAO plantillaDAO, IS3UploadService s3, N8nService n8n, N8nConfig n8nConfig, IConfiguration configuration)
         {
             _dao = dao;
+            _localImagenDAO = localImagenDAO;
             _pedidoDAO = pedidoDAO;
             _plantillaDAO = plantillaDAO;
             _s3 = s3;
@@ -107,7 +109,7 @@ namespace SafetyReport.Handlers
             if (idsExistentes.Count == 0)
                 return new Dictionary<int, string>();
 
-            var respuesta = await _dao.ObtenerUrlsImagenesAsync(u, idsExistentes);
+            var respuesta = await _localImagenDAO.ObtenerUrlsImagenesAsync(u, idsExistentes);
 
             if (respuesta.Result is List<InformeLocalImagenUrl> urls)
                 return urls
@@ -133,7 +135,7 @@ namespace SafetyReport.Handlers
                     && rutasAnteriores.TryGetValue(imagenesRequest[i].IdInformeLocalImagen!.Value, out var rutaOrigen))
                     await _s3.CopiarArchivoAsync(rutaOrigen, rutaDestino);
 
-                await _dao.ActualizarImagenUrlAsync(u, imagen.IdInformeLocalImagen, rutaDestino);
+                await _localImagenDAO.ActualizarImagenUrlAsync(u, imagen.IdInformeLocalImagen, rutaDestino);
                 imagen.S3Key = rutaDestino;
             }
         }
@@ -166,140 +168,6 @@ namespace SafetyReport.Handlers
             return null;
         }
 
-        public async Task<Respuesta> ObtenerUrlsImagenesAsync(UsuarioGeneral usuarioLogueado, InformeLocalImagenEstadoCargaRequest request)
-        {
-            try
-            {
-                var respuesta = await _dao.ObtenerUrlsImagenesAsync(usuarioLogueado, request.Ids);
-
-                if (respuesta.IdTipoMensaje == 2 && respuesta.Result is List<InformeLocalImagenUrl> imagenes && imagenes.Count > 0)
-                {
-                    var urls = _s3.GenerarDownloadUrlsBatch(imagenes.Select(i => i.ImagenURL).ToList());
-                    for (int i = 0; i < imagenes.Count; i++)
-                    {
-                        imagenes[i].DownloadUrl = urls[i];
-                        imagenes[i].ImagenURL   = string.Empty;
-                    }
-                }
-
-                return respuesta;
-            }
-            catch (Exception)
-            {
-                return new Respuesta { IdTipoMensaje = 3, Mensaje = "Error interno del servidor.", Result = new List<InformeLocalImagenUrl>() };
-            }
-        }
-
-        public async Task<Respuesta> GenerarUrlsArchivoAsync(UsuarioGeneral usuarioLogueado, InformeArchivoUrlRequest request)
-        {
-            try
-            {
-                var idInforme = request.IdInforme;
-
-                if (idInforme == 0)
-                {
-                    var resultado = await _dao.ObtenerOCrearInformeAsync(usuarioLogueado, request.IdPedido);
-                    if (resultado.IdTipoMensaje != 2 || resultado.Result is not List<InformeIdResult> ids || ids.Count == 0)
-                        return new Respuesta { IdTipoMensaje = resultado.IdTipoMensaje, Mensaje = resultado.Mensaje, Result = new List<InformeArchivoUrlResult>() };
-                    idInforme = ids[0].IdInforme;
-                }
-
-                var pendientes = new List<InformeArchivoPendiente>();
-                foreach (var nombre in request.Nombres)
-                {
-                    var ext = Path.GetExtension(nombre);
-                    var nombreSinExt = Path.GetFileNameWithoutExtension(nombre);
-                    var s3Key = $"informes/pedido-{request.IdPedido}/informe-{idInforme}/adjunto/{nombreSinExt}-{DateTimeOffset.UtcNow.ToUnixTimeMilliseconds()}{ext}";
-                    pendientes.Add(new InformeArchivoPendiente
-                    {
-                        Nombre = nombre,
-                        ArchivoUrl = s3Key,
-                        UploadUrl = _s3.GenerarUploadUrl(s3Key, "application/octet-stream")
-                    });
-                }
-
-                var result = new InformeArchivoUrlResult { IdInforme = idInforme, Archivos = pendientes };
-                return new Respuesta { IdTipoMensaje = 2, Mensaje = "URLs generadas correctamente.", Result = result };
-            }
-            catch (Exception)
-            {
-                return new Respuesta { IdTipoMensaje = 3, Mensaje = "Error interno del servidor.", Result = new List<InformeArchivoUrlResult>() };
-            }
-        }
-
-        public async Task<Respuesta> ObtenerArchivoAsync(UsuarioGeneral usuarioLogueado, InformeArchivoIdRequest request)
-        {
-            try
-            {
-                var respuesta = await _dao.ObtenerArchivoAsync(usuarioLogueado, request.IdInformeArchivo);
-                if (respuesta.IdTipoMensaje == 2 && respuesta.Result is List<InformeArchivoConsulta> archivos && archivos.Count > 0)
-                {
-                    var archivo = archivos[0];
-                    archivo.DownloadUrl = _s3.GenerarDownloadUrl(archivo.ArchivoUrl);
-                    archivo.ArchivoUrl = string.Empty;
-                }
-                return respuesta;
-            }
-            catch (Exception)
-            {
-                return new Respuesta { IdTipoMensaje = 3, Mensaje = "Error interno del servidor.", Result = new List<InformeArchivoConsulta>() };
-            }
-        }
-
-        public async Task<Respuesta> EliminarArchivoAsync(UsuarioGeneral usuarioLogueado, InformeArchivoIdRequest request)
-        {
-            try
-            {
-                var obtener = await _dao.ObtenerArchivoAsync(usuarioLogueado, request.IdInformeArchivo);
-                if (obtener.IdTipoMensaje != 2)
-                    return obtener;
-
-                if (obtener.Result is List<InformeArchivoConsulta> archivos && archivos.Count > 0)
-                    await _s3.DeleteFileAsync(archivos[0].ArchivoUrl);
-
-                return await _dao.EliminarArchivoAsync(usuarioLogueado, request.IdInformeArchivo);
-            }
-            catch (Exception)
-            {
-                return new Respuesta { IdTipoMensaje = 3, Mensaje = "Error interno del servidor.", Result = new List<object>() };
-            }
-        }
-
-        public async Task<Respuesta> ActualizarArchivoAsync(UsuarioGeneral usuarioLogueado, InformeArchivoActualizarRequest request)
-        {
-            try
-            {
-                return await _dao.ActualizarArchivoAsync(usuarioLogueado, request);
-            }
-            catch (Exception)
-            {
-                return new Respuesta { IdTipoMensaje = 3, Mensaje = "Error interno del servidor.", Result = new List<object>() };
-            }
-        }
-
-        public async Task<Respuesta> InsertarArchivoLoteAsync(UsuarioGeneral usuarioLogueado, InformeArchivoInsertarRequest request)
-        {
-            try
-            {
-                return await _dao.InsertarArchivoLoteAsync(usuarioLogueado, request.IdInforme, request.IdPedido, request.Archivos);
-            }
-            catch (Exception)
-            {
-                return new Respuesta { IdTipoMensaje = 3, Mensaje = "Error interno del servidor.", Result = new List<object>() };
-            }
-        }
-
-        public async Task<Respuesta> ActualizarEstadoCargaAsync(UsuarioGeneral usuarioLogueado, InformeLocalImagenEstadoCargaRequest request)
-        {
-            try
-            {
-                return await _dao.ActualizarEstadoCargaAsync(usuarioLogueado, request.Ids);
-            }
-            catch (Exception)
-            {
-                return new Respuesta { IdTipoMensaje = 3, Mensaje = "Error interno del servidor.", Result = new List<object>() };
-            }
-        }
 
         public async Task<Respuesta> ObtenerAsync(UsuarioGeneral usuarioLogueado, FiltroInformeObtener request)
         {
