@@ -544,7 +544,8 @@ public partial class DocxGeneratorService
             var paraPage = new Paragraph();
             var pPrPage = new ParagraphProperties();
             pPrPage.Append(new Justification { Val = MapAlign(footerAlign) });
-            pPrPage.Append(new SpacingBetweenLines { Before = "0", After = "0", Line = pageLineHeight, LineRule = LineSpacingRuleValues.Exact });
+            var pageGapBefore = CssToTwips(config?["footer"]?["pageGapBefore"]?.GetValue<string>() ?? "0");
+            pPrPage.Append(new SpacingBetweenLines { Before = pageGapBefore.ToString(), After = "0", Line = pageLineHeight, LineRule = LineSpacingRuleValues.Exact });
             paraPage.Append(pPrPage);
 
             var pageLabel = config?["footer"]?["pageLabel"]?.GetValue<string>() ?? "Page";

@@ -32,6 +32,7 @@ public class PdfGeneratorService
     private double _footerIndentR = 0;
     private bool _showPageNumber = true;
     private double _pageFontSize;
+    private double _pageGapBefore;
     private XColor _pageColor;
     private bool _hasPageColor;
     private bool _hasPageBorder;
@@ -134,6 +135,7 @@ public class PdfGeneratorService
         _footerIndentR = CssToPoints(config["footerIndent"]?["right"]?.GetValue<string>() ?? "0");
         _showPageNumber = config["footer"]?["showPageNumber"]?.GetValue<bool>() ?? true;
         _pageFontSize = PtValue(config["footer"]?["pageFontSize"]?.GetValue<string>() ?? config["footer"]?["fontSize"]?.GetValue<string>() ?? "7pt");
+        _pageGapBefore = CssToPoints(config["footer"]?["pageGapBefore"]?.GetValue<string>() ?? "0");
         var pageColorHex = config["footer"]?["pageColor"]?.GetValue<string>();
         if (!string.IsNullOrEmpty(pageColorHex))
         {
@@ -247,6 +249,7 @@ public class PdfGeneratorService
 
         if (_showPageNumber)
         {
+            footerY += _pageGapBefore;
             var pageFont = CrearFuente(null, _pageFontSize);
             var pageLineH = _pageFontSize;
             var pageBrush = _hasPageColor ? new XSolidBrush(_pageColor) : XBrushes.Black;
