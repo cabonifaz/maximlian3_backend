@@ -596,6 +596,26 @@ public partial class DocxGeneratorService
             Footer = 0
         });
 
+        // Page border
+        var pageBorderNode = config["pageBorder"];
+        if (pageBorderNode is JsonObject)
+        {
+            var bWidth = pageBorderNode["width"]?.GetValue<string>() ?? "1pt";
+            var bColor = pageBorderNode["color"]?.GetValue<string>() ?? "#000000";
+            var (bSize, _) = ObtenerBorde($"{bWidth} solid {bColor}");
+            var color = NormalizarColor(bColor);
+            var spTop = (uint)(CssToTwips(pageBorderNode["top"]?.GetValue<string>() ?? "24pt") / 20);
+            var spBottom = (uint)(CssToTwips(pageBorderNode["bottom"]?.GetValue<string>() ?? "24pt") / 20);
+            var spLeft = (uint)(CssToTwips(pageBorderNode["left"]?.GetValue<string>() ?? "24pt") / 20);
+            var spRight = (uint)(CssToTwips(pageBorderNode["right"]?.GetValue<string>() ?? "24pt") / 20);
+            secPr.Append(new PageBorders(
+                new TopBorder { Val = BorderValues.Single, Size = bSize, Space = spTop, Color = color },
+                new BottomBorder { Val = BorderValues.Single, Size = bSize, Space = spBottom, Color = color },
+                new LeftBorder { Val = BorderValues.Single, Size = bSize, Space = spLeft, Color = color },
+                new RightBorder { Val = BorderValues.Single, Size = bSize, Space = spRight, Color = color }
+            ) { OffsetFrom = PageBorderOffsetValues.Page });
+        }
+
         // Link header
         var headerPart = mainPart.HeaderParts.FirstOrDefault();
         if (headerPart != null)
