@@ -193,32 +193,5 @@ namespace SafetyReport.WebApi.Controllers
             return Ok(respuesta);
         }
 
-        [HttpGet("listarObservaciones")]
-        public async Task<IActionResult> ListarObservaciones([FromQuery] InformeObservacionListarRequest request)
-        {
-            var respuesta = await _informeHandler.ListarObservacionesAsync(UsuarioLogueado, request);
-            return Ok(respuesta);
-        }
-
-        [HttpPost("insertarObservacionesLote")]
-        public async Task<IActionResult> InsertarObservacionesLote([FromBody] InformeObservacionInsertarRequest request)
-        {
-            var respuesta = await _informeHandler.InsertarObservacionesLoteAsync(UsuarioLogueado, request);
-            return Ok(respuesta);
-        }
-
-        [HttpPost("editarObservacion")]
-        public async Task<IActionResult> EditarObservacion([FromBody] InformeObservacionEditarRequest request)
-        {
-            var respuesta = await _informeHandler.EditarObservacionAsync(UsuarioLogueado, request);
-            return Ok(respuesta);
-        }
-
-        [HttpPost("eliminarObservacion")]
-        public async Task<IActionResult> EliminarObservacion([FromBody] InformeObservacionIdRequest request)
-        {
-            var respuesta = await _informeHandler.EliminarObservacionAsync(UsuarioLogueado, request);
-            return Ok(respuesta);
-        }
     }
 }

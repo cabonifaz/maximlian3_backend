@@ -156,6 +156,8 @@ builder.Services.AddScoped<AsignacionHandler>();
 builder.Services.AddScoped<AsignacionDAO>();
 builder.Services.AddScoped<InformeHandler>();
 builder.Services.AddScoped<InformeDAO>();
+builder.Services.AddScoped<InformeObservacionHandler>();
+builder.Services.AddScoped<InformeObservacionDAO>();
 builder.Services.AddScoped<PlantillaDocumentoDAO>();
 builder.Services.AddScoped<BancoHandler>();
 builder.Services.AddScoped<BancoDAO>();
