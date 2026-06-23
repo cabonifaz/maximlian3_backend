@@ -34,26 +34,13 @@ namespace SafetyReport.WebApi.Controllers
             return Ok(respuesta);
         }
 
-        [HttpGet("generarDocumento")]
-        public async Task<IActionResult> GenerarDocumento([FromQuery] FiltroGenerarDocumento request)
+        [HttpGet("previsualizarDocumento")]
+        public async Task<IActionResult> PrevisualizarDocumento([FromQuery] FiltroGenerarDocumento request)
         {
-            var respuesta = await _informeHandler.GenerarDocumentoAsync(UsuarioLogueado, request);
+            var respuesta = await _informeHandler.PrevisualizarDocumentoAsync(UsuarioLogueado, request);
             return Ok(respuesta);
         }
 
-        [HttpGet("generarDocumentoDocx")]
-        public async Task<IActionResult> GenerarDocumentoDocx([FromQuery] FiltroGenerarDocumento request)
-        {
-            var respuesta = await _informeHandler.GenerarDocumentoDocxAsync(UsuarioLogueado, request);
-            return Ok(respuesta);
-        }
-
-        [HttpGet("generarDocumentoPdf")]
-        public async Task<IActionResult> GenerarDocumentoPdf([FromQuery] FiltroGenerarDocumento request)
-        {
-            var respuesta = await _informeHandler.GenerarDocumentoPdfAsync(UsuarioLogueado, request);
-            return Ok(respuesta);
-        }
 
         [HttpGet("listar")]
         public async Task<IActionResult> Listar([FromQuery] FiltroInforme request)
@@ -62,54 +49,6 @@ namespace SafetyReport.WebApi.Controllers
             return Ok(respuesta);
         }
 
-        [HttpPost("obtenerUrlsImagenes")]
-        public async Task<IActionResult> ObtenerUrlsImagenes([FromBody] InformeLocalImagenEstadoCargaRequest request)
-        {
-            var respuesta = await _informeHandler.ObtenerUrlsImagenesAsync(UsuarioLogueado, request);
-            return Ok(respuesta);
-        }
-
-        [HttpPost("actualizarEstadoCargaImagenes")]
-        public async Task<IActionResult> ActualizarEstadoCargaImagenes([FromBody] InformeLocalImagenEstadoCargaRequest request)
-        {
-            var respuesta = await _informeHandler.ActualizarEstadoCargaAsync(UsuarioLogueado, request);
-            return Ok(respuesta);
-        }
-
-        [HttpPost("generarUrlsArchivo")]
-        public async Task<IActionResult> GenerarUrlsArchivo([FromBody] InformeArchivoUrlRequest request)
-        {
-            var respuesta = await _informeHandler.GenerarUrlsArchivoAsync(UsuarioLogueado, request);
-            return Ok(respuesta);
-        }
-
-        [HttpPost("obtenerArchivo")]
-        public async Task<IActionResult> ObtenerArchivo([FromBody] InformeArchivoIdRequest request)
-        {
-            var respuesta = await _informeHandler.ObtenerArchivoAsync(UsuarioLogueado, request);
-            return Ok(respuesta);
-        }
-
-        [HttpPost("eliminarArchivo")]
-        public async Task<IActionResult> EliminarArchivo([FromBody] InformeArchivoIdRequest request)
-        {
-            var respuesta = await _informeHandler.EliminarArchivoAsync(UsuarioLogueado, request);
-            return Ok(respuesta);
-        }
-
-        [HttpPost("actualizarArchivo")]
-        public async Task<IActionResult> ActualizarArchivo([FromBody] InformeArchivoActualizarRequest request)
-        {
-            var respuesta = await _informeHandler.ActualizarArchivoAsync(UsuarioLogueado, request);
-            return Ok(respuesta);
-        }
-
-        [HttpPost("insertarArchivoLote")]
-        public async Task<IActionResult> InsertarArchivoLote([FromBody] InformeArchivoInsertarRequest request)
-        {
-            var respuesta = await _informeHandler.InsertarArchivoLoteAsync(UsuarioLogueado, request);
-            return Ok(respuesta);
-        }
 
         [HttpPost("calcularBalanceSeguro")]
         public async Task<IActionResult> CalcularBalanceSeguro([FromBody] InformeBalanceSeguroCalcularRequest request)
@@ -160,7 +99,7 @@ namespace SafetyReport.WebApi.Controllers
             return Ok(respuesta);
         }
 
-        [HttpPost("eliminar")]
+        [HttpDelete("eliminar")]
         public async Task<IActionResult> Eliminar([FromBody] InformeIdRequest request)
         {
             var respuesta = await _informeHandler.EliminarAsync(UsuarioLogueado, request);
@@ -193,32 +132,5 @@ namespace SafetyReport.WebApi.Controllers
             return Ok(respuesta);
         }
 
-        [HttpGet("listarObservaciones")]
-        public async Task<IActionResult> ListarObservaciones([FromQuery] InformeObservacionListarRequest request)
-        {
-            var respuesta = await _informeHandler.ListarObservacionesAsync(UsuarioLogueado, request);
-            return Ok(respuesta);
-        }
-
-        [HttpPost("insertarObservacionesLote")]
-        public async Task<IActionResult> InsertarObservacionesLote([FromBody] InformeObservacionInsertarRequest request)
-        {
-            var respuesta = await _informeHandler.InsertarObservacionesLoteAsync(UsuarioLogueado, request);
-            return Ok(respuesta);
-        }
-
-        [HttpPost("editarObservacion")]
-        public async Task<IActionResult> EditarObservacion([FromBody] InformeObservacionEditarRequest request)
-        {
-            var respuesta = await _informeHandler.EditarObservacionAsync(UsuarioLogueado, request);
-            return Ok(respuesta);
-        }
-
-        [HttpPost("eliminarObservacion")]
-        public async Task<IActionResult> EliminarObservacion([FromBody] InformeObservacionIdRequest request)
-        {
-            var respuesta = await _informeHandler.EliminarObservacionAsync(UsuarioLogueado, request);
-            return Ok(respuesta);
-        }
     }
 }
