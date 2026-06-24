@@ -21,7 +21,7 @@ namespace SafetyReport.Handlers
     public class BedrockTranslationService
     {
         private readonly IAmazonBedrockRuntime _bedrock;
-        private const string ModelId = "meta.llama4-maverick-17b-instruct-v1:0";
+        private const string ModelId = "amazon.nova-lite-v1:0";
 
         private const string SystemPrompt =
             """
