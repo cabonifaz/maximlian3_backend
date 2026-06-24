@@ -1,4 +1,3 @@
-using Microsoft.Extensions.Logging;
 using SafetyReport.Models;
 
 namespace SafetyReport.Handlers
@@ -6,12 +5,10 @@ namespace SafetyReport.Handlers
     public class InformeTranslationHandler
     {
         private readonly BedrockInformeTranslationService _translator;
-        private readonly ILogger<InformeTranslationHandler> _logger;
 
-        public InformeTranslationHandler(BedrockInformeTranslationService translator, ILogger<InformeTranslationHandler> logger)
+        public InformeTranslationHandler(BedrockInformeTranslationService translator)
         {
             _translator = translator;
-            _logger = logger;
         }
 
         public async Task<Respuesta> TranslateAsync(InformeTranslationRequest request)
@@ -28,11 +25,7 @@ namespace SafetyReport.Handlers
                     };
                 }
 
-                _logger.LogInformation("[InformeTranslation] Iniciando traduccion a {Idioma}", request.Idioma);
-
                 var resultado = await _translator.TranslateAsync(request.Contenido, request.Idioma);
-
-                _logger.LogInformation("[InformeTranslation] Traduccion completada");
 
                 return new Respuesta
                 {
@@ -41,9 +34,8 @@ namespace SafetyReport.Handlers
                     Result = resultado
                 };
             }
-            catch (Exception ex)
+            catch
             {
-                _logger.LogError(ex, "[InformeTranslation] Error al traducir");
                 return new Respuesta
                 {
                     IdTipoMensaje = 1,
