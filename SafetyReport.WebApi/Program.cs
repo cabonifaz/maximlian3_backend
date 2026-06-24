@@ -207,6 +207,13 @@ builder.Services.AddSingleton(sp =>
     var modelId = builder.Configuration["BedrockTranslation:TablaMaestra"] ?? "amazon.nova-lite-v1:0";
     return new BedrockTranslationService(bedrock, modelId);
 });
+builder.Services.AddSingleton(sp =>
+{
+    var bedrock = sp.GetRequiredService<BedrockService>();
+    var modelId = builder.Configuration["BedrockTranslation:Informe"] ?? "meta.llama4-maverick-17b-instruct-v1:0";
+    return new BedrockInformeTranslationService(bedrock, modelId);
+});
+builder.Services.AddScoped<InformeTranslationHandler>();
 
 builder.Services.AddScoped<PedidoArchivoHandler>();
 builder.Services.AddScoped<PedidoArchivoDAO>();

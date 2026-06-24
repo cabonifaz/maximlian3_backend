@@ -26,7 +26,7 @@ namespace SafetyReport.Handlers
         {
             ModelId = modelId,
             MaxTokens = 1024,
-            Temperature = 0F,
+            Temperature = 0.1F,
             SystemPrompt =
                 """
                 You are a translator. You receive a JSON object with fields "string1" and "string2" (one or both may be null).
