@@ -440,7 +440,7 @@ namespace SafetyReport.Handlers
         {
             try
             {
-                var (respuesta, nombreInforme) = await _dao.GenerarDocumentoAsync(usuarioLogueado, request.IdInforme, request.IdPedido, 1);
+                var (respuesta, nombreInforme) = await _dao.GenerarDocumentoAsync(usuarioLogueado, request.IdInforme, request.IdPedido);
                 if (respuesta.IdTipoMensaje != 2 || respuesta.Result is not string jsonStr || string.IsNullOrWhiteSpace(jsonStr))
                     return new Respuesta { IdTipoMensaje = respuesta.IdTipoMensaje, Mensaje = respuesta.Mensaje, Result = null };
 
@@ -476,7 +476,7 @@ namespace SafetyReport.Handlers
                 var docExistente = await ObtenerDocumentoExistente(usuarioLogueado, request, ".docx");
                 if (docExistente != null) return docExistente;
 
-                var (respuesta, nombreInforme) = await _dao.GenerarDocumentoAsync(usuarioLogueado, request.IdInforme, request.IdPedido, 1);
+                var (respuesta, nombreInforme) = await _dao.GenerarDocumentoAsync(usuarioLogueado, request.IdInforme, request.IdPedido);
                 if (respuesta.IdTipoMensaje != 2 || respuesta.Result is not string jsonStr || string.IsNullOrWhiteSpace(jsonStr))
                     return new Respuesta { IdTipoMensaje = respuesta.IdTipoMensaje, Mensaje = respuesta.Mensaje, Result = null };
 
@@ -516,7 +516,7 @@ namespace SafetyReport.Handlers
                 var docExistente = await ObtenerDocumentoExistente(usuarioLogueado, request, ".pdf");
                 if (docExistente != null) return docExistente;
 
-                var (respuesta, nombreInforme) = await _dao.GenerarDocumentoAsync(usuarioLogueado, request.IdInforme, request.IdPedido, 1);
+                var (respuesta, nombreInforme) = await _dao.GenerarDocumentoAsync(usuarioLogueado, request.IdInforme, request.IdPedido);
                 if (respuesta.IdTipoMensaje != 2 || respuesta.Result is not string jsonStr || string.IsNullOrWhiteSpace(jsonStr))
                     return new Respuesta { IdTipoMensaje = respuesta.IdTipoMensaje, Mensaje = respuesta.Mensaje, Result = null };
 
