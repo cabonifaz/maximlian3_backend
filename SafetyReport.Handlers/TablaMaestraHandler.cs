@@ -1,5 +1,4 @@
-﻿using Microsoft.Extensions.Logging;
-using SafetyReport.DAO;
+﻿using SafetyReport.DAO;
 using SafetyReport.Models;
 
 namespace SafetyReport.Handlers
@@ -8,13 +7,11 @@ namespace SafetyReport.Handlers
     {
         private readonly TablaMaestraDAO _dao;
         private readonly BedrockTranslationService _translator;
-        private readonly ILogger<TablaMaestraHandler> _logger;
 
-        public TablaMaestraHandler(TablaMaestraDAO dao, BedrockTranslationService translator, ILogger<TablaMaestraHandler> logger)
+        public TablaMaestraHandler(TablaMaestraDAO dao, BedrockTranslationService translator)
         {
             _dao = dao;
             _translator = translator;
-            _logger = logger;
         }
 
         public async Task<Respuesta> ListarAsync(UsuarioGeneral usuarioLogueado, int? idMaestro)
@@ -51,7 +48,7 @@ namespace SafetyReport.Handlers
             }
         }
 
-        private static readonly HashSet<int> _maestrosSoloString1 = new() { 44, 45 };
+        private static readonly HashSet<int> _maestrosSoloString1 = new() { 14, 44, 45, 47, 48, 49, 52, 56, 57, 58, 59, 60, 61 };
 
         public async Task<Respuesta> CrearAsync(UsuarioGeneral usuarioLogueado, TablaMaestraRequest request)
         {
@@ -72,23 +69,10 @@ namespace SafetyReport.Handlers
                     {
                         try
                         {
-                            _logger.LogInformation("[Traduccion] Iniciando traduccion para IdMaestro={IdMaestro}, Num1={Num1}, String1={String1}, String2={String2}",
-                                req.IdMaestro, req.Num1, input.String1, input.String2);
-
                             var traduccion = await _translator.TranslateAsync(input);
-
-                            _logger.LogInformation("[Traduccion] Respuesta AI: String4={String4}, String5={String5}, String6={String6}, String7={String7}",
-                                traduccion.String4, traduccion.String5, traduccion.String6, traduccion.String7);
-
-                            var resultado = await _dao.ActualizarTraduccionesAsync(usuario, req.IdMaestro, req.Num1, req.Num2, req.Num3, traduccion.String4, traduccion.String5, traduccion.String6, traduccion.String7);
-
-                            _logger.LogInformation("[Traduccion] SP resultado: IdTipoMensaje={IdTipoMensaje}, Mensaje={Mensaje}",
-                                resultado.IdTipoMensaje, resultado.Mensaje);
+                            await _dao.ActualizarTraduccionesAsync(usuario, req.IdMaestro, req.Num1, req.Num2, req.Num3, traduccion.String4, traduccion.String5, traduccion.String6, traduccion.String7);
                         }
-                        catch (Exception ex)
-                        {
-                            _logger.LogError(ex, "[Traduccion] Error al traducir IdMaestro={IdMaestro}, Num1={Num1}", req.IdMaestro, req.Num1);
-                        }
+                        catch (Exception) { }
                     });
                 }
 
