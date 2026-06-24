@@ -1,3 +1,4 @@
+using Microsoft.Extensions.Logging;
 using SafetyReport.Models;
 using System.Text.Json;
 
@@ -7,6 +8,7 @@ namespace SafetyReport.Handlers
     {
         private readonly BedrockService _bedrock;
         private readonly string _modelId;
+        private readonly ILogger<BedrockInformeTranslationService> _logger;
 
         private static readonly JsonSerializerOptions _jsonOptions = new()
         {
@@ -45,10 +47,11 @@ namespace SafetyReport.Handlers
             Preserve all keys exactly as received. Only translate the values.
             """;
 
-        public BedrockInformeTranslationService(BedrockService bedrock, string modelId)
+        public BedrockInformeTranslationService(BedrockService bedrock, string modelId, ILogger<BedrockInformeTranslationService> logger)
         {
             _bedrock = bedrock;
             _modelId = modelId;
+            _logger = logger;
         }
 
         public async Task<InformeTranslationContent> TranslateAsync(InformeTranslationContent contenido, string idioma)
@@ -62,7 +65,12 @@ namespace SafetyReport.Handlers
             };
 
             var userMessage = JsonSerializer.Serialize(contenido, _jsonOptions);
+
+            _logger.LogInformation("[BedrockInforme] Enviando a modelo={Model}, idioma={Idioma}, inputLength={Length}", _modelId, idioma, userMessage.Length);
+
             var responseText = await _bedrock.InvokeAsync(config, userMessage);
+
+            _logger.LogInformation("[BedrockInforme] Respuesta recibida, length={Length}, preview={Preview}", responseText.Length, responseText.Length > 200 ? responseText[..200] : responseText);
 
             return ParseResponse(responseText, contenido);
         }

@@ -211,7 +211,8 @@ builder.Services.AddSingleton(sp =>
 {
     var bedrock = sp.GetRequiredService<BedrockService>();
     var modelId = builder.Configuration["BedrockTranslation:Informe"] ?? "meta.llama4-maverick-17b-instruct-v1:0";
-    return new BedrockInformeTranslationService(bedrock, modelId);
+    var logger = sp.GetRequiredService<ILogger<BedrockInformeTranslationService>>();
+    return new BedrockInformeTranslationService(bedrock, modelId, logger);
 });
 builder.Services.AddScoped<InformeTranslationHandler>();
 
