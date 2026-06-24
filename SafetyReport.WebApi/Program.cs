@@ -1,3 +1,4 @@
+using Amazon.BedrockRuntime;
 using Amazon.S3;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
@@ -192,6 +193,14 @@ builder.Services.AddSingleton<IAmazonS3>(sp =>
 });
 
 builder.Services.AddSingleton<IS3UploadService, S3UploadService>();
+
+builder.Services.AddSingleton<IAmazonBedrockRuntime>(sp =>
+{
+    var regionEndpoint = Amazon.RegionEndpoint.GetBySystemName(awsRegion);
+    var credenciales = new Amazon.Runtime.BasicAWSCredentials(awsAccessKey, awsSecretKey);
+    return new AmazonBedrockRuntimeClient(credenciales, regionEndpoint);
+});
+builder.Services.AddSingleton<BedrockTranslationService>();
 
 builder.Services.AddScoped<PedidoArchivoHandler>();
 builder.Services.AddScoped<PedidoArchivoDAO>();

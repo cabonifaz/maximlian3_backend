@@ -6,10 +6,12 @@ namespace SafetyReport.Handlers
     public class TablaMaestraHandler
     {
         private readonly TablaMaestraDAO _dao;
+        private readonly BedrockTranslationService _translator;
 
-        public TablaMaestraHandler(TablaMaestraDAO dao)
+        public TablaMaestraHandler(TablaMaestraDAO dao, BedrockTranslationService translator)
         {
             _dao = dao;
+            _translator = translator;
         }
 
         public async Task<Respuesta> ListarAsync(UsuarioGeneral usuarioLogueado, int? idMaestro)
@@ -46,13 +48,37 @@ namespace SafetyReport.Handlers
             }
         }
 
+        private static readonly HashSet<int> _maestrosSoloString1 = new() { 44, 45 };
+
         public async Task<Respuesta> CrearAsync(UsuarioGeneral usuarioLogueado, TablaMaestraRequest request)
         {
             try
             {
-                return await _dao.CrearAsync(usuarioLogueado, request);
+                var respuesta = await _dao.CrearAsync(usuarioLogueado, request);
+
+                if (respuesta.IdTipoMensaje == 2)
+                {
+                    var input = _maestrosSoloString1.Contains(request.IdMaestro)
+                        ? new TranslationInput { String1 = request.String1 }
+                        : new TranslationInput { String1 = request.String1, String2 = request.String2 };
+
+                    var usuario = usuarioLogueado;
+                    var req = request;
+
+                    _ = Task.Run(async () =>
+                    {
+                        try
+                        {
+                            var traduccion = await _translator.TranslateAsync(input);
+                            await _dao.ActualizarTraduccionesAsync(usuario, req.IdMaestro, req.Num1, req.Num2, req.Num3, traduccion.String4, traduccion.String5, traduccion.String6, traduccion.String7);
+                        }
+                        catch { }
+                    });
+                }
+
+                return respuesta;
             }
-            catch (Exception ex)
+            catch (Exception)
             {
                 return new Respuesta
                 {

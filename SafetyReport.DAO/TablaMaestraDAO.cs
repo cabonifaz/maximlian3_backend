@@ -260,5 +260,46 @@ namespace SafetyReport.DAO
                 };
             }
         }
+        public async Task<Respuesta> ActualizarTraduccionesAsync(UsuarioGeneral usuarioLogueado, int idMaestro, int? num1, decimal? num2, decimal? num3, string? string4, string? string5, string? string6, string? string7)
+        {
+            try
+            {
+                using SqlConnection cn = new(_dbConfig.ConnectionString);
+                using SqlCommand cmd = new("TablaMaestra_ActualizarTraducciones", cn);
+
+                cmd.CommandType = CommandType.StoredProcedure;
+                cmd.Parameters.Add("@intIdUsuario", SqlDbType.Int).Value = usuarioLogueado.IdUsuario;
+                cmd.Parameters.Add("@vchUsuario", SqlDbType.VarChar, 32).Value = usuarioLogueado.Usuario;
+                cmd.Parameters.Add("@intIdEmpresa", SqlDbType.Int).Value = usuarioLogueado.IdEmpresa;
+                cmd.Parameters.Add("@intIdRol", SqlDbType.Int).Value = usuarioLogueado.IdRol;
+                cmd.Parameters.Add("@intIdMaestro", SqlDbType.Int).Value = idMaestro;
+                cmd.Parameters.Add("@intNum1", SqlDbType.Int).Value = (object?)num1 ?? DBNull.Value;
+
+                cmd.Parameters.Add("@decNum2", SqlDbType.Decimal).Value = (object?)num2 ?? DBNull.Value;
+                cmd.Parameters["@decNum2"].Precision = 18;
+                cmd.Parameters["@decNum2"].Scale = 6;
+
+                cmd.Parameters.Add("@decNum3", SqlDbType.Decimal).Value = (object?)num3 ?? DBNull.Value;
+                cmd.Parameters["@decNum3"].Precision = 18;
+                cmd.Parameters["@decNum3"].Scale = 6;
+
+                cmd.Parameters.Add("@vchString4", SqlDbType.VarChar, 255).Value = (object?)string4 ?? DBNull.Value;
+                cmd.Parameters.Add("@vchString5", SqlDbType.VarChar, 255).Value = (object?)string5 ?? DBNull.Value;
+                cmd.Parameters.Add("@vchString6", SqlDbType.VarChar, 255).Value = (object?)string6 ?? DBNull.Value;
+                cmd.Parameters.Add("@vchString7", SqlDbType.VarChar, 255).Value = (object?)string7 ?? DBNull.Value;
+
+                await cn.OpenAsync();
+                return await LeerRespuestaAsync<TablaMaestraResultado>(cmd);
+            }
+            catch (Exception ex)
+            {
+                return new Respuesta
+                {
+                    IdTipoMensaje = 3,
+                    Mensaje = ex.Message,
+                    Result = new List<TablaMaestraResultado>()
+                };
+            }
+        }
     }
 }
