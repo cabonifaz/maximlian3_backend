@@ -200,7 +200,13 @@ builder.Services.AddSingleton<IAmazonBedrockRuntime>(sp =>
     var credenciales = new Amazon.Runtime.BasicAWSCredentials(awsAccessKey, awsSecretKey);
     return new AmazonBedrockRuntimeClient(credenciales, regionEndpoint);
 });
-builder.Services.AddSingleton<BedrockTranslationService>();
+builder.Services.AddSingleton<BedrockService>();
+builder.Services.AddSingleton(sp =>
+{
+    var bedrock = sp.GetRequiredService<BedrockService>();
+    var modelId = builder.Configuration["BedrockTranslation:TablaMaestra"] ?? "amazon.nova-lite-v1:0";
+    return new BedrockTranslationService(bedrock, modelId);
+});
 
 builder.Services.AddScoped<PedidoArchivoHandler>();
 builder.Services.AddScoped<PedidoArchivoDAO>();

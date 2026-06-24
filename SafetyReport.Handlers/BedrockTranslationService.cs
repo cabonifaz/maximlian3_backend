@@ -1,5 +1,3 @@
-using Amazon.BedrockRuntime;
-using Amazon.BedrockRuntime.Model;
 using System.Text.Json;
 
 namespace SafetyReport.Handlers
@@ -20,40 +18,48 @@ namespace SafetyReport.Handlers
 
     public class BedrockTranslationService
     {
-        private readonly IAmazonBedrockRuntime _bedrock;
-        private const string ModelId = "amazon.nova-lite-v1:0";
+        private readonly BedrockService _bedrock;
 
-        private const string SystemPrompt =
-            """
-            You are a translator. You receive a JSON object with fields "string1" and "string2" (one or both may be null).
+        private readonly BedrockConfig _config;
 
-            Translate the non-null values into English and Portuguese.
+        private static BedrockConfig CreateConfig(string modelId) => new()
+        {
+            ModelId = modelId,
+            MaxTokens = 1024,
+            Temperature = 0F,
+            SystemPrompt =
+                """
+                You are a translator. You receive a JSON object with fields "string1" and "string2" (one or both may be null).
 
-            You MUST respond with ONLY a valid JSON object using EXACTLY these field names:
-            {"string4":"...","string5":"...","string6":"...","string7":"..."}
+                Translate the non-null values into English and Portuguese.
 
-            Where:
-            - string4 = English translation of string1
-            - string5 = English translation of string2
-            - string6 = Portuguese translation of string1
-            - string7 = Portuguese translation of string2
+                You MUST respond with ONLY a valid JSON object using EXACTLY these field names:
+                {"string4":"...","string5":"...","string6":"...","string7":"..."}
 
-            Rules:
-            - If string2 is null, omit string5 and string7.
-            - Do NOT rename the fields. Do NOT add extra fields.
-            - Do NOT wrap in markdown, code blocks, or explanations.
-            - Output ONLY the raw JSON object.
+                Where:
+                - string4 = English translation of string1
+                - string5 = English translation of string2
+                - string6 = Portuguese translation of string1
+                - string7 = Portuguese translation of string2
 
-            Example input:  {"string1":"Nuevo Sol","string2":null}
-            Example output: {"string4":"New Sol","string6":"Novo Sol"}
+                Rules:
+                - If string2 is null, omit string5 and string7.
+                - Do NOT rename the fields. Do NOT add extra fields.
+                - Do NOT wrap in markdown, code blocks, or explanations.
+                - Output ONLY the raw JSON object.
 
-            Example input:  {"string1":"Dólar Americano","string2":"USD"}
-            Example output: {"string4":"US Dollar","string5":"USD","string6":"Dólar Americano","string7":"USD"}
-            """;
+                Example input:  {"string1":"Nuevo Sol","string2":null}
+                Example output: {"string4":"New Sol","string6":"Novo Sol"}
 
-        public BedrockTranslationService(IAmazonBedrockRuntime bedrock)
+                Example input:  {"string1":"Dólar Americano","string2":"USD"}
+                Example output: {"string4":"US Dollar","string5":"USD","string6":"Dólar Americano","string7":"USD"}
+                """
+        };
+
+        public BedrockTranslationService(BedrockService bedrock, string modelId)
         {
             _bedrock = bedrock;
+            _config = CreateConfig(modelId);
         }
 
         public async Task<TranslationOutput> TranslateAsync(TranslationInput input)
@@ -61,36 +67,11 @@ namespace SafetyReport.Handlers
             var payload = new { string1 = input.String1, string2 = input.String2 };
             var userMessage = JsonSerializer.Serialize(payload);
 
-            var request = new ConverseRequest
-            {
-                ModelId = ModelId,
-                System = new List<SystemContentBlock>
-                {
-                    new() { Text = SystemPrompt }
-                },
-                Messages = new List<Message>
-                {
-                    new()
-                    {
-                        Role = ConversationRole.User,
-                        Content = new List<ContentBlock>
-                        {
-                            new() { Text = userMessage }
-                        }
-                    }
-                },
-                InferenceConfig = new InferenceConfiguration
-                {
-                    MaxTokens = 256,
-                    Temperature = 0F
-                }
-            };
-
-            var response = await _bedrock.ConverseAsync(request);
-            var responseText = (response?.Output?.Message?.Content?[0]?.Text ?? "{}").Trim();
+            var responseText = await _bedrock.InvokeAsync(_config, userMessage);
 
             return ParseResponse(responseText);
         }
+
         private static TranslationOutput ParseResponse(string text)
         {
             var start = text.IndexOf('{');
