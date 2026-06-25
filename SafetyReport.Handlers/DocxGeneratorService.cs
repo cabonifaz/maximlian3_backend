@@ -464,10 +464,11 @@ public partial class DocxGeneratorService
         var pPr = new ParagraphProperties();
         pPr.Append(new Justification { Val = MapAlign(align) });
         var gapAfter = CssToTwips(config?["header"]?["gapAfter"]?.GetValue<string>() ?? "0");
+        var headerMarginTop = CssToTwips(config?["header"]?["marginTop"]?.GetValue<string>() ?? "0");
         var verticalPadding = Math.Max(0, (int)((logoBoxH - logoH) / 635 / 2));
         pPr.Append(new SpacingBetweenLines
         {
-            Before = verticalPadding.ToString(),
+            Before = (headerMarginTop + verticalPadding).ToString(),
             After = (gapAfter + verticalPadding).ToString(),
             Line = (1 * 240).ToString(),
             LineRule = LineSpacingRuleValues.Auto
@@ -713,7 +714,8 @@ public partial class DocxGeneratorService
         var mr = CssToTwips(config["margins"]?["right"]?.GetValue<string>() ?? "0.5in");
         var logoHeight = CssToTwips(config["header"]?["logoHeight"]?.GetValue<string>() ?? "0.55in");
         var headerGap = CssToTwips(config["header"]?["gapAfter"]?.GetValue<string>() ?? "0");
-        var headerDistance = Math.Max(0, mt - logoHeight - headerGap);
+        var headerMarginTop = CssToTwips(config["header"]?["marginTop"]?.GetValue<string>() ?? "0");
+        var headerDistance = Math.Max(0, mt - logoHeight - headerGap - headerMarginTop);
         var footerGapBefore = CssToTwips(config["footer"]?["gapBefore"]?.GetValue<string>() ?? "0");
 
         var secPr = new SectionProperties();

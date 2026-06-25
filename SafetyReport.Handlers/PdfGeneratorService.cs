@@ -28,6 +28,7 @@ public class PdfGeneratorService
     private double _mTop, _mBottom, _mLeft, _mRight;
     private double _logoBoxW, _logoBoxH;
     private double _headerGapAfter;
+    private double _headerMarginTop;
     private string _headerAlign = "center";
     private string _footerText = "";
     private string _pageLabel = "Page";
@@ -133,6 +134,7 @@ public class PdfGeneratorService
         _logoBoxW = CssToPoints(config["header"]?["logoWidth"]?.GetValue<string>() ?? "1.3in");
         _logoBoxH = CssToPoints(config["header"]?["logoHeight"]?.GetValue<string>() ?? "0.55in");
         _headerGapAfter = CssToPoints(config["header"]?["gapAfter"]?.GetValue<string>() ?? "0");
+        _headerMarginTop = CssToPoints(config["header"]?["marginTop"]?.GetValue<string>() ?? "0");
         _headerAlign = config["header"]?["align"]?.GetValue<string>() ?? "center";
 
         _footerText = config["footer"]?["text"]?.GetValue<string>() ?? "";
@@ -315,7 +317,7 @@ public class PdfGeneratorService
             var logoW = image.PointWidth * scale;
             var logoH = image.PointHeight * scale;
 
-            var headerTop = _mTop - _headerGapAfter - _logoBoxH;
+            var headerTop = _headerMarginTop > 0 ? _headerMarginTop : _mTop - _headerGapAfter - _logoBoxH;
             var logoY = headerTop + (_logoBoxH - logoH) / 2;
             var logoX = _headerAlign switch
             {
