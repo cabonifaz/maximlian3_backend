@@ -602,6 +602,7 @@ public partial class DocxGeneratorService
         var fiL = CssToTwips(config?["footerIndent"]?["left"]?.GetValue<string>() ?? "0");
         var fiR = CssToTwips(config?["footerIndent"]?["right"]?.GetValue<string>() ?? "0");
         var gapBefore = CssToTwips(config?["footer"]?["gapBefore"]?.GetValue<string>() ?? "0");
+        var footerMBottom = CssToTwips(config?["footer"]?["marginBottom"]?.GetValue<string>() ?? "0");
         var showPageNumber = config?["footer"]?["showPageNumber"]?.GetValue<bool>() ?? true;
         var footerPageW = CssToTwips(config?["pageSize"]?["width"]?.GetValue<string>());
         var footerMl = CssToTwips(config?["margins"]?["left"]?.GetValue<string>());
@@ -613,7 +614,7 @@ public partial class DocxGeneratorService
             new TableWidth { Width = footerTableWidth.ToString(), Type = TableWidthUnitValues.Dxa },
             new TableLayout { Type = TableLayoutValues.Fixed }));
 
-        var footerBoxHeight = CssToTwips(config?["margins"]?["bottom"]?.GetValue<string>()) - gapBefore;
+        var footerBoxHeight = CssToTwips(config?["margins"]?["bottom"]?.GetValue<string>()) - footerMBottom - gapBefore;
 
         var footerRow = new TableRow();
         footerRow.Append(new TableRowProperties(
@@ -717,6 +718,7 @@ public partial class DocxGeneratorService
         var headerMarginTop = CssToTwips(config["header"]?["marginTop"]?.GetValue<string>() ?? "0");
         var headerDistance = Math.Max(0, mt - logoHeight - headerGap - headerMarginTop);
         var footerGapBefore = CssToTwips(config["footer"]?["gapBefore"]?.GetValue<string>() ?? "0");
+        var footerMarginBottom = CssToTwips(config["footer"]?["marginBottom"]?.GetValue<string>() ?? "0");
 
         var secPr = new SectionProperties();
         secPr.Append(new PageSize { Width = (uint)pageW, Height = (uint)pageH });
@@ -727,7 +729,7 @@ public partial class DocxGeneratorService
             Left = (uint)ml,
             Right = (uint)mr,
             Header = (uint)headerDistance,
-            Footer = 0
+            Footer = (uint)footerMarginBottom
         });
 
         // Page border

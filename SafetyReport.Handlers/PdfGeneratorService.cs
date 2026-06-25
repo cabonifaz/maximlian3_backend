@@ -29,6 +29,7 @@ public class PdfGeneratorService
     private double _logoBoxW, _logoBoxH;
     private double _headerGapAfter;
     private double _headerMarginTop;
+    private double _footerMarginBottom;
     private string _headerAlign = "center";
     private string _footerText = "";
     private string _pageLabel = "Page";
@@ -135,6 +136,7 @@ public class PdfGeneratorService
         _logoBoxH = CssToPoints(config["header"]?["logoHeight"]?.GetValue<string>() ?? "0.55in");
         _headerGapAfter = CssToPoints(config["header"]?["gapAfter"]?.GetValue<string>() ?? "0");
         _headerMarginTop = CssToPoints(config["header"]?["marginTop"]?.GetValue<string>() ?? "0");
+        _footerMarginBottom = CssToPoints(config["footer"]?["marginBottom"]?.GetValue<string>() ?? "0");
         _headerAlign = config["header"]?["align"]?.GetValue<string>() ?? "center";
 
         _footerText = config["footer"]?["text"]?.GetValue<string>() ?? "";
@@ -337,7 +339,7 @@ public class PdfGeneratorService
         var lineH = _footerFontSize;
         var footerX = _mLeft + _footerIndentL;
         var footerW = _pageW - _mLeft - _mRight - _footerIndentL - _footerIndentR;
-        var footerY = _contentBottom + _footerGapBefore;
+        var footerY = _footerMarginBottom > 0 ? _pageH - _footerMarginBottom : _contentBottom + _footerGapBefore;
         var align = MapXAlign(_footerAlign);
 
         if (!string.IsNullOrEmpty(_footerText))
