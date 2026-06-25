@@ -24,6 +24,7 @@ namespace SafetyReport.Handlers
             You MUST return the EXACT same JSON structure with translated values. Rules:
             - Do NOT change keys or structure, only translate the string values.
             - If a value is null, keep it as null. If a value is "", keep it as "".
+            - If a field's text is already in {0}, return "" for that field.
             - Do NOT add, remove, or rename any fields.
             - Do NOT wrap in markdown, code blocks, or explanations.
             - Output ONLY the raw JSON object.
@@ -107,7 +108,7 @@ namespace SafetyReport.Handlers
             {
                 if (string.IsNullOrEmpty(kvp.Value))
                     result[kvp.Key] = kvp.Value;
-                else if (parsed.TryGetValue(kvp.Key, out var translated) && !string.IsNullOrEmpty(translated))
+                else if (parsed.TryGetValue(kvp.Key, out var translated))
                     result[kvp.Key] = translated;
                 else
                     result[kvp.Key] = kvp.Value;
