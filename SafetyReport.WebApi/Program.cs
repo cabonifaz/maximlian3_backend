@@ -1,3 +1,4 @@
+using Amazon.BedrockRuntime;
 using Amazon.S3;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
@@ -192,6 +193,27 @@ builder.Services.AddSingleton<IAmazonS3>(sp =>
 });
 
 builder.Services.AddSingleton<IS3UploadService, S3UploadService>();
+
+builder.Services.AddSingleton<IAmazonBedrockRuntime>(sp =>
+{
+    var regionEndpoint = Amazon.RegionEndpoint.GetBySystemName(awsRegion);
+    var credenciales = new Amazon.Runtime.BasicAWSCredentials(awsAccessKey, awsSecretKey);
+    return new AmazonBedrockRuntimeClient(credenciales, regionEndpoint);
+});
+builder.Services.AddSingleton<BedrockService>();
+builder.Services.AddSingleton(sp =>
+{
+    var bedrock = sp.GetRequiredService<BedrockService>();
+    var modelId = builder.Configuration["BedrockTranslation:TablaMaestra"] ?? "amazon.nova-lite-v1:0";
+    return new BedrockTranslationService(bedrock, modelId);
+});
+builder.Services.AddSingleton(sp =>
+{
+    var bedrock = sp.GetRequiredService<BedrockService>();
+    var modelId = builder.Configuration["BedrockTranslation:Informe"] ?? "meta.llama4-maverick-17b-instruct-v1:0";
+    return new BedrockInformeTranslationService(bedrock, modelId);
+});
+builder.Services.AddScoped<InformeTranslationHandler>();
 
 builder.Services.AddScoped<PedidoArchivoHandler>();
 builder.Services.AddScoped<PedidoArchivoDAO>();

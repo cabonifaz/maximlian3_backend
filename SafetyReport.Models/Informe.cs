@@ -812,6 +812,7 @@ namespace SafetyReport.Models
         public string? Investigado { get; set; }
         public string? Vigencia { get; set; }
         public string? TipoTramite { get; set; }
+        public int? IdInformeOriginal { get; set; }
     }
 
     public class InformeListaResult
@@ -949,6 +950,7 @@ namespace SafetyReport.Models
     {
         public int IdInforme { get; set; }
         public int IdPedido { get; set; }
+        public int? IdIdioma { get; set; }
         public int? IdTipoPersona { get; set; }
         public string? Nombre { get; set; }
         public string? NombreComercial { get; set; }

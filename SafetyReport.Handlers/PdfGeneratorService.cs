@@ -5,6 +5,7 @@ using PdfSharp.Drawing;
 using PdfSharp.Drawing.Layout;
 using PdfSharp.Fonts;
 using PdfSharp.Pdf;
+using PdfSharp.Pdf.Advanced;
 
 namespace SafetyReport.Handlers;
 
@@ -17,6 +18,11 @@ public class PdfGeneratorService
     private double _contentIndentR = 0;
     private double _contentWidth = 0;
     private byte[]? _logoBytes;
+    private byte[]? _watermarkBytes;
+    private double _wmWidth, _wmHeight, _wmOpacity;
+    private string _wmPosition = "";
+    private XImage? _wmImage;
+    private double _wmImgW, _wmImgH, _wmX, _wmY;
 
     private double _pageW, _pageH;
     private double _mTop, _mBottom, _mLeft, _mRight;
@@ -73,10 +79,11 @@ public class PdfGeneratorService
         }
     }
 
-    public MemoryStream GenerarPdf(JsonNode json, byte[]? logoBytes = null)
+    public MemoryStream GenerarPdf(JsonNode json, byte[]? logoBytes = null, byte[]? watermarkBytes = null)
     {
         _doc = new PdfDocument();
         _logoBytes = logoBytes;
+        _watermarkBytes = watermarkBytes;
         _pendingTableBottomMargin = 0;
         _lastMarginBottom = 0;
         _lastPaddingBottom = 0;
@@ -86,6 +93,7 @@ public class PdfGeneratorService
 
         var config = json["document"];
         LeerConfigGlobal(config);
+        PrepararMarcaAgua();
         NuevaPagina();
 
         var sections = json["sections"]?.AsArray();
@@ -97,6 +105,7 @@ public class PdfGeneratorService
 
         var ms = new MemoryStream();
         _gfx.Dispose();
+        AplicarOpacidadMarcaAgua();
         _doc.Save(ms);
         ms.Position = 0;
         return ms;
@@ -151,6 +160,15 @@ public class PdfGeneratorService
         _contentTop = _mTop;
         _contentBottom = _pageH - _mBottom;
 
+        var wmNode = config["watermark"];
+        if (wmNode is JsonObject)
+        {
+            _wmWidth = CssToPoints(wmNode["width"]?.GetValue<string>() ?? "0");
+            _wmHeight = CssToPoints(wmNode["height"]?.GetValue<string>() ?? "0");
+            _wmOpacity = wmNode["opacity"]?.GetValue<double>() ?? 1.0;
+            _wmPosition = wmNode["position"]?.GetValue<string>() ?? "center center";
+        }
+
         var pageBorderNode = config["pageBorder"];
         if (pageBorderNode is JsonObject)
         {
@@ -184,6 +202,7 @@ public class PdfGeneratorService
         _y = _contentTop;
         _drawnBorderLines.Clear();
 
+        DibujarMarcaAgua();
         DibujarEncabezado();
         DibujarPiePagina();
         DibujarBordePagina();
@@ -197,6 +216,88 @@ public class PdfGeneratorService
             return true;
         }
         return false;
+    }
+
+    private void PrepararMarcaAgua()
+    {
+        if (_watermarkBytes is null || _watermarkBytes.Length == 0 || _wmWidth <= 0 || _wmHeight <= 0) return;
+
+        try
+        {
+            var imgStream = new MemoryStream(_watermarkBytes);
+            _wmImage = XImage.FromStream(imgStream);
+
+            var scaleW = _wmWidth / _wmImage.PointWidth;
+            var scaleH = _wmHeight / _wmImage.PointHeight;
+            var scale = Math.Min(scaleW, scaleH);
+            _wmImgW = _wmImage.PointWidth * scale;
+            _wmImgH = _wmImage.PointHeight * scale;
+
+            var parts = _wmPosition.Split(' ', StringSplitOptions.RemoveEmptyEntries);
+            var hPos = parts.Length > 0 ? parts[0] : "center";
+            var vPos = parts.Length > 1 ? parts[1] : "center";
+
+            _wmX = hPos switch
+            {
+                "left" => 0.0,
+                "right" => _pageW - _wmImgW,
+                _ => (_pageW - _wmImgW) / 2
+            };
+            _wmY = vPos switch
+            {
+                "top" => 0.0,
+                "bottom" => _pageH - _wmImgH,
+                _ => (_pageH - _wmImgH) / 2
+            };
+        }
+        catch { _wmImage = null; }
+    }
+
+    private void DibujarMarcaAgua()
+    {
+    }
+
+    private void AplicarOpacidadMarcaAgua()
+    {
+        if (_wmImage is null || _wmOpacity >= 1.0) return;
+
+        var extGState = new PdfExtGState(_doc);
+        extGState.StrokeAlpha = _wmOpacity;
+        extGState.NonStrokeAlpha = _wmOpacity;
+        _doc.Internals.AddObject(extGState);
+
+        foreach (var page in _doc.Pages)
+        {
+            using var wmGfx = XGraphics.FromPdfPage(page, XGraphicsPdfPageOptions.Prepend);
+            wmGfx.DrawImage(_wmImage, _wmX, _wmY, _wmImgW, _wmImgH);
+        }
+
+        foreach (var page in _doc.Pages)
+        {
+            var resources = page.Elements.GetDictionary("/Resources");
+            if (resources is null) continue;
+
+            var gsDict = resources.Elements.GetDictionary("/ExtGState");
+            if (gsDict is null)
+            {
+                gsDict = new PdfDictionary(_doc);
+                resources.Elements["/ExtGState"] = gsDict;
+            }
+            gsDict.Elements["/GSwm"] = extGState.Reference!;
+
+            var wmContent = page.Contents.Elements[0];
+            if (wmContent is PdfReference wmRef)
+                wmContent = wmRef.Value;
+            if (wmContent is PdfDictionary wmDict)
+            {
+                var stream = wmDict.Stream;
+                stream.TryUnfilter();
+                var str = System.Text.Encoding.Latin1.GetString(stream.Value);
+                str = str.Replace("/GS0 gs", "");
+                str = "q /GSwm gs\n" + str + "\nQ\n";
+                stream.Value = System.Text.Encoding.Latin1.GetBytes(str);
+            }
+        }
     }
 
     private void DibujarEncabezado()

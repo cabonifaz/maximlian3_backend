@@ -6,10 +6,12 @@ namespace SafetyReport.Handlers
     public class TablaMaestraHandler
     {
         private readonly TablaMaestraDAO _dao;
+        private readonly BedrockTranslationService _translator;
 
-        public TablaMaestraHandler(TablaMaestraDAO dao)
+        public TablaMaestraHandler(TablaMaestraDAO dao, BedrockTranslationService translator)
         {
             _dao = dao;
+            _translator = translator;
         }
 
         public async Task<Respuesta> ListarAsync(UsuarioGeneral usuarioLogueado, int? idMaestro)
@@ -46,13 +48,37 @@ namespace SafetyReport.Handlers
             }
         }
 
+        private static readonly HashSet<int> _maestrosSoloString1 = new() { 14, 44, 45, 47, 48, 49, 52, 56, 57, 58, 59, 60, 61 };
+
         public async Task<Respuesta> CrearAsync(UsuarioGeneral usuarioLogueado, TablaMaestraRequest request)
         {
             try
             {
+                var input = _maestrosSoloString1.Contains(request.IdMaestro)
+                    ? new TranslationInput { String1 = request.String1 }
+                    : new TranslationInput { String1 = request.String1, String2 = request.String2 };
+
+                try
+                {
+                    var traduccion = await _translator.TranslateAsync(input);
+                    request.String4 = traduccion.String4;
+                    request.String5 = traduccion.String5;
+                    request.String6 = traduccion.String6;
+                    request.String7 = traduccion.String7;
+                }
+                catch
+                {
+                    return new Respuesta
+                    {
+                        IdTipoMensaje = 1,
+                        Mensaje = "La traducción al inglés y portugués falló, intente nuevamente.",
+                        Result = new List<TablaMaestraResultado>()
+                    };
+                }
+
                 return await _dao.CrearAsync(usuarioLogueado, request);
             }
-            catch (Exception ex)
+            catch (Exception)
             {
                 return new Respuesta
                 {

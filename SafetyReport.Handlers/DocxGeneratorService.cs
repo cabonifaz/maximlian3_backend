@@ -18,12 +18,13 @@ public partial class DocxGeneratorService
     private int _contentIndentR = 0;
     private int _contentWidth = 0; // available width for content in twips
     private byte[]? _logoBytes;
+    private byte[]? _watermarkBytes;
     private int _pendingTableBottomMargin;
     private Paragraph? _lastBodyParagraph;
     private int _lastBodyMarginBottom;
     private int _lastBodyPaddingBottom;
 
-    public MemoryStream GenerarDocx(JsonNode json, byte[]? logoBytes = null)
+    public MemoryStream GenerarDocx(JsonNode json, byte[]? logoBytes = null, byte[]? watermarkBytes = null)
     {
         var ms = new MemoryStream();
         using (var doc = WordprocessingDocument.Create(ms, WordprocessingDocumentType.Document, true))
@@ -36,6 +37,7 @@ public partial class DocxGeneratorService
             var sections = json["sections"]?.AsArray();
 
             _logoBytes = logoBytes;
+            _watermarkBytes = watermarkBytes;
             _pendingTableBottomMargin = 0;
             _lastBodyParagraph = null;
             _lastBodyMarginBottom = 0;
@@ -406,10 +408,20 @@ public partial class DocxGeneratorService
 
     private void AgregarHeaderLogo(MainDocumentPart mainPart, JsonNode? config)
     {
-        if (_logoBytes is null || _logoBytes.Length == 0) return;
+        var hasLogo = _logoBytes is not null && _logoBytes.Length > 0;
+        var hasWatermark = _watermarkBytes is not null && _watermarkBytes.Length > 0;
+        if (!hasLogo && !hasWatermark) return;
 
         var headerPart = mainPart.AddNewPart<HeaderPart>();
         var header = new Header();
+
+        if (!hasLogo)
+        {
+            AgregarMarcaAguaAlHeader(headerPart, header, config);
+            headerPart.Header = header;
+            headerPart.Header.Save();
+            return;
+        }
 
         var logoBoxW = CssToEmu(config?["header"]?["logoWidth"]?.GetValue<string>() ?? "1.3in");
         var logoBoxH = CssToEmu(config?["header"]?["logoHeight"]?.GetValue<string>() ?? "0.55in");
@@ -467,8 +479,114 @@ public partial class DocxGeneratorService
         para.Append(run);
 
         header.Append(para);
+
+        AgregarMarcaAguaAlHeader(headerPart, header, config);
+
         headerPart.Header = header;
         headerPart.Header.Save();
+    }
+
+    private void AgregarMarcaAguaAlHeader(HeaderPart headerPart, Header header, JsonNode? config)
+    {
+        if (_watermarkBytes is null || _watermarkBytes.Length == 0) return;
+
+        var wmNode = config?["watermark"];
+        if (wmNode is null) return;
+
+        var wmWidthPt = CssToPt(wmNode["width"]?.GetValue<string>() ?? "0");
+        var wmHeightPt = CssToPt(wmNode["height"]?.GetValue<string>() ?? "0");
+        if (wmWidthPt <= 0 || wmHeightPt <= 0) return;
+
+        var pageW = CssToPt(config?["pageSize"]?["width"]?.GetValue<string>() ?? "8.5in");
+        var pageH = CssToPt(config?["pageSize"]?["height"]?.GetValue<string>() ?? "11in");
+
+        var position = wmNode["position"]?.GetValue<string>() ?? "center center";
+        var parts = position.Split(' ', StringSplitOptions.RemoveEmptyEntries);
+        var hPos = parts.Length > 0 ? parts[0] : "center";
+        var vPos = parts.Length > 1 ? parts[1] : "center";
+
+        var marginLeft = hPos switch
+        {
+            "left" => 0.0,
+            "right" => pageW - wmWidthPt,
+            _ => (pageW - wmWidthPt) / 2
+        };
+        var marginTop = vPos switch
+        {
+            "top" => 0.0,
+            "bottom" => pageH - wmHeightPt,
+            _ => (pageH - wmHeightPt) / 2
+        };
+
+        var imagePart = _watermarkBytes.Length >= 2 && _watermarkBytes[0] == 0xFF && _watermarkBytes[1] == 0xD8
+            ? headerPart.AddImagePart(ImagePartType.Jpeg)
+            : headerPart.AddImagePart(ImagePartType.Png);
+        using (var imgStream = new MemoryStream(_watermarkBytes))
+            imagePart.FeedData(imgStream);
+
+        var relId = headerPart.GetIdOfPart(imagePart);
+        var (wmW, wmH) = AjustarImagenContain(_watermarkBytes, CssToEmu(wmNode["width"]?.GetValue<string>() ?? "0"), CssToEmu(wmNode["height"]?.GetValue<string>() ?? "0"));
+        var marginLeftEmu = (long)(marginLeft * 12700);
+        var marginTopEmu = (long)(marginTop * 12700);
+
+        var drawing = new Drawing(
+            new DW.Anchor(
+                new DW.SimplePosition { X = 0, Y = 0 },
+                new DW.HorizontalPosition(
+                    new DW.PositionOffset(marginLeftEmu.ToString())
+                ) { RelativeFrom = DW.HorizontalRelativePositionValues.Page },
+                new DW.VerticalPosition(
+                    new DW.PositionOffset(marginTopEmu.ToString())
+                ) { RelativeFrom = DW.VerticalRelativePositionValues.Page },
+                new DW.Extent { Cx = wmW, Cy = wmH },
+                new DW.EffectExtent { LeftEdge = 0, TopEdge = 0, RightEdge = 0, BottomEdge = 0 },
+                new DW.WrapNone(),
+                new DW.DocProperties { Id = 2, Name = "Watermark" },
+                new DW.NonVisualGraphicFrameDrawingProperties(
+                    new A.GraphicFrameLocks { NoChangeAspect = true }),
+                new A.Graphic(
+                    new A.GraphicData(
+                        new PIC.Picture(
+                            new PIC.NonVisualPictureProperties(
+                                new PIC.NonVisualDrawingProperties { Id = 0, Name = "watermark.png" },
+                                new PIC.NonVisualPictureDrawingProperties()),
+                            new PIC.BlipFill(
+                                new A.Blip { Embed = relId },
+                                new A.Stretch(new A.FillRectangle())),
+                            new PIC.ShapeProperties(
+                                new A.Transform2D(
+                                    new A.Offset { X = 0, Y = 0 },
+                                    new A.Extents { Cx = wmW, Cy = wmH }),
+                                new A.PresetGeometry(new A.AdjustValueList()) { Preset = A.ShapeTypeValues.Rectangle }))
+                    ) { Uri = "http://schemas.openxmlformats.org/drawingml/2006/picture" })
+            )
+            {
+                DistanceFromTop = 0, DistanceFromBottom = 0,
+                DistanceFromLeft = 0, DistanceFromRight = 0,
+                SimplePos = false, RelativeHeight = 0,
+                BehindDoc = true, Locked = false,
+                LayoutInCell = true, AllowOverlap = true
+            });
+
+        var wmPara = new Paragraph();
+        var wmRun = new Run();
+        wmRun.Append(drawing);
+        wmPara.Append(wmRun);
+        header.Append(wmPara);
+    }
+
+    private static double CssToPt(string value)
+    {
+        if (string.IsNullOrEmpty(value)) return 0;
+        var m = Regex.Match(value, @"([\d.]+)\s*(in|pt|)");
+        if (!m.Success || !double.TryParse(m.Groups[1].Value, System.Globalization.NumberStyles.Any, System.Globalization.CultureInfo.InvariantCulture, out var num))
+            return 0;
+        return m.Groups[2].Value switch
+        {
+            "in" => num * 72,
+            "pt" => num,
+            _ => num * 72
+        };
     }
 
     private void AgregarFooter(MainDocumentPart mainPart, JsonNode? config)

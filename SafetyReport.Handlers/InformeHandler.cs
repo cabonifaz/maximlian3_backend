@@ -440,7 +440,7 @@ namespace SafetyReport.Handlers
         {
             try
             {
-                var (respuesta, nombreInforme) = await _dao.GenerarDocumentoAsync(usuarioLogueado, request.IdInforme, request.IdPedido, 1);
+                var (respuesta, nombreInforme) = await _dao.GenerarDocumentoAsync(usuarioLogueado, request.IdInforme, request.IdPedido);
                 if (respuesta.IdTipoMensaje != 2 || respuesta.Result is not string jsonStr || string.IsNullOrWhiteSpace(jsonStr))
                     return new Respuesta { IdTipoMensaje = respuesta.IdTipoMensaje, Mensaje = respuesta.Mensaje, Result = null };
 
@@ -451,6 +451,10 @@ namespace SafetyReport.Handlers
                 var logoKey = estructura?["document"]?["header"]?["logo"]?.GetValue<string>();
                 if (!string.IsNullOrWhiteSpace(logoKey))
                     estructura!["document"]!["header"]!["logo"] = _s3.GenerarDownloadUrl(logoKey);
+
+                var watermarkKey = estructura?["document"]?["watermark"]?["image"]?.GetValue<string>();
+                if (!string.IsNullOrWhiteSpace(watermarkKey))
+                    estructura!["document"]!["watermark"]!["image"] = _s3.GenerarDownloadUrl(watermarkKey);
 
                 return new Respuesta
                 {
@@ -472,7 +476,7 @@ namespace SafetyReport.Handlers
                 var docExistente = await ObtenerDocumentoExistente(usuarioLogueado, request, ".docx");
                 if (docExistente != null) return docExistente;
 
-                var (respuesta, nombreInforme) = await _dao.GenerarDocumentoAsync(usuarioLogueado, request.IdInforme, request.IdPedido, 1);
+                var (respuesta, nombreInforme) = await _dao.GenerarDocumentoAsync(usuarioLogueado, request.IdInforme, request.IdPedido);
                 if (respuesta.IdTipoMensaje != 2 || respuesta.Result is not string jsonStr || string.IsNullOrWhiteSpace(jsonStr))
                     return new Respuesta { IdTipoMensaje = respuesta.IdTipoMensaje, Mensaje = respuesta.Mensaje, Result = null };
 
@@ -481,9 +485,10 @@ namespace SafetyReport.Handlers
                     return new Respuesta { IdTipoMensaje = 1, Mensaje = "Error al procesar el documento.", Result = null };
 
                 var logoBytes = await DescargarLogoAsync(estructura);
+                var watermarkBytes = await DescargarMarcaAguaAsync(estructura);
 
                 var generador = new DocxGeneratorService();
-                using var docxStream = generador.GenerarDocx(estructura!, logoBytes);
+                using var docxStream = generador.GenerarDocx(estructura!, logoBytes, watermarkBytes);
 
                 var nombreArchivo = !string.IsNullOrWhiteSpace(nombreInforme) ? nombreInforme : "documento";
                 var rutaBase = $"informes/pedido-{request.IdPedido}/informe-{request.IdInforme}/{nombreArchivo}";
@@ -511,7 +516,7 @@ namespace SafetyReport.Handlers
                 var docExistente = await ObtenerDocumentoExistente(usuarioLogueado, request, ".pdf");
                 if (docExistente != null) return docExistente;
 
-                var (respuesta, nombreInforme) = await _dao.GenerarDocumentoAsync(usuarioLogueado, request.IdInforme, request.IdPedido, 1);
+                var (respuesta, nombreInforme) = await _dao.GenerarDocumentoAsync(usuarioLogueado, request.IdInforme, request.IdPedido);
                 if (respuesta.IdTipoMensaje != 2 || respuesta.Result is not string jsonStr || string.IsNullOrWhiteSpace(jsonStr))
                     return new Respuesta { IdTipoMensaje = respuesta.IdTipoMensaje, Mensaje = respuesta.Mensaje, Result = null };
 
@@ -520,10 +525,11 @@ namespace SafetyReport.Handlers
                     return new Respuesta { IdTipoMensaje = 1, Mensaje = "Error al procesar el documento.", Result = null };
 
                 var logoBytes = await DescargarLogoAsync(estructura);
+                var watermarkBytes = await DescargarMarcaAguaAsync(estructura);
                 await DescargarFuentesAsync(estructura!);
 
                 var generador = new PdfGeneratorService();
-                using var pdfStream = generador.GenerarPdf(estructura!, logoBytes);
+                using var pdfStream = generador.GenerarPdf(estructura!, logoBytes, watermarkBytes);
 
                 var nombreArchivo = !string.IsNullOrWhiteSpace(nombreInforme) ? nombreInforme : "documento";
                 var rutaBase = $"informes/pedido-{request.IdPedido}/informe-{request.IdInforme}/{nombreArchivo}";
@@ -553,6 +559,19 @@ namespace SafetyReport.Handlers
                 var logoUrl = _s3.GenerarDownloadUrl(logoKey);
                 using var http = new HttpClient();
                 return await http.GetByteArrayAsync(logoUrl);
+            }
+            catch { return null; }
+        }
+
+        private async Task<byte[]?> DescargarMarcaAguaAsync(JsonNode? estructura)
+        {
+            var key = estructura?["document"]?["watermark"]?["image"]?.GetValue<string>();
+            if (string.IsNullOrWhiteSpace(key)) return null;
+            try
+            {
+                var url = _s3.GenerarDownloadUrl(key);
+                using var http = new HttpClient();
+                return await http.GetByteArrayAsync(url);
             }
             catch { return null; }
         }
