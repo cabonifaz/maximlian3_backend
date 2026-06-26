@@ -173,6 +173,16 @@ namespace SafetyReport.Handlers
         {
             try
             {
+                if (request.IdInforme <= 0)
+                {
+                    return new Respuesta
+                    {
+                        IdTipoMensaje = 1,
+                        Mensaje = "El IdInforme es obligatorio.",
+                        Result = new List<InformeConsulta>()
+                    };
+                }
+
                 var respuesta = await _dao.ObtenerAsync(usuarioLogueado, request.IdPedido, request.IdInforme);
 
                 if (respuesta.IdTipoMensaje == 2 && respuesta.Result is List<InformeConsulta> informes)
