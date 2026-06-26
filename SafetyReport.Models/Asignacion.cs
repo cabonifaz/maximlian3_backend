@@ -92,6 +92,8 @@ namespace SafetyReport.Models
     {
         public int? IdPedido { get; set; }
         public string? CodigoPedido { get; set; }
+        public int? IdInforme { get; set; }
+        public int? IdInformeOriginal { get; set; }
         public string? Investigado { get; set; }
         public string? Pais { get; set; }
         public DateTime? Fecha { get; set; }

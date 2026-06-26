@@ -793,6 +793,7 @@ namespace SafetyReport.Models
     public class FiltroInformeObtener
     {
         public int IdPedido { get; set; }
+        public int IdInforme { get; set; }
     }
 
     public class FiltroInforme

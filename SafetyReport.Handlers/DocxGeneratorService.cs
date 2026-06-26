@@ -641,7 +641,12 @@ public partial class DocxGeneratorService
 
             var run = new Run();
             run.Append(new RunProperties(new FontSize { Val = footerFontSize }, new RunFonts { Ascii = _fontFamily, HighAnsi = _fontFamily }));
-            run.Append(new Text(footerText) { Space = SpaceProcessingModeValues.Preserve });
+            var footerLines = footerText.Replace("\r\n", "\n").Replace('\r', '\n').Split('\n');
+            for (var i = 0; i < footerLines.Length; i++)
+            {
+                if (i > 0) run.Append(new Break());
+                run.Append(new Text(footerLines[i]) { Space = SpaceProcessingModeValues.Preserve });
+            }
             para.Append(run);
             footerCell.Append(para);
         }

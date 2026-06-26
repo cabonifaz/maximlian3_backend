@@ -344,11 +344,14 @@ public class PdfGeneratorService
 
         if (!string.IsNullOrEmpty(_footerText))
         {
-            var lines = PartirEnLineas(_footerText, footerFont, footerW);
-            foreach (var line in lines)
+            var rawLines = _footerText.Replace("\r\n", "\n").Replace('\r', '\n').Split('\n');
+            foreach (var rawLine in rawLines)
             {
-                DibujarLineaTexto(line, footerFont, footerX, footerW, footerY, align, lineH);
-                footerY += lineH;
+                foreach (var line in PartirEnLineas(rawLine, footerFont, footerW))
+                {
+                    DibujarLineaTexto(line, footerFont, footerX, footerW, footerY, align, lineH);
+                    footerY += lineH;
+                }
             }
         }
 

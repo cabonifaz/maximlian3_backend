@@ -173,7 +173,7 @@ namespace SafetyReport.Handlers
         {
             try
             {
-                var respuesta = await _dao.ObtenerAsync(usuarioLogueado, request.IdPedido);
+                var respuesta = await _dao.ObtenerAsync(usuarioLogueado, request.IdPedido, request.IdInforme);
 
                 if (respuesta.IdTipoMensaje == 2 && respuesta.Result is List<InformeConsulta> informes)
                 {
