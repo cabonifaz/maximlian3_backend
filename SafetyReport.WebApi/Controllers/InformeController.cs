@@ -9,9 +9,10 @@ namespace SafetyReport.WebApi.Controllers
     [Authorize]
     [Route("api/[controller]")]
     [ApiController]
-    public class InformeController(InformeHandler informeHandler) : BaseController
+    public class InformeController(InformeHandler informeHandler, InformeTranslationHandler translationHandler) : BaseController
     {
         private readonly InformeHandler _informeHandler = informeHandler;
+        private readonly InformeTranslationHandler _translationHandler = translationHandler;
 
         [HttpPost("crear")]
         public async Task<IActionResult> Crear([FromBody] InformeCrear request)
@@ -129,6 +130,13 @@ namespace SafetyReport.WebApi.Controllers
             [FromForm] string? prompt)
         {
             var respuesta = await _informeHandler.ExtraerDocumentoAsync(archivo, secciones, prompt);
+            return Ok(respuesta);
+        }
+
+        [HttpPost("traducir")]
+        public async Task<IActionResult> Traducir([FromBody] InformeTranslationRequest request)
+        {
+            var respuesta = await _translationHandler.TranslateAsync(request);
             return Ok(respuesta);
         }
 
