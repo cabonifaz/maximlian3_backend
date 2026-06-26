@@ -403,6 +403,7 @@ namespace SafetyReport.Models
         public string? InformacionGeneral { get; set; }
         public string? OpinionCredito { get; set; }
         public bool? FlgTieneInformacion { get; set; }
+        public int? IdFormatoFecha { get; set; }
 
         // Child lists
         public List<InformeBalanceItem> lstBalances { get; set; } = new();
@@ -1033,6 +1034,7 @@ namespace SafetyReport.Models
         public string? OpinionCredito { get; set; }
         public bool? FlgTieneInformacion { get; set; }
         public int? IdEstadoInforme { get; set; }
+        public int? IdFormatoFecha { get; set; }
 
         // Child arrays
         public List<InformeBalanceConsulta> Balances { get; set; } = new();

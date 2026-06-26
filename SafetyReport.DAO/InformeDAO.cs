@@ -810,6 +810,7 @@ namespace SafetyReport.DAO
             cmd.Parameters.Add("@vchInformacionGeneral", SqlDbType.VarChar, -1).Value = (object?)r.InformacionGeneral ?? DBNull.Value;
             cmd.Parameters.Add("@vchOpinionCredito", SqlDbType.VarChar, -1).Value = (object?)r.OpinionCredito ?? DBNull.Value;
             cmd.Parameters.Add("@bitFlgTieneInformacion", SqlDbType.Bit).Value = (object?)r.FlgTieneInformacion ?? DBNull.Value;
+            cmd.Parameters.Add("@intIdFormatoFecha", SqlDbType.Int).Value = (object?)r.IdFormatoFecha ?? DBNull.Value;
         }
 
         private static void AgregarTvpsCampos(SqlCommand cmd, InformeCrear r)
