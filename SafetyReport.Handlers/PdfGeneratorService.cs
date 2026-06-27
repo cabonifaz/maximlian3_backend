@@ -67,6 +67,7 @@ public class PdfGeneratorService
 
     public static void ConfigurarFuentes(Dictionary<string, byte[]> fuentes)
     {
+        FontStore.Configurar(fuentes);
         lock (_fontLock)
         {
             if (_fontResolver == null)

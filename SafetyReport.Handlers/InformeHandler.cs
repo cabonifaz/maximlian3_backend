@@ -494,6 +494,7 @@ namespace SafetyReport.Handlers
                 if (estructura is null)
                     return new Respuesta { IdTipoMensaje = 1, Mensaje = "Error al procesar el documento.", Result = null };
 
+                await DescargarFuentesAsync(estructura!);
                 var logoBytes = await DescargarLogoAsync(estructura);
                 var watermarkBytes = await DescargarMarcaAguaAsync(estructura);
 

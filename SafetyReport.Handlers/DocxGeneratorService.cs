@@ -189,9 +189,52 @@ public partial class DocxGeneratorService
         var rows = section["rows"]?.AsArray();
         if (rows is null || rows.Count == 0) return;
 
-        var table = CrearTabla(tblCss);
         bool fixedWidth = tblCss.ContainsKey("width");
         var tblW = fixedWidth ? ObtenerAnchoTabla(tblCss) : 0;
+
+        // Pre-pass: for auto-width tables, estimate total width from cell content.
+        // Word auto-sizes tighter than PDF/HTML, so we compute an explicit width,
+        // then switch to fixed layout so all renderers produce the same table size.
+        if (!fixedWidth)
+        {
+            foreach (var row in rows)
+            {
+                if (row is not JsonArray cells) continue;
+                int rowW = 0;
+                foreach (var cell in cells)
+                {
+                    if (cell is null) continue;
+                    var cellCss = ParseCss(cell["style"]?.GetValue<string>());
+                    var effectiveCss = CombinarCssHeredable(tblCss, cellCss);
+                    var w = CssToTwips(cellCss.GetValueOrDefault("width", ""));
+                    if (w <= 0)
+                        w = EstimarAnchoCeldaTwips(cell["text"]?.GetValue<string>() ?? "", effectiveCss);
+                    rowW += w;
+                }
+                tblW = Math.Max(tblW, rowW);
+            }
+        }
+
+        var table = CrearTabla(tblCss);
+
+        // Upgrade auto-width table to fixed layout using the computed width.
+        // Replace tblW={0,auto}+jc with tblW={n,dxa}+tblInd+tblLayout=fixed,
+        // mirroring the same alignment path CrearTabla uses for declared widths.
+        if (!fixedWidth && tblW > 0)
+        {
+            var tPr = table.Elements<TableProperties>().First();
+            tPr.RemoveAllChildren<TableWidth>();
+            tPr.RemoveAllChildren<TableJustification>();
+            tPr.RemoveAllChildren<TableIndentation>();
+            var alignment = ObtenerAlineacionTabla(tblCss);
+            var remaining = Math.Max(0, _contentWidth - tblW);
+            var offset = alignment == TableRowAlignmentValues.Center ? remaining / 2
+                       : alignment == TableRowAlignmentValues.Right  ? remaining : 0;
+            tPr.Append(new TableWidth { Width = tblW.ToString(), Type = TableWidthUnitValues.Dxa });
+            tPr.Append(new TableJustification { Val = TableRowAlignmentValues.Left });
+            tPr.Append(new TableIndentation { Width = _contentIndentL + offset, Type = TableWidthUnitValues.Dxa });
+            tPr.Append(new TableLayout { Type = TableLayoutValues.Fixed });
+        }
 
         foreach (var row in rows)
         {
@@ -209,11 +252,13 @@ public partial class DocxGeneratorService
                 var effectiveCss = CombinarCssHeredable(tblCss, cellCss);
 
                 int cellW;
-                if (fixedWidth && i == cellList.Count - 1)
+                if (i == cellList.Count - 1 && tblW > 0)
                     cellW = Math.Max(0, tblW - usedW);
                 else
                 {
                     cellW = CssToTwips(cellCss.GetValueOrDefault("width", ""));
+                    if (cellW <= 0)
+                        cellW = EstimarAnchoCeldaTwips(text, effectiveCss);
                     usedW += cellW;
                 }
 
@@ -224,6 +269,18 @@ public partial class DocxGeneratorService
         }
 
         AgregarTablaConMargen(body, table, tblCss);
+    }
+
+    private int EstimarAnchoCeldaTwips(string text, Dictionary<string, string> css)
+    {
+        var hp = css.TryGetValue("font-size", out var fs) ? PtToHalfPt(fs) : _fontSizeHp;
+        var sizePt = hp / 2.0;
+        var family = ObtenerFamiliaFuente(css);
+        var bold = css.GetValueOrDefault("font-weight") is "bold" or "700";
+        var italic = css.GetValueOrDefault("font-style") is "italic" or "oblique";
+        var textPts = DocxFontMeasurer.MeasureString(text, family, sizePt, bold, italic) + sizePt;
+        var (_, padR, _, padL) = ObtenerPadding(css);
+        return (int)(textPts * 20) + padL + padR;
     }
 
     private void RenderBorderedBox(Body body, JsonNode section)
