@@ -508,28 +508,72 @@ public class PdfGeneratorService
     private void RenderKeyValue(JsonNode section)
     {
         var tblCss = ParseCss(section["style"]?.GetValue<string>());
-        var lblCss = ParseCss(section["labelStyle"]?.GetValue<string>());
         var rows = section["rows"]?.AsArray();
         if (rows is null || rows.Count == 0) return;
 
-        var effectiveLblCss = CombinarCssHeredable(tblCss, lblCss);
-        var effectiveValCss = CombinarCssHeredable(tblCss, null);
-        var tblW = ObtenerAnchoTabla(tblCss);
-        var lblW = CssToPoints(lblCss.GetValueOrDefault("width", ""));
-        var valW = lblW > 0 && tblW > lblW ? tblW - lblW : tblW / 2;
-        if (lblW <= 0) lblW = tblW - valW;
+        bool fixedWidth = tblCss.ContainsKey("width");
+        double tblW = fixedWidth ? ObtenerAnchoTabla(tblCss) : 0;
+
+        // For auto tables, measure all rows to find the widest total width
+        if (!fixedWidth)
+        {
+            foreach (var row in rows)
+            {
+                if (row is not JsonArray cells) continue;
+                double rowW = 0;
+                foreach (var cell in cells)
+                {
+                    if (cell is null) continue;
+                    var cellCss = ParseCss(cell["style"]?.GetValue<string>());
+                    var effectiveCss = CombinarCssHeredable(tblCss, cellCss);
+                    var w = CssToPoints(cellCss.GetValueOrDefault("width", ""));
+                    if (w <= 0)
+                    {
+                        var font = CrearFuente(effectiveCss);
+                        var (_, padR, _, padL) = ObtenerPadding(effectiveCss);
+                        w = _gfx.MeasureString(cell["text"]?.GetValue<string>() ?? "", font).Width + padL + padR;
+                    }
+                    rowW += w;
+                }
+                tblW = Math.Max(tblW, rowW);
+            }
+        }
 
         var tableRows = new List<TableRowData>();
         foreach (var row in rows)
         {
-            if (row is null) continue;
-            var label = row["label"]?.GetValue<string>() ?? "";
-            var value = row["value"]?.GetValue<string>() ?? "";
-            var sep = row["separator"]?.GetValue<string>() ?? "";
-            tableRows.Add(new TableRowData([
-                new CellData(label, lblW, effectiveLblCss),
-                new CellData(sep + value, valW, effectiveValCss)
-            ]));
+            if (row is not JsonArray cells) continue;
+
+            var rowCells = new List<CellData>();
+            var cellList = cells.Where(c => c is not null).ToList();
+            double usedW = 0;
+
+            for (int i = 0; i < cellList.Count; i++)
+            {
+                var cell = cellList[i]!;
+                var text = cell["text"]?.GetValue<string>() ?? "";
+                var cellCss = ParseCss(cell["style"]?.GetValue<string>());
+                var effectiveCss = CombinarCssHeredable(tblCss, cellCss);
+
+                double cellW;
+                if (fixedWidth && i == cellList.Count - 1)
+                    cellW = Math.Max(0, tblW - usedW);
+                else
+                {
+                    cellW = CssToPoints(cellCss.GetValueOrDefault("width", ""));
+                    if (cellW <= 0)
+                    {
+                        var font = CrearFuente(effectiveCss);
+                        var (_, padR, _, padL) = ObtenerPadding(effectiveCss);
+                        cellW = _gfx.MeasureString(text, font).Width + padL + padR;
+                    }
+                    usedW += cellW;
+                }
+
+                rowCells.Add(new CellData(text, cellW, effectiveCss));
+            }
+
+            tableRows.Add(new TableRowData(rowCells));
         }
 
         DibujarTabla(tableRows, tblW, tblCss);
@@ -827,6 +871,16 @@ public class PdfGeneratorService
             var lineH = LineHeight(css);
             var textW = Math.Max(0, cellW - padL - padR);
             var align = MapXAlign(css.GetValueOrDefault("text-align", "left"));
+
+            if (css.TryGetValue("background-color", out var bgHex))
+            {
+                var c = NormalizarColor(bgHex);
+                var bgBrush = new XSolidBrush(XColor.FromArgb(
+                    Convert.ToInt32(c[..2], 16),
+                    Convert.ToInt32(c[2..4], 16),
+                    Convert.ToInt32(c[4..6], 16)));
+                _gfx.DrawRectangle(bgBrush, new XRect(cellX, _y, cellW, rowH));
+            }
 
             var lines = PartirEnLineas(cell.Text, font, textW);
             var textY = _y + padT;
@@ -1164,7 +1218,7 @@ public class PdfGeneratorService
         string[] inherited =
         [
             "color", "font-family", "font-size", "font-style", "font-weight",
-            "line-height", "text-align", "text-decoration", "white-space"
+            "line-height", "text-align", "text-decoration", "white-space", "padding"
         ];
         var result = new Dictionary<string, string>();
         foreach (var prop in inherited)

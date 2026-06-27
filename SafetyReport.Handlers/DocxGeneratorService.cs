@@ -186,27 +186,40 @@ public partial class DocxGeneratorService
     private void RenderKeyValue(Body body, JsonNode section)
     {
         var tblCss = ParseCss(section["style"]?.GetValue<string>());
-        var lblCss = ParseCss(section["labelStyle"]?.GetValue<string>());
         var rows = section["rows"]?.AsArray();
         if (rows is null || rows.Count == 0) return;
 
         var table = CrearTabla(tblCss);
-        var effectiveLblCss = CombinarCssHeredable(tblCss, lblCss);
-        var effectiveValCss = CombinarCssHeredable(tblCss, null);
-        var tblW = ObtenerAnchoTabla(tblCss);
-        var lblW = CssToTwips(lblCss.GetValueOrDefault("width", ""));
-        var valW = lblW > 0 && tblW > lblW ? tblW - lblW : 0;
+        bool fixedWidth = tblCss.ContainsKey("width");
+        var tblW = fixedWidth ? ObtenerAnchoTabla(tblCss) : 0;
 
         foreach (var row in rows)
         {
-            if (row is null) continue;
-            var label = row["label"]?.GetValue<string>() ?? "";
-            var value = row["value"]?.GetValue<string>() ?? "";
-            var sep = row["separator"]?.GetValue<string>() ?? "";
+            if (row is not JsonArray cells) continue;
 
             var tr = CrearFilaTabla();
-            tr.Append(CrearCeldaTexto(label, lblW, effectiveLblCss));
-            tr.Append(CrearCeldaTexto(sep + value, valW, effectiveValCss));
+            var cellList = cells.Where(c => c is not null).ToList();
+            int usedW = 0;
+
+            for (int i = 0; i < cellList.Count; i++)
+            {
+                var cell = cellList[i]!;
+                var text = cell["text"]?.GetValue<string>() ?? "";
+                var cellCss = ParseCss(cell["style"]?.GetValue<string>());
+                var effectiveCss = CombinarCssHeredable(tblCss, cellCss);
+
+                int cellW;
+                if (fixedWidth && i == cellList.Count - 1)
+                    cellW = Math.Max(0, tblW - usedW);
+                else
+                {
+                    cellW = CssToTwips(cellCss.GetValueOrDefault("width", ""));
+                    usedW += cellW;
+                }
+
+                tr.Append(CrearCeldaTexto(text, cellW, effectiveCss));
+            }
+
             table.Append(tr);
         }
 
@@ -865,20 +878,26 @@ public partial class DocxGeneratorService
         }
         else
         {
-            tPr.Append(new TableWidth { Width = _contentWidth.ToString(), Type = TableWidthUnitValues.Dxa });
-            isFixed = true;
+            tPr.Append(new TableWidth { Width = "0", Type = TableWidthUnitValues.Auto });
         }
 
         var alignment = ObtenerAlineacionTabla(css);
-        var remainingWidth = Math.Max(0, _contentWidth - tableWidth);
-        var alignmentOffset = alignment == TableRowAlignmentValues.Center
-            ? remainingWidth / 2
-            : alignment == TableRowAlignmentValues.Right
-                ? remainingWidth
-                : 0;
-        var tableIndent = _contentIndentL + alignmentOffset;
-        tPr.Append(new TableJustification { Val = TableRowAlignmentValues.Left });
-        tPr.Append(new TableIndentation { Width = tableIndent, Type = TableWidthUnitValues.Dxa });
+        if (isFixed)
+        {
+            var remainingWidth = Math.Max(0, _contentWidth - tableWidth);
+            var alignmentOffset = alignment == TableRowAlignmentValues.Center
+                ? remainingWidth / 2
+                : alignment == TableRowAlignmentValues.Right
+                    ? remainingWidth
+                    : 0;
+            var tableIndent = _contentIndentL + alignmentOffset;
+            tPr.Append(new TableJustification { Val = TableRowAlignmentValues.Left });
+            tPr.Append(new TableIndentation { Width = tableIndent, Type = TableWidthUnitValues.Dxa });
+        }
+        else
+        {
+            tPr.Append(new TableJustification { Val = alignment });
+        }
 
         // Borders
         if (css.TryGetValue("border", out var tableBorder) && EsBordeVisible(tableBorder))
@@ -888,7 +907,9 @@ public partial class DocxGeneratorService
                 new TopBorder { Val = BorderValues.Single, Size = size, Space = 0, Color = color },
                 new BottomBorder { Val = BorderValues.Single, Size = size, Space = 0, Color = color },
                 new LeftBorder { Val = BorderValues.Single, Size = size, Space = 0, Color = color },
-                new RightBorder { Val = BorderValues.Single, Size = size, Space = 0, Color = color }
+                new RightBorder { Val = BorderValues.Single, Size = size, Space = 0, Color = color },
+                new InsideHorizontalBorder { Val = BorderValues.Single, Size = size, Space = 0, Color = color },
+                new InsideVerticalBorder { Val = BorderValues.Single, Size = size, Space = 0, Color = color }
             ));
         }
 
@@ -949,6 +970,9 @@ public partial class DocxGeneratorService
             if (borders.HasChildren)
                 tcPr.Append(borders);
         }
+
+        if (css != null && css.TryGetValue("background-color", out var bgColor))
+            tcPr.Append(new Shading { Val = ShadingPatternValues.Clear, Color = "auto", Fill = NormalizarColor(bgColor) });
 
         var (padTop, padRight, padBottom, padLeft) = ObtenerPadding(css);
         tcPr.Append(new TableCellMargin(
@@ -1050,7 +1074,7 @@ public partial class DocxGeneratorService
         string[] inheritedProperties =
         [
             "color", "font-family", "font-size", "font-style", "font-weight",
-            "line-height", "text-align", "text-decoration", "white-space"
+            "line-height", "text-align", "text-decoration", "white-space", "padding"
         ];
 
         var result = new Dictionary<string, string>();
