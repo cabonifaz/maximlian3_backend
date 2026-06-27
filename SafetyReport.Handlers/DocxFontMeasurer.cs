@@ -25,7 +25,10 @@ internal static class DocxFontMeasurer
         foreach (var c in text)
             total += font.GetAdvanceWidth(c);
 
-        return total / font.UnitsPerEm * sizePt;
+        // Add one average advance width per character to cover Word's rounding
+        // and inter-character spacing that the nominal hmtx values don't include.
+        var avgAdvance = text.Length > 0 ? total / text.Length : 0;
+        return (total + avgAdvance) / font.UnitsPerEm * sizePt;
     }
 
     private static FontData? ParseFont(byte[] bytes)

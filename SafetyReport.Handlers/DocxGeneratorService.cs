@@ -23,6 +23,9 @@ public partial class DocxGeneratorService
     private Paragraph? _lastBodyParagraph;
     private int _lastBodyMarginBottom;
     private int _lastBodyPaddingBottom;
+    // Max measured last-cell width across all auto-width right-aligned keyValue tables,
+    // used to normalize value cells into a uniform column.
+    private int _rightAlignedMaxLastCellW = 0;
 
     public MemoryStream GenerarDocx(JsonNode json, byte[]? logoBytes = null, byte[]? watermarkBytes = null)
     {
@@ -191,6 +194,7 @@ public partial class DocxGeneratorService
 
         bool fixedWidth = tblCss.ContainsKey("width");
         var tblW = fixedWidth ? ObtenerAnchoTabla(tblCss) : 0;
+        bool isAutoRightAligned = !fixedWidth && ObtenerAlineacionTabla(tblCss) == TableRowAlignmentValues.Right;
 
         // Pre-pass: for auto-width tables, estimate total width from cell content.
         // Word auto-sizes tighter than PDF/HTML, so we compute an explicit width,
@@ -252,15 +256,22 @@ public partial class DocxGeneratorService
                 var effectiveCss = CombinarCssHeredable(tblCss, cellCss);
 
                 int cellW;
+                bool isAutoCell = CssToTwips(cellCss.GetValueOrDefault("width", "")) <= 0;
                 if (i == cellList.Count - 1 && tblW > 0)
                     cellW = Math.Max(0, tblW - usedW);
                 else
                 {
-                    cellW = CssToTwips(cellCss.GetValueOrDefault("width", ""));
+                    cellW = isAutoCell ? 0 : CssToTwips(cellCss["width"]);
                     if (cellW <= 0)
                         cellW = EstimarAnchoCeldaTwips(text, effectiveCss);
                     usedW += cellW;
                 }
+
+                // Auto-width cells in right-aligned tables flush their text to the
+                // right so all value cells share the same visual right boundary,
+                // regardless of how wide each individual cell is.
+                if (isAutoRightAligned && isAutoCell)
+                    effectiveCss["text-align"] = "right";
 
                 tr.Append(CrearCeldaTexto(text, cellW, effectiveCss));
             }
@@ -278,7 +289,7 @@ public partial class DocxGeneratorService
         var family = ObtenerFamiliaFuente(css);
         var bold = css.GetValueOrDefault("font-weight") is "bold" or "700";
         var italic = css.GetValueOrDefault("font-style") is "italic" or "oblique";
-        var textPts = DocxFontMeasurer.MeasureString(text, family, sizePt, bold, italic) + sizePt;
+        var textPts = DocxFontMeasurer.MeasureString(text, family, sizePt, bold, italic);
         var (_, padR, _, padL) = ObtenerPadding(css);
         return (int)(textPts * 20) + padL + padR;
     }
