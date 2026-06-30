@@ -985,14 +985,15 @@ public partial class DocxGeneratorService
 
         // Borders
         bool esTablaOutset = false;
+        var tableBorderShadow = css.ContainsKey("box-shadow");
         if (css.TryGetValue("border", out var tableBorder) && EsBordeVisible(tableBorder))
         {
             var (size, color) = ObtenerBorde(tableBorder);
             tPr.Append(new TableBorders(
-                new TopBorder { Val = BorderValues.Single, Size = size, Space = 0, Color = color },
-                new BottomBorder { Val = BorderValues.Single, Size = size, Space = 0, Color = color },
-                new LeftBorder { Val = BorderValues.Single, Size = size, Space = 0, Color = color },
-                new RightBorder { Val = BorderValues.Single, Size = size, Space = 0, Color = color },
+                CrearTopBorder(BorderValues.Single, size, color, tableBorderShadow),
+                CrearBottomBorder(BorderValues.Single, size, color, tableBorderShadow),
+                CrearLeftBorder(BorderValues.Single, size, color, tableBorderShadow),
+                CrearRightBorder(BorderValues.Single, size, color, tableBorderShadow),
                 new InsideHorizontalBorder { Val = BorderValues.Single, Size = size, Space = 0, Color = color },
                 new InsideVerticalBorder { Val = BorderValues.Single, Size = size, Space = 0, Color = color }
             ));
@@ -1018,10 +1019,10 @@ public partial class DocxGeneratorService
                 var tblCol = esTablaOutset ? "auto" : (bottomColor ?? topColor ?? "000000");
                 var tblSizeDocx = esTablaOutset ? ObtenerTamanoBordeOutsetDocx(css, tblSize) : tblSize;
                 tPr.Append(new TableBorders(
-                    new TopBorder { Val = tblVal, Size = tblSizeDocx, Space = 0, Color = tblCol },
-                    new BottomBorder { Val = tblVal, Size = tblSizeDocx, Space = 0, Color = tblCol },
-                    new LeftBorder { Val = tblVal, Size = tblSizeDocx, Space = 0, Color = tblCol },
-                    new RightBorder { Val = tblVal, Size = tblSizeDocx, Space = 0, Color = tblCol },
+                    CrearTopBorder(tblVal, tblSizeDocx, tblCol, tableBorderShadow),
+                    CrearBottomBorder(tblVal, tblSizeDocx, tblCol, tableBorderShadow),
+                    CrearLeftBorder(tblVal, tblSizeDocx, tblCol, tableBorderShadow),
+                    CrearRightBorder(tblVal, tblSizeDocx, tblCol, tableBorderShadow),
                     new InsideHorizontalBorder { Val = tblVal, Size = tblSizeDocx, Space = 0, Color = tblCol },
                     new InsideVerticalBorder { Val = tblVal, Size = tblSizeDocx, Space = 0, Color = tblCol }
                 ));
@@ -1299,6 +1300,42 @@ public partial class DocxGeneratorService
 
         var spacingBorderUnits = (uint)Math.Max(0, Math.Round(spacingTwips * 8.0 / 20.0));
         return Math.Max(1u, borderSize + spacingBorderUnits);
+    }
+
+    private static TopBorder CrearTopBorder(BorderValues val, uint size, string color, bool shadow)
+    {
+        var border = new TopBorder { Val = val, Size = size, Space = 0, Color = color };
+        AplicarSombraBorde(border, shadow);
+        return border;
+    }
+
+    private static BottomBorder CrearBottomBorder(BorderValues val, uint size, string color, bool shadow)
+    {
+        var border = new BottomBorder { Val = val, Size = size, Space = 0, Color = color };
+        AplicarSombraBorde(border, shadow);
+        return border;
+    }
+
+    private static LeftBorder CrearLeftBorder(BorderValues val, uint size, string color, bool shadow)
+    {
+        var border = new LeftBorder { Val = val, Size = size, Space = 0, Color = color };
+        AplicarSombraBorde(border, shadow);
+        return border;
+    }
+
+    private static RightBorder CrearRightBorder(BorderValues val, uint size, string color, bool shadow)
+    {
+        var border = new RightBorder { Val = val, Size = size, Space = 0, Color = color };
+        AplicarSombraBorde(border, shadow);
+        return border;
+    }
+
+    private static void AplicarSombraBorde(BorderType border, bool shadow)
+    {
+        if (!shadow) return;
+
+        border.Shadow = true;
+        border.Frame = true;
     }
 
     private static string NormalizarColor(string value)
