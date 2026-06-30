@@ -954,6 +954,16 @@ public class PdfGeneratorService
         return maxH;
     }
 
+    private void DibujarBordeThreeDEmboss(double x, double y, double w, double h)
+    {
+        var penHL = new XPen(XColor.FromArgb(160, 160, 160), 1.0);
+        var penSH = new XPen(XColor.FromArgb(60, 60, 60), 1.0);
+        _gfx.DrawLine(penHL, x, y, x + w, y);
+        _gfx.DrawLine(penHL, x, y, x, y + h);
+        _gfx.DrawLine(penSH, x, y + h, x + w, y + h);
+        _gfx.DrawLine(penSH, x + w, y, x + w, y + h);
+    }
+
     private void DibujarBordeTabla(
         double x,
         double y,
@@ -962,16 +972,59 @@ public class PdfGeneratorService
         Dictionary<string, string> tblCss,
         IReadOnlyList<TableRowData> segmentRows)
     {
-        if (h <= 0 || !tblCss.TryGetValue("border", out var border) || !EsBordeVisible(border)) return;
-        var pen = CrearPen(border);
-        if (!BordeExteriorCubierto(segmentRows, "top"))
-            DibujarLineaBorde(pen, x, y, x + w, y);
-        if (!BordeExteriorCubierto(segmentRows, "bottom"))
-            DibujarLineaBorde(pen, x, y + h, x + w, y + h);
-        if (!BordeExteriorCubierto(segmentRows, "left"))
-            DibujarLineaBorde(pen, x, y, x, y + h);
-        if (!BordeExteriorCubierto(segmentRows, "right"))
-            DibujarLineaBorde(pen, x + w, y, x + w, y + h);
+        if (h <= 0) return;
+
+        if (EsPatronOutset(tblCss))
+        {
+            DibujarBordeThreeDEmboss(x, y, w, h);
+
+            var penSep = new XPen(XColor.FromArgb(128, 128, 128), 0.75);
+            var firstRow = segmentRows.FirstOrDefault();
+            if (firstRow != null)
+            {
+                var sepX = x;
+                for (int i = 0; i < firstRow.Cells.Count - 1; i++)
+                {
+                    sepX += firstRow.Cells[i].Width;
+                    _gfx.DrawLine(penSep, sepX, y, sepX, y + h);
+                }
+            }
+            if (segmentRows.Count > 1)
+            {
+                var penHSep = new XPen(XColor.FromArgb(128, 128, 128), 0.75);
+                var rowY = y;
+                for (int r = 0; r < segmentRows.Count - 1; r++)
+                {
+                    rowY += MedirAltoFila(segmentRows[r], w);
+                    _gfx.DrawLine(penHSep, x, rowY, x + w, rowY);
+                }
+            }
+
+            return;
+        }
+
+        if (tblCss.TryGetValue("border", out var border) && EsBordeVisible(border))
+        {
+            var pen = CrearPen(border);
+            if (!BordeExteriorCubierto(segmentRows, "top"))
+                DibujarLineaBorde(pen, x, y, x + w, y);
+            if (!BordeExteriorCubierto(segmentRows, "bottom"))
+                DibujarLineaBorde(pen, x, y + h, x + w, y + h);
+            if (!BordeExteriorCubierto(segmentRows, "left"))
+                DibujarLineaBorde(pen, x, y, x, y + h);
+            if (!BordeExteriorCubierto(segmentRows, "right"))
+                DibujarLineaBorde(pen, x + w, y, x + w, y + h);
+            return;
+        }
+
+        if (tblCss.TryGetValue("border-top", out var bt) && EsBordeVisible(bt) && !BordeExteriorCubierto(segmentRows, "top"))
+            DibujarLineaBorde(CrearPen(bt), x, y, x + w, y);
+        if (tblCss.TryGetValue("border-bottom", out var bb) && EsBordeVisible(bb) && !BordeExteriorCubierto(segmentRows, "bottom"))
+            DibujarLineaBorde(CrearPen(bb), x, y + h, x + w, y + h);
+        if (tblCss.TryGetValue("border-left", out var bl) && EsBordeVisible(bl) && !BordeExteriorCubierto(segmentRows, "left"))
+            DibujarLineaBorde(CrearPen(bl), x, y, x, y + h);
+        if (tblCss.TryGetValue("border-right", out var br) && EsBordeVisible(br) && !BordeExteriorCubierto(segmentRows, "right"))
+            DibujarLineaBorde(CrearPen(br), x + w, y, x + w, y + h);
     }
 
     private static bool BordeExteriorCubierto(IReadOnlyList<TableRowData> rows, string side)
@@ -1003,6 +1056,9 @@ public class PdfGeneratorService
             DibujarLineaBorde(pen, x + w, y, x + w, y + h);
             return;
         }
+
+        if (EsPatronInset(css))
+            return;
 
         if (css.TryGetValue("border-top", out var bt) && EsBordeVisible(bt))
             DibujarLineaBorde(CrearPen(bt), x, y, x + w, y);
@@ -1330,6 +1386,37 @@ public class PdfGeneratorService
         var color = value.Trim().TrimStart('#');
         if (color.Length == 3) color = string.Concat(color.Select(c => $"{c}{c}"));
         return Regex.IsMatch(color, "^[0-9a-fA-F]{6}$") ? color.ToUpperInvariant() : "000000";
+    }
+
+    private static bool EsColorClaro(string? color)
+    {
+        if (color == null) return false;
+        var c = NormalizarColor(color);
+        if (!int.TryParse(c, System.Globalization.NumberStyles.HexNumber, null, out var rgb)) return false;
+        var r = (rgb >> 16) & 0xFF;
+        var g = (rgb >> 8) & 0xFF;
+        var b = rgb & 0xFF;
+        return (r * 299 + g * 587 + b * 114) / 1000 > 180;
+    }
+
+    private static bool EsPatronOutset(Dictionary<string, string> css)
+    {
+        if (css.ContainsKey("border")) return false;
+        if (!css.TryGetValue("border-top", out var top) || !css.TryGetValue("border-left", out var left) ||
+            !css.TryGetValue("border-bottom", out var bottom) || !css.TryGetValue("border-right", out var right))
+            return false;
+        return EsColorClaro(ObtenerBorde(top).Color) && EsColorClaro(ObtenerBorde(left).Color) &&
+               !EsColorClaro(ObtenerBorde(bottom).Color) && !EsColorClaro(ObtenerBorde(right).Color);
+    }
+
+    private static bool EsPatronInset(Dictionary<string, string> css)
+    {
+        if (css.ContainsKey("border")) return false;
+        if (!css.TryGetValue("border-top", out var top) || !css.TryGetValue("border-left", out var left) ||
+            !css.TryGetValue("border-bottom", out var bottom) || !css.TryGetValue("border-right", out var right))
+            return false;
+        return !EsColorClaro(ObtenerBorde(top).Color) && !EsColorClaro(ObtenerBorde(left).Color) &&
+               EsColorClaro(ObtenerBorde(bottom).Color) && EsColorClaro(ObtenerBorde(right).Color);
     }
 
     // ==================== DATA TYPES ====================
