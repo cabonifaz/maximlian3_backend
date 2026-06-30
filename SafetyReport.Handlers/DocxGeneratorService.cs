@@ -1016,7 +1016,7 @@ public partial class DocxGeneratorService
                               && !EsColorClaro(bottomColor) && !EsColorClaro(rightColor);
                 var tblVal = esTablaOutset ? BorderValues.ThreeDEmboss : BorderValues.Single;
                 var tblCol = esTablaOutset ? "auto" : (bottomColor ?? topColor ?? "000000");
-                var tblSizeDocx = esTablaOutset ? 24u : tblSize;
+                var tblSizeDocx = esTablaOutset ? tblSize * 4 : tblSize;
                 tPr.Append(new TableBorders(
                     new TopBorder { Val = tblVal, Size = tblSizeDocx, Space = 0, Color = tblCol },
                     new BottomBorder { Val = tblVal, Size = tblSizeDocx, Space = 0, Color = tblCol },
