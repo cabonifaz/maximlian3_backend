@@ -797,6 +797,9 @@ public class PdfGeneratorService
         if (rows.Count == 0) return;
 
         rows = rows.Select(row => NormalizarAnchosFila(row, tableWidth)).ToList();
+        var borderSpacing = ObtenerBorderSpacing(tblCss);
+        var maxCellCount = rows.Max(row => row.Cells.Count);
+        var visualTableWidth = tableWidth + (maxCellCount > 0 ? (maxCellCount + 1) * borderSpacing : 0);
         var (beforeM, afterM) = ObtenerMargenVertical(tblCss);
 
         var before = beforeM;
@@ -817,24 +820,27 @@ public class PdfGeneratorService
         var alignment = ObtenerAlineacionTabla(tblCss);
         var tableX = alignment switch
         {
-            "center" => _mLeft + _contentIndentL + (_contentWidth - tableWidth) / 2,
-            "right" => _mLeft + _contentIndentL + _contentWidth - tableWidth,
+            "center" => _mLeft + _contentIndentL + (_contentWidth - visualTableWidth) / 2,
+            "right" => _mLeft + _contentIndentL + _contentWidth - visualTableWidth,
             _ => _mLeft + _contentIndentL
         };
 
         var tableStartY = _y;
+        var segmentStarted = false;
         var segmentRows = new List<TableRowData>();
 
         for (var rowIndex = 0; rowIndex < rows.Count; rowIndex++)
         {
             var row = rows[rowIndex];
             var rowH = MedirAltoFila(row, tableWidth);
+            var neededH = (segmentStarted ? 0 : borderSpacing) + rowH + borderSpacing;
 
-            if (_y + rowH > _contentBottom && _y > _contentTop)
+            if (_y + neededH > _contentBottom && _y > _contentTop)
             {
-                DibujarBordeTabla(tableX, tableStartY, tableWidth, _y - tableStartY, tblCss, segmentRows);
+                DibujarBordeTabla(tableX, tableStartY, visualTableWidth, _y - tableStartY, tblCss, segmentRows);
                 NuevaPagina();
                 tableStartY = _y;
+                segmentStarted = false;
                 segmentRows.Clear();
 
                 // DOCX marks data-table headers with w:tblHeader, so repeat the
@@ -843,24 +849,30 @@ public class PdfGeneratorService
                 if (rowIndex > 0 && header.IsHeader)
                 {
                     var headerH = MedirAltoFila(header, tableWidth);
-                    DibujarFila(header, tableX, tableWidth, headerH);
-                    _y += headerH;
+                    DibujarFondoTabla(tableX, _y, visualTableWidth, borderSpacing + headerH + borderSpacing, tblCss);
+                    var headerY = _y + borderSpacing;
+                    DibujarFila(header, tableX + borderSpacing, headerY, tableWidth, headerH, borderSpacing);
+                    _y = headerY + headerH + borderSpacing;
+                    segmentStarted = true;
                     segmentRows.Add(header);
                 }
             }
 
-            DibujarFila(row, tableX, tableWidth, rowH);
-            _y += rowH;
+            DibujarFondoTabla(tableX, _y, visualTableWidth, (segmentStarted ? 0 : borderSpacing) + rowH + borderSpacing, tblCss);
+            var rowY = _y + (segmentStarted ? 0 : borderSpacing);
+            DibujarFila(row, tableX + borderSpacing, rowY, tableWidth, rowH, borderSpacing);
+            _y = rowY + rowH + borderSpacing;
+            segmentStarted = true;
             segmentRows.Add(row);
         }
 
-        DibujarBordeTabla(tableX, tableStartY, tableWidth, _y - tableStartY, tblCss, segmentRows);
+        DibujarBordeTabla(tableX, tableStartY, visualTableWidth, _y - tableStartY, tblCss, segmentRows);
 
         _pendingTableBottomMargin = afterM;
         LimpiarParrafoAnterior();
     }
 
-    private void DibujarFila(TableRowData row, double tableX, double tableWidth, double rowH)
+    private void DibujarFila(TableRowData row, double tableX, double rowY, double tableWidth, double rowH, double borderSpacing)
     {
         var cellX = tableX;
         foreach (var cell in row.Cells)
@@ -880,20 +892,32 @@ public class PdfGeneratorService
                     Convert.ToInt32(c[..2], 16),
                     Convert.ToInt32(c[2..4], 16),
                     Convert.ToInt32(c[4..6], 16)));
-                _gfx.DrawRectangle(bgBrush, new XRect(cellX, _y, cellW, rowH));
+                _gfx.DrawRectangle(bgBrush, new XRect(cellX, rowY, cellW, rowH));
             }
 
             var lines = PartirEnLineas(cell.Text, font, textW);
-            var textY = _y + padT;
+            var textY = rowY + padT;
             foreach (var line in lines)
             {
                 DibujarLineaTexto(line, font, cellX + padL, textW, textY, align, lineH);
                 textY += lineH;
             }
 
-            DibujarBordesCelda(cellX, _y, cellW, rowH, css);
-            cellX += cellW;
+            DibujarBordesCelda(cellX, rowY, cellW, rowH, css);
+            cellX += cellW + borderSpacing;
         }
+    }
+
+    private void DibujarFondoTabla(double x, double y, double w, double h, Dictionary<string, string> tblCss)
+    {
+        if (h <= 0 || !tblCss.TryGetValue("background-color", out var bgHex)) return;
+
+        var c = NormalizarColor(bgHex);
+        var bgBrush = new XSolidBrush(XColor.FromArgb(
+            Convert.ToInt32(c[..2], 16),
+            Convert.ToInt32(c[2..4], 16),
+            Convert.ToInt32(c[4..6], 16)));
+        _gfx.DrawRectangle(bgBrush, new XRect(x, y, w, h));
     }
 
     private static TableRowData NormalizarAnchosFila(TableRowData row, double tableWidth)
@@ -954,16 +978,6 @@ public class PdfGeneratorService
         return maxH;
     }
 
-    private void DibujarBordeThreeDEmboss(double x, double y, double w, double h)
-    {
-        var penHL = new XPen(XColor.FromArgb(160, 160, 160), 1.0);
-        var penSH = new XPen(XColor.FromArgb(60, 60, 60), 1.0);
-        _gfx.DrawLine(penHL, x, y, x + w, y);
-        _gfx.DrawLine(penHL, x, y, x, y + h);
-        _gfx.DrawLine(penSH, x, y + h, x + w, y + h);
-        _gfx.DrawLine(penSH, x + w, y, x + w, y + h);
-    }
-
     private void DibujarBordeTabla(
         double x,
         double y,
@@ -974,61 +988,33 @@ public class PdfGeneratorService
     {
         if (h <= 0) return;
 
-        if (EsPatronOutset(tblCss))
-        {
-            DibujarBordeThreeDEmboss(x, y, w, h);
-
-            var penSep = new XPen(XColor.FromArgb(128, 128, 128), 0.75);
-            var firstRow = segmentRows.FirstOrDefault();
-            if (firstRow != null)
-            {
-                var sepX = x;
-                for (int i = 0; i < firstRow.Cells.Count - 1; i++)
-                {
-                    sepX += firstRow.Cells[i].Width;
-                    _gfx.DrawLine(penSep, sepX, y, sepX, y + h);
-                }
-            }
-            if (segmentRows.Count > 1)
-            {
-                var penHSep = new XPen(XColor.FromArgb(128, 128, 128), 0.75);
-                var rowY = y;
-                for (int r = 0; r < segmentRows.Count - 1; r++)
-                {
-                    rowY += MedirAltoFila(segmentRows[r], w);
-                    _gfx.DrawLine(penHSep, x, rowY, x + w, rowY);
-                }
-            }
-
-            return;
-        }
-
         if (tblCss.TryGetValue("border", out var border) && EsBordeVisible(border))
         {
             var pen = CrearPen(border);
-            if (!BordeExteriorCubierto(segmentRows, "top"))
+            if (!BordeExteriorCubierto(segmentRows, "top", tblCss))
                 DibujarLineaBorde(pen, x, y, x + w, y);
-            if (!BordeExteriorCubierto(segmentRows, "bottom"))
+            if (!BordeExteriorCubierto(segmentRows, "bottom", tblCss))
                 DibujarLineaBorde(pen, x, y + h, x + w, y + h);
-            if (!BordeExteriorCubierto(segmentRows, "left"))
+            if (!BordeExteriorCubierto(segmentRows, "left", tblCss))
                 DibujarLineaBorde(pen, x, y, x, y + h);
-            if (!BordeExteriorCubierto(segmentRows, "right"))
+            if (!BordeExteriorCubierto(segmentRows, "right", tblCss))
                 DibujarLineaBorde(pen, x + w, y, x + w, y + h);
             return;
         }
 
-        if (tblCss.TryGetValue("border-top", out var bt) && EsBordeVisible(bt) && !BordeExteriorCubierto(segmentRows, "top"))
+        if (tblCss.TryGetValue("border-top", out var bt) && EsBordeVisible(bt) && !BordeExteriorCubierto(segmentRows, "top", tblCss))
             DibujarLineaBorde(CrearPen(bt), x, y, x + w, y);
-        if (tblCss.TryGetValue("border-bottom", out var bb) && EsBordeVisible(bb) && !BordeExteriorCubierto(segmentRows, "bottom"))
+        if (tblCss.TryGetValue("border-bottom", out var bb) && EsBordeVisible(bb) && !BordeExteriorCubierto(segmentRows, "bottom", tblCss))
             DibujarLineaBorde(CrearPen(bb), x, y + h, x + w, y + h);
-        if (tblCss.TryGetValue("border-left", out var bl) && EsBordeVisible(bl) && !BordeExteriorCubierto(segmentRows, "left"))
+        if (tblCss.TryGetValue("border-left", out var bl) && EsBordeVisible(bl) && !BordeExteriorCubierto(segmentRows, "left", tblCss))
             DibujarLineaBorde(CrearPen(bl), x, y, x, y + h);
-        if (tblCss.TryGetValue("border-right", out var br) && EsBordeVisible(br) && !BordeExteriorCubierto(segmentRows, "right"))
+        if (tblCss.TryGetValue("border-right", out var br) && EsBordeVisible(br) && !BordeExteriorCubierto(segmentRows, "right", tblCss))
             DibujarLineaBorde(CrearPen(br), x + w, y, x + w, y + h);
     }
 
-    private static bool BordeExteriorCubierto(IReadOnlyList<TableRowData> rows, string side)
+    private static bool BordeExteriorCubierto(IReadOnlyList<TableRowData> rows, string side, Dictionary<string, string> tblCss)
     {
+        if (ObtenerBorderSpacing(tblCss) > 0) return false;
         if (rows.Count == 0) return false;
 
         return side switch
@@ -1056,9 +1042,6 @@ public class PdfGeneratorService
             DibujarLineaBorde(pen, x + w, y, x + w, y + h);
             return;
         }
-
-        if (EsPatronInset(css))
-            return;
 
         if (css.TryGetValue("border-top", out var bt) && EsBordeVisible(bt))
             DibujarLineaBorde(CrearPen(bt), x, y, x + w, y);
@@ -1241,7 +1224,7 @@ public class PdfGeneratorService
     private static double CssToPoints(string? value)
     {
         if (string.IsNullOrEmpty(value)) return 0;
-        var m = Regex.Match(value, @"([\d.]+)\s*(in|pt|)");
+        var m = Regex.Match(value, @"([\d.]+)\s*(in|pt|px|)");
         if (!m.Success || !double.TryParse(m.Groups[1].Value,
                 System.Globalization.NumberStyles.Any,
                 System.Globalization.CultureInfo.InvariantCulture, out var num))
@@ -1250,6 +1233,7 @@ public class PdfGeneratorService
         {
             "in" => num * 72,
             "pt" => num,
+            "px" => num * 0.75,
             _ => num * 72
         };
     }
@@ -1388,35 +1372,12 @@ public class PdfGeneratorService
         return Regex.IsMatch(color, "^[0-9a-fA-F]{6}$") ? color.ToUpperInvariant() : "000000";
     }
 
-    private static bool EsColorClaro(string? color)
+    private static double ObtenerBorderSpacing(Dictionary<string, string> css)
     {
-        if (color == null) return false;
-        var c = NormalizarColor(color);
-        if (!int.TryParse(c, System.Globalization.NumberStyles.HexNumber, null, out var rgb)) return false;
-        var r = (rgb >> 16) & 0xFF;
-        var g = (rgb >> 8) & 0xFF;
-        var b = rgb & 0xFF;
-        return (r * 299 + g * 587 + b * 114) / 1000 > 180;
-    }
+        if (!css.TryGetValue("border-spacing", out var spacing)) return 0;
 
-    private static bool EsPatronOutset(Dictionary<string, string> css)
-    {
-        if (css.ContainsKey("border")) return false;
-        if (!css.TryGetValue("border-top", out var top) || !css.TryGetValue("border-left", out var left) ||
-            !css.TryGetValue("border-bottom", out var bottom) || !css.TryGetValue("border-right", out var right))
-            return false;
-        return EsColorClaro(ObtenerBorde(top).Color) && EsColorClaro(ObtenerBorde(left).Color) &&
-               !EsColorClaro(ObtenerBorde(bottom).Color) && !EsColorClaro(ObtenerBorde(right).Color);
-    }
-
-    private static bool EsPatronInset(Dictionary<string, string> css)
-    {
-        if (css.ContainsKey("border")) return false;
-        if (!css.TryGetValue("border-top", out var top) || !css.TryGetValue("border-left", out var left) ||
-            !css.TryGetValue("border-bottom", out var bottom) || !css.TryGetValue("border-right", out var right))
-            return false;
-        return !EsColorClaro(ObtenerBorde(top).Color) && !EsColorClaro(ObtenerBorde(left).Color) &&
-               EsColorClaro(ObtenerBorde(bottom).Color) && EsColorClaro(ObtenerBorde(right).Color);
+        var firstValue = spacing.Trim().Split(' ', StringSplitOptions.RemoveEmptyEntries).FirstOrDefault();
+        return CssToPoints(firstValue);
     }
 
     // ==================== DATA TYPES ====================
