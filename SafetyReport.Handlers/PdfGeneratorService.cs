@@ -852,6 +852,7 @@ public class PdfGeneratorService
                 if (rowIndex > 0 && header.IsHeader)
                 {
                     var headerH = MedirAltoFila(header, tableWidth);
+                    DibujarSombraTabla(tableX, _y, visualTableWidth, layoutSpacing + headerH + layoutSpacing, tblCss);
                     DibujarFondoTabla(tableX, _y, visualTableWidth, layoutSpacing + headerH + layoutSpacing, tblCss);
                     var headerY = _y + layoutSpacing;
                     DibujarFila(header, tableX + layoutSpacing, headerY, tableWidth, headerH, layoutSpacing);
@@ -861,6 +862,7 @@ public class PdfGeneratorService
                 }
             }
 
+            DibujarSombraTabla(tableX, _y, visualTableWidth, (segmentStarted ? 0 : layoutSpacing) + rowH + layoutSpacing, tblCss);
             DibujarFondoTabla(tableX, _y, visualTableWidth, (segmentStarted ? 0 : layoutSpacing) + rowH + layoutSpacing, tblCss);
             var rowY = _y + (segmentStarted ? 0 : layoutSpacing);
             DibujarFila(row, tableX + layoutSpacing, rowY, tableWidth, rowH, layoutSpacing);
@@ -909,6 +911,19 @@ public class PdfGeneratorService
             DibujarBordesCelda(cellX, rowY, cellW, rowH, css);
             cellX += cellW + borderSpacing;
         }
+    }
+
+    private void DibujarSombraTabla(double x, double y, double w, double h, Dictionary<string, string> tblCss)
+    {
+        var shadow = ObtenerBoxShadow(tblCss);
+        if (shadow is null || h <= 0) return;
+
+        var c = NormalizarColor(shadow.Color);
+        var brush = new XSolidBrush(XColor.FromArgb(
+            Convert.ToInt32(c[..2], 16),
+            Convert.ToInt32(c[2..4], 16),
+            Convert.ToInt32(c[4..6], 16)));
+        _gfx.DrawRectangle(brush, new XRect(x + shadow.OffsetX, y + shadow.OffsetY, w, h));
     }
 
     private void DibujarFondoTabla(double x, double y, double w, double h, Dictionary<string, string> tblCss)
@@ -1405,8 +1420,40 @@ public class PdfGeneratorService
         return max;
     }
 
+    private static BoxShadowData? ObtenerBoxShadow(Dictionary<string, string> css)
+    {
+        if (!css.TryGetValue("box-shadow", out var value)) return null;
+        if (value.Contains("none", StringComparison.OrdinalIgnoreCase)) return null;
+
+        var lengths = Regex.Matches(value, @"-?[\d.]+\s*(in|pt|px|)", RegexOptions.IgnoreCase)
+            .Select(match => CssLengthToPoints(match.Value))
+            .ToList();
+        if (lengths.Count < 2) return null;
+
+        var colorMatch = Regex.Match(value, @"#([0-9a-f]{3}|[0-9a-f]{6})\b", RegexOptions.IgnoreCase);
+        var color = colorMatch.Success ? colorMatch.Value : "#000000";
+        return new BoxShadowData(lengths[0], lengths[1], color);
+    }
+
+    private static double CssLengthToPoints(string value)
+    {
+        var m = Regex.Match(value, @"(-?[\d.]+)\s*(in|pt|px|)", RegexOptions.IgnoreCase);
+        if (!m.Success || !double.TryParse(m.Groups[1].Value,
+                System.Globalization.NumberStyles.Any,
+                System.Globalization.CultureInfo.InvariantCulture, out var num))
+            return 0;
+        return m.Groups[2].Value.ToLowerInvariant() switch
+        {
+            "in" => num * 72,
+            "pt" => num,
+            "px" => num * 0.75,
+            _ => num * 72
+        };
+    }
+
     // ==================== DATA TYPES ====================
 
+    private record BoxShadowData(double OffsetX, double OffsetY, string Color);
     private record CellData(string Text, double Width, Dictionary<string, string> Css, int Colspan = 0);
     private record TableRowData(List<CellData> Cells, bool IsHeader = false);
 
