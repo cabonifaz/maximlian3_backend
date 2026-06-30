@@ -798,8 +798,11 @@ public class PdfGeneratorService
 
         rows = rows.Select(row => NormalizarAnchosFila(row, tableWidth)).ToList();
         var borderSpacing = ObtenerBorderSpacing(tblCss);
+        var layoutSpacing = borderSpacing > 0
+            ? borderSpacing + ObtenerAnchoMaximoBorde(rows, tblCss)
+            : 0;
         var maxCellCount = rows.Max(row => row.Cells.Count);
-        var visualTableWidth = tableWidth + (maxCellCount > 0 ? (maxCellCount + 1) * borderSpacing : 0);
+        var visualTableWidth = tableWidth + (maxCellCount > 0 ? (maxCellCount + 1) * layoutSpacing : 0);
         var (beforeM, afterM) = ObtenerMargenVertical(tblCss);
 
         var before = beforeM;
@@ -833,7 +836,7 @@ public class PdfGeneratorService
         {
             var row = rows[rowIndex];
             var rowH = MedirAltoFila(row, tableWidth);
-            var neededH = (segmentStarted ? 0 : borderSpacing) + rowH + borderSpacing;
+            var neededH = (segmentStarted ? 0 : layoutSpacing) + rowH + layoutSpacing;
 
             if (_y + neededH > _contentBottom && _y > _contentTop)
             {
@@ -849,19 +852,19 @@ public class PdfGeneratorService
                 if (rowIndex > 0 && header.IsHeader)
                 {
                     var headerH = MedirAltoFila(header, tableWidth);
-                    DibujarFondoTabla(tableX, _y, visualTableWidth, borderSpacing + headerH + borderSpacing, tblCss);
-                    var headerY = _y + borderSpacing;
-                    DibujarFila(header, tableX + borderSpacing, headerY, tableWidth, headerH, borderSpacing);
-                    _y = headerY + headerH + borderSpacing;
+                    DibujarFondoTabla(tableX, _y, visualTableWidth, layoutSpacing + headerH + layoutSpacing, tblCss);
+                    var headerY = _y + layoutSpacing;
+                    DibujarFila(header, tableX + layoutSpacing, headerY, tableWidth, headerH, layoutSpacing);
+                    _y = headerY + headerH + layoutSpacing;
                     segmentStarted = true;
                     segmentRows.Add(header);
                 }
             }
 
-            DibujarFondoTabla(tableX, _y, visualTableWidth, (segmentStarted ? 0 : borderSpacing) + rowH + borderSpacing, tblCss);
-            var rowY = _y + (segmentStarted ? 0 : borderSpacing);
-            DibujarFila(row, tableX + borderSpacing, rowY, tableWidth, rowH, borderSpacing);
-            _y = rowY + rowH + borderSpacing;
+            DibujarFondoTabla(tableX, _y, visualTableWidth, (segmentStarted ? 0 : layoutSpacing) + rowH + layoutSpacing, tblCss);
+            var rowY = _y + (segmentStarted ? 0 : layoutSpacing);
+            DibujarFila(row, tableX + layoutSpacing, rowY, tableWidth, rowH, layoutSpacing);
+            _y = rowY + rowH + layoutSpacing;
             segmentStarted = true;
             segmentRows.Add(row);
         }
@@ -1378,6 +1381,28 @@ public class PdfGeneratorService
 
         var firstValue = spacing.Trim().Split(' ', StringSplitOptions.RemoveEmptyEntries).FirstOrDefault();
         return CssToPoints(firstValue);
+    }
+
+    private static double ObtenerAnchoMaximoBorde(
+        IReadOnlyList<TableRowData> rows,
+        Dictionary<string, string> tblCss)
+    {
+        var max = ObtenerAnchoMaximoBorde(tblCss);
+        foreach (var row in rows)
+            foreach (var cell in row.Cells)
+                max = Math.Max(max, ObtenerAnchoMaximoBorde(cell.Css));
+        return max;
+    }
+
+    private static double ObtenerAnchoMaximoBorde(Dictionary<string, string> css)
+    {
+        var max = 0d;
+        if (css.TryGetValue("border", out var all) && EsBordeVisible(all))
+            max = Math.Max(max, ObtenerBorde(all).Size);
+        foreach (var side in new[] { "top", "right", "bottom", "left" })
+            if (css.TryGetValue($"border-{side}", out var border) && EsBordeVisible(border))
+                max = Math.Max(max, ObtenerBorde(border).Size);
+        return max;
     }
 
     // ==================== DATA TYPES ====================

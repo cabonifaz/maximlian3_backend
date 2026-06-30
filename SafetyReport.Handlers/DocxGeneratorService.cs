@@ -1016,7 +1016,7 @@ public partial class DocxGeneratorService
                               && !EsColorClaro(bottomColor) && !EsColorClaro(rightColor);
                 var tblVal = esTablaOutset ? BorderValues.ThreeDEmboss : BorderValues.Single;
                 var tblCol = esTablaOutset ? "auto" : (bottomColor ?? topColor ?? "000000");
-                var tblSizeDocx = esTablaOutset ? tblSize * 4 : tblSize;
+                var tblSizeDocx = esTablaOutset ? ObtenerTamanoBordeOutsetDocx(css, tblSize) : tblSize;
                 tPr.Append(new TableBorders(
                     new TopBorder { Val = tblVal, Size = tblSizeDocx, Space = 0, Color = tblCol },
                     new BottomBorder { Val = tblVal, Size = tblSizeDocx, Space = 0, Color = tblCol },
@@ -1285,6 +1285,20 @@ public partial class DocxGeneratorService
 
         var colorMatch = Regex.Match(value, @"#([0-9a-f]{3}|[0-9a-f]{6})\b", RegexOptions.IgnoreCase);
         return (size, colorMatch.Success ? NormalizarColor(colorMatch.Value) : "000000");
+    }
+
+    private static uint ObtenerTamanoBordeOutsetDocx(Dictionary<string, string> css, uint borderSize)
+    {
+        if (!css.TryGetValue("border-spacing", out var spacing))
+            return borderSize * 4;
+
+        var firstValue = spacing.Trim().Split(' ', StringSplitOptions.RemoveEmptyEntries).FirstOrDefault();
+        var spacingTwips = CssToTwips(firstValue ?? "");
+        if (spacingTwips <= 0)
+            return borderSize * 4;
+
+        var spacingBorderUnits = (uint)Math.Max(0, Math.Round(spacingTwips * 8.0 / 20.0));
+        return Math.Max(1u, borderSize + spacingBorderUnits);
     }
 
     private static string NormalizarColor(string value)
