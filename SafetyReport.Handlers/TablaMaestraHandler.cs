@@ -54,17 +54,45 @@ namespace SafetyReport.Handlers
         {
             try
             {
-                var input = _maestrosSoloString1.Contains(request.IdMaestro)
-                    ? new TranslationInput { String1 = request.String1 }
-                    : new TranslationInput { String1 = request.String1, String2 = request.String2 };
+                var soloString1 = _maestrosSoloString1.Contains(request.IdMaestro);
+                var input = new TranslationInput
+                {
+                    String1 = request.InputText,
+                    String2 = soloString1 ? null : request.InputText2,
+                    IdIdioma = request.IdIdioma ?? 1
+                };
 
                 try
                 {
                     var traduccion = await _translator.TranslateAsync(input);
-                    request.String4 = traduccion.String4;
-                    request.String5 = traduccion.String5;
-                    request.String6 = traduccion.String6;
-                    request.String7 = traduccion.String7;
+
+                    switch (request.IdIdioma)
+                    {
+                        case 2: // input is English
+                            request.String4 = request.InputText;
+                            request.String5 = request.InputText2;
+                            request.String1 = traduccion.String1;
+                            request.String2 = traduccion.String2;
+                            request.String6 = traduccion.String6;
+                            request.String7 = traduccion.String7;
+                            break;
+                        case 3: // input is Portuguese
+                            request.String6 = request.InputText;
+                            request.String7 = request.InputText2;
+                            request.String1 = traduccion.String1;
+                            request.String2 = traduccion.String2;
+                            request.String4 = traduccion.String4;
+                            request.String5 = traduccion.String5;
+                            break;
+                        default: // input is Spanish
+                            request.String1 = request.InputText;
+                            request.String2 = request.InputText2;
+                            request.String4 = traduccion.String4;
+                            request.String5 = traduccion.String5;
+                            request.String6 = traduccion.String6;
+                            request.String7 = traduccion.String7;
+                            break;
+                    }
                 }
                 catch
                 {

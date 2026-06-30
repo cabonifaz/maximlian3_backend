@@ -40,6 +40,9 @@
     public class TablaMaestraRequest
     {
         public int IdMaestro { get; set; }
+        public int? IdIdioma { get; set; }
+        public string? InputText { get; set; }
+        public string? InputText2 { get; set; }
         public string Descripcion { get; set; } = string.Empty;
         public int? Num1 { get; set; }
         public decimal? Num2 { get; set; }
