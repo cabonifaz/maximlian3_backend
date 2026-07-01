@@ -173,7 +173,17 @@ namespace SafetyReport.Handlers
         {
             try
             {
-                var respuesta = await _dao.ObtenerAsync(usuarioLogueado, request.IdPedido);
+                if (request.IdInforme <= 0)
+                {
+                    return new Respuesta
+                    {
+                        IdTipoMensaje = 1,
+                        Mensaje = "El IdInforme es obligatorio.",
+                        Result = new List<InformeConsulta>()
+                    };
+                }
+
+                var respuesta = await _dao.ObtenerAsync(usuarioLogueado, request.IdPedido, request.IdInforme);
 
                 if (respuesta.IdTipoMensaje == 2 && respuesta.Result is List<InformeConsulta> informes)
                 {
@@ -484,6 +494,7 @@ namespace SafetyReport.Handlers
                 if (estructura is null)
                     return new Respuesta { IdTipoMensaje = 1, Mensaje = "Error al procesar el documento.", Result = null };
 
+                await DescargarFuentesAsync(estructura!);
                 var logoBytes = await DescargarLogoAsync(estructura);
                 var watermarkBytes = await DescargarMarcaAguaAsync(estructura);
 

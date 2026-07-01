@@ -28,6 +28,8 @@ public class PdfGeneratorService
     private double _mTop, _mBottom, _mLeft, _mRight;
     private double _logoBoxW, _logoBoxH;
     private double _headerGapAfter;
+    private double _headerMarginTop;
+    private double _footerMarginBottom;
     private string _headerAlign = "center";
     private string _footerText = "";
     private string _pageLabel = "Page";
@@ -65,6 +67,7 @@ public class PdfGeneratorService
 
     public static void ConfigurarFuentes(Dictionary<string, byte[]> fuentes)
     {
+        FontStore.Configurar(fuentes);
         lock (_fontLock)
         {
             if (_fontResolver == null)
@@ -133,6 +136,8 @@ public class PdfGeneratorService
         _logoBoxW = CssToPoints(config["header"]?["logoWidth"]?.GetValue<string>() ?? "1.3in");
         _logoBoxH = CssToPoints(config["header"]?["logoHeight"]?.GetValue<string>() ?? "0.55in");
         _headerGapAfter = CssToPoints(config["header"]?["gapAfter"]?.GetValue<string>() ?? "0");
+        _headerMarginTop = CssToPoints(config["header"]?["marginTop"]?.GetValue<string>() ?? "0");
+        _footerMarginBottom = CssToPoints(config["footer"]?["marginBottom"]?.GetValue<string>() ?? "0");
         _headerAlign = config["header"]?["align"]?.GetValue<string>() ?? "center";
 
         _footerText = config["footer"]?["text"]?.GetValue<string>() ?? "";
@@ -315,7 +320,7 @@ public class PdfGeneratorService
             var logoW = image.PointWidth * scale;
             var logoH = image.PointHeight * scale;
 
-            var headerTop = _mTop - _headerGapAfter - _logoBoxH;
+            var headerTop = _headerMarginTop > 0 ? _headerMarginTop : _mTop - _headerGapAfter - _logoBoxH;
             var logoY = headerTop + (_logoBoxH - logoH) / 2;
             var logoX = _headerAlign switch
             {
@@ -335,16 +340,19 @@ public class PdfGeneratorService
         var lineH = _footerFontSize;
         var footerX = _mLeft + _footerIndentL;
         var footerW = _pageW - _mLeft - _mRight - _footerIndentL - _footerIndentR;
-        var footerY = _contentBottom + _footerGapBefore;
+        var footerY = _footerMarginBottom > 0 ? _pageH - _footerMarginBottom : _contentBottom + _footerGapBefore;
         var align = MapXAlign(_footerAlign);
 
         if (!string.IsNullOrEmpty(_footerText))
         {
-            var lines = PartirEnLineas(_footerText, footerFont, footerW);
-            foreach (var line in lines)
+            var rawLines = _footerText.Replace("\r\n", "\n").Replace('\r', '\n').Split('\n');
+            foreach (var rawLine in rawLines)
             {
-                DibujarLineaTexto(line, footerFont, footerX, footerW, footerY, align, lineH);
-                footerY += lineH;
+                foreach (var line in PartirEnLineas(rawLine, footerFont, footerW))
+                {
+                    DibujarLineaTexto(line, footerFont, footerX, footerW, footerY, align, lineH);
+                    footerY += lineH;
+                }
             }
         }
 
@@ -501,28 +509,72 @@ public class PdfGeneratorService
     private void RenderKeyValue(JsonNode section)
     {
         var tblCss = ParseCss(section["style"]?.GetValue<string>());
-        var lblCss = ParseCss(section["labelStyle"]?.GetValue<string>());
         var rows = section["rows"]?.AsArray();
         if (rows is null || rows.Count == 0) return;
 
-        var effectiveLblCss = CombinarCssHeredable(tblCss, lblCss);
-        var effectiveValCss = CombinarCssHeredable(tblCss, null);
-        var tblW = ObtenerAnchoTabla(tblCss);
-        var lblW = CssToPoints(lblCss.GetValueOrDefault("width", ""));
-        var valW = lblW > 0 && tblW > lblW ? tblW - lblW : tblW / 2;
-        if (lblW <= 0) lblW = tblW - valW;
+        bool fixedWidth = tblCss.ContainsKey("width");
+        double tblW = fixedWidth ? ObtenerAnchoTabla(tblCss) : 0;
+
+        // For auto tables, measure all rows to find the widest total width
+        if (!fixedWidth)
+        {
+            foreach (var row in rows)
+            {
+                if (row is not JsonArray cells) continue;
+                double rowW = 0;
+                foreach (var cell in cells)
+                {
+                    if (cell is null) continue;
+                    var cellCss = ParseCss(cell["style"]?.GetValue<string>());
+                    var effectiveCss = CombinarCssHeredable(tblCss, cellCss);
+                    var w = CssToPoints(cellCss.GetValueOrDefault("width", ""));
+                    if (w <= 0)
+                    {
+                        var font = CrearFuente(effectiveCss);
+                        var (_, padR, _, padL) = ObtenerPadding(effectiveCss);
+                        w = _gfx.MeasureString(cell["text"]?.GetValue<string>() ?? "", font).Width + padL + padR;
+                    }
+                    rowW += w;
+                }
+                tblW = Math.Max(tblW, rowW);
+            }
+        }
 
         var tableRows = new List<TableRowData>();
         foreach (var row in rows)
         {
-            if (row is null) continue;
-            var label = row["label"]?.GetValue<string>() ?? "";
-            var value = row["value"]?.GetValue<string>() ?? "";
-            var sep = row["separator"]?.GetValue<string>() ?? "";
-            tableRows.Add(new TableRowData([
-                new CellData(label, lblW, effectiveLblCss),
-                new CellData(sep + value, valW, effectiveValCss)
-            ]));
+            if (row is not JsonArray cells) continue;
+
+            var rowCells = new List<CellData>();
+            var cellList = cells.Where(c => c is not null).ToList();
+            double usedW = 0;
+
+            for (int i = 0; i < cellList.Count; i++)
+            {
+                var cell = cellList[i]!;
+                var text = cell["text"]?.GetValue<string>() ?? "";
+                var cellCss = ParseCss(cell["style"]?.GetValue<string>());
+                var effectiveCss = CombinarCssHeredable(tblCss, cellCss);
+
+                double cellW;
+                if (fixedWidth && i == cellList.Count - 1)
+                    cellW = Math.Max(0, tblW - usedW);
+                else
+                {
+                    cellW = CssToPoints(cellCss.GetValueOrDefault("width", ""));
+                    if (cellW <= 0)
+                    {
+                        var font = CrearFuente(effectiveCss);
+                        var (_, padR, _, padL) = ObtenerPadding(effectiveCss);
+                        cellW = _gfx.MeasureString(text, font).Width + padL + padR;
+                    }
+                    usedW += cellW;
+                }
+
+                rowCells.Add(new CellData(text, cellW, effectiveCss));
+            }
+
+            tableRows.Add(new TableRowData(rowCells));
         }
 
         DibujarTabla(tableRows, tblW, tblCss);
@@ -745,6 +797,12 @@ public class PdfGeneratorService
         if (rows.Count == 0) return;
 
         rows = rows.Select(row => NormalizarAnchosFila(row, tableWidth)).ToList();
+        var borderSpacing = ObtenerBorderSpacing(tblCss);
+        var layoutSpacing = borderSpacing > 0
+            ? borderSpacing + ObtenerAnchoMaximoBorde(rows, tblCss)
+            : 0;
+        var maxCellCount = rows.Max(row => row.Cells.Count);
+        var visualTableWidth = tableWidth + (maxCellCount > 0 ? (maxCellCount + 1) * layoutSpacing : 0);
         var (beforeM, afterM) = ObtenerMargenVertical(tblCss);
 
         var before = beforeM;
@@ -765,24 +823,27 @@ public class PdfGeneratorService
         var alignment = ObtenerAlineacionTabla(tblCss);
         var tableX = alignment switch
         {
-            "center" => _mLeft + _contentIndentL + (_contentWidth - tableWidth) / 2,
-            "right" => _mLeft + _contentIndentL + _contentWidth - tableWidth,
+            "center" => _mLeft + _contentIndentL + (_contentWidth - visualTableWidth) / 2,
+            "right" => _mLeft + _contentIndentL + _contentWidth - visualTableWidth,
             _ => _mLeft + _contentIndentL
         };
 
         var tableStartY = _y;
+        var segmentStarted = false;
         var segmentRows = new List<TableRowData>();
 
         for (var rowIndex = 0; rowIndex < rows.Count; rowIndex++)
         {
             var row = rows[rowIndex];
             var rowH = MedirAltoFila(row, tableWidth);
+            var neededH = (segmentStarted ? 0 : layoutSpacing) + rowH + layoutSpacing;
 
-            if (_y + rowH > _contentBottom && _y > _contentTop)
+            if (_y + neededH > _contentBottom && _y > _contentTop)
             {
-                DibujarBordeTabla(tableX, tableStartY, tableWidth, _y - tableStartY, tblCss, segmentRows);
+                DibujarBordeTabla(tableX, tableStartY, visualTableWidth, _y - tableStartY, tblCss, segmentRows);
                 NuevaPagina();
                 tableStartY = _y;
+                segmentStarted = false;
                 segmentRows.Clear();
 
                 // DOCX marks data-table headers with w:tblHeader, so repeat the
@@ -791,24 +852,32 @@ public class PdfGeneratorService
                 if (rowIndex > 0 && header.IsHeader)
                 {
                     var headerH = MedirAltoFila(header, tableWidth);
-                    DibujarFila(header, tableX, tableWidth, headerH);
-                    _y += headerH;
+                    DibujarSombraTabla(tableX, _y, visualTableWidth, layoutSpacing + headerH + layoutSpacing, tblCss);
+                    DibujarFondoTabla(tableX, _y, visualTableWidth, layoutSpacing + headerH + layoutSpacing, tblCss);
+                    var headerY = _y + layoutSpacing;
+                    DibujarFila(header, tableX + layoutSpacing, headerY, tableWidth, headerH, layoutSpacing);
+                    _y = headerY + headerH + layoutSpacing;
+                    segmentStarted = true;
                     segmentRows.Add(header);
                 }
             }
 
-            DibujarFila(row, tableX, tableWidth, rowH);
-            _y += rowH;
+            DibujarSombraTabla(tableX, _y, visualTableWidth, (segmentStarted ? 0 : layoutSpacing) + rowH + layoutSpacing, tblCss);
+            DibujarFondoTabla(tableX, _y, visualTableWidth, (segmentStarted ? 0 : layoutSpacing) + rowH + layoutSpacing, tblCss);
+            var rowY = _y + (segmentStarted ? 0 : layoutSpacing);
+            DibujarFila(row, tableX + layoutSpacing, rowY, tableWidth, rowH, layoutSpacing);
+            _y = rowY + rowH + layoutSpacing;
+            segmentStarted = true;
             segmentRows.Add(row);
         }
 
-        DibujarBordeTabla(tableX, tableStartY, tableWidth, _y - tableStartY, tblCss, segmentRows);
+        DibujarBordeTabla(tableX, tableStartY, visualTableWidth, _y - tableStartY, tblCss, segmentRows);
 
         _pendingTableBottomMargin = afterM;
         LimpiarParrafoAnterior();
     }
 
-    private void DibujarFila(TableRowData row, double tableX, double tableWidth, double rowH)
+    private void DibujarFila(TableRowData row, double tableX, double rowY, double tableWidth, double rowH, double borderSpacing)
     {
         var cellX = tableX;
         foreach (var cell in row.Cells)
@@ -821,17 +890,52 @@ public class PdfGeneratorService
             var textW = Math.Max(0, cellW - padL - padR);
             var align = MapXAlign(css.GetValueOrDefault("text-align", "left"));
 
+            if (css.TryGetValue("background-color", out var bgHex))
+            {
+                var c = NormalizarColor(bgHex);
+                var bgBrush = new XSolidBrush(XColor.FromArgb(
+                    Convert.ToInt32(c[..2], 16),
+                    Convert.ToInt32(c[2..4], 16),
+                    Convert.ToInt32(c[4..6], 16)));
+                _gfx.DrawRectangle(bgBrush, new XRect(cellX, rowY, cellW, rowH));
+            }
+
             var lines = PartirEnLineas(cell.Text, font, textW);
-            var textY = _y + padT;
+            var textY = rowY + padT;
             foreach (var line in lines)
             {
                 DibujarLineaTexto(line, font, cellX + padL, textW, textY, align, lineH);
                 textY += lineH;
             }
 
-            DibujarBordesCelda(cellX, _y, cellW, rowH, css);
-            cellX += cellW;
+            DibujarBordesCelda(cellX, rowY, cellW, rowH, css);
+            cellX += cellW + borderSpacing;
         }
+    }
+
+    private void DibujarSombraTabla(double x, double y, double w, double h, Dictionary<string, string> tblCss)
+    {
+        var shadow = ObtenerBoxShadow(tblCss);
+        if (shadow is null || h <= 0) return;
+
+        var c = NormalizarColor(shadow.Color);
+        var brush = new XSolidBrush(XColor.FromArgb(
+            Convert.ToInt32(c[..2], 16),
+            Convert.ToInt32(c[2..4], 16),
+            Convert.ToInt32(c[4..6], 16)));
+        _gfx.DrawRectangle(brush, new XRect(x + shadow.OffsetX, y + shadow.OffsetY, w, h));
+    }
+
+    private void DibujarFondoTabla(double x, double y, double w, double h, Dictionary<string, string> tblCss)
+    {
+        if (h <= 0 || !tblCss.TryGetValue("background-color", out var bgHex)) return;
+
+        var c = NormalizarColor(bgHex);
+        var bgBrush = new XSolidBrush(XColor.FromArgb(
+            Convert.ToInt32(c[..2], 16),
+            Convert.ToInt32(c[2..4], 16),
+            Convert.ToInt32(c[4..6], 16)));
+        _gfx.DrawRectangle(bgBrush, new XRect(x, y, w, h));
     }
 
     private static TableRowData NormalizarAnchosFila(TableRowData row, double tableWidth)
@@ -900,20 +1004,35 @@ public class PdfGeneratorService
         Dictionary<string, string> tblCss,
         IReadOnlyList<TableRowData> segmentRows)
     {
-        if (h <= 0 || !tblCss.TryGetValue("border", out var border) || !EsBordeVisible(border)) return;
-        var pen = CrearPen(border);
-        if (!BordeExteriorCubierto(segmentRows, "top"))
-            DibujarLineaBorde(pen, x, y, x + w, y);
-        if (!BordeExteriorCubierto(segmentRows, "bottom"))
-            DibujarLineaBorde(pen, x, y + h, x + w, y + h);
-        if (!BordeExteriorCubierto(segmentRows, "left"))
-            DibujarLineaBorde(pen, x, y, x, y + h);
-        if (!BordeExteriorCubierto(segmentRows, "right"))
-            DibujarLineaBorde(pen, x + w, y, x + w, y + h);
+        if (h <= 0) return;
+
+        if (tblCss.TryGetValue("border", out var border) && EsBordeVisible(border))
+        {
+            var pen = CrearPen(border);
+            if (!BordeExteriorCubierto(segmentRows, "top", tblCss))
+                DibujarLineaBorde(pen, x, y, x + w, y);
+            if (!BordeExteriorCubierto(segmentRows, "bottom", tblCss))
+                DibujarLineaBorde(pen, x, y + h, x + w, y + h);
+            if (!BordeExteriorCubierto(segmentRows, "left", tblCss))
+                DibujarLineaBorde(pen, x, y, x, y + h);
+            if (!BordeExteriorCubierto(segmentRows, "right", tblCss))
+                DibujarLineaBorde(pen, x + w, y, x + w, y + h);
+            return;
+        }
+
+        if (tblCss.TryGetValue("border-top", out var bt) && EsBordeVisible(bt) && !BordeExteriorCubierto(segmentRows, "top", tblCss))
+            DibujarLineaBorde(CrearPen(bt), x, y, x + w, y);
+        if (tblCss.TryGetValue("border-bottom", out var bb) && EsBordeVisible(bb) && !BordeExteriorCubierto(segmentRows, "bottom", tblCss))
+            DibujarLineaBorde(CrearPen(bb), x, y + h, x + w, y + h);
+        if (tblCss.TryGetValue("border-left", out var bl) && EsBordeVisible(bl) && !BordeExteriorCubierto(segmentRows, "left", tblCss))
+            DibujarLineaBorde(CrearPen(bl), x, y, x, y + h);
+        if (tblCss.TryGetValue("border-right", out var br) && EsBordeVisible(br) && !BordeExteriorCubierto(segmentRows, "right", tblCss))
+            DibujarLineaBorde(CrearPen(br), x + w, y, x + w, y + h);
     }
 
-    private static bool BordeExteriorCubierto(IReadOnlyList<TableRowData> rows, string side)
+    private static bool BordeExteriorCubierto(IReadOnlyList<TableRowData> rows, string side, Dictionary<string, string> tblCss)
     {
+        if (ObtenerBorderSpacing(tblCss) > 0) return false;
         if (rows.Count == 0) return false;
 
         return side switch
@@ -1123,7 +1242,7 @@ public class PdfGeneratorService
     private static double CssToPoints(string? value)
     {
         if (string.IsNullOrEmpty(value)) return 0;
-        var m = Regex.Match(value, @"([\d.]+)\s*(in|pt|)");
+        var m = Regex.Match(value, @"([\d.]+)\s*(in|pt|px|)");
         if (!m.Success || !double.TryParse(m.Groups[1].Value,
                 System.Globalization.NumberStyles.Any,
                 System.Globalization.CultureInfo.InvariantCulture, out var num))
@@ -1132,6 +1251,7 @@ public class PdfGeneratorService
         {
             "in" => num * 72,
             "pt" => num,
+            "px" => num * 0.75,
             _ => num * 72
         };
     }
@@ -1157,7 +1277,7 @@ public class PdfGeneratorService
         string[] inherited =
         [
             "color", "font-family", "font-size", "font-style", "font-weight",
-            "line-height", "text-align", "text-decoration", "white-space"
+            "line-height", "text-align", "text-decoration", "white-space", "padding"
         ];
         var result = new Dictionary<string, string>();
         foreach (var prop in inherited)
@@ -1270,8 +1390,70 @@ public class PdfGeneratorService
         return Regex.IsMatch(color, "^[0-9a-fA-F]{6}$") ? color.ToUpperInvariant() : "000000";
     }
 
+    private static double ObtenerBorderSpacing(Dictionary<string, string> css)
+    {
+        if (!css.TryGetValue("border-spacing", out var spacing)) return 0;
+
+        var firstValue = spacing.Trim().Split(' ', StringSplitOptions.RemoveEmptyEntries).FirstOrDefault();
+        return CssToPoints(firstValue);
+    }
+
+    private static double ObtenerAnchoMaximoBorde(
+        IReadOnlyList<TableRowData> rows,
+        Dictionary<string, string> tblCss)
+    {
+        var max = ObtenerAnchoMaximoBorde(tblCss);
+        foreach (var row in rows)
+            foreach (var cell in row.Cells)
+                max = Math.Max(max, ObtenerAnchoMaximoBorde(cell.Css));
+        return max;
+    }
+
+    private static double ObtenerAnchoMaximoBorde(Dictionary<string, string> css)
+    {
+        var max = 0d;
+        if (css.TryGetValue("border", out var all) && EsBordeVisible(all))
+            max = Math.Max(max, ObtenerBorde(all).Size);
+        foreach (var side in new[] { "top", "right", "bottom", "left" })
+            if (css.TryGetValue($"border-{side}", out var border) && EsBordeVisible(border))
+                max = Math.Max(max, ObtenerBorde(border).Size);
+        return max;
+    }
+
+    private static BoxShadowData? ObtenerBoxShadow(Dictionary<string, string> css)
+    {
+        if (!css.TryGetValue("box-shadow", out var value)) return null;
+        if (value.Contains("none", StringComparison.OrdinalIgnoreCase)) return null;
+
+        var lengths = Regex.Matches(value, @"-?[\d.]+\s*(in|pt|px|)", RegexOptions.IgnoreCase)
+            .Select(match => CssLengthToPoints(match.Value))
+            .ToList();
+        if (lengths.Count < 2) return null;
+
+        var colorMatch = Regex.Match(value, @"#([0-9a-f]{3}|[0-9a-f]{6})\b", RegexOptions.IgnoreCase);
+        var color = colorMatch.Success ? colorMatch.Value : "#000000";
+        return new BoxShadowData(lengths[0], lengths[1], color);
+    }
+
+    private static double CssLengthToPoints(string value)
+    {
+        var m = Regex.Match(value, @"(-?[\d.]+)\s*(in|pt|px|)", RegexOptions.IgnoreCase);
+        if (!m.Success || !double.TryParse(m.Groups[1].Value,
+                System.Globalization.NumberStyles.Any,
+                System.Globalization.CultureInfo.InvariantCulture, out var num))
+            return 0;
+        return m.Groups[2].Value.ToLowerInvariant() switch
+        {
+            "in" => num * 72,
+            "pt" => num,
+            "px" => num * 0.75,
+            _ => num * 72
+        };
+    }
+
     // ==================== DATA TYPES ====================
 
+    private record BoxShadowData(double OffsetX, double OffsetY, string Color);
     private record CellData(string Text, double Width, Dictionary<string, string> Css, int Colspan = 0);
     private record TableRowData(List<CellData> Cells, bool IsHeader = false);
 
