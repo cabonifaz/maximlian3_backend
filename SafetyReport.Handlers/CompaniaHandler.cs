@@ -1,3 +1,6 @@
+using DocumentFormat.OpenXml;
+using DocumentFormat.OpenXml.Packaging;
+using DocumentFormat.OpenXml.Spreadsheet;
 using SafetyReport.DAO;
 using SafetyReport.Models;
 
@@ -202,6 +205,31 @@ namespace SafetyReport.Handlers
             }
         }
 
+        public async Task<Respuesta> ExportarNoticiasDetalleAsync(UsuarioGeneral usuarioLogueado, FiltroCompaniaNoticiaDetalle filtro)
+        {
+            try
+            {
+                var respuesta = await _dao.ExportarNoticiasDetalleAsync(usuarioLogueado, filtro);
+                if (respuesta.IdTipoMensaje != 2)
+                    return respuesta;
+
+                var items = respuesta.Result as List<CompaniaNoticiaDetalleListaConsulta> ?? new();
+                var archivo = GenerarExcelNoticiasDetalle(items);
+
+                respuesta.Result = new CompaniaNoticiaDetalleExportacion
+                {
+                    NombreArchivo = $"companias-noticia-detalle-{DateTime.Now:yyyyMMddHHmmss}.xlsx",
+                    ContentType = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                    Archivo = archivo
+                };
+                return respuesta;
+            }
+            catch (Exception ex)
+            {
+                return new Respuesta { IdTipoMensaje = 3, Mensaje = "Error interno del servidor.", Result = null! };
+            }
+        }
+
         private void PrepararArchivosNoticia(int idCompania, List<CompaniaNoticiaArchivoItem>? archivos)
         {
             if (archivos == null)
@@ -290,6 +318,99 @@ namespace SafetyReport.Handlers
                 nombreLimpio = "archivo";
 
             return $"companias/{idCompania}/noticias/{nombreLimpio}-{DateTimeOffset.UtcNow.ToUnixTimeMilliseconds()}{extension}";
+        }
+
+        private static byte[] GenerarExcelNoticiasDetalle(List<CompaniaNoticiaDetalleListaConsulta> items)
+        {
+            using var stream = new MemoryStream();
+            using (var document = SpreadsheetDocument.Create(stream, SpreadsheetDocumentType.Workbook))
+            {
+                var workbookPart = document.AddWorkbookPart();
+                workbookPart.Workbook = new Workbook();
+
+                var worksheetPart = workbookPart.AddNewPart<WorksheetPart>();
+                var sheetData = new SheetData();
+                worksheetPart.Worksheet = new Worksheet();
+
+                worksheetPart.Worksheet.Append(CrearColumnasExcel());
+                worksheetPart.Worksheet.Append(sheetData);
+
+                var sheets = workbookPart.Workbook.AppendChild(new Sheets());
+                sheets.Append(new Sheet
+                {
+                    Id = workbookPart.GetIdOfPart(worksheetPart),
+                    SheetId = 1,
+                    Name = "Detalle"
+                });
+
+                sheetData.Append(CrearFilaExcel(
+                    "IdCompania",
+                    "Nombre Completo",
+                    "Pais",
+                    "Bandera",
+                    "Direccion",
+                    "Telefono",
+                    "Actividad Comercial",
+                    "Numero Empleados"));
+
+                foreach (var item in items)
+                {
+                    sheetData.Append(CrearFilaExcel(
+                        item.IdCompania.ToString(),
+                        item.NombreCompleto,
+                        item.Pais,
+                        item.Bandera,
+                        item.Direccion,
+                        item.Telefono,
+                        item.ActividadComercial,
+                        item.NumeroEmpleados?.ToString()));
+                }
+
+                workbookPart.Workbook.Save();
+            }
+
+            return stream.ToArray();
+        }
+
+        private static Columns CrearColumnasExcel()
+        {
+            return new Columns(
+                CrearColumnaExcel(1, 1, 12),
+                CrearColumnaExcel(2, 2, 35),
+                CrearColumnaExcel(3, 3, 20),
+                CrearColumnaExcel(4, 4, 14),
+                CrearColumnaExcel(5, 5, 45),
+                CrearColumnaExcel(6, 6, 18),
+                CrearColumnaExcel(7, 7, 30),
+                CrearColumnaExcel(8, 8, 18));
+        }
+
+        private static Column CrearColumnaExcel(uint min, uint max, double width)
+        {
+            return new Column
+            {
+                Min = min,
+                Max = max,
+                Width = width,
+                CustomWidth = true
+            };
+        }
+
+        private static Row CrearFilaExcel(params string?[] valores)
+        {
+            var row = new Row();
+            foreach (var valor in valores)
+                row.Append(CrearCeldaExcel(valor));
+            return row;
+        }
+
+        private static Cell CrearCeldaExcel(string? valor)
+        {
+            return new Cell
+            {
+                DataType = CellValues.InlineString,
+                InlineString = new InlineString(new Text(valor ?? string.Empty))
+            };
         }
     }
 }

@@ -253,4 +253,11 @@ namespace SafetyReport.Models
         public int TotalRegistros { get; set; }
         public int TotalPaginas { get; set; }
     }
+
+    public class CompaniaNoticiaDetalleExportacion
+    {
+        public string NombreArchivo { get; set; } = string.Empty;
+        public string ContentType { get; set; } = string.Empty;
+        public byte[] Archivo { get; set; } = [];
+    }
 }

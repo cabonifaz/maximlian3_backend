@@ -114,5 +114,16 @@ namespace SafetyReport.WebApi.Controllers
             var respuesta = await _companiaHandler.ListarNoticiasDetalleAsync(UsuarioLogueado, filtro);
             return Ok(respuesta);
         }
+
+        [HttpGet("companianoticiadetalle/exportar")]
+        public async Task<IActionResult> ExportarNoticiasDetalle([FromQuery] FiltroCompaniaNoticiaDetalle filtro)
+        {
+            var respuesta = await _companiaHandler.ExportarNoticiasDetalleAsync(UsuarioLogueado, filtro);
+
+            if (respuesta.IdTipoMensaje != 2 || respuesta.Result is not CompaniaNoticiaDetalleExportacion exportacion)
+                return Ok(respuesta);
+
+            return File(exportacion.Archivo, exportacion.ContentType, exportacion.NombreArchivo);
+        }
     }
 }
