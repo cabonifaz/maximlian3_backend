@@ -190,6 +190,18 @@ namespace SafetyReport.Handlers
             }
         }
 
+        public async Task<Respuesta> ListarNoticiasDetalleAsync(UsuarioGeneral usuarioLogueado, FiltroCompaniaNoticiaDetalle filtro)
+        {
+            try
+            {
+                return await _dao.ListarNoticiasDetalleAsync(usuarioLogueado, filtro);
+            }
+            catch (Exception ex)
+            {
+                return new Respuesta { IdTipoMensaje = 3, Mensaje = "Error interno del servidor.", Result = new CompaniaNoticiaDetalleListaResult() };
+            }
+        }
+
         private void PrepararArchivosNoticia(int idCompania, List<CompaniaNoticiaArchivoItem>? archivos)
         {
             if (archivos == null)

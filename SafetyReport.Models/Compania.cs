@@ -227,4 +227,30 @@ namespace SafetyReport.Models
         public string? TipoEstadoFinanciero { get; set; }
         public JsonElement? DetalleBalance { get; set; }
     }
+
+    public class FiltroCompaniaNoticiaDetalle
+    {
+        public int? IdCompania { get; set; }
+        public string? Busqueda { get; set; }
+        public int NumPag { get; set; } = 1;
+    }
+
+    public class CompaniaNoticiaDetalleListaConsulta
+    {
+        public int IdCompania { get; set; }
+        public string? NombreCompleto { get; set; }
+        public string? Pais { get; set; }
+        public string? Bandera { get; set; }
+        public string? Direccion { get; set; }
+        public string? Telefono { get; set; }
+        public string? ActividadComercial { get; set; }
+        public int? NumeroEmpleados { get; set; }
+    }
+
+    public class CompaniaNoticiaDetalleListaResult
+    {
+        public List<CompaniaNoticiaDetalleListaConsulta> lstCompaniaNoticiasDetalle { get; set; } = new();
+        public int TotalRegistros { get; set; }
+        public int TotalPaginas { get; set; }
+    }
 }

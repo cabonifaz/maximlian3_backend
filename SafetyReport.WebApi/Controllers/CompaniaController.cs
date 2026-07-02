@@ -107,5 +107,12 @@ namespace SafetyReport.WebApi.Controllers
             var respuesta = await _companiaHandler.ObtenerNoticiaBalanceAsync(UsuarioLogueado, request);
             return Ok(respuesta);
         }
+
+        [HttpGet("companianoticiadetalle/listar")]
+        public async Task<IActionResult> ListarNoticiasDetalle([FromQuery] FiltroCompaniaNoticiaDetalle filtro)
+        {
+            var respuesta = await _companiaHandler.ListarNoticiasDetalleAsync(UsuarioLogueado, filtro);
+            return Ok(respuesta);
+        }
     }
 }
