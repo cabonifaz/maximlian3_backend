@@ -458,13 +458,20 @@ namespace SafetyReport.Handlers
                 if (estructura is null)
                     return new Respuesta { IdTipoMensaje = 1, Mensaje = "Error al procesar el documento.", Result = null };
 
-                var logoKey = estructura?["document"]?["header"]?["logo"]?.GetValue<string>();
-                if (!string.IsNullOrWhiteSpace(logoKey))
-                    estructura!["document"]!["header"]!["logo"] = _s3.GenerarDownloadUrl(logoKey);
+                var assets = estructura?["assets"]?.AsObject();
+                if (assets is not null)
+                {
+                    var resolved = assets
+                        .Where(kv => !string.IsNullOrWhiteSpace(kv.Value?.GetValue<string>()))
+                        .ToDictionary(kv => kv.Key, kv => _s3.GenerarDownloadUrl(kv.Value!.GetValue<string>()));
 
-                var watermarkKey = estructura?["document"]?["watermark"]?["image"]?.GetValue<string>();
-                if (!string.IsNullOrWhiteSpace(watermarkKey))
-                    estructura!["document"]!["watermark"]!["image"] = _s3.GenerarDownloadUrl(watermarkKey);
+                    var json = estructura!.ToJsonString();
+                    foreach (var (name, url) in resolved)
+                        json = json.Replace($"{{{name}}}", url);
+
+                    estructura = JsonNode.Parse(json);
+                    estructura!.AsObject().Remove("assets");
+                }
 
                 return new Respuesta
                 {
@@ -495,11 +502,10 @@ namespace SafetyReport.Handlers
                     return new Respuesta { IdTipoMensaje = 1, Mensaje = "Error al procesar el documento.", Result = null };
 
                 await DescargarFuentesAsync(estructura!);
-                var logoBytes = await DescargarLogoAsync(estructura);
-                var watermarkBytes = await DescargarMarcaAguaAsync(estructura);
+                var allAssets = await DescargarTodosAssetsAsync(estructura);
 
                 var generador = new DocxGeneratorService();
-                using var docxStream = generador.GenerarDocx(estructura!, logoBytes, watermarkBytes);
+                using var docxStream = generador.GenerarDocx(estructura!, allAssets);
 
                 var nombreArchivo = !string.IsNullOrWhiteSpace(nombreInforme) ? nombreInforme : "documento";
                 var rutaBase = $"informes/pedido-{request.IdPedido}/informe-{request.IdInforme}/{nombreArchivo}";
@@ -535,12 +541,11 @@ namespace SafetyReport.Handlers
                 if (estructura is null)
                     return new Respuesta { IdTipoMensaje = 1, Mensaje = "Error al procesar el documento.", Result = null };
 
-                var logoBytes = await DescargarLogoAsync(estructura);
-                var watermarkBytes = await DescargarMarcaAguaAsync(estructura);
                 await DescargarFuentesAsync(estructura!);
+                var allAssets = await DescargarTodosAssetsAsync(estructura);
 
                 var generador = new PdfGeneratorService();
-                using var pdfStream = generador.GenerarPdf(estructura!, logoBytes, watermarkBytes);
+                using var pdfStream = generador.GenerarPdf(estructura!, allAssets);
 
                 var nombreArchivo = !string.IsNullOrWhiteSpace(nombreInforme) ? nombreInforme : "documento";
                 var rutaBase = $"informes/pedido-{request.IdPedido}/informe-{request.IdInforme}/{nombreArchivo}";
@@ -561,30 +566,30 @@ namespace SafetyReport.Handlers
             }
         }
 
-        private async Task<byte[]?> DescargarLogoAsync(JsonNode? estructura)
+        private async Task<Dictionary<string, byte[]>> DescargarTodosAssetsAsync(JsonNode? estructura)
         {
-            var logoKey = estructura?["document"]?["header"]?["logo"]?.GetValue<string>();
-            if (string.IsNullOrWhiteSpace(logoKey)) return null;
-            try
+            var result = new Dictionary<string, byte[]>();
+            var assets = estructura?["assets"]?.AsObject();
+            if (assets is null) return result;
+            var seen = new Dictionary<string, byte[]>();
+            using var http = new HttpClient();
+            foreach (var kv in assets)
             {
-                var logoUrl = _s3.GenerarDownloadUrl(logoKey);
-                using var http = new HttpClient();
-                return await http.GetByteArrayAsync(logoUrl);
+                var s3Key = kv.Value?.GetValue<string>();
+                if (string.IsNullOrWhiteSpace(s3Key)) continue;
+                if (!seen.TryGetValue(s3Key, out var bytes))
+                {
+                    try
+                    {
+                        var url = _s3.GenerarDownloadUrl(s3Key);
+                        bytes = await http.GetByteArrayAsync(url);
+                        seen[s3Key] = bytes;
+                    }
+                    catch { continue; }
+                }
+                result[kv.Key] = bytes;
             }
-            catch { return null; }
-        }
-
-        private async Task<byte[]?> DescargarMarcaAguaAsync(JsonNode? estructura)
-        {
-            var key = estructura?["document"]?["watermark"]?["image"]?.GetValue<string>();
-            if (string.IsNullOrWhiteSpace(key)) return null;
-            try
-            {
-                var url = _s3.GenerarDownloadUrl(key);
-                using var http = new HttpClient();
-                return await http.GetByteArrayAsync(url);
-            }
-            catch { return null; }
+            return result;
         }
 
         private async Task DescargarFuentesAsync(JsonNode estructura)

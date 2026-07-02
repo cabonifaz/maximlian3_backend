@@ -17,17 +17,18 @@ public partial class DocxGeneratorService
     private int _contentIndentL = 0;
     private int _contentIndentR = 0;
     private int _contentWidth = 0; // available width for content in twips
-    private byte[]? _logoBytes;
-    private byte[]? _watermarkBytes;
     private int _pendingTableBottomMargin;
     private Paragraph? _lastBodyParagraph;
     private int _lastBodyMarginBottom;
     private int _lastBodyPaddingBottom;
+    private Dictionary<string, byte[]>? _assets;
+    private MainDocumentPart? _mainPart;
+    private uint _nextDrawingId = 100;
     // Max measured last-cell width across all auto-width right-aligned keyValue tables,
     // used to normalize value cells into a uniform column.
     private int _rightAlignedMaxLastCellW = 0;
 
-    public MemoryStream GenerarDocx(JsonNode json, byte[]? logoBytes = null, byte[]? watermarkBytes = null)
+    public MemoryStream GenerarDocx(JsonNode json, Dictionary<string, byte[]>? assets = null)
     {
         var ms = new MemoryStream();
         using (var doc = WordprocessingDocument.Create(ms, WordprocessingDocumentType.Document, true))
@@ -39,8 +40,9 @@ public partial class DocxGeneratorService
             var config = json["document"];
             var sections = json["sections"]?.AsArray();
 
-            _logoBytes = logoBytes;
-            _watermarkBytes = watermarkBytes;
+            _assets = assets;
+            _mainPart = mainPart;
+            _nextDrawingId = 100;
             _pendingTableBottomMargin = 0;
             _lastBodyParagraph = null;
             _lastBodyMarginBottom = 0;
@@ -270,6 +272,7 @@ public partial class DocxGeneratorService
                 var text = cell["text"]?.GetValue<string>() ?? "";
                 var cellCss = ParseCss(cell["style"]?.GetValue<string>());
                 var effectiveCss = CombinarCssHeredable(tblCss, cellCss);
+                var imgBytes = ResolveAssetBytes(cell["image"]?.GetValue<string>());
 
                 int cellW;
                 bool isAutoCell = CssToTwips(cellCss.GetValueOrDefault("width", "")) <= 0;
@@ -289,7 +292,7 @@ public partial class DocxGeneratorService
                 if (isAutoRightAligned && isAutoCell)
                     effectiveCss["text-align"] = "right";
 
-                tr.Append(CrearCeldaTexto(text, cellW, effectiveCss));
+                tr.Append(CrearCeldaTexto(text, cellW, effectiveCss, imageBytes: imgBytes));
             }
 
             table.Append(tr);
@@ -501,12 +504,23 @@ public partial class DocxGeneratorService
         LimpiarUltimoParrafoBody();
     }
 
+    private byte[]? ResolveAssetBytes(string? valor)
+    {
+        if (string.IsNullOrWhiteSpace(valor) || _assets is null) return null;
+        if (valor.StartsWith("{") && valor.EndsWith("}"))
+            return _assets.TryGetValue(valor[1..^1], out var b) ? b : null;
+        return null;
+    }
+
     // ==================== HEADER / FOOTER / PAGE ====================
 
     private void AgregarHeaderLogo(MainDocumentPart mainPart, JsonNode? config)
     {
-        var hasLogo = _logoBytes is not null && _logoBytes.Length > 0;
-        var hasWatermark = _watermarkBytes is not null && _watermarkBytes.Length > 0;
+        var logoBytes = ResolveAssetBytes(config?["header"]?["logo"]?.GetValue<string>());
+        var watermarkBytes = ResolveAssetBytes(config?["watermark"]?["image"]?.GetValue<string>());
+
+        var hasLogo = logoBytes is not null && logoBytes.Length > 0;
+        var hasWatermark = watermarkBytes is not null && watermarkBytes.Length > 0;
         if (!hasLogo && !hasWatermark) return;
 
         var headerPart = mainPart.AddNewPart<HeaderPart>();
@@ -514,7 +528,7 @@ public partial class DocxGeneratorService
 
         if (!hasLogo)
         {
-            AgregarMarcaAguaAlHeader(headerPart, header, config);
+            AgregarMarcaAguaAlHeader(headerPart, header, config, watermarkBytes!);
             headerPart.Header = header;
             headerPart.Header.Save();
             return;
@@ -522,13 +536,13 @@ public partial class DocxGeneratorService
 
         var logoBoxW = CssToEmu(config?["header"]?["logoWidth"]?.GetValue<string>() ?? "1.3in");
         var logoBoxH = CssToEmu(config?["header"]?["logoHeight"]?.GetValue<string>() ?? "0.55in");
-        var (logoW, logoH) = AjustarImagenContain(_logoBytes, logoBoxW, logoBoxH);
+        var (logoW, logoH) = AjustarImagenContain(logoBytes!, logoBoxW, logoBoxH);
         var align = config?["header"]?["align"]?.GetValue<string>() ?? "center";
 
-        var imagePart = _logoBytes.Length >= 2 && _logoBytes[0] == 0xFF && _logoBytes[1] == 0xD8
+        var imagePart = logoBytes!.Length >= 2 && logoBytes[0] == 0xFF && logoBytes[1] == 0xD8
             ? headerPart.AddImagePart(ImagePartType.Jpeg)
             : headerPart.AddImagePart(ImagePartType.Png);
-        using (var imgStream = new MemoryStream(_logoBytes))
+        using (var imgStream = new MemoryStream(logoBytes))
             imagePart.FeedData(imgStream);
 
         var relationshipId = headerPart.GetIdOfPart(imagePart);
@@ -578,15 +592,15 @@ public partial class DocxGeneratorService
 
         header.Append(para);
 
-        AgregarMarcaAguaAlHeader(headerPart, header, config);
+        AgregarMarcaAguaAlHeader(headerPart, header, config, watermarkBytes);
 
         headerPart.Header = header;
         headerPart.Header.Save();
     }
 
-    private void AgregarMarcaAguaAlHeader(HeaderPart headerPart, Header header, JsonNode? config)
+    private void AgregarMarcaAguaAlHeader(HeaderPart headerPart, Header header, JsonNode? config, byte[]? watermarkBytes)
     {
-        if (_watermarkBytes is null || _watermarkBytes.Length == 0) return;
+        if (watermarkBytes is null || watermarkBytes.Length == 0) return;
 
         var wmNode = config?["watermark"];
         if (wmNode is null) return;
@@ -616,14 +630,14 @@ public partial class DocxGeneratorService
             _ => (pageH - wmHeightPt) / 2
         };
 
-        var imagePart = _watermarkBytes.Length >= 2 && _watermarkBytes[0] == 0xFF && _watermarkBytes[1] == 0xD8
+        var imagePart = watermarkBytes.Length >= 2 && watermarkBytes[0] == 0xFF && watermarkBytes[1] == 0xD8
             ? headerPart.AddImagePart(ImagePartType.Jpeg)
             : headerPart.AddImagePart(ImagePartType.Png);
-        using (var imgStream = new MemoryStream(_watermarkBytes))
+        using (var imgStream = new MemoryStream(watermarkBytes))
             imagePart.FeedData(imgStream);
 
         var relId = headerPart.GetIdOfPart(imagePart);
-        var (wmW, wmH) = AjustarImagenContain(_watermarkBytes, CssToEmu(wmNode["width"]?.GetValue<string>() ?? "0"), CssToEmu(wmNode["height"]?.GetValue<string>() ?? "0"));
+        var (wmW, wmH) = AjustarImagenContain(watermarkBytes, CssToEmu(wmNode["width"]?.GetValue<string>() ?? "0"), CssToEmu(wmNode["height"]?.GetValue<string>() ?? "0"));
         var marginLeftEmu = (long)(marginLeft * 12700);
         var marginTopEmu = (long)(marginTop * 12700);
 
@@ -1052,7 +1066,7 @@ public partial class DocxGeneratorService
     }
 
     private TableCell CrearCeldaTexto(string text, int widthTwips, Dictionary<string, string>? css,
-        int colspan = 0)
+        int colspan = 0, byte[]? imageBytes = null)
     {
         var tc = new TableCell();
         var tcPr = new TableCellProperties();
@@ -1152,6 +1166,111 @@ public partial class DocxGeneratorService
             pPr.Append(new Justification { Val = MapAlign(align) });
 
         para.Append(pPr);
+
+        // Image in cell: inline (mode 2 / block-centered) or anchored (mode 3 / independent)
+        if (imageBytes is not null && imageBytes.Length > 0 && _mainPart is not null)
+        {
+            var bgSize = css?.GetValueOrDefault("background-size", "auto auto") ?? "auto auto";
+            var sizeParts = bgSize.Trim().Split(' ');
+            var hPart = sizeParts.Length >= 2 ? sizeParts[1] : "auto";
+            var wPart = sizeParts.Length >= 1 ? sizeParts[0] : "auto";
+
+            long targetH, targetW;
+            if (hPart.EndsWith("%") && double.TryParse(hPart.TrimEnd('%'),
+                    System.Globalization.NumberStyles.Any,
+                    System.Globalization.CultureInfo.InvariantCulture, out var pct))
+            {
+                var lineHEmu = (long)(hp / 2.0 * 12700 * _lineSpacingMultiplier);
+                var paddingEmu = (long)((padTop + padBottom) * 635L);
+                targetH = (long)((lineHEmu + paddingEmu) * (pct / 100.0));
+            }
+            else if (!hPart.Equals("auto", StringComparison.OrdinalIgnoreCase))
+                targetH = CssToEmu(hPart);
+            else
+            {
+                var lineHEmu = (long)(hp / 2.0 * 12700 * _lineSpacingMultiplier);
+                targetH = (long)((lineHEmu + (long)((padTop + padBottom) * 635L)) * 0.7);
+            }
+
+            targetW = wPart.Equals("auto", StringComparison.OrdinalIgnoreCase)
+                ? long.MaxValue / 2
+                : CssToEmu(wPart);
+
+            var (imgW, imgH) = AjustarImagenContain(imageBytes, targetW, targetH);
+
+            var imgPart = imageBytes.Length >= 2 && imageBytes[0] == 0xFF && imageBytes[1] == 0xD8
+                ? _mainPart.AddImagePart(ImagePartType.Jpeg)
+                : _mainPart.AddImagePart(ImagePartType.Png);
+            using (var imgStream = new MemoryStream(imageBytes))
+                imgPart.FeedData(imgStream);
+
+            var relId = _mainPart.GetIdOfPart(imgPart);
+            var drawId = _nextDrawingId++;
+
+            var bgPosParts = (css?.GetValueOrDefault("background-position", "center center") ?? "center center")
+                .Trim().Split(' ');
+            var bgPosX = bgPosParts.Length > 0 ? bgPosParts[0] : "center";
+            var isMode3 = !bgPosX.Equals("center", StringComparison.OrdinalIgnoreCase);
+
+            var picture = new PIC.Picture(
+                new PIC.NonVisualPictureProperties(
+                    new PIC.NonVisualDrawingProperties { Id = 0, Name = "image.png" },
+                    new PIC.NonVisualPictureDrawingProperties()),
+                new PIC.BlipFill(
+                    new A.Blip { Embed = relId },
+                    new A.Stretch(new A.FillRectangle())),
+                new PIC.ShapeProperties(
+                    new A.Transform2D(
+                        new A.Offset { X = 0, Y = 0 },
+                        new A.Extents { Cx = imgW, Cy = imgH }),
+                    new A.PresetGeometry(new A.AdjustValueList())
+                        { Preset = A.ShapeTypeValues.Rectangle }));
+
+            var graphic = new A.Graphic(
+                new A.GraphicData(picture)
+                    { Uri = "http://schemas.openxmlformats.org/drawingml/2006/picture" });
+
+            Drawing imgDrawing;
+            if (isMode3)
+            {
+                var posXEmu = CssToEmu(bgPosX);
+                imgDrawing = new Drawing(
+                    new DW.Anchor(
+                        new DW.SimplePosition { X = 0, Y = 0 },
+                        new DW.HorizontalPosition(new DW.PositionOffset(posXEmu.ToString()))
+                            { RelativeFrom = DW.HorizontalRelativePositionValues.Column },
+                        new DW.VerticalPosition(new DW.VerticalAlignment { Text = "center" })
+                            { RelativeFrom = DW.VerticalRelativePositionValues.Line },
+                        new DW.Extent { Cx = imgW, Cy = imgH },
+                        new DW.EffectExtent { LeftEdge = 0, TopEdge = 0, RightEdge = 0, BottomEdge = 0 },
+                        new DW.WrapNone(),
+                        new DW.DocProperties { Id = drawId, Name = $"img{drawId}" },
+                        new DW.NonVisualGraphicFrameDrawingProperties(
+                            new A.GraphicFrameLocks { NoChangeAspect = true }),
+                        graphic)
+                    {
+                        DistanceFromTop = 0, DistanceFromBottom = 0,
+                        DistanceFromLeft = 0, DistanceFromRight = 0,
+                        SimplePos = false, RelativeHeight = 1,
+                        BehindDoc = false, Locked = false,
+                        LayoutInCell = true, AllowOverlap = false
+                    });
+            }
+            else
+            {
+                imgDrawing = new Drawing(
+                    new DW.Inline(
+                        new DW.Extent { Cx = imgW, Cy = imgH },
+                        new DW.EffectExtent { LeftEdge = 0, TopEdge = 0, RightEdge = 0, BottomEdge = 0 },
+                        new DW.DocProperties { Id = drawId, Name = $"img{drawId}" },
+                        new DW.NonVisualGraphicFrameDrawingProperties(
+                            new A.GraphicFrameLocks { NoChangeAspect = true }),
+                        graphic)
+                    { DistanceFromTop = 0, DistanceFromBottom = 0, DistanceFromLeft = 0, DistanceFromRight = 0 });
+            }
+
+            para.Append(new Run(imgDrawing));
+        }
 
         // Run
         var run = new Run();

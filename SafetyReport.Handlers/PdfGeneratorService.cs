@@ -17,8 +17,9 @@ public class PdfGeneratorService
     private double _contentIndentL = 0;
     private double _contentIndentR = 0;
     private double _contentWidth = 0;
-    private byte[]? _logoBytes;
-    private byte[]? _watermarkBytes;
+    private string? _logoRef;
+    private string? _wmRef;
+    private Dictionary<string, byte[]>? _assets;
     private double _wmWidth, _wmHeight, _wmOpacity;
     private string _wmPosition = "";
     private XImage? _wmImage;
@@ -82,11 +83,18 @@ public class PdfGeneratorService
         }
     }
 
-    public MemoryStream GenerarPdf(JsonNode json, byte[]? logoBytes = null, byte[]? watermarkBytes = null)
+    private byte[]? ResolveAssetBytes(string? valor)
+    {
+        if (string.IsNullOrWhiteSpace(valor) || _assets is null) return null;
+        if (valor.StartsWith("{") && valor.EndsWith("}"))
+            return _assets.TryGetValue(valor[1..^1], out var b) ? b : null;
+        return null;
+    }
+
+    public MemoryStream GenerarPdf(JsonNode json, Dictionary<string, byte[]>? assets = null)
     {
         _doc = new PdfDocument();
-        _logoBytes = logoBytes;
-        _watermarkBytes = watermarkBytes;
+        _assets = assets;
         _pendingTableBottomMargin = 0;
         _lastMarginBottom = 0;
         _lastPaddingBottom = 0;
@@ -139,6 +147,7 @@ public class PdfGeneratorService
         _headerMarginTop = CssToPoints(config["header"]?["marginTop"]?.GetValue<string>() ?? "0");
         _footerMarginBottom = CssToPoints(config["footer"]?["marginBottom"]?.GetValue<string>() ?? "0");
         _headerAlign = config["header"]?["align"]?.GetValue<string>() ?? "center";
+        _logoRef = config["header"]?["logo"]?.GetValue<string>();
 
         _footerText = config["footer"]?["text"]?.GetValue<string>() ?? "";
         _pageLabel = config["footer"]?["pageLabel"]?.GetValue<string>() ?? "Page";
@@ -172,6 +181,7 @@ public class PdfGeneratorService
             _wmHeight = CssToPoints(wmNode["height"]?.GetValue<string>() ?? "0");
             _wmOpacity = wmNode["opacity"]?.GetValue<double>() ?? 1.0;
             _wmPosition = wmNode["position"]?.GetValue<string>() ?? "center center";
+            _wmRef = wmNode["image"]?.GetValue<string>();
         }
 
         var pageBorderNode = config["pageBorder"];
@@ -225,11 +235,12 @@ public class PdfGeneratorService
 
     private void PrepararMarcaAgua()
     {
-        if (_watermarkBytes is null || _watermarkBytes.Length == 0 || _wmWidth <= 0 || _wmHeight <= 0) return;
+        var watermarkBytes = ResolveAssetBytes(_wmRef);
+        if (watermarkBytes is null || watermarkBytes.Length == 0 || _wmWidth <= 0 || _wmHeight <= 0) return;
 
         try
         {
-            var imgStream = new MemoryStream(_watermarkBytes);
+            var imgStream = new MemoryStream(watermarkBytes);
             _wmImage = XImage.FromStream(imgStream);
 
             var scaleW = _wmWidth / _wmImage.PointWidth;
@@ -307,11 +318,12 @@ public class PdfGeneratorService
 
     private void DibujarEncabezado()
     {
-        if (_logoBytes is null || _logoBytes.Length == 0) return;
+        var logoBytes = ResolveAssetBytes(_logoRef);
+        if (logoBytes is null || logoBytes.Length == 0) return;
 
         try
         {
-            using var imgStream = new MemoryStream(_logoBytes);
+            using var imgStream = new MemoryStream(logoBytes);
             var image = XImage.FromStream(imgStream);
 
             var scaleW = _logoBoxW / image.PointWidth;
@@ -340,27 +352,33 @@ public class PdfGeneratorService
         var lineH = _footerFontSize;
         var footerX = _mLeft + _footerIndentL;
         var footerW = _pageW - _mLeft - _mRight - _footerIndentL - _footerIndentR;
-        var footerY = _footerMarginBottom > 0 ? _pageH - _footerMarginBottom : _contentBottom + _footerGapBefore;
         var align = MapXAlign(_footerAlign);
+        var footerLines = new List<string>();
 
         if (!string.IsNullOrEmpty(_footerText))
         {
             var rawLines = _footerText.Replace("\r\n", "\n").Replace('\r', '\n').Split('\n');
             foreach (var rawLine in rawLines)
-            {
-                foreach (var line in PartirEnLineas(rawLine, footerFont, footerW))
-                {
-                    DibujarLineaTexto(line, footerFont, footerX, footerW, footerY, align, lineH);
-                    footerY += lineH;
-                }
-            }
+                footerLines.AddRange(PartirEnLineas(rawLine, footerFont, footerW));
+        }
+
+        var pageLineH = _showPageNumber ? _pageFontSize : 0;
+        var footerBlockH = footerLines.Count * lineH
+                         + (_showPageNumber ? _pageGapBefore + pageLineH : 0);
+        var footerY = _footerMarginBottom > 0
+            ? _pageH - _footerMarginBottom - footerBlockH
+            : _contentBottom + _footerGapBefore;
+
+        foreach (var line in footerLines)
+        {
+            DibujarLineaTexto(line, footerFont, footerX, footerW, footerY, align, lineH);
+            footerY += lineH;
         }
 
         if (_showPageNumber)
         {
             footerY += _pageGapBefore;
             var pageFont = CrearFuente(null, _pageFontSize);
-            var pageLineH = _pageFontSize;
             var pageBrush = _hasPageColor ? new XSolidBrush(_pageColor) : XBrushes.Black;
             var pageText = $"{_pageLabel} {_pageNumber}";
             var ascent = pageFont.Size * pageFont.Metrics.Ascent / pageFont.Metrics.UnitsPerEm;
@@ -571,7 +589,8 @@ public class PdfGeneratorService
                     usedW += cellW;
                 }
 
-                rowCells.Add(new CellData(text, cellW, effectiveCss));
+                rowCells.Add(new CellData(text, cellW, effectiveCss,
+                    ImageBytes: ResolveAssetBytes(cell["image"]?.GetValue<string>())));
             }
 
             tableRows.Add(new TableRowData(rowCells));
@@ -900,13 +919,92 @@ public class PdfGeneratorService
                 _gfx.DrawRectangle(bgBrush, new XRect(cellX, rowY, cellW, rowH));
             }
 
+            double imgDrawW = 0, imgDrawH = 0;
+            XImage? cellImg = null;
+            MemoryStream? cellImgStream = null;
+            string bgPosX = "0";
+            string bgPosY = "center";
+            if (cell.ImageBytes is { Length: > 0 } imgBytes)
+            {
+                var bgSize = css.GetValueOrDefault("background-size", "auto auto");
+                var sizeParts = bgSize.Trim().Split(' ');
+                var hPart = sizeParts.Length >= 2 ? sizeParts[1] : "auto";
+                var wPart = sizeParts.Length >= 1 ? sizeParts[0] : "auto";
+                var bgPosParts = css.GetValueOrDefault("background-position", "0 center").Trim().Split(' ');
+                bgPosX = bgPosParts.Length > 0 ? bgPosParts[0] : "0";
+                bgPosY = bgPosParts.Length > 1 ? bgPosParts[1] : "center";
+                try
+                {
+                    cellImgStream = new MemoryStream(imgBytes);
+                    cellImg = XImage.FromStream(cellImgStream);
+
+                    imgDrawH = hPart.EndsWith("%") && double.TryParse(hPart.TrimEnd('%'),
+                            System.Globalization.NumberStyles.Any,
+                            System.Globalization.CultureInfo.InvariantCulture, out var pct)
+                        ? rowH * pct / 100.0
+                        : !hPart.Equals("auto", StringComparison.OrdinalIgnoreCase)
+                            ? CssToPoints(hPart)
+                            : rowH * 0.7;
+
+                    imgDrawW = wPart.Equals("auto", StringComparison.OrdinalIgnoreCase)
+                        ? cellImg.PointWidth / cellImg.PointHeight * imgDrawH
+                        : CssToPoints(wPart);
+                }
+                catch { cellImg = null; cellImgStream?.Dispose(); cellImgStream = null; }
+            }
+
             var lines = PartirEnLineas(cell.Text, font, textW);
             var textY = rowY + padT;
-            foreach (var line in lines)
+
+            var blockCenter = cellImg is not null
+                && align == XStringAlignment.Center
+                && bgPosX.Equals("center", StringComparison.OrdinalIgnoreCase);
+
+            if (blockCenter)
             {
-                DibujarLineaTexto(line, font, cellX + padL, textW, textY, align, lineH);
-                textY += lineH;
+                const double gap = 3;
+                var firstLine = lines.FirstOrDefault() ?? "";
+                var measuredTxt = _gfx.MeasureString(firstLine, font).Width;
+                var blockW = imgDrawW + gap + measuredTxt;
+                var blockX = cellX + padL + (textW - blockW) / 2;
+                var imgY = rowY + (rowH - imgDrawH) / 2;
+                _gfx.DrawImage(cellImg!, blockX, imgY, imgDrawW, imgDrawH);
+                var txtX = blockX + imgDrawW + gap;
+                foreach (var line in lines)
+                {
+                    _gfx.DrawString(line, font, XBrushes.Black,
+                        new XRect(txtX, textY, measuredTxt + 1, lineH), XStringFormats.CenterLeft);
+                    textY += lineH;
+                }
             }
+            else
+            {
+                if (cellImg is not null)
+                {
+                    var posX = bgPosX.Equals("center", StringComparison.OrdinalIgnoreCase)
+                        ? (cellW - imgDrawW) / 2
+                        : bgPosX.Equals("right", StringComparison.OrdinalIgnoreCase)
+                            ? cellW - imgDrawW
+                            : bgPosX.Equals("left", StringComparison.OrdinalIgnoreCase)
+                                ? 0
+                                : CssToPoints(bgPosX);
+                    var imgY = bgPosY.Equals("center", StringComparison.OrdinalIgnoreCase)
+                        ? rowY + (rowH - imgDrawH) / 2
+                        : bgPosY.Equals("bottom", StringComparison.OrdinalIgnoreCase)
+                            ? rowY + rowH - imgDrawH
+                            : bgPosY.Equals("top", StringComparison.OrdinalIgnoreCase)
+                                ? rowY
+                                : rowY + CssToPoints(bgPosY);
+                    _gfx.DrawImage(cellImg, cellX + posX, imgY, imgDrawW, imgDrawH);
+                }
+                foreach (var line in lines)
+                {
+                    DibujarLineaTexto(line, font, cellX + padL, textW, textY, align, lineH);
+                    textY += lineH;
+                }
+            }
+            cellImg?.Dispose();
+            cellImgStream?.Dispose();
 
             DibujarBordesCelda(cellX, rowY, cellW, rowH, css);
             cellX += cellW + borderSpacing;
@@ -1454,7 +1552,7 @@ public class PdfGeneratorService
     // ==================== DATA TYPES ====================
 
     private record BoxShadowData(double OffsetX, double OffsetY, string Color);
-    private record CellData(string Text, double Width, Dictionary<string, string> Css, int Colspan = 0);
+    private record CellData(string Text, double Width, Dictionary<string, string> Css, int Colspan = 0, byte[]? ImageBytes = null);
     private record TableRowData(List<CellData> Cells, bool IsHeader = false);
 
     // ==================== FONT RESOLVER ====================
