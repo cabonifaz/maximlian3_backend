@@ -58,5 +58,40 @@ namespace SafetyReport.WebApi.Controllers
             var respuesta = await _companiaHandler.EliminarAsync(UsuarioLogueado, request.IdCompania);
             return Ok(respuesta);
         }
+
+        [HttpPost("noticia/crear")]
+        public async Task<IActionResult> CrearNoticia([FromBody] CompaniaNoticiaCrear request)
+        {
+            var respuesta = await _companiaHandler.CrearNoticiaAsync(UsuarioLogueado, request);
+            return Ok(respuesta);
+        }
+
+        [HttpPost("noticia/editar")]
+        public async Task<IActionResult> EditarNoticia([FromBody] CompaniaNoticiaEditar request)
+        {
+            var respuesta = await _companiaHandler.EditarNoticiaAsync(UsuarioLogueado, request);
+            return Ok(respuesta);
+        }
+
+        [HttpGet("noticia/obtener")]
+        public async Task<IActionResult> ObtenerNoticia([FromQuery] CompaniaNoticiaObtenerRequest request)
+        {
+            var respuesta = await _companiaHandler.ObtenerNoticiaAsync(UsuarioLogueado, request);
+            return Ok(respuesta);
+        }
+
+        [HttpGet("noticia/listar")]
+        public async Task<IActionResult> ListarNoticias([FromQuery] FiltroCompaniaNoticia filtro)
+        {
+            var respuesta = await _companiaHandler.ListarNoticiasAsync(UsuarioLogueado, filtro);
+            return Ok(respuesta);
+        }
+
+        [HttpPost("noticia/eliminar")]
+        public async Task<IActionResult> EliminarNoticia([FromBody] CompaniaNoticiaIdRequest request)
+        {
+            var respuesta = await _companiaHandler.EliminarNoticiaAsync(UsuarioLogueado, request.IdCompaniaNoticia);
+            return Ok(respuesta);
+        }
     }
 }
