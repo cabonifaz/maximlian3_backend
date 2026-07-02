@@ -239,6 +239,7 @@ namespace SafetyReport.Models
     {
         public int IdCompania { get; set; }
         public string? NombreCompleto { get; set; }
+        public string? NumeroDocumento { get; set; }
         public string? Pais { get; set; }
         public string? Bandera { get; set; }
         public string? Direccion { get; set; }

@@ -237,17 +237,12 @@ namespace SafetyReport.Handlers
 
             foreach (var archivo in archivos)
             {
-                if (!string.IsNullOrWhiteSpace(archivo.ArchivoUrl))
-                {
-                    if (!string.IsNullOrWhiteSpace(archivo.FormatoArchivo))
-                        archivo.UploadUrl = _s3UploadService.GenerarUploadUrl(archivo.ArchivoUrl, archivo.FormatoArchivo);
-                    continue;
-                }
-
-                if (string.IsNullOrWhiteSpace(archivo.NombreArchivo))
+                if (string.IsNullOrWhiteSpace(archivo.NombreArchivo) && string.IsNullOrWhiteSpace(archivo.ArchivoUrl))
                     continue;
 
-                var rutaArchivo = GenerarRutaCompaniaNoticiaArchivo(idCompania, archivo.NombreArchivo);
+                var rutaArchivo = string.IsNullOrWhiteSpace(archivo.NombreArchivo)
+                    ? archivo.ArchivoUrl!
+                    : GenerarRutaCompaniaNoticiaArchivo(idCompania, archivo.NombreArchivo);
                 var formatoArchivo = string.IsNullOrWhiteSpace(archivo.FormatoArchivo)
                     ? "application/octet-stream"
                     : archivo.FormatoArchivo;
@@ -317,7 +312,7 @@ namespace SafetyReport.Handlers
             if (string.IsNullOrWhiteSpace(nombreLimpio))
                 nombreLimpio = "archivo";
 
-            return $"companias/{idCompania}/noticias/{nombreLimpio}-{DateTimeOffset.UtcNow.ToUnixTimeMilliseconds()}{extension}";
+            return $"companias/{idCompania}/noticias/adjuntos/{nombreLimpio}-{Guid.NewGuid():N}{extension}";
         }
 
         private static byte[] GenerarExcelNoticiasDetalle(List<CompaniaNoticiaDetalleListaConsulta> items)
