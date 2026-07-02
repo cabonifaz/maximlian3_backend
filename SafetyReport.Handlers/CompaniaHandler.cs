@@ -166,6 +166,30 @@ namespace SafetyReport.Handlers
             }
         }
 
+        public async Task<Respuesta> ListarNoticiasBalanceAsync(UsuarioGeneral usuarioLogueado, FiltroCompaniaNoticiaBalance filtro)
+        {
+            try
+            {
+                return await _dao.ListarNoticiasBalanceAsync(usuarioLogueado, filtro);
+            }
+            catch (Exception ex)
+            {
+                return new Respuesta { IdTipoMensaje = 3, Mensaje = "Error interno del servidor.", Result = new CompaniaNoticiaBalanceListaResult() };
+            }
+        }
+
+        public async Task<Respuesta> ObtenerNoticiaBalanceAsync(UsuarioGeneral usuarioLogueado, CompaniaNoticiaBalanceObtenerRequest request)
+        {
+            try
+            {
+                return await _dao.ObtenerNoticiaBalanceAsync(usuarioLogueado, request);
+            }
+            catch (Exception ex)
+            {
+                return new Respuesta { IdTipoMensaje = 3, Mensaje = "Error interno del servidor.", Result = new List<CompaniaNoticiaBalanceConsulta>() };
+            }
+        }
+
         private void PrepararArchivosNoticia(int idCompania, List<CompaniaNoticiaArchivoItem>? archivos)
         {
             if (archivos == null)

@@ -1,3 +1,5 @@
+using System.Text.Json;
+
 namespace SafetyReport.Models
 {
     public class CompaniaCrear
@@ -180,5 +182,49 @@ namespace SafetyReport.Models
         public List<CompaniaNoticiaListaConsulta> lstCompaniaNoticias { get; set; } = new();
         public int TotalRegistros { get; set; }
         public int TotalPaginas { get; set; }
+    }
+
+    public class FiltroCompaniaNoticiaBalance
+    {
+        public int? IdCompania { get; set; }
+        public string? Busqueda { get; set; }
+        public int NumPag { get; set; } = 1;
+    }
+
+    public class CompaniaNoticiaBalanceListaConsulta
+    {
+        public int IdInformeBalance { get; set; }
+        public int IdCompania { get; set; }
+        public string? NombreCompleto { get; set; }
+        public DateTime? FechaInicio { get; set; }
+        public DateTime? FechaFin { get; set; }
+        public string? Pais { get; set; }
+        public string? TipoEstadoFinanciero { get; set; }
+    }
+
+    public class CompaniaNoticiaBalanceListaResult
+    {
+        public List<CompaniaNoticiaBalanceListaConsulta> lstCompaniaNoticiasBalance { get; set; } = new();
+        public int TotalRegistros { get; set; }
+        public int TotalPaginas { get; set; }
+    }
+
+    public class CompaniaNoticiaBalanceObtenerRequest
+    {
+        public int? IdInformeBalance { get; set; }
+        public int? IdCompania { get; set; }
+    }
+
+    public class CompaniaNoticiaBalanceConsulta
+    {
+        public int IdInformeBalance { get; set; }
+        public int IdCompania { get; set; }
+        public string? NombreCompleto { get; set; }
+        public DateTime? FechaInicio { get; set; }
+        public DateTime? FechaFin { get; set; }
+        public string? Pais { get; set; }
+        public int? IdTipoEstadoFinanciero { get; set; }
+        public string? TipoEstadoFinanciero { get; set; }
+        public JsonElement? DetalleBalance { get; set; }
     }
 }
