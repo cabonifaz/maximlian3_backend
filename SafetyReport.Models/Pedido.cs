@@ -17,7 +17,7 @@ namespace SafetyReport.Models
         public string? NumeroDocumento { get; set; }
         public string? NombreCliente { get; set; }
         public int IdTipoPersona { get; set; }
-        public int IdCompania { get; set; }
+        public int IdEmpresaAtencion { get; set; }
         public string? NumeroDocumentoInvestigado { get; set; }
         public string InvestigarRazonSocialNombres { get; set; } = string.Empty;
         public int IdTarifario { get; set; }
