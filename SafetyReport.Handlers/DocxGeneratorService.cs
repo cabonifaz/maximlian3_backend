@@ -327,6 +327,7 @@ public partial class DocxGeneratorService
             var tr = CrearFilaTabla();
             var cellList = cells.Where(c => c is not null).ToList();
             int usedW = 0;
+            int gridIdx = 0;
             var rowHeight = 0;
             foreach (var cell in cellList)
             {
@@ -342,11 +343,12 @@ public partial class DocxGeneratorService
                 var cellCss = ParseCss(cell["style"]?.GetValue<string>());
                 var effectiveCss = CombinarCssHeredable(tblCss, cellCss);
                 var imgBytes = ResolveAssetBytes(cell["image"]?.GetValue<string>());
+                var colspan = Math.Max(1, cell["colspan"]?.GetValue<int>() ?? 1);
 
                 int cellW;
                 bool isAutoCell = CssToTwips(cellCss.GetValueOrDefault("width", "")) <= 0;
-                if (columnWidths != null && i < columnWidths.Count)
-                    cellW = columnWidths[i];
+                if (columnWidths != null && gridIdx < columnWidths.Count)
+                    cellW = columnWidths.Skip(gridIdx).Take(colspan).Sum();
                 else if (i == cellList.Count - 1 && tblW > 0)
                     cellW = Math.Max(0, tblW - usedW);
                 else
@@ -354,7 +356,6 @@ public partial class DocxGeneratorService
                     cellW = isAutoCell ? 0 : CssToTwips(cellCss["width"]);
                     if (cellW <= 0)
                         cellW = EstimarAnchoCeldaTwips(text, effectiveCss);
-                    usedW += cellW;
                 }
 
                 // Auto-width cells in right-aligned tables flush their text to the
@@ -363,7 +364,9 @@ public partial class DocxGeneratorService
                 if (isAutoRightAligned && isAutoCell)
                     effectiveCss["text-align"] = "right";
 
-                tr.Append(CrearCeldaTexto(text, cellW, effectiveCss, imageBytes: imgBytes));
+                tr.Append(CrearCeldaTexto(text, cellW, effectiveCss, colspan: colspan, imageBytes: imgBytes));
+                usedW += cellW;
+                gridIdx += colspan;
             }
 
             table.Append(tr);
@@ -376,7 +379,7 @@ public partial class DocxGeneratorService
     {
         var columnCount = rows
             .OfType<JsonArray>()
-            .Select(row => row.Count(cell => cell is not null))
+            .Select(row => row.Sum(cell => cell is null ? 0 : Math.Max(1, cell["colspan"]?.GetValue<int>() ?? 1)))
             .DefaultIfEmpty(0)
             .Max();
         if (columnCount <= 0 || tableWidth <= 0) return [];
@@ -385,12 +388,15 @@ public partial class DocxGeneratorService
         foreach (var row in rows.OfType<JsonArray>())
         {
             var cells = row.Where(cell => cell is not null).ToList();
-            for (var i = 0; i < cells.Count && i < columnCount; i++)
+            var gridIdx = 0;
+            for (var i = 0; i < cells.Count && gridIdx < columnCount; i++)
             {
                 var cellCss = ParseCss(cells[i]!["style"]?.GetValue<string>());
                 var explicitWidth = CssToTwips(cellCss.GetValueOrDefault("width", ""));
-                if (explicitWidth > 0)
-                    widths[i] = Math.Max(widths[i], explicitWidth);
+                var colspan = Math.Max(1, cells[i]!["colspan"]?.GetValue<int>() ?? 1);
+                if (explicitWidth > 0 && colspan == 1)
+                    widths[gridIdx] = Math.Max(widths[gridIdx], explicitWidth);
+                gridIdx += colspan;
             }
         }
 

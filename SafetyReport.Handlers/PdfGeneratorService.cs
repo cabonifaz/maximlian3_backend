@@ -983,6 +983,7 @@ public class PdfGeneratorService
             var rowCells = new List<CellData>();
             var cellList = cells.Where(c => c is not null).ToList();
             double usedW = 0;
+            int gridIdx = 0;
 
             for (int i = 0; i < cellList.Count; i++)
             {
@@ -990,10 +991,11 @@ public class PdfGeneratorService
                 var text = cell["text"]?.GetValue<string>() ?? "";
                 var cellCss = ParseCss(cell["style"]?.GetValue<string>());
                 var effectiveCss = CombinarCssHeredable(tblCss, cellCss);
+                var colspan = Math.Max(1, cell["colspan"]?.GetValue<int>() ?? 1);
 
                 double cellW;
-                if (columnWidths != null && i < columnWidths.Count)
-                    cellW = columnWidths[i];
+                if (columnWidths != null && gridIdx < columnWidths.Count)
+                    cellW = columnWidths.Skip(gridIdx).Take(colspan).Sum();
                 else if (fixedWidth && i == cellList.Count - 1)
                     cellW = Math.Max(0, tblW - usedW);
                 else
@@ -1005,11 +1007,12 @@ public class PdfGeneratorService
                         var (_, padR, _, padL) = ObtenerPadding(effectiveCss);
                         cellW = _gfx.MeasureString(text, font).Width + padL + padR;
                     }
-                    usedW += cellW;
                 }
 
-                rowCells.Add(new CellData(text, cellW, effectiveCss,
+                rowCells.Add(new CellData(text, cellW, effectiveCss, Colspan: colspan,
                     ImageBytes: ResolveAssetBytes(cell["image"]?.GetValue<string>())));
+                usedW += cellW;
+                gridIdx += colspan;
             }
 
             tableRows.Add(new TableRowData(rowCells));
@@ -1022,7 +1025,7 @@ public class PdfGeneratorService
     {
         var columnCount = rows
             .OfType<JsonArray>()
-            .Select(row => row.Count(cell => cell is not null))
+            .Select(row => row.Sum(cell => cell is null ? 0 : Math.Max(1, cell["colspan"]?.GetValue<int>() ?? 1)))
             .DefaultIfEmpty(0)
             .Max();
         if (columnCount <= 0 || tableWidth <= 0) return [];
@@ -1031,12 +1034,15 @@ public class PdfGeneratorService
         foreach (var row in rows.OfType<JsonArray>())
         {
             var cells = row.Where(cell => cell is not null).ToList();
-            for (var i = 0; i < cells.Count && i < columnCount; i++)
+            var gridIdx = 0;
+            for (var i = 0; i < cells.Count && gridIdx < columnCount; i++)
             {
                 var cellCss = ParseCss(cells[i]!["style"]?.GetValue<string>());
                 var explicitWidth = CssToPoints(cellCss.GetValueOrDefault("width", ""));
-                if (explicitWidth > 0)
-                    widths[i] = Math.Max(widths[i], explicitWidth);
+                var colspan = Math.Max(1, cells[i]!["colspan"]?.GetValue<int>() ?? 1);
+                if (explicitWidth > 0 && colspan == 1)
+                    widths[gridIdx] = Math.Max(widths[gridIdx], explicitWidth);
+                gridIdx += colspan;
             }
         }
 
@@ -1372,7 +1378,7 @@ public class PdfGeneratorService
         var cellX = tableX;
         foreach (var cell in row.Cells)
         {
-            var cellW = cell.Colspan > 1 ? tableWidth : cell.Width;
+            var cellW = cell.Width;
             var css = cell.Css;
             var (padT, padR, padB, padL) = ObtenerPadding(css);
             var font = CrearFuente(css);
@@ -1548,7 +1554,7 @@ public class PdfGeneratorService
         double maxH = 0;
         foreach (var cell in row.Cells)
         {
-            var cellW = cell.Colspan > 1 ? tableWidth : cell.Width;
+            var cellW = cell.Width;
             var css = cell.Css;
             var (padT, padR, padB, padL) = ObtenerPadding(css);
             var font = CrearFuente(css);
