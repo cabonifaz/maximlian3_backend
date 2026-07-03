@@ -23,6 +23,8 @@ public partial class DocxGeneratorService
     private int _lastBodyPaddingBottom;
     private Dictionary<string, byte[]>? _assets;
     private MainDocumentPart? _mainPart;
+    private FooterPart? _defaultFooterPart;
+    private FooterPart? _firstFooterPart;
     private uint _nextDrawingId = 100;
     // Max measured last-cell width across all auto-width right-aligned keyValue tables,
     // used to normalize value cells into a uniform column.
@@ -42,6 +44,8 @@ public partial class DocxGeneratorService
 
             _assets = assets;
             _mainPart = mainPart;
+            _defaultFooterPart = null;
+            _firstFooterPart = null;
             _nextDrawingId = 100;
             _pendingTableBottomMargin = 0;
             _lastBodyParagraph = null;
@@ -705,6 +709,7 @@ public partial class DocxGeneratorService
     {
         var footerText = config?["footer"]?["text"]?.GetValue<string>();
         var footerPart = mainPart.AddNewPart<FooterPart>();
+        _defaultFooterPart = footerPart;
         var footer = new Footer();
         var footerFontSizeHp = PtToHalfPt(config?["footer"]?["fontSize"]?.GetValue<string>() ?? "7pt");
         var footerFontSize = footerFontSizeHp.ToString();
@@ -735,6 +740,33 @@ public partial class DocxGeneratorService
             footer.Append(CrearParrafoCero());
             footerPart.Footer = footer;
             footerPart.Footer.Save();
+
+            // First-page footer
+            var fpConfig = config?["firstPageFooter"];
+            var fpRows = fpConfig?["rows"]?.AsArray();
+            if (fpConfig != null && fpRows != null)
+            {
+                var fpExtend = CssToTwips(fpConfig["footerExtend"]?.GetValue<string>() ?? "0");
+                var fpTableWidth = footerPageW - footerMl - footerMr + fpExtend * 2;
+                var fpTableInd = fpExtend > 0 ? -fpExtend : 0;
+                var fpGapBefore = CssToTwips(fpConfig["gapBefore"]?.GetValue<string>() ?? "0");
+                var fpFooterPart = mainPart.AddNewPart<FooterPart>();
+                _firstFooterPart = fpFooterPart;
+                var fpFooter = new Footer();
+                if (fpGapBefore > 0)
+                    fpFooter.Append(new Paragraph(new ParagraphProperties(
+                        new SpacingBetweenLines { Before = fpGapBefore.ToString(), After = "0", Line = "1", LineRule = LineSpacingRuleValues.Exact })));
+                fpFooter.Append(ConstruirTablaFooterGenerico(fpRows, fpTableWidth, fpTableInd, fpConfig, fpFooterPart));
+                var defaultFooterHeight = gapBefore + EstimarAltoTablaFooter(footerJsonRows, config?["footer"]);
+                var firstFooterHeight = fpGapBefore + EstimarAltoTablaFooter(fpRows, fpConfig);
+                var missingFooterHeight = defaultFooterHeight - firstFooterHeight;
+                if (missingFooterHeight > 0)
+                    fpFooter.Append(CrearParrafoAlto(missingFooterHeight));
+                fpFooter.Append(CrearParrafoCero());
+                fpFooterPart.Footer = fpFooter;
+                fpFooterPart.Footer.Save();
+            }
+
             return;
         }
 
@@ -1328,6 +1360,14 @@ public partial class DocxGeneratorService
             new Run(new RunProperties(new FontSize { Val = "1" }), new Text("")));
     }
 
+    private static Paragraph CrearParrafoAlto(int height)
+    {
+        return new Paragraph(
+            new ParagraphProperties(
+                new SpacingBetweenLines { Before = "0", After = "0", Line = height.ToString(), LineRule = LineSpacingRuleValues.Exact }),
+            new Run(new RunProperties(new FontSize { Val = "1" }), new Text("")));
+    }
+
     private static void AplicarContainerStyleFooter(TableProperties tableProperties, JsonNode? footerConfig)
     {
         var css = ParseCss(footerConfig?["containerStyle"]?.GetValue<string>());
@@ -1423,10 +1463,17 @@ public partial class DocxGeneratorService
         if (headerPart != null)
             secPr.InsertAt(new HeaderReference { Type = HeaderFooterValues.Default, Id = mainPart.GetIdOfPart(headerPart) }, 0);
 
-        // Link footer
-        var footerPart = mainPart.FooterParts.FirstOrDefault();
-        if (footerPart != null)
-            secPr.InsertAt(new FooterReference { Type = HeaderFooterValues.Default, Id = mainPart.GetIdOfPart(footerPart) }, 0);
+        // Link footer(s)
+        if (_defaultFooterPart != null)
+        {
+            secPr.InsertAt(new FooterReference { Type = HeaderFooterValues.Default, Id = mainPart.GetIdOfPart(_defaultFooterPart) }, 0);
+        }
+
+        if (_firstFooterPart != null)
+        {
+            secPr.InsertAt(new FooterReference { Type = HeaderFooterValues.First, Id = mainPart.GetIdOfPart(_firstFooterPart) }, 0);
+            secPr.InsertAt(new TitlePage(), 0);
+        }
 
         body.Append(secPr);
     }
