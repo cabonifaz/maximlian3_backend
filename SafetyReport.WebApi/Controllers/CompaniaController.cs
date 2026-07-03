@@ -116,6 +116,11 @@ namespace SafetyReport.WebApi.Controllers
         }
 
         [HttpGet("companianoticiadetalle/exportar")]
+        [HttpGet("companianoticiadetalle/exportarExcel")]
+        [HttpGet("companianoticiadetalle/exportar.xlsx")]
+        [HttpGet("noticia/detalle/exportar")]
+        [HttpGet("noticia/detalle/exportarExcel")]
+        [Produces("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")]
         public async Task<IActionResult> ExportarNoticiasDetalle([FromQuery] FiltroCompaniaNoticiaDetalle filtro)
         {
             var respuesta = await _companiaHandler.ExportarNoticiasDetalleAsync(UsuarioLogueado, filtro);
@@ -123,7 +128,10 @@ namespace SafetyReport.WebApi.Controllers
             if (respuesta.IdTipoMensaje != 2 || respuesta.Result is not CompaniaNoticiaDetalleExportacion exportacion)
                 return Ok(respuesta);
 
-            return File(exportacion.Archivo, exportacion.ContentType, exportacion.NombreArchivo);
+            return File(
+                exportacion.Archivo,
+                exportacion.ContentType,
+                exportacion.NombreArchivo);
         }
     }
 }

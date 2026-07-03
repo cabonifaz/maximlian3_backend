@@ -341,6 +341,7 @@ namespace SafetyReport.Handlers
                 sheetData.Append(CrearFilaExcel(
                     "IdCompania",
                     "Nombre Completo",
+                    "Numero Documento",
                     "Pais",
                     "Bandera",
                     "Direccion",
@@ -353,6 +354,7 @@ namespace SafetyReport.Handlers
                     sheetData.Append(CrearFilaExcel(
                         item.IdCompania.ToString(),
                         item.NombreCompleto,
+                        item.NumeroDocumento,
                         item.Pais,
                         item.Bandera,
                         item.Direccion,
@@ -372,12 +374,13 @@ namespace SafetyReport.Handlers
             return new Columns(
                 CrearColumnaExcel(1, 1, 12),
                 CrearColumnaExcel(2, 2, 35),
-                CrearColumnaExcel(3, 3, 20),
-                CrearColumnaExcel(4, 4, 14),
-                CrearColumnaExcel(5, 5, 45),
-                CrearColumnaExcel(6, 6, 18),
-                CrearColumnaExcel(7, 7, 30),
-                CrearColumnaExcel(8, 8, 18));
+                CrearColumnaExcel(3, 3, 22),
+                CrearColumnaExcel(4, 4, 20),
+                CrearColumnaExcel(5, 5, 14),
+                CrearColumnaExcel(6, 6, 45),
+                CrearColumnaExcel(7, 7, 18),
+                CrearColumnaExcel(8, 8, 30),
+                CrearColumnaExcel(9, 9, 18));
         }
 
         private static Column CrearColumnaExcel(uint min, uint max, double width)
