@@ -60,7 +60,8 @@ namespace SafetyReport.WebApi.Controllers
         }
 
         [HttpPost("noticia/crear")]
-        public async Task<IActionResult> CrearNoticia([FromBody] CompaniaNoticiaCrear request)
+        [Consumes("multipart/form-data")]
+        public async Task<IActionResult> CrearNoticia([FromForm] CompaniaNoticiaCrearForm request)
         {
             var respuesta = await _companiaHandler.CrearNoticiaAsync(UsuarioLogueado, request);
             return Ok(respuesta);
