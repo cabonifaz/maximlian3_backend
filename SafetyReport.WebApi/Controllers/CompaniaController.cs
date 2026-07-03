@@ -67,7 +67,7 @@ namespace SafetyReport.WebApi.Controllers
             return Ok(respuesta);
         }
 
-        [HttpPost("noticia/crear")]
+        [HttpPost("noticia/crear-form")]
         [Consumes("multipart/form-data")]
         public async Task<IActionResult> CrearNoticiaForm([FromForm] CompaniaNoticiaCrearForm request)
         {
