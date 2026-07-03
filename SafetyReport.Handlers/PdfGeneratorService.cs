@@ -44,6 +44,10 @@ public class PdfGeneratorService
     private string _footerLayout = "";
     private JsonNode? _footerConfigNode;
     private JsonArray? _footerJsonRows;
+    private JsonNode? _firstFooterConfigNode;
+    private JsonArray? _firstFooterJsonRows;
+    private double _firstFooterGapBefore = 0;
+    private double _firstFooterExtend = 0;
     private bool _showPageNumber = true;
     private double _pageFontSize;
     private double _pageGapBefore;
@@ -60,6 +64,7 @@ public class PdfGeneratorService
     private double _contentTop;
     private double _contentBottom;
     private int _pageNumber;
+    private int _totalPages;
     private readonly HashSet<string> _drawnBorderLines = [];
 
     private double _lastMarginBottom;
@@ -106,6 +111,7 @@ public class PdfGeneratorService
         _lastAppliedBottomSpacing = 0;
         _hasLastParagraph = false;
         _pageNumber = 0;
+        _totalPages = 0;
 
         var config = json["document"];
         LeerConfigGlobal(config);
@@ -121,6 +127,7 @@ public class PdfGeneratorService
 
         var ms = new MemoryStream();
         _gfx.Dispose();
+        AplicarPiePaginas();
         AplicarOpacidadMarcaAgua();
         _doc.Save(ms);
         ms.Position = 0;
@@ -166,6 +173,10 @@ public class PdfGeneratorService
         _footerLayout = config["footer"]?["layout"]?.GetValue<string>() ?? "";
         _footerConfigNode = config["footer"];
         _footerJsonRows = config["footer"]?["rows"]?.AsArray();
+        _firstFooterConfigNode = config["firstPageFooter"];
+        _firstFooterJsonRows = config["firstPageFooter"]?["rows"]?.AsArray();
+        _firstFooterGapBefore = CssToPoints(config["firstPageFooter"]?["gapBefore"]?.GetValue<string>() ?? "0");
+        _firstFooterExtend = CssToPoints(config["firstPageFooter"]?["footerExtend"]?.GetValue<string>() ?? "0");
         _showPageNumber = config["footer"]?["showPageNumber"]?.GetValue<bool>() ?? true;
         _pageFontSize = PtValue(config["footer"]?["pageFontSize"]?.GetValue<string>() ?? config["footer"]?["fontSize"]?.GetValue<string>() ?? "7pt");
         _pageGapBefore = CssToPoints(config["footer"]?["pageGapBefore"]?.GetValue<string>() ?? "0");
@@ -229,8 +240,19 @@ public class PdfGeneratorService
 
         DibujarMarcaAgua();
         DibujarEncabezado();
-        DibujarPiePagina();
         DibujarBordePagina();
+    }
+
+    private void AplicarPiePaginas()
+    {
+        _totalPages = _doc.Pages.Count;
+        for (var i = 0; i < _doc.Pages.Count; i++)
+        {
+            _pageNumber = i + 1;
+            using var pageGfx = XGraphics.FromPdfPage(_doc.Pages[i], XGraphicsPdfPageOptions.Append);
+            _gfx = pageGfx;
+            DibujarPiePagina();
+        }
     }
 
     private bool AsegurarEspacio(double height)
@@ -360,7 +382,10 @@ public class PdfGeneratorService
     {
         if (_footerLayout == "table" && _footerJsonRows != null)
         {
-            DibujarTablaFooterGenerico();
+            if (_pageNumber == 1 && _firstFooterConfigNode != null && _firstFooterJsonRows != null)
+                DibujarTablaFooterGenerico(_firstFooterJsonRows, _firstFooterConfigNode, _firstFooterExtend, _firstFooterGapBefore);
+            else
+                DibujarTablaFooterGenerico(_footerJsonRows, _footerConfigNode, _footerExtend, _footerGapBefore);
             return;
         }
 
@@ -436,27 +461,28 @@ public class PdfGeneratorService
 
     // ==================== GENERIC FOOTER TABLE ====================
 
-    private void DibujarTablaFooterGenerico()
+    private void DibujarTablaFooterGenerico(JsonArray jsonRows, JsonNode? footerConfig, double footerExtend, double footerGapBefore)
     {
-        if (_footerJsonRows == null || _footerConfigNode == null) return;
+        if (footerConfig == null) return;
 
-        var pageColWidth = CssToPoints(_footerConfigNode["pageColWidth"]?.GetValue<string>() ?? "0");
-        var tableX = _mLeft - _footerExtend;
-        var tableW = _pageW - _mLeft - _mRight + _footerExtend * 2;
-        var tableY = _contentBottom + _footerGapBefore;
+        var pageColWidth = CssToPoints(footerConfig["pageColWidth"]?.GetValue<string>() ?? "0");
+        var tableX = _mLeft - footerExtend;
+        var tableW = _pageW - _mLeft - _mRight + footerExtend * 2;
+        var tableY = _contentBottom + footerGapBefore;
 
-        DibujarFilasFooter(_footerJsonRows, tableX, tableY, tableW);
+        DibujarContainerStyleFooter(footerConfig, tableX, tableY, tableW);
+        DibujarFilasFooter(jsonRows, tableX, tableY, tableW, footerConfig);
     }
 
-    private void DibujarFilasFooter(JsonArray jsonRows, double tableX, double tableY, double tableW)
+    private void DibujarFilasFooter(JsonArray jsonRows, double tableX, double tableY, double tableW, JsonNode? footerConfig)
     {
-        var pageColWidth  = CssToPoints(_footerConfigNode?["pageColWidth"]?.GetValue<string>() ?? "0");
-        var pageLabel     = _footerConfigNode?["pageLabel"]?.GetValue<string>() ?? _pageLabel;
-        var pageTotalLabel = _footerConfigNode?["pageTotalLabel"]?.GetValue<string>() ?? "of";
-        var pageTotal     = _footerConfigNode?["pageTotal"]?.GetValue<bool>() ?? false;
-        var pageBgHex     = _footerConfigNode?["pageBgColor"]?.GetValue<string>();
-        var pageColorHex  = _footerConfigNode?["pageColor"]?.GetValue<string>();
-        var defaultFontSz = _footerFontSize;
+        var pageColWidth  = CssToPoints(footerConfig?["pageColWidth"]?.GetValue<string>() ?? "0");
+        var pageLabel     = footerConfig?["pageLabel"]?.GetValue<string>() ?? _pageLabel;
+        var pageTotalLabel = footerConfig?["pageTotalLabel"]?.GetValue<string>() ?? "of";
+        var pageTotal     = footerConfig?["pageTotal"]?.GetValue<bool>() ?? false;
+        var pageBgHex     = footerConfig?["pageBgColor"]?.GetValue<string>();
+        var pageColorHex  = footerConfig?["pageColor"]?.GetValue<string>();
+        var defaultFontSz = PtValue(footerConfig?["fontSize"]?.GetValue<string>() ?? $"{_footerFontSize}pt");
 
         var gridColWidths = ComputarColumnasFooterPdf(jsonRows, tableW, pageColWidth);
 
@@ -538,13 +564,13 @@ public class PdfGeneratorService
                 if (cls == "sr-pie-pagnum")
                 {
                     var pageText = pageTotal
-                        ? $"{pageLabel} {_pageNumber} {pageTotalLabel} ?"
+                        ? $"{pageLabel} {_pageNumber} {pageTotalLabel} {_totalPages}"
                         : $"{pageLabel} {_pageNumber}";
                     DibujarLineaTexto(pageText, font, textX, textW, contentY, align, fontSize);
                 }
                 else if (cellNode["rows"] is JsonArray nestedRows)
                 {
-                    DibujarFilasFooter(nestedRows, x, y, cellW);
+                    DibujarFilasFooter(nestedRows, x + padL, y + padT, Math.Max(0, cellW - padL - padR), footerConfig);
                 }
                 else if (!string.IsNullOrEmpty(cellNode["image"]?.GetValue<string>()))
                 {
@@ -577,6 +603,25 @@ public class PdfGeneratorService
 
             y += rowH;
         }
+    }
+
+    private void DibujarContainerStyleFooter(JsonNode? footerConfig, double tableX, double tableY, double tableW)
+    {
+        var css = ParseCss(footerConfig?["containerStyle"]?.GetValue<string>());
+        if (!css.TryGetValue("border-top", out var borderTop)) return;
+
+        var match = Regex.Match(borderTop, @"([\d.]+)\s*(px|pt)?\s+\w+\s+(#[0-9a-fA-F]{3,6})");
+        if (!match.Success) return;
+
+        var width = match.Groups[2].Value.Equals("px", StringComparison.OrdinalIgnoreCase)
+            ? double.Parse(match.Groups[1].Value, System.Globalization.CultureInfo.InvariantCulture) * 0.75
+            : double.Parse(match.Groups[1].Value, System.Globalization.CultureInfo.InvariantCulture);
+        var color = XColor.FromArgb(
+            Convert.ToInt32(NormalizarColor(match.Groups[3].Value)[..2], 16),
+            Convert.ToInt32(NormalizarColor(match.Groups[3].Value)[2..4], 16),
+            Convert.ToInt32(NormalizarColor(match.Groups[3].Value)[4..6], 16));
+
+        _gfx.DrawLine(new XPen(color, width), tableX, tableY, tableX + tableW, tableY);
     }
 
     private double MedirAltoCeldasAnidadas(JsonArray nestedRows, double defaultFontSz)
