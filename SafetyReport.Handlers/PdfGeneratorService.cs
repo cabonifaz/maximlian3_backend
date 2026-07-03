@@ -902,6 +902,7 @@ public class PdfGeneratorService
             }
         }
 
+        var columnWidths = fixedWidth && tblW > 0 ? ComputarAnchosColumnasKeyValuePdf(rows, tblW) : null;
         var tableRows = new List<TableRowData>();
         foreach (var row in rows)
         {
@@ -919,7 +920,9 @@ public class PdfGeneratorService
                 var effectiveCss = CombinarCssHeredable(tblCss, cellCss);
 
                 double cellW;
-                if (fixedWidth && i == cellList.Count - 1)
+                if (columnWidths != null && i < columnWidths.Count)
+                    cellW = columnWidths[i];
+                else if (fixedWidth && i == cellList.Count - 1)
                     cellW = Math.Max(0, tblW - usedW);
                 else
                 {
@@ -941,6 +944,58 @@ public class PdfGeneratorService
         }
 
         DibujarTabla(tableRows, tblW, tblCss);
+    }
+
+    private static List<double> ComputarAnchosColumnasKeyValuePdf(JsonArray rows, double tableWidth)
+    {
+        var columnCount = rows
+            .OfType<JsonArray>()
+            .Select(row => row.Count(cell => cell is not null))
+            .DefaultIfEmpty(0)
+            .Max();
+        if (columnCount <= 0 || tableWidth <= 0) return [];
+
+        var widths = new double[columnCount];
+        foreach (var row in rows.OfType<JsonArray>())
+        {
+            var cells = row.Where(cell => cell is not null).ToList();
+            for (var i = 0; i < cells.Count && i < columnCount; i++)
+            {
+                var cellCss = ParseCss(cells[i]!["style"]?.GetValue<string>());
+                var explicitWidth = CssToPoints(cellCss.GetValueOrDefault("width", ""));
+                if (explicitWidth > 0)
+                    widths[i] = Math.Max(widths[i], explicitWidth);
+            }
+        }
+
+        var fixedTotal = widths.Sum();
+        if (fixedTotal > tableWidth)
+        {
+            var scale = tableWidth / fixedTotal;
+            for (var i = 0; i < widths.Length; i++)
+                widths[i] *= scale;
+            return [.. widths];
+        }
+
+        var autoIndexes = widths
+            .Select((width, index) => (width, index))
+            .Where(item => item.width <= 0)
+            .Select(item => item.index)
+            .ToList();
+
+        if (autoIndexes.Count == 0)
+        {
+            var missing = tableWidth - fixedTotal;
+            if (missing > 0)
+                widths[^1] += missing;
+            return [.. widths];
+        }
+
+        var autoWidth = Math.Max(0, tableWidth - fixedTotal) / autoIndexes.Count;
+        foreach (var index in autoIndexes)
+            widths[index] = autoWidth;
+
+        return [.. widths];
     }
 
     private void RenderBorderedBox(JsonNode section)
@@ -1266,17 +1321,13 @@ public class PdfGeneratorService
             double imgDrawW = 0, imgDrawH = 0;
             XImage? cellImg = null;
             MemoryStream? cellImgStream = null;
-            string bgPosX = "0";
-            string bgPosY = "center";
+            var bgPosition = ObtenerPosicionFondoPdf("0 center", cellW, rowH, 0, 0);
             if (cell.ImageBytes is { Length: > 0 } imgBytes)
             {
                 var bgSize = css.GetValueOrDefault("background-size", "auto auto");
                 var sizeParts = bgSize.Trim().Split(' ');
                 var hPart = sizeParts.Length >= 2 ? sizeParts[1] : "auto";
                 var wPart = sizeParts.Length >= 1 ? sizeParts[0] : "auto";
-                var bgPosParts = css.GetValueOrDefault("background-position", "0 center").Trim().Split(' ');
-                bgPosX = bgPosParts.Length > 0 ? bgPosParts[0] : "0";
-                bgPosY = bgPosParts.Length > 1 ? bgPosParts[1] : "center";
                 try
                 {
                     cellImgStream = new MemoryStream(imgBytes);
@@ -1293,16 +1344,29 @@ public class PdfGeneratorService
                     imgDrawW = wPart.Equals("auto", StringComparison.OrdinalIgnoreCase)
                         ? cellImg.PointWidth / cellImg.PointHeight * imgDrawH
                         : CssToPoints(wPart);
+                    bgPosition = ObtenerPosicionFondoPdf(
+                        css.GetValueOrDefault("background-position", "0 center"),
+                        cellW,
+                        rowH,
+                        imgDrawW,
+                        imgDrawH);
                 }
                 catch { cellImg = null; cellImgStream?.Dispose(); cellImgStream = null; }
             }
 
             var lines = PartirEnLineas(cell.Text, font, textW);
-            var textY = rowY + padT;
+            var textBlockH = Math.Max(1, lines.Count) * lineH;
+            var textY = ObtenerAlineacionVerticalCelda(css) switch
+            {
+                "middle" => rowY + padT + Math.Max(0, rowH - padT - padB - textBlockH) / 2,
+                "bottom" => rowY + rowH - padB - textBlockH,
+                _ => rowY + padT
+            };
 
             var blockCenter = cellImg is not null
                 && align == XStringAlignment.Center
-                && bgPosX.Equals("center", StringComparison.OrdinalIgnoreCase);
+                && bgPosition.XKeyword.Equals("center", StringComparison.OrdinalIgnoreCase)
+                && bgPosition.YKeyword.Equals("center", StringComparison.OrdinalIgnoreCase);
 
             if (blockCenter)
             {
@@ -1326,21 +1390,7 @@ public class PdfGeneratorService
             {
                 if (cellImg is not null)
                 {
-                    var posX = bgPosX.Equals("center", StringComparison.OrdinalIgnoreCase)
-                        ? (cellW - imgDrawW) / 2
-                        : bgPosX.Equals("right", StringComparison.OrdinalIgnoreCase)
-                            ? cellW - imgDrawW
-                            : bgPosX.Equals("left", StringComparison.OrdinalIgnoreCase)
-                                ? 0
-                                : CssToPoints(bgPosX);
-                    var imgY = bgPosY.Equals("center", StringComparison.OrdinalIgnoreCase)
-                        ? rowY + (rowH - imgDrawH) / 2
-                        : bgPosY.Equals("bottom", StringComparison.OrdinalIgnoreCase)
-                            ? rowY + rowH - imgDrawH
-                            : bgPosY.Equals("top", StringComparison.OrdinalIgnoreCase)
-                                ? rowY
-                                : rowY + CssToPoints(bgPosY);
-                    _gfx.DrawImage(cellImg, cellX + posX, imgY, imgDrawW, imgDrawH);
+                    _gfx.DrawImage(cellImg, cellX + bgPosition.XOffset, rowY + bgPosition.YOffset, imgDrawW, imgDrawH);
                 }
                 foreach (var line in lines)
                 {
@@ -1434,9 +1484,57 @@ public class PdfGeneratorService
             var textW = Math.Max(0, cellW - padL - padR);
             var lines = PartirEnLineas(cell.Text, font, textW);
             var cellH = padT + Math.Max(1, lines.Count) * lineH + padB;
+            cellH = Math.Max(cellH, CssToPoints(css.GetValueOrDefault("height", "")));
             maxH = Math.Max(maxH, cellH);
         }
         return maxH;
+    }
+
+    private static (string XKeyword, double XOffset, string YKeyword, double YOffset) ObtenerPosicionFondoPdf(
+        string? backgroundPosition,
+        double cellWidth,
+        double cellHeight,
+        double imageWidth,
+        double imageHeight)
+    {
+        var parts = (backgroundPosition ?? "0 center")
+            .Trim()
+            .Split(' ', StringSplitOptions.RemoveEmptyEntries);
+
+        var xKeyword = parts.Length > 0 ? parts[0] : "0";
+        var xInset = parts.Length > 1 && EsLongitudCss(parts[1]) ? CssToPoints(parts[1]) : 0;
+        var yKeyword = "center";
+        var yInset = 0d;
+
+        if (parts.Length >= 4)
+        {
+            yKeyword = parts[2];
+            yInset = EsLongitudCss(parts[3]) ? CssToPoints(parts[3]) : 0;
+        }
+        else if (parts.Length >= 2 && !EsLongitudCss(parts[1]))
+        {
+            yKeyword = parts[1];
+        }
+
+        var xOffset = xKeyword.ToLowerInvariant() switch
+        {
+            "right" => Math.Max(0, cellWidth - imageWidth - xInset),
+            "center" => Math.Max(0, (cellWidth - imageWidth) / 2),
+            "left" => xInset,
+            _ when EsLongitudCss(xKeyword) => CssToPoints(xKeyword),
+            _ => 0
+        };
+
+        var yOffset = yKeyword.ToLowerInvariant() switch
+        {
+            "bottom" => Math.Max(0, cellHeight - imageHeight - yInset),
+            "center" => Math.Max(0, (cellHeight - imageHeight) / 2),
+            "top" => yInset,
+            _ when EsLongitudCss(yKeyword) => CssToPoints(yKeyword),
+            _ => 0
+        };
+
+        return (xKeyword, xOffset, yKeyword, yOffset);
     }
 
     private void DibujarBordeTabla(
@@ -1854,6 +1952,20 @@ public class PdfGeneratorService
         var color = value.Trim().TrimStart('#');
         if (color.Length == 3) color = string.Concat(color.Select(c => $"{c}{c}"));
         return Regex.IsMatch(color, "^[0-9a-fA-F]{6}$") ? color.ToUpperInvariant() : "000000";
+    }
+
+    private static bool EsLongitudCss(string value) =>
+        Regex.IsMatch(value, @"^[\d.]+\s*(in|pt|px)?$", RegexOptions.IgnoreCase);
+
+    private static string ObtenerAlineacionVerticalCelda(Dictionary<string, string> css)
+    {
+        var verticalAlign = css.GetValueOrDefault("vertical-align", "top").ToLowerInvariant();
+        return verticalAlign switch
+        {
+            "middle" or "center" => "middle",
+            "bottom" => "bottom",
+            _ => "top"
+        };
     }
 
     private static double ObtenerBorderSpacing(Dictionary<string, string> css)
