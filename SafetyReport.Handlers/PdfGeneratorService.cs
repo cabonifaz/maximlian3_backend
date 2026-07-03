@@ -1,5 +1,6 @@
 using System.Text.Json.Nodes;
 using System.Text.RegularExpressions;
+using System.IO.Compression;
 using PdfSharp;
 using PdfSharp.Drawing;
 using PdfSharp.Drawing.Layout;
@@ -42,6 +43,9 @@ public class PdfGeneratorService
     private string _pageLabel = "Page";
     private double _footerFontSize = 7;
     private string _footerAlign = "left";
+    private string _footerFontWeight = "";
+    private string _footerFontStyle = "";
+    private string _footerTextColor = "";
     private string _pageAlign = "below";
     private double _footerGapBefore = 0;
     private double _footerIndentL = 0;
@@ -172,6 +176,9 @@ public class PdfGeneratorService
         _pageLabel = config["footer"]?["pageLabel"]?.GetValue<string>() ?? "Page";
         _footerFontSize = PtValue(config["footer"]?["fontSize"]?.GetValue<string>() ?? "7pt");
         _footerAlign = config["footer"]?["align"]?.GetValue<string>() ?? "left";
+        _footerFontWeight = config["footer"]?["fontWeight"]?.GetValue<string>() ?? "";
+        _footerFontStyle = config["footer"]?["fontStyle"]?.GetValue<string>() ?? "";
+        _footerTextColor = config["footer"]?["textColor"]?.GetValue<string>() ?? "";
         _pageAlign = config["footer"]?["pageAlign"]?.GetValue<string>() ?? "below";
         _footerGapBefore = CssToPoints(config["footer"]?["gapBefore"]?.GetValue<string>() ?? "0");
         _footerIndentL = CssToPoints(config["footerIndent"]?["left"]?.GetValue<string>() ?? "0");
@@ -447,7 +454,15 @@ public class PdfGeneratorService
             return;
         }
 
-        var footerFont = CrearFuente(null, _footerFontSize);
+        var footerCss = new Dictionary<string, string> { ["font-size"] = $"{_footerFontSize}pt" };
+        if (!string.IsNullOrEmpty(_footerFontWeight)) footerCss["font-weight"] = _footerFontWeight;
+        if (!string.IsNullOrEmpty(_footerFontStyle)) footerCss["font-style"] = _footerFontStyle;
+        var footerFont = CrearFuente(footerCss, _footerFontSize);
+        XBrush footerBrush = XBrushes.Black;
+        if (!string.IsNullOrEmpty(_footerTextColor)) {
+            var fc = NormalizarColor(_footerTextColor);
+            footerBrush = new XSolidBrush(XColor.FromArgb(Convert.ToInt32(fc[..2], 16), Convert.ToInt32(fc[2..4], 16), Convert.ToInt32(fc[4..6], 16)));
+        }
         var lineH = _footerFontSize;
         var footerX = _mLeft - _footerExtend + _footerIndentL;
         var footerW = _pageW - _mLeft - _mRight + _footerExtend * 2 - _footerIndentL - _footerIndentR;
@@ -475,7 +490,7 @@ public class PdfGeneratorService
                 var textXAlign = _pageAlign == "left" ? XStringAlignment.Far : XStringAlignment.Near;
                 var textX = _pageAlign == "left" ? footerX + footerW : footerX;
                 var textFormat = new XStringFormat { Alignment = textXAlign, LineAlignment = XLineAlignment.BaseLine };
-                _gfx.DrawString(_footerText, footerFont, XBrushes.Black, new XPoint(textX, baselineY), textFormat);
+                _gfx.DrawString(_footerText, footerFont, footerBrush, new XPoint(textX, baselineY), textFormat);
             }
         }
         else
@@ -497,7 +512,7 @@ public class PdfGeneratorService
 
             foreach (var line in footerLines)
             {
-                DibujarLineaTexto(line, footerFont, footerX, footerW, footerY, align, lineH);
+                DibujarLineaTexto(line, footerFont, footerX, footerW, footerY, align, lineH, footerBrush);
                 footerY += lineH;
             }
 
@@ -1397,6 +1412,8 @@ public class PdfGeneratorService
             }
 
             double imgDrawW = 0, imgDrawH = 0;
+            double imgX = 0, imgY = 0;
+            var hasDirectImagePosition = false;
             XImage? cellImg = null;
             MemoryStream? cellImgStream = null;
             var bgPosition = ObtenerPosicionFondoPdf("0 center", cellW, rowH, 0, 0);
@@ -1408,20 +1425,36 @@ public class PdfGeneratorService
                 var wPart = sizeParts.Length >= 1 ? sizeParts[0] : "auto";
                 try
                 {
-                    cellImgStream = new MemoryStream(imgBytes);
+                    cellImgStream = new MemoryStream(PrepararImagenParaPdf(imgBytes));
                     cellImg = XImage.FromStream(cellImgStream);
 
-                    imgDrawH = hPart.EndsWith("%") && double.TryParse(hPart.TrimEnd('%'),
+                    if (bgSize.Trim().Equals("contain", StringComparison.OrdinalIgnoreCase))
+                    {
+                        var boxW = Math.Max(1, cellW - padL - padR);
+                        var boxH = Math.Max(1, rowH - padT - padB);
+                        var sourceW = cellImg.PointWidth > 0 ? cellImg.PointWidth : boxW;
+                        var sourceH = cellImg.PointHeight > 0 ? cellImg.PointHeight : boxH;
+                        var scale = Math.Min(boxW / sourceW, boxH / sourceH);
+                        imgDrawW = sourceW * scale;
+                        imgDrawH = sourceH * scale;
+                        imgX = cellX + padL + Math.Max(0, (boxW - imgDrawW) / 2);
+                        imgY = rowY + padT + Math.Max(0, (boxH - imgDrawH) / 2);
+                        hasDirectImagePosition = true;
+                    }
+                    else
+                    {
+                        imgDrawH = hPart.EndsWith("%") && double.TryParse(hPart.TrimEnd('%'),
                             System.Globalization.NumberStyles.Any,
                             System.Globalization.CultureInfo.InvariantCulture, out var pct)
-                        ? rowH * pct / 100.0
-                        : !hPart.Equals("auto", StringComparison.OrdinalIgnoreCase)
-                            ? CssToPoints(hPart)
-                            : rowH * 0.7;
+                            ? rowH * pct / 100.0
+                            : !hPart.Equals("auto", StringComparison.OrdinalIgnoreCase)
+                                ? CssToPoints(hPart)
+                                : rowH * 0.7;
 
-                    imgDrawW = wPart.Equals("auto", StringComparison.OrdinalIgnoreCase)
-                        ? cellImg.PointWidth / cellImg.PointHeight * imgDrawH
-                        : CssToPoints(wPart);
+                        imgDrawW = wPart.Equals("auto", StringComparison.OrdinalIgnoreCase)
+                            ? cellImg.PointWidth / cellImg.PointHeight * imgDrawH
+                            : CssToPoints(wPart);
+                    }
                     bgPosition = ObtenerPosicionFondoPdf(
                         css.GetValueOrDefault("background-position", "0 center"),
                         cellW,
@@ -1442,6 +1475,7 @@ public class PdfGeneratorService
             };
 
             var blockCenter = cellImg is not null
+                && !string.IsNullOrEmpty(cell.Text)
                 && align == XStringAlignment.Center
                 && bgPosition.XKeyword.Equals("center", StringComparison.OrdinalIgnoreCase)
                 && bgPosition.YKeyword.Equals("center", StringComparison.OrdinalIgnoreCase);
@@ -1453,9 +1487,9 @@ public class PdfGeneratorService
                 var measuredTxt = _gfx.MeasureString(firstLine, font).Width;
                 var blockW = imgDrawW + gap + measuredTxt;
                 var blockX = cellX + padL + (textW - blockW) / 2;
-                var imgY = rowY + (rowH - imgDrawH) / 2;
+                var blockImgY = rowY + (rowH - imgDrawH) / 2;
                 var textBrush = ObtenerBrushTexto(css);
-                _gfx.DrawImage(cellImg!, blockX, imgY, imgDrawW, imgDrawH);
+                _gfx.DrawImage(cellImg!, blockX, blockImgY, imgDrawW, imgDrawH);
                 var txtX = blockX + imgDrawW + gap;
                 foreach (var line in lines)
                 {
@@ -1468,7 +1502,12 @@ public class PdfGeneratorService
             {
                 if (cellImg is not null)
                 {
-                    _gfx.DrawImage(cellImg, cellX + bgPosition.XOffset, rowY + bgPosition.YOffset, imgDrawW, imgDrawH);
+                    if (imgDrawW > 0 && imgDrawH > 0)
+                        _gfx.DrawImage(cellImg,
+                            hasDirectImagePosition ? imgX : cellX + bgPosition.XOffset,
+                            hasDirectImagePosition ? imgY : rowY + bgPosition.YOffset,
+                            imgDrawW,
+                            imgDrawH);
                 }
                 foreach (var line in lines)
                 {
@@ -2125,6 +2164,204 @@ public class PdfGeneratorService
             "px" => num * 0.75,
             _ => num * 72
         };
+    }
+
+    private static byte[] PrepararImagenParaPdf(byte[] bytes) =>
+        AplanarPngIndexadoTransparente(bytes) ?? bytes;
+
+    private static byte[]? AplanarPngIndexadoTransparente(byte[] bytes)
+    {
+        try
+        {
+            ReadOnlySpan<byte> sig = stackalloc byte[] { 137, 80, 78, 71, 13, 10, 26, 10 };
+            if (bytes.Length < 33 || !bytes.AsSpan(0, 8).SequenceEqual(sig)) return null;
+
+            var offset = 8;
+            var width = 0;
+            var height = 0;
+            var bitDepth = 0;
+            var colorType = 0;
+            var interlace = 0;
+            byte[]? palette = null;
+            byte[]? transparency = null;
+            using var idat = new MemoryStream();
+
+            while (offset + 12 <= bytes.Length)
+            {
+                var length = LeerUInt32BigEndian(bytes, offset);
+                offset += 4;
+                if (offset + 4 + length + 4 > bytes.Length) return null;
+                var type = System.Text.Encoding.ASCII.GetString(bytes, offset, 4);
+                offset += 4;
+                var dataOffset = offset;
+                offset += (int)length;
+                offset += 4;
+
+                if (type == "IHDR")
+                {
+                    width = (int)LeerUInt32BigEndian(bytes, dataOffset);
+                    height = (int)LeerUInt32BigEndian(bytes, dataOffset + 4);
+                    bitDepth = bytes[dataOffset + 8];
+                    colorType = bytes[dataOffset + 9];
+                    interlace = bytes[dataOffset + 12];
+                }
+                else if (type == "PLTE")
+                    palette = bytes.AsSpan(dataOffset, (int)length).ToArray();
+                else if (type == "tRNS")
+                    transparency = bytes.AsSpan(dataOffset, (int)length).ToArray();
+                else if (type == "IDAT")
+                    idat.Write(bytes, dataOffset, (int)length);
+                else if (type == "IEND")
+                    break;
+            }
+
+            if (width <= 0 || height <= 0 || colorType != 3 || interlace != 0 || palette is null || transparency is null)
+                return null;
+            if (bitDepth is not (1 or 2 or 4 or 8)) return null;
+
+            idat.Position = 0;
+            using var inflated = new MemoryStream();
+            using (var z = new ZLibStream(idat, CompressionMode.Decompress, leaveOpen: true))
+                z.CopyTo(inflated);
+
+            var rowBytes = (width * bitDepth + 7) / 8;
+            var raw = inflated.ToArray();
+            if (raw.Length < height * (rowBytes + 1)) return null;
+
+            var prev = new byte[rowBytes];
+            var cur = new byte[rowBytes];
+            using var rgbRows = new MemoryStream();
+            var rawOffset = 0;
+            for (var y = 0; y < height; y++)
+            {
+                var filter = raw[rawOffset++];
+                Array.Copy(raw, rawOffset, cur, 0, rowBytes);
+                rawOffset += rowBytes;
+                DesfiltrarPng(cur, prev, filter, 1);
+
+                rgbRows.WriteByte(0);
+                for (var x = 0; x < width; x++)
+                {
+                    var idx = LeerIndicePng(cur, x, bitDepth);
+                    var p = idx * 3;
+                    if (p + 2 >= palette.Length)
+                    {
+                        rgbRows.WriteByte(255); rgbRows.WriteByte(255); rgbRows.WriteByte(255);
+                        continue;
+                    }
+                    var alpha = idx < transparency.Length ? transparency[idx] : (byte)255;
+                    rgbRows.WriteByte(MezclarConBlanco(palette[p], alpha));
+                    rgbRows.WriteByte(MezclarConBlanco(palette[p + 1], alpha));
+                    rgbRows.WriteByte(MezclarConBlanco(palette[p + 2], alpha));
+                }
+
+                (prev, cur) = (cur, prev);
+            }
+
+            using var compressed = new MemoryStream();
+            using (var z = new ZLibStream(compressed, CompressionLevel.Optimal, leaveOpen: true))
+                z.Write(rgbRows.ToArray());
+
+            return CrearPngRgb(width, height, compressed.ToArray());
+        }
+        catch
+        {
+            return null;
+        }
+    }
+
+    private static void DesfiltrarPng(byte[] row, byte[] prev, int filter, int bpp)
+    {
+        for (var i = 0; i < row.Length; i++)
+        {
+            var left = i >= bpp ? row[i - bpp] : 0;
+            var up = prev[i];
+            var upLeft = i >= bpp ? prev[i - bpp] : 0;
+            row[i] = filter switch
+            {
+                1 => (byte)(row[i] + left),
+                2 => (byte)(row[i] + up),
+                3 => (byte)(row[i] + ((left + up) >> 1)),
+                4 => (byte)(row[i] + Paeth(left, up, upLeft)),
+                _ => row[i]
+            };
+        }
+    }
+
+    private static int LeerIndicePng(byte[] row, int x, int bitDepth)
+    {
+        var bit = x * bitDepth;
+        var value = row[bit / 8];
+        var shift = 8 - bitDepth - bit % 8;
+        return (value >> shift) & ((1 << bitDepth) - 1);
+    }
+
+    private static byte MezclarConBlanco(byte value, byte alpha) =>
+        (byte)Math.Round((value * alpha + 255 * (255 - alpha)) / 255.0);
+
+    private static int Paeth(int a, int b, int c)
+    {
+        var p = a + b - c;
+        var pa = Math.Abs(p - a);
+        var pb = Math.Abs(p - b);
+        var pc = Math.Abs(p - c);
+        return pa <= pb && pa <= pc ? a : pb <= pc ? b : c;
+    }
+
+    private static byte[] CrearPngRgb(int width, int height, byte[] idat)
+    {
+        using var ms = new MemoryStream();
+        ms.Write(new byte[] { 137, 80, 78, 71, 13, 10, 26, 10 });
+        var ihdr = new byte[13];
+        EscribirUInt32BigEndian(ihdr, 0, (uint)width);
+        EscribirUInt32BigEndian(ihdr, 4, (uint)height);
+        ihdr[8] = 8;
+        ihdr[9] = 2;
+        EscribirChunkPng(ms, "IHDR", ihdr);
+        EscribirChunkPng(ms, "IDAT", idat);
+        EscribirChunkPng(ms, "IEND", []);
+        return ms.ToArray();
+    }
+
+    private static void EscribirChunkPng(Stream stream, string type, byte[] data)
+    {
+        var typeBytes = System.Text.Encoding.ASCII.GetBytes(type);
+        Span<byte> len = stackalloc byte[4];
+        EscribirUInt32BigEndian(len, 0, (uint)data.Length);
+        stream.Write(len);
+        stream.Write(typeBytes);
+        stream.Write(data);
+        var crc = Crc32(typeBytes, data);
+        Span<byte> crcBytes = stackalloc byte[4];
+        EscribirUInt32BigEndian(crcBytes, 0, crc);
+        stream.Write(crcBytes);
+    }
+
+    private static uint LeerUInt32BigEndian(byte[] data, int offset) =>
+        ((uint)data[offset] << 24) | ((uint)data[offset + 1] << 16) | ((uint)data[offset + 2] << 8) | data[offset + 3];
+
+    private static void EscribirUInt32BigEndian(Span<byte> data, int offset, uint value)
+    {
+        data[offset] = (byte)(value >> 24);
+        data[offset + 1] = (byte)(value >> 16);
+        data[offset + 2] = (byte)(value >> 8);
+        data[offset + 3] = (byte)value;
+    }
+
+    private static uint Crc32(byte[] type, byte[] data)
+    {
+        var crc = 0xffffffffu;
+        foreach (var b in type) crc = ActualizarCrc32(crc, b);
+        foreach (var b in data) crc = ActualizarCrc32(crc, b);
+        return crc ^ 0xffffffffu;
+    }
+
+    private static uint ActualizarCrc32(uint crc, byte b)
+    {
+        crc ^= b;
+        for (var i = 0; i < 8; i++)
+            crc = (crc & 1) != 0 ? 0xedb88320u ^ (crc >> 1) : crc >> 1;
+        return crc;
     }
 
     // ==================== DATA TYPES ====================

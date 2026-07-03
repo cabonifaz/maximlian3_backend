@@ -581,8 +581,12 @@ namespace SafetyReport.Handlers
                 {
                     try
                     {
-                        var url = _s3.GenerarDownloadUrl(s3Key);
-                        bytes = await http.GetByteArrayAsync(url);
+                        bytes = await _s3.DescargarBytesAsync(s3Key);
+                        if (bytes is null || bytes.Length == 0)
+                        {
+                            var url = _s3.GenerarDownloadUrl(s3Key);
+                            bytes = await http.GetByteArrayAsync(url);
+                        }
                         seen[s3Key] = bytes;
                     }
                     catch { continue; }
