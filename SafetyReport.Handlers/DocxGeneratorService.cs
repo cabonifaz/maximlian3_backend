@@ -99,6 +99,7 @@ public partial class DocxGeneratorService
             case "heading": RenderHeading(body, section); break;
             case "subtitle": RenderSubtitle(body, section); break;
             case "text": RenderText(body, section); break;
+            case "inline": RenderInline(body, section); break;
             case "keyValue": RenderKeyValue(body, section); break;
             case "borderedBox": RenderBorderedBox(body, section); break;
             case "referenceBox": RenderReferenceBox(body, section); break;
@@ -192,6 +193,36 @@ public partial class DocxGeneratorService
         RegistrarParrafoBody(para, css);
     }
 
+    private void RenderInline(Body body, JsonNode section)
+    {
+        var runs = section["runs"]?.AsArray();
+        if (runs == null || runs.Count == 0) return;
+
+        var pCss = ParseCss(section["style"]?.GetValue<string>());
+        var para = new Paragraph();
+        var pPr = new ParagraphProperties();
+        pPr.Append(new SpacingBetweenLines { After = "0", Line = CssLineSpacing(pCss).ToString(), LineRule = LineSpacingRuleValues.Exact });
+        AplicarMargenPendienteTabla(pPr, pCss);
+        ColapsarMargenParrafoAnterior(body, pPr, pCss);
+        AgregarIndentacion(pPr);
+        para.Append(pPr);
+
+        foreach (var runNode in runs)
+        {
+            if (runNode == null) continue;
+            var text = runNode["text"]?.GetValue<string>() ?? "";
+            if (string.IsNullOrEmpty(text)) continue;
+            var css = ParseCss(runNode["style"]?.GetValue<string>());
+            var run = new Run();
+            run.Append(CrearRunProperties(css));
+            AgregarTextoAlRun(run, text, css, permitirSaltos: false);
+            para.Append(run);
+        }
+
+        body.Append(para);
+        RegistrarParrafoBody(para, pCss);
+    }
+
     private void RenderKeyValue(Body body, JsonNode section)
     {
         var tblCss = ParseCss(section["style"]?.GetValue<string>());
@@ -242,6 +273,14 @@ public partial class DocxGeneratorService
         var tblWDocx = tblW + (maxCellCount > 0 ? (maxCellCount + 1) * cellSpacingTwips : 0);
 
         var table = CrearTabla(tblCss);
+        var columnWidths = fixedWidth && tblW > 0 ? ComputarAnchosColumnasKeyValue(rows, tblW) : null;
+        if (columnWidths is { Count: > 0 })
+        {
+            var tblGrid = new TableGrid();
+            foreach (var cw in columnWidths)
+                tblGrid.Append(new GridColumn { Width = cw.ToString() });
+            table.Append(tblGrid);
+        }
 
         // Upgrade auto-width table to fixed layout using the computed width.
         // Replace tblW={0,auto}+jc with tblW={n,dxa}+tblInd+tblLayout=fixed,
@@ -269,6 +308,13 @@ public partial class DocxGeneratorService
             var tr = CrearFilaTabla();
             var cellList = cells.Where(c => c is not null).ToList();
             int usedW = 0;
+            var rowHeight = 0;
+            foreach (var cell in cellList)
+            {
+                var cellCss = ParseCss(cell!["style"]?.GetValue<string>());
+                rowHeight = Math.Max(rowHeight, CssToTwips(cellCss.GetValueOrDefault("height", "")));
+            }
+            AplicarAltoFila(tr, rowHeight);
 
             for (int i = 0; i < cellList.Count; i++)
             {
@@ -280,7 +326,9 @@ public partial class DocxGeneratorService
 
                 int cellW;
                 bool isAutoCell = CssToTwips(cellCss.GetValueOrDefault("width", "")) <= 0;
-                if (i == cellList.Count - 1 && tblW > 0)
+                if (columnWidths != null && i < columnWidths.Count)
+                    cellW = columnWidths[i];
+                else if (i == cellList.Count - 1 && tblW > 0)
                     cellW = Math.Max(0, tblW - usedW);
                 else
                 {
@@ -303,6 +351,62 @@ public partial class DocxGeneratorService
         }
 
         AgregarTablaConMargen(body, table, tblCss);
+    }
+
+    private static List<int> ComputarAnchosColumnasKeyValue(JsonArray rows, int tableWidth)
+    {
+        var columnCount = rows
+            .OfType<JsonArray>()
+            .Select(row => row.Count(cell => cell is not null))
+            .DefaultIfEmpty(0)
+            .Max();
+        if (columnCount <= 0 || tableWidth <= 0) return [];
+
+        var widths = new int[columnCount];
+        foreach (var row in rows.OfType<JsonArray>())
+        {
+            var cells = row.Where(cell => cell is not null).ToList();
+            for (var i = 0; i < cells.Count && i < columnCount; i++)
+            {
+                var cellCss = ParseCss(cells[i]!["style"]?.GetValue<string>());
+                var explicitWidth = CssToTwips(cellCss.GetValueOrDefault("width", ""));
+                if (explicitWidth > 0)
+                    widths[i] = Math.Max(widths[i], explicitWidth);
+            }
+        }
+
+        var fixedTotal = widths.Sum();
+        if (fixedTotal > tableWidth)
+        {
+            var scale = (double)tableWidth / fixedTotal;
+            for (var i = 0; i < widths.Length; i++)
+                widths[i] = (int)Math.Round(widths[i] * scale);
+            return [.. widths];
+        }
+
+        var autoIndexes = widths
+            .Select((width, index) => (width, index))
+            .Where(item => item.width <= 0)
+            .Select(item => item.index)
+            .ToList();
+
+        if (autoIndexes.Count == 0)
+        {
+            var missing = tableWidth - fixedTotal;
+            if (missing > 0)
+                widths[^1] += missing;
+            return [.. widths];
+        }
+
+        var autoWidth = Math.Max(0, tableWidth - fixedTotal) / autoIndexes.Count;
+        foreach (var index in autoIndexes)
+            widths[index] = autoWidth;
+
+        var roundingMissing = tableWidth - widths.Sum();
+        if (roundingMissing != 0)
+            widths[autoIndexes[^1]] += roundingMissing;
+
+        return [.. widths];
     }
 
     private int EstimarAnchoCeldaTwips(string text, Dictionary<string, string> css)
@@ -1782,14 +1886,16 @@ public partial class DocxGeneratorService
             tcPr.Append(new Shading { Val = ShadingPatternValues.Clear, Color = "auto", Fill = NormalizarColor(bgColor) });
 
         var (padTop, padRight, padBottom, padLeft) = ObtenerPadding(css);
+        var cellVerticalAlign = ObtenerAlineacionVerticalCelda(css);
+        var useParagraphTopPadding = cellVerticalAlign == TableVerticalAlignmentValues.Top;
         tcPr.Append(new TableCellMargin(
-            new TopMargin { Width = padTop.ToString(), Type = TableWidthUnitValues.Dxa },
+            new TopMargin { Width = useParagraphTopPadding ? "0" : padTop.ToString(), Type = TableWidthUnitValues.Dxa },
             new BottomMargin { Width = padBottom.ToString(), Type = TableWidthUnitValues.Dxa },
             new LeftMargin { Width = padLeft.ToString(), Type = TableWidthUnitValues.Dxa },
             new RightMargin { Width = padRight.ToString(), Type = TableWidthUnitValues.Dxa }
         ));
 
-        tcPr.Append(new TableCellVerticalAlignment { Val = TableVerticalAlignmentValues.Top });
+        tcPr.Append(new TableCellVerticalAlignment { Val = cellVerticalAlign });
         tc.Append(tcPr);
 
         var hp = css != null && css.TryGetValue("font-size", out var fs) ? PtToHalfPt(fs) : _fontSizeHp;
@@ -1799,7 +1905,7 @@ public partial class DocxGeneratorService
         var pPr = new ParagraphProperties();
         pPr.Append(new SpacingBetweenLines
         {
-            Before = "0",
+            Before = useParagraphTopPadding ? padTop.ToString() : "0",
             After = "0",
             Line = CssLineSpacing(css, hp).ToString(),
             LineRule = LineSpacingRuleValues.Exact
@@ -1850,10 +1956,13 @@ public partial class DocxGeneratorService
             var relId = _mainPart.GetIdOfPart(imgPart);
             var drawId = _nextDrawingId++;
 
-            var bgPosParts = (css?.GetValueOrDefault("background-position", "center center") ?? "center center")
-                .Trim().Split(' ');
-            var bgPosX = bgPosParts.Length > 0 ? bgPosParts[0] : "center";
-            var isMode3 = !bgPosX.Equals("center", StringComparison.OrdinalIgnoreCase);
+            var bgPosition = ObtenerPosicionFondoDocx(
+                css?.GetValueOrDefault("background-position", "center center"),
+                widthTwips,
+                imgW,
+                imgH);
+            var isMode3 = !bgPosition.XKeyword.Equals("center", StringComparison.OrdinalIgnoreCase)
+                || !bgPosition.YKeyword.Equals("center", StringComparison.OrdinalIgnoreCase);
 
             var picture = new PIC.Picture(
                 new PIC.NonVisualPictureProperties(
@@ -1876,14 +1985,17 @@ public partial class DocxGeneratorService
             Drawing imgDrawing;
             if (isMode3)
             {
-                var posXEmu = CssToEmu(bgPosX);
+                OpenXmlElement verticalPositionChild = bgPosition.YKeyword.Equals("center", StringComparison.OrdinalIgnoreCase)
+                    ? new DW.VerticalAlignment { Text = "center" }
+                    : new DW.PositionOffset(bgPosition.YOffsetEmu.ToString());
+
                 imgDrawing = new Drawing(
                     new DW.Anchor(
                         new DW.SimplePosition { X = 0, Y = 0 },
-                        new DW.HorizontalPosition(new DW.PositionOffset(posXEmu.ToString()))
+                        new DW.HorizontalPosition(new DW.PositionOffset(bgPosition.XOffsetEmu.ToString()))
                             { RelativeFrom = DW.HorizontalRelativePositionValues.Column },
-                        new DW.VerticalPosition(new DW.VerticalAlignment { Text = "center" })
-                            { RelativeFrom = DW.VerticalRelativePositionValues.Line },
+                        new DW.VerticalPosition(verticalPositionChild)
+                            { RelativeFrom = DW.VerticalRelativePositionValues.Paragraph },
                         new DW.Extent { Cx = imgW, Cy = imgH },
                         new DW.EffectExtent { LeftEdge = 0, TopEdge = 0, RightEdge = 0, BottomEdge = 0 },
                         new DW.WrapNone(),
@@ -1933,6 +2045,84 @@ public partial class DocxGeneratorService
             properties.Append(new TableHeader());
         row.Append(properties);
         return row;
+    }
+
+    private static void AplicarAltoFila(TableRow row, int heightTwips)
+    {
+        if (heightTwips <= 0) return;
+
+        var properties = row.GetFirstChild<TableRowProperties>();
+        if (properties == null)
+        {
+            properties = new TableRowProperties();
+            row.PrependChild(properties);
+        }
+
+        properties.Append(new TableRowHeight
+        {
+            Val = (uint)heightTwips,
+            HeightType = HeightRuleValues.Exact
+        });
+    }
+
+    private static (string XKeyword, long XOffsetEmu, string YKeyword, long YOffsetEmu) ObtenerPosicionFondoDocx(
+        string? backgroundPosition,
+        int cellWidthTwips,
+        long imageWidthEmu,
+        long imageHeightEmu)
+    {
+        var parts = (backgroundPosition ?? "center center")
+            .Trim()
+            .Split(' ', StringSplitOptions.RemoveEmptyEntries);
+
+        var xKeyword = parts.Length > 0 ? parts[0] : "center";
+        var xInset = parts.Length > 1 && EsLongitudCss(parts[1]) ? CssToEmu(parts[1]) : 0;
+        var yKeyword = "center";
+        var yInset = 0L;
+
+        if (parts.Length >= 4)
+        {
+            yKeyword = parts[2];
+            yInset = EsLongitudCss(parts[3]) ? CssToEmu(parts[3]) : 0;
+        }
+        else if (parts.Length >= 2 && !EsLongitudCss(parts[1]))
+        {
+            yKeyword = parts[1];
+        }
+
+        var cellWidthEmu = cellWidthTwips > 0 ? cellWidthTwips * 635L : 0;
+        var xOffset = xKeyword.ToLowerInvariant() switch
+        {
+            "right" when cellWidthEmu > 0 => Math.Max(0, cellWidthEmu - imageWidthEmu - xInset),
+            "center" when cellWidthEmu > 0 => Math.Max(0, (cellWidthEmu - imageWidthEmu) / 2),
+            "left" => xInset,
+            _ when EsLongitudCss(xKeyword) => CssToEmu(xKeyword),
+            _ => 0
+        };
+
+        var yOffset = yKeyword.ToLowerInvariant() switch
+        {
+            "top" => yInset,
+            _ when EsLongitudCss(yKeyword) => CssToEmu(yKeyword),
+            _ => 0
+        };
+
+        return (xKeyword, xOffset, yKeyword, yOffset);
+    }
+
+    private static bool EsLongitudCss(string value) =>
+        Regex.IsMatch(value, @"^[\d.]+\s*(in|pt|px)?$", RegexOptions.IgnoreCase);
+
+    private static TableVerticalAlignmentValues ObtenerAlineacionVerticalCelda(Dictionary<string, string>? css)
+    {
+        var verticalAlign = css?.GetValueOrDefault("vertical-align")?.ToLowerInvariant();
+        return verticalAlign switch
+        {
+            "middle" => TableVerticalAlignmentValues.Center,
+            "center" => TableVerticalAlignmentValues.Center,
+            "bottom" => TableVerticalAlignmentValues.Bottom,
+            _ => TableVerticalAlignmentValues.Top
+        };
     }
 
     private RunProperties CrearRunProperties(Dictionary<string, string>? css)
@@ -2426,13 +2616,14 @@ public partial class DocxGeneratorService
 
     private static long CssToEmu(string value)
     {
-        var m = Regex.Match(value, @"([\d.]+)\s*(in|pt|)");
+        var m = Regex.Match(value, @"([\d.]+)\s*(in|pt|px|)");
         if (!m.Success || !double.TryParse(m.Groups[1].Value, System.Globalization.NumberStyles.Any, System.Globalization.CultureInfo.InvariantCulture, out var num))
             return 0;
         return m.Groups[2].Value switch
         {
             "in" => (long)(num * 914400),
             "pt" => (long)(num * 12700),
+            "px" => (long)(num * 9525),
             _ => (long)(num * 914400)
         };
     }

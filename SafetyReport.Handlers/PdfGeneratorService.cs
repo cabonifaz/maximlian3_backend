@@ -566,7 +566,7 @@ public class PdfGeneratorService
                     var pageText = pageTotal
                         ? $"{pageLabel} {_pageNumber} {pageTotalLabel} {_totalPages}"
                         : $"{pageLabel} {_pageNumber}";
-                    DibujarLineaTexto(pageText, font, textX, textW, contentY, align, fontSize);
+                    DibujarLineaTexto(pageText, font, textX, textW, contentY, align, fontSize, brush);
                 }
                 else if (cellNode["rows"] is JsonArray nestedRows)
                 {
@@ -595,7 +595,7 @@ public class PdfGeneratorService
                 else
                 {
                     var text = cellNode["text"]?.GetValue<string>() ?? "";
-                    DibujarLineaTexto(text, font, textX, textW, contentY, align, fontSize);
+                    DibujarLineaTexto(text, font, textX, textW, contentY, align, fontSize, brush);
                 }
 
                 x += cellW;
@@ -717,6 +717,7 @@ public class PdfGeneratorService
             case "heading": RenderHeading(section); break;
             case "subtitle": RenderSubtitle(section); break;
             case "text": RenderText(section); break;
+            case "inline": RenderInline(section); break;
             case "keyValue": RenderKeyValue(section); break;
             case "borderedBox": RenderBorderedBox(section); break;
             case "referenceBox": RenderReferenceBox(section); break;
@@ -753,7 +754,7 @@ public class PdfGeneratorService
         var x = _mLeft + _contentIndentL;
         var w = _contentWidth;
         var align = MapXAlign(css.GetValueOrDefault("text-align", "left"));
-        DibujarLineaTexto(text, font, x, w, _y, align, lineH);
+        DibujarLineaTexto(text, font, x, w, _y, align, lineH, ObtenerBrushTexto(css));
         _y += textH;
         _y += after;
 
@@ -780,7 +781,7 @@ public class PdfGeneratorService
         _y += before;
         var x = _mLeft + _contentIndentL;
         var align = MapXAlign(css.GetValueOrDefault("text-align", "left"));
-        DibujarLineaTexto(text, font, x, _contentWidth, _y, align, lineH);
+        DibujarLineaTexto(text, font, x, _contentWidth, _y, align, lineH, ObtenerBrushTexto(css));
         _y += textH;
         _y += after;
 
@@ -822,10 +823,47 @@ public class PdfGeneratorService
             foreach (var wl in wrapped)
             {
                 AsegurarEspacio(lineH);
-                DibujarLineaTexto(wl, font, x, w, _y, XStringAlignment.Near, lineH);
+                DibujarLineaTexto(wl, font, x, w, _y, XStringAlignment.Near, lineH, ObtenerBrushTexto(css));
                 _y += lineH;
             }
         }
+
+        RegistrarParrafo(afterM, afterP, appliedBottomSpacing: 0);
+    }
+
+    private void RenderInline(JsonNode section)
+    {
+        var runs = section["runs"]?.AsArray();
+        if (runs == null || runs.Count == 0) return;
+
+        var pCss = ParseCss(section["style"]?.GetValue<string>());
+        var lineH = LineHeight(pCss);
+        var x = _mLeft + _contentIndentL;
+        var w = _contentWidth;
+        var (_, afterM) = ObtenerMargenVertical(pCss);
+        var (_, afterP) = ObtenerPaddingVertical(pCss);
+        var before = 0d;
+        ColapsarMargenParrafoAnterior(pCss, ref before);
+        AplicarMargenPendienteTabla(pCss, ref before);
+        _y += before;
+
+        AsegurarEspacio(lineH);
+        var curX = x;
+        foreach (var runNode in runs)
+        {
+            if (runNode == null) continue;
+            var text = runNode["text"]?.GetValue<string>() ?? "";
+            if (string.IsNullOrEmpty(text)) continue;
+            var css = CombinarCssHeredable(pCss, ParseCss(runNode["style"]?.GetValue<string>()));
+            var font = CrearFuente(css);
+            var textW = _gfx.MeasureString(text, font).Width;
+            var brush = ObtenerBrushTexto(css);
+            DibujarLineaTexto(text, font, curX, w - (curX - x), _y, XStringAlignment.Near, lineH, brush);
+            if (css.GetValueOrDefault("text-decoration", "").Contains("underline", StringComparison.OrdinalIgnoreCase))
+                DibujarSubrayado(curX, textW, _y, lineH, font, brush);
+            curX += textW;
+        }
+        _y += lineH;
 
         RegistrarParrafo(afterM, afterP, appliedBottomSpacing: 0);
     }
@@ -1066,7 +1104,7 @@ public class PdfGeneratorService
 
             AsegurarEspacio(before + titleLineH);
             _y += before;
-            DibujarLineaTexto(title, titleFont, _mLeft + _contentIndentL, _contentWidth, _y, XStringAlignment.Near, titleLineH);
+            DibujarLineaTexto(title, titleFont, _mLeft + _contentIndentL, _contentWidth, _y, XStringAlignment.Near, titleLineH, ObtenerBrushTexto(titleCss));
             _y += titleLineH + after;
             RegistrarParrafo(tAfterM, tAfterP, after);
 
@@ -1096,7 +1134,7 @@ public class PdfGeneratorService
                     foreach (var wl in PartirEnLineas(line, contentFont, _contentWidth))
                     {
                         AsegurarEspacio(contentLineH);
-                        DibujarLineaTexto(wl, contentFont, _mLeft + _contentIndentL, _contentWidth, _y, XStringAlignment.Near, contentLineH);
+                        DibujarLineaTexto(wl, contentFont, _mLeft + _contentIndentL, _contentWidth, _y, XStringAlignment.Near, contentLineH, ObtenerBrushTexto(contentCss));
                         _y += contentLineH;
                     }
                 }
@@ -1274,11 +1312,12 @@ public class PdfGeneratorService
                 var blockW = imgDrawW + gap + measuredTxt;
                 var blockX = cellX + padL + (textW - blockW) / 2;
                 var imgY = rowY + (rowH - imgDrawH) / 2;
+                var textBrush = ObtenerBrushTexto(css);
                 _gfx.DrawImage(cellImg!, blockX, imgY, imgDrawW, imgDrawH);
                 var txtX = blockX + imgDrawW + gap;
                 foreach (var line in lines)
                 {
-                    _gfx.DrawString(line, font, XBrushes.Black,
+                    _gfx.DrawString(line, font, textBrush,
                         new XRect(txtX, textY, measuredTxt + 1, lineH), XStringFormats.CenterLeft);
                     textY += lineH;
                 }
@@ -1305,7 +1344,7 @@ public class PdfGeneratorService
                 }
                 foreach (var line in lines)
                 {
-                    DibujarLineaTexto(line, font, cellX + padL, textW, textY, align, lineH);
+                    DibujarLineaTexto(line, font, cellX + padL, textW, textY, align, lineH, ObtenerBrushTexto(css));
                     textY += lineH;
                 }
             }
@@ -1551,7 +1590,7 @@ public class PdfGeneratorService
 
     // ==================== DRAWING HELPERS ====================
 
-    private void DibujarLineaTexto(string text, XFont font, double x, double width, double y, XStringAlignment align, double lineHeight = 0)
+    private void DibujarLineaTexto(string text, XFont font, double x, double width, double y, XStringAlignment align, double lineHeight = 0, XBrush? brush = null)
     {
         if (string.IsNullOrEmpty(text)) return;
         var lh = lineHeight > 0 ? lineHeight : font.GetHeight();
@@ -1560,7 +1599,18 @@ public class PdfGeneratorService
         var textHeight = ascent + descent;
         var baselineY = y + (lh - textHeight) / 2 + ascent;
         var format = new XStringFormat { Alignment = align, LineAlignment = XLineAlignment.BaseLine };
-        _gfx.DrawString(text, font, XBrushes.Black, new XPoint(align == XStringAlignment.Center ? x + width / 2 : align == XStringAlignment.Far ? x + width : x, baselineY), format);
+        _gfx.DrawString(text, font, brush ?? XBrushes.Black, new XPoint(align == XStringAlignment.Center ? x + width / 2 : align == XStringAlignment.Far ? x + width : x, baselineY), format);
+    }
+
+    private void DibujarSubrayado(double x, double width, double y, double lineHeight, XFont font, XBrush brush)
+    {
+        var lh = lineHeight > 0 ? lineHeight : font.GetHeight();
+        var ascent = font.Size * font.Metrics.Ascent / font.Metrics.UnitsPerEm;
+        var descent = font.Size * Math.Abs(font.Metrics.Descent) / font.Metrics.UnitsPerEm;
+        var baselineY = y + (lh - ascent - descent) / 2 + ascent;
+        var underlineY = baselineY + Math.Max(1, font.Size * 0.08);
+        var color = brush is XSolidBrush solidBrush ? solidBrush.Color : XColors.Black;
+        _gfx.DrawLine(new XPen(color, Math.Max(0.5, font.Size * 0.05)), x, underlineY, x + width, underlineY);
     }
 
     private List<string> PartirEnLineas(string text, XFont font, double maxWidth)
@@ -1607,6 +1657,18 @@ public class PdfGeneratorService
             style |= XFontStyleEx.Italic;
 
         return new XFont(family, size, style);
+    }
+
+    private static XBrush ObtenerBrushTexto(Dictionary<string, string>? css)
+    {
+        if (css == null || !css.TryGetValue("color", out var colorHex))
+            return XBrushes.Black;
+
+        var c = NormalizarColor(colorHex);
+        return new XSolidBrush(XColor.FromArgb(
+            Convert.ToInt32(c[..2], 16),
+            Convert.ToInt32(c[2..4], 16),
+            Convert.ToInt32(c[4..6], 16)));
     }
 
     private double LineHeight(Dictionary<string, string>? css, double? fontSize = null)
