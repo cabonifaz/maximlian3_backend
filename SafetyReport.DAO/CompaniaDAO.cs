@@ -227,11 +227,17 @@ namespace SafetyReport.DAO
                 tvpArchivos.Columns.Add("IdCompaniaNoticiaArchivo", typeof(int));
                 tvpArchivos.Columns.Add("IdTipoArchivo", typeof(int));
                 tvpArchivos.Columns.Add("ArchivoUrl", typeof(string));
+                tvpArchivos.Columns.Add("NombreDocumento", typeof(string));
+                tvpArchivos.Columns.Add("Extension", typeof(string));
+                tvpArchivos.Columns.Add("TamanoBytes", typeof(long));
                 foreach (var archivo in request.Archivos)
                     tvpArchivos.Rows.Add(
                         (object?)archivo.IdCompaniaNoticiaArchivo ?? DBNull.Value,
                         archivo.IdTipoArchivo,
-                        (object?)archivo.ArchivoUrl ?? DBNull.Value);
+                        (object?)archivo.ArchivoUrl ?? DBNull.Value,
+                        (object?)(archivo.NombreDocumento ?? archivo.NombreArchivo) ?? DBNull.Value,
+                        (object?)archivo.Extension ?? DBNull.Value,
+                        (object?)archivo.TamanoBytes ?? DBNull.Value);
 
                 var paramTvp = cmd.Parameters.Add("@lstArchivos", SqlDbType.Structured);
                 paramTvp.TypeName = "LISTA_COMPANIA_NOTICIA_ARCHIVO";
@@ -267,11 +273,17 @@ namespace SafetyReport.DAO
                 tvpArchivos.Columns.Add("IdCompaniaNoticiaArchivo", typeof(int));
                 tvpArchivos.Columns.Add("IdTipoArchivo", typeof(int));
                 tvpArchivos.Columns.Add("ArchivoUrl", typeof(string));
+                tvpArchivos.Columns.Add("NombreDocumento", typeof(string));
+                tvpArchivos.Columns.Add("Extension", typeof(string));
+                tvpArchivos.Columns.Add("TamanoBytes", typeof(long));
                 foreach (var archivo in request.Archivos)
                     tvpArchivos.Rows.Add(
                         (object?)archivo.IdCompaniaNoticiaArchivo ?? DBNull.Value,
                         archivo.IdTipoArchivo,
-                        (object?)archivo.ArchivoUrl ?? DBNull.Value);
+                        (object?)archivo.ArchivoUrl ?? DBNull.Value,
+                        (object?)(archivo.NombreDocumento ?? archivo.NombreArchivo) ?? DBNull.Value,
+                        (object?)archivo.Extension ?? DBNull.Value,
+                        (object?)archivo.TamanoBytes ?? DBNull.Value);
 
                 var paramTvp = cmd.Parameters.Add("@lstArchivos", SqlDbType.Structured);
                 paramTvp.TypeName = "LISTA_COMPANIA_NOTICIA_ARCHIVO";

@@ -121,7 +121,10 @@ namespace SafetyReport.Handlers
                     {
                         IdTipoArchivo = i < request.IdTiposArchivo.Count ? request.IdTiposArchivo[i] : 0,
                         NombreArchivo = archivo.FileName,
+                        NombreDocumento = archivo.FileName,
                         FormatoArchivo = formatoArchivo,
+                        Extension = Path.GetExtension(archivo.FileName).TrimStart('.').ToUpperInvariant(),
+                        TamanoBytes = archivo.Length,
                         ArchivoUrl = rutaArchivo
                     });
                 }
@@ -296,8 +299,15 @@ namespace SafetyReport.Handlers
                 var formatoArchivo = string.IsNullOrWhiteSpace(archivo.FormatoArchivo)
                     ? "application/octet-stream"
                     : archivo.FormatoArchivo;
+                var nombreDocumento = string.IsNullOrWhiteSpace(archivo.NombreDocumento)
+                    ? archivo.NombreArchivo
+                    : archivo.NombreDocumento;
 
                 archivo.ArchivoUrl = rutaArchivo;
+                archivo.NombreDocumento = nombreDocumento;
+                archivo.Extension = string.IsNullOrWhiteSpace(archivo.Extension)
+                    ? Path.GetExtension(nombreDocumento ?? archivo.ArchivoUrl).TrimStart('.').ToUpperInvariant()
+                    : archivo.Extension.TrimStart('.').ToUpperInvariant();
                 archivo.UploadUrl = _s3UploadService.GenerarUploadUrl(rutaArchivo, formatoArchivo);
             }
         }
