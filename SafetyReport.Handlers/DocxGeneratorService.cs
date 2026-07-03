@@ -25,6 +25,7 @@ public partial class DocxGeneratorService
     private MainDocumentPart? _mainPart;
     private FooterPart? _defaultFooterPart;
     private FooterPart? _firstFooterPart;
+    private HeaderPart? _firstHeaderPart;
     private uint _nextDrawingId = 100;
     // Max measured last-cell width across all auto-width right-aligned keyValue tables,
     // used to normalize value cells into a uniform column.
@@ -46,6 +47,7 @@ public partial class DocxGeneratorService
             _mainPart = mainPart;
             _defaultFooterPart = null;
             _firstFooterPart = null;
+            _firstHeaderPart = null;
             _nextDrawingId = 100;
             _pendingTableBottomMargin = 0;
             _lastBodyParagraph = null;
@@ -93,6 +95,10 @@ public partial class DocxGeneratorService
 
     private void RenderizarSeccion(Body body, JsonNode section)
     {
+        var css = ParseCss(section["style"]?.GetValue<string>());
+        if (DebeForzarSaltoPagina(section, css))
+            AgregarSaltoPagina(body);
+
         var type = section["type"]?.GetValue<string>() ?? "";
         switch (type)
         {
@@ -113,6 +119,19 @@ public partial class DocxGeneratorService
             case "repeatDetail": RenderRepeatDetail(body, section); break;
             case "spacer": RenderSpacer(body, section); break;
         }
+    }
+
+    private static bool DebeForzarSaltoPagina(JsonNode section, Dictionary<string, string> css) =>
+        (section["pageBreak"]?.GetValue<bool>() ?? false)
+        || css.GetValueOrDefault("page-break-before", "") == "always"
+        || css.GetValueOrDefault("break-before", "") == "page";
+
+    private void AgregarSaltoPagina(Body body)
+    {
+        if (body.Elements().Any())
+            body.Append(new Paragraph(new Run(new Break { Type = BreakValues.Page })));
+        LimpiarUltimoParrafoBody();
+        _pendingTableBottomMargin = 0;
     }
 
     private void RenderHeading(Body body, JsonNode section)
@@ -606,9 +625,8 @@ public partial class DocxGeneratorService
 
     private void RenderSpacer(Body body, JsonNode section)
     {
-        var height = section["height"]?.GetValue<string>() ?? "0.3in";
         FlushPendingTableMargin(body);
-        body.Append(CrearParrafoEspaciador(CssToTwips(height)));
+        body.Append(CrearParrafoEspaciador(CssToTwips(section["height"]?.GetValue<string>() ?? "0.3in")));
         LimpiarUltimoParrafoBody();
     }
 
@@ -627,27 +645,52 @@ public partial class DocxGeneratorService
         var logoBytes = ResolveAssetBytes(config?["header"]?["logo"]?.GetValue<string>());
         var watermarkBytes = ResolveAssetBytes(config?["watermark"]?["image"]?.GetValue<string>());
 
+        var fpWatermarkBytes = ResolveAssetBytes(config?["firstPageWatermark"]?["image"]?.GetValue<string>());
         var hasLogo = logoBytes is not null && logoBytes.Length > 0;
         var hasWatermark = watermarkBytes is not null && watermarkBytes.Length > 0;
-        if (!hasLogo && !hasWatermark) return;
+        var hasFirstPageWatermark = fpWatermarkBytes is not null && fpWatermarkBytes.Length > 0;
+        if (!hasLogo && !hasWatermark && !hasFirstPageWatermark) return;
 
-        var headerPart = mainPart.AddNewPart<HeaderPart>();
-        var header = new Header();
+        HeaderPart? headerPart = null;
+        Header? header = null;
 
-        if (!hasLogo)
+        if (hasWatermark || hasLogo)
         {
-            AgregarMarcaAguaAlHeader(headerPart, header, config, watermarkBytes!);
-            headerPart.Header = header;
-            headerPart.Header.Save();
-            return;
+            headerPart = mainPart.AddNewPart<HeaderPart>();
+            header = new Header();
         }
 
+        if (headerPart != null && header != null)
+        {
+            if (hasLogo)
+                AgregarLogoAlHeader(headerPart, header, config, logoBytes!);
+
+            AgregarMarcaAguaAlHeader(headerPart, header, config, watermarkBytes);
+
+            headerPart.Header = header;
+            headerPart.Header.Save();
+        }
+
+        if (hasFirstPageWatermark)
+        {
+            _firstHeaderPart = mainPart.AddNewPart<HeaderPart>();
+            var fpHeader = new Header();
+            if (hasLogo)
+                AgregarLogoAlHeader(_firstHeaderPart, fpHeader, config, logoBytes!);
+            AgregarMarcaAguaAlHeader(_firstHeaderPart, fpHeader, config, fpWatermarkBytes, firstPage: true);
+            _firstHeaderPart.Header = fpHeader;
+            _firstHeaderPart.Header.Save();
+        }
+    }
+
+    private void AgregarLogoAlHeader(HeaderPart headerPart, Header header, JsonNode? config, byte[] logoBytes)
+    {
         var logoBoxW = CssToEmu(config?["header"]?["logoWidth"]?.GetValue<string>() ?? "1.3in");
         var logoBoxH = CssToEmu(config?["header"]?["logoHeight"]?.GetValue<string>() ?? "0.55in");
-        var (logoW, logoH) = AjustarImagenContain(logoBytes!, logoBoxW, logoBoxH);
+        var (logoW, logoH) = AjustarImagenContain(logoBytes, logoBoxW, logoBoxH);
         var align = config?["header"]?["align"]?.GetValue<string>() ?? "center";
 
-        var imagePart = logoBytes!.Length >= 2 && logoBytes[0] == 0xFF && logoBytes[1] == 0xD8
+        var imagePart = logoBytes.Length >= 2 && logoBytes[0] == 0xFF && logoBytes[1] == 0xD8
             ? headerPart.AddImagePart(ImagePartType.Jpeg)
             : headerPart.AddImagePart(ImagePartType.Png);
         using (var imgStream = new MemoryStream(logoBytes))
@@ -659,7 +702,7 @@ public partial class DocxGeneratorService
             new DW.Inline(
                 new DW.Extent { Cx = logoW, Cy = logoH },
                 new DW.EffectExtent { LeftEdge = 0, TopEdge = 0, RightEdge = 0, BottomEdge = 0 },
-                new DW.DocProperties { Id = 1, Name = "Logo" },
+                new DW.DocProperties { Id = _nextDrawingId++, Name = "Logo" },
                 new DW.NonVisualGraphicFrameDrawingProperties(
                     new A.GraphicFrameLocks { NoChangeAspect = true }),
                 new A.Graphic(
@@ -699,18 +742,13 @@ public partial class DocxGeneratorService
         para.Append(run);
 
         header.Append(para);
-
-        AgregarMarcaAguaAlHeader(headerPart, header, config, watermarkBytes);
-
-        headerPart.Header = header;
-        headerPart.Header.Save();
     }
 
-    private void AgregarMarcaAguaAlHeader(HeaderPart headerPart, Header header, JsonNode? config, byte[]? watermarkBytes)
+    private void AgregarMarcaAguaAlHeader(HeaderPart headerPart, Header header, JsonNode? config, byte[]? watermarkBytes, bool firstPage = false)
     {
         if (watermarkBytes is null || watermarkBytes.Length == 0) return;
 
-        var wmNode = config?["watermark"];
+        var wmNode = firstPage ? config?["firstPageWatermark"] : config?["watermark"];
         if (wmNode is null) return;
 
         var wmWidthPt = CssToPt(wmNode["width"]?.GetValue<string>() ?? "0");
@@ -1563,9 +1601,16 @@ public partial class DocxGeneratorService
         }
 
         // Link header
-        var headerPart = mainPart.HeaderParts.FirstOrDefault();
+        var headerPart = mainPart.HeaderParts.FirstOrDefault(p => p != _firstHeaderPart);
         if (headerPart != null)
             secPr.InsertAt(new HeaderReference { Type = HeaderFooterValues.Default, Id = mainPart.GetIdOfPart(headerPart) }, 0);
+
+        if (_firstHeaderPart != null)
+        {
+            secPr.InsertAt(new HeaderReference { Type = HeaderFooterValues.First, Id = mainPart.GetIdOfPart(_firstHeaderPart) }, 0);
+            if (_firstFooterPart is null)
+                secPr.InsertAt(new TitlePage(), 0);
+        }
 
         // Link footer(s)
         if (_defaultFooterPart != null)

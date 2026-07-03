@@ -25,6 +25,12 @@ public class PdfGeneratorService
     private XImage? _wmImage;
     private double _wmImgW, _wmImgH, _wmX, _wmY;
 
+    private string? _fp_wmRef;
+    private double _fp_wmWidth, _fp_wmHeight, _fp_wmOpacity;
+    private string _fp_wmPosition = "";
+    private XImage? _fp_wmImage;
+    private double _fp_wmImgW, _fp_wmImgH, _fp_wmX, _fp_wmY;
+
     private double _pageW, _pageH;
     private double _mTop, _mBottom, _mLeft, _mRight;
     private double _logoBoxW, _logoBoxH;
@@ -116,6 +122,7 @@ public class PdfGeneratorService
         var config = json["document"];
         LeerConfigGlobal(config);
         PrepararMarcaAgua();
+        PrepararMarcaAguaPrimeraPagina();
         NuevaPagina();
 
         var sections = json["sections"]?.AsArray();
@@ -128,7 +135,7 @@ public class PdfGeneratorService
         var ms = new MemoryStream();
         _gfx.Dispose();
         AplicarPiePaginas();
-        AplicarOpacidadMarcaAgua();
+        AplicarMarcasAgua();
         _doc.Save(ms);
         ms.Position = 0;
         return ms;
@@ -203,6 +210,16 @@ public class PdfGeneratorService
             _wmOpacity = wmNode["opacity"]?.GetValue<double>() ?? 1.0;
             _wmPosition = wmNode["position"]?.GetValue<string>() ?? "center center";
             _wmRef = wmNode["image"]?.GetValue<string>();
+        }
+
+        var fpWmNode = config["firstPageWatermark"];
+        if (fpWmNode is JsonObject)
+        {
+            _fp_wmWidth = CssToPoints(fpWmNode["width"]?.GetValue<string>() ?? "0");
+            _fp_wmHeight = CssToPoints(fpWmNode["height"]?.GetValue<string>() ?? "0");
+            _fp_wmOpacity = fpWmNode["opacity"]?.GetValue<double>() ?? 1.0;
+            _fp_wmPosition = fpWmNode["position"]?.GetValue<string>() ?? "center center";
+            _fp_wmRef = fpWmNode["image"]?.GetValue<string>();
         }
 
         var pageBorderNode = config["pageBorder"];
@@ -305,47 +322,88 @@ public class PdfGeneratorService
     {
     }
 
-    private void AplicarOpacidadMarcaAgua()
+    private void AplicarMarcasAgua()
     {
-        if (_wmImage is null || _wmOpacity >= 1.0) return;
+        for (var i = 0; i < _doc.Pages.Count; i++)
+        {
+            if (i == 0 && _fp_wmImage is not null)
+                AplicarMarcaAguaPagina(_doc.Pages[i], _fp_wmImage, _fp_wmX, _fp_wmY, _fp_wmImgW, _fp_wmImgH, _fp_wmOpacity, "GSfpwm");
+            else if (_wmImage is not null)
+                AplicarMarcaAguaPagina(_doc.Pages[i], _wmImage, _wmX, _wmY, _wmImgW, _wmImgH, _wmOpacity, "GSwm");
+        }
+    }
 
+    private void AplicarMarcaAguaPagina(PdfPage page, XImage image, double x, double y, double width, double height, double opacity, string gsName)
+    {
         var extGState = new PdfExtGState(_doc);
-        extGState.StrokeAlpha = _wmOpacity;
-        extGState.NonStrokeAlpha = _wmOpacity;
+        extGState.StrokeAlpha = opacity;
+        extGState.NonStrokeAlpha = opacity;
         _doc.Internals.AddObject(extGState);
 
-        foreach (var page in _doc.Pages)
+        using (var wmGfx = XGraphics.FromPdfPage(page, XGraphicsPdfPageOptions.Prepend))
         {
-            using var wmGfx = XGraphics.FromPdfPage(page, XGraphicsPdfPageOptions.Prepend);
-            wmGfx.DrawImage(_wmImage, _wmX, _wmY, _wmImgW, _wmImgH);
+            wmGfx.DrawImage(image, x, y, width, height);
         }
 
-        foreach (var page in _doc.Pages)
+        var resources = page.Elements.GetDictionary("/Resources");
+        if (resources is null) return;
+
+        var gsDict = resources.Elements.GetDictionary("/ExtGState");
+        if (gsDict is null)
         {
-            var resources = page.Elements.GetDictionary("/Resources");
-            if (resources is null) continue;
-
-            var gsDict = resources.Elements.GetDictionary("/ExtGState");
-            if (gsDict is null)
-            {
-                gsDict = new PdfDictionary(_doc);
-                resources.Elements["/ExtGState"] = gsDict;
-            }
-            gsDict.Elements["/GSwm"] = extGState.Reference!;
-
-            var wmContent = page.Contents.Elements[0];
-            if (wmContent is PdfReference wmRef)
-                wmContent = wmRef.Value;
-            if (wmContent is PdfDictionary wmDict)
-            {
-                var stream = wmDict.Stream;
-                stream.TryUnfilter();
-                var str = System.Text.Encoding.Latin1.GetString(stream.Value);
-                str = str.Replace("/GS0 gs", "");
-                str = "q /GSwm gs\n" + str + "\nQ\n";
-                stream.Value = System.Text.Encoding.Latin1.GetBytes(str);
-            }
+            gsDict = new PdfDictionary(_doc);
+            resources.Elements["/ExtGState"] = gsDict;
         }
+        gsDict.Elements[$"/{gsName}"] = extGState.Reference!;
+
+        var wmContent = page.Contents.Elements[0];
+        if (wmContent is PdfReference wmRef)
+            wmContent = wmRef.Value;
+        if (wmContent is PdfDictionary wmDict)
+        {
+            var stream = wmDict.Stream;
+            stream.TryUnfilter();
+            var str = System.Text.Encoding.Latin1.GetString(stream.Value);
+            str = str.Replace("/GS0 gs", "");
+            str = $"q /{gsName} gs\n" + str + "\nQ\n";
+            stream.Value = System.Text.Encoding.Latin1.GetBytes(str);
+        }
+    }
+
+    private void PrepararMarcaAguaPrimeraPagina()
+    {
+        var watermarkBytes = ResolveAssetBytes(_fp_wmRef);
+        if (watermarkBytes is null || watermarkBytes.Length == 0 || _fp_wmWidth <= 0 || _fp_wmHeight <= 0) return;
+
+        try
+        {
+            var imgStream = new MemoryStream(watermarkBytes);
+            _fp_wmImage = XImage.FromStream(imgStream);
+
+            var scaleW = _fp_wmWidth / _fp_wmImage.PointWidth;
+            var scaleH = _fp_wmHeight / _fp_wmImage.PointHeight;
+            var scale = Math.Min(scaleW, scaleH);
+            _fp_wmImgW = _fp_wmImage.PointWidth * scale;
+            _fp_wmImgH = _fp_wmImage.PointHeight * scale;
+
+            var parts = _fp_wmPosition.Split(' ', StringSplitOptions.RemoveEmptyEntries);
+            var hPos = parts.Length > 0 ? parts[0] : "center";
+            var vPos = parts.Length > 1 ? parts[1] : "center";
+
+            _fp_wmX = hPos switch
+            {
+                "left" => 0.0,
+                "right" => _pageW - _fp_wmImgW,
+                _ => (_pageW - _fp_wmImgW) / 2
+            };
+            _fp_wmY = vPos switch
+            {
+                "top" => 0.0,
+                "bottom" => _pageH - _fp_wmImgH,
+                _ => (_pageH - _fp_wmImgH) / 2
+            };
+        }
+        catch { _fp_wmImage = null; }
     }
 
     private void DibujarEncabezado()
@@ -711,6 +769,15 @@ public class PdfGeneratorService
 
     private void RenderizarSeccion(JsonNode section)
     {
+        var css = ParseCss(section["style"]?.GetValue<string>());
+        if (DebeForzarSaltoPagina(section, css))
+        {
+            if (_y > _contentTop)
+                NuevaPagina();
+            LimpiarParrafoAnterior();
+            _pendingTableBottomMargin = 0;
+        }
+
         var type = section["type"]?.GetValue<string>() ?? "";
         switch (type)
         {
@@ -732,6 +799,11 @@ public class PdfGeneratorService
             case "spacer": RenderSpacer(section); break;
         }
     }
+
+    private static bool DebeForzarSaltoPagina(JsonNode section, Dictionary<string, string> css) =>
+        (section["pageBreak"]?.GetValue<bool>() ?? false)
+        || css.GetValueOrDefault("page-break-before", "") == "always"
+        || css.GetValueOrDefault("break-before", "") == "page";
 
     private void RenderHeading(JsonNode section)
     {
@@ -1354,7 +1426,7 @@ public class PdfGeneratorService
                 catch { cellImg = null; cellImgStream?.Dispose(); cellImgStream = null; }
             }
 
-            var lines = PartirEnLineas(cell.Text, font, textW);
+            var lines = PartirTextoCelda(cell.Text, font, textW, css);
             var textBlockH = Math.Max(1, lines.Count) * lineH;
             var textY = ObtenerAlineacionVerticalCelda(css) switch
             {
@@ -1482,7 +1554,7 @@ public class PdfGeneratorService
             var font = CrearFuente(css);
             var lineH = LineHeight(css);
             var textW = Math.Max(0, cellW - padL - padR);
-            var lines = PartirEnLineas(cell.Text, font, textW);
+            var lines = PartirTextoCelda(cell.Text, font, textW, css);
             var cellH = padT + Math.Max(1, lines.Count) * lineH + padB;
             cellH = Math.Max(cellH, CssToPoints(css.GetValueOrDefault("height", "")));
             maxH = Math.Max(maxH, cellH);
@@ -1737,6 +1809,26 @@ public class PdfGeneratorService
         if (currentLine.Length > 0) lines.Add(currentLine);
         if (lines.Count == 0) lines.Add("");
         return lines;
+    }
+
+    private List<string> PartirTextoCelda(string text, XFont font, double maxWidth, Dictionary<string, string> css)
+    {
+        var whiteSpace = css.GetValueOrDefault("white-space", "normal");
+        var preserveBreaks = whiteSpace is "pre-line" or "pre-wrap" or "pre";
+        var preserveSpaces = whiteSpace is "pre-wrap" or "pre";
+
+        if (!preserveBreaks)
+            return PartirEnLineas(Regex.Replace(text, @"\s+", " ").Trim(), font, maxWidth);
+
+        var result = new List<string>();
+        var rawLines = text.Replace("\r\n", "\n").Replace('\r', '\n').Split('\n');
+        foreach (var rawLine in rawLines)
+        {
+            var line = preserveSpaces ? rawLine : Regex.Replace(rawLine, @"[\t ]+", " ").Trim();
+            result.AddRange(PartirEnLineas(line, font, maxWidth));
+        }
+
+        return result.Count > 0 ? result : [""];
     }
 
     // ==================== FONT HELPERS ====================
