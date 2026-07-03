@@ -36,9 +36,14 @@ public class PdfGeneratorService
     private string _pageLabel = "Page";
     private double _footerFontSize = 7;
     private string _footerAlign = "left";
+    private string _pageAlign = "below";
     private double _footerGapBefore = 0;
     private double _footerIndentL = 0;
     private double _footerIndentR = 0;
+    private double _footerExtend = 0;
+    private string _footerLayout = "";
+    private JsonNode? _footerConfigNode;
+    private JsonArray? _footerJsonRows;
     private bool _showPageNumber = true;
     private double _pageFontSize;
     private double _pageGapBefore;
@@ -153,9 +158,14 @@ public class PdfGeneratorService
         _pageLabel = config["footer"]?["pageLabel"]?.GetValue<string>() ?? "Page";
         _footerFontSize = PtValue(config["footer"]?["fontSize"]?.GetValue<string>() ?? "7pt");
         _footerAlign = config["footer"]?["align"]?.GetValue<string>() ?? "left";
+        _pageAlign = config["footer"]?["pageAlign"]?.GetValue<string>() ?? "below";
         _footerGapBefore = CssToPoints(config["footer"]?["gapBefore"]?.GetValue<string>() ?? "0");
         _footerIndentL = CssToPoints(config["footerIndent"]?["left"]?.GetValue<string>() ?? "0");
         _footerIndentR = CssToPoints(config["footerIndent"]?["right"]?.GetValue<string>() ?? "0");
+        _footerExtend = CssToPoints(config["footer"]?["footerExtend"]?.GetValue<string>() ?? "0");
+        _footerLayout = config["footer"]?["layout"]?.GetValue<string>() ?? "";
+        _footerConfigNode = config["footer"];
+        _footerJsonRows = config["footer"]?["rows"]?.AsArray();
         _showPageNumber = config["footer"]?["showPageNumber"]?.GetValue<bool>() ?? true;
         _pageFontSize = PtValue(config["footer"]?["pageFontSize"]?.GetValue<string>() ?? config["footer"]?["fontSize"]?.GetValue<string>() ?? "7pt");
         _pageGapBefore = CssToPoints(config["footer"]?["pageGapBefore"]?.GetValue<string>() ?? "0");
@@ -348,46 +358,297 @@ public class PdfGeneratorService
 
     private void DibujarPiePagina()
     {
+        if (_footerLayout == "table" && _footerJsonRows != null)
+        {
+            DibujarTablaFooterGenerico();
+            return;
+        }
+
         var footerFont = CrearFuente(null, _footerFontSize);
         var lineH = _footerFontSize;
-        var footerX = _mLeft + _footerIndentL;
-        var footerW = _pageW - _mLeft - _mRight - _footerIndentL - _footerIndentR;
-        var align = MapXAlign(_footerAlign);
-        var footerLines = new List<string>();
-
-        if (!string.IsNullOrEmpty(_footerText))
-        {
-            var rawLines = _footerText.Replace("\r\n", "\n").Replace('\r', '\n').Split('\n');
-            foreach (var rawLine in rawLines)
-                footerLines.AddRange(PartirEnLineas(rawLine, footerFont, footerW));
-        }
-
-        var pageLineH = _showPageNumber ? _pageFontSize : 0;
-        var footerBlockH = footerLines.Count * lineH
-                         + (_showPageNumber ? _pageGapBefore + pageLineH : 0);
+        var footerX = _mLeft - _footerExtend + _footerIndentL;
+        var footerW = _pageW - _mLeft - _mRight + _footerExtend * 2 - _footerIndentL - _footerIndentR;
         var footerY = _footerMarginBottom > 0
-            ? _pageH - _footerMarginBottom - footerBlockH
+            ? _pageH - _footerMarginBottom - _footerFontSize
             : _contentBottom + _footerGapBefore;
 
-        foreach (var line in footerLines)
+        if (_pageAlign == "left" || _pageAlign == "right")
         {
-            DibujarLineaTexto(line, footerFont, footerX, footerW, footerY, align, lineH);
-            footerY += lineH;
-        }
-
-        if (_showPageNumber)
-        {
-            footerY += _pageGapBefore;
             var pageFont = CrearFuente(null, _pageFontSize);
             var pageBrush = _hasPageColor ? new XSolidBrush(_pageColor) : XBrushes.Black;
             var pageText = $"{_pageLabel} {_pageNumber}";
             var ascent = pageFont.Size * pageFont.Metrics.Ascent / pageFont.Metrics.UnitsPerEm;
             var descent = pageFont.Size * Math.Abs(pageFont.Metrics.Descent) / pageFont.Metrics.UnitsPerEm;
-            var textHeight = ascent + descent;
-            var baselineY = footerY + (pageLineH - textHeight) / 2 + ascent;
-            var format = new XStringFormat { Alignment = align, LineAlignment = XLineAlignment.BaseLine };
-            _gfx.DrawString(pageText, pageFont, pageBrush, new XPoint(align == XStringAlignment.Center ? footerX + footerW / 2 : align == XStringAlignment.Far ? footerX + footerW : footerX, baselineY), format);
+            var baselineY = footerY + (_pageFontSize - ascent - descent) / 2 + ascent;
+
+            var pageXAlign = _pageAlign == "left" ? XStringAlignment.Near : XStringAlignment.Far;
+            var pageX = _pageAlign == "left" ? footerX : footerX + footerW;
+            var pageFormat = new XStringFormat { Alignment = pageXAlign, LineAlignment = XLineAlignment.BaseLine };
+            if (_showPageNumber)
+                _gfx.DrawString(pageText, pageFont, pageBrush, new XPoint(pageX, baselineY), pageFormat);
+
+            if (!string.IsNullOrEmpty(_footerText))
+            {
+                var textXAlign = _pageAlign == "left" ? XStringAlignment.Far : XStringAlignment.Near;
+                var textX = _pageAlign == "left" ? footerX + footerW : footerX;
+                var textFormat = new XStringFormat { Alignment = textXAlign, LineAlignment = XLineAlignment.BaseLine };
+                _gfx.DrawString(_footerText, footerFont, XBrushes.Black, new XPoint(textX, baselineY), textFormat);
+            }
         }
+        else
+        {
+            var align = MapXAlign(_footerAlign);
+            var footerLines = new List<string>();
+            if (!string.IsNullOrEmpty(_footerText))
+            {
+                var rawLines = _footerText.Replace("\r\n", "\n").Replace('\r', '\n').Split('\n');
+                foreach (var rawLine in rawLines)
+                    footerLines.AddRange(PartirEnLineas(rawLine, footerFont, footerW));
+            }
+
+            var pageLineH = _showPageNumber ? _pageFontSize : 0;
+            var footerBlockH = footerLines.Count * lineH + (_showPageNumber ? _pageGapBefore + pageLineH : 0);
+            footerY = _footerMarginBottom > 0
+                ? _pageH - _footerMarginBottom - footerBlockH
+                : _contentBottom + _footerGapBefore;
+
+            foreach (var line in footerLines)
+            {
+                DibujarLineaTexto(line, footerFont, footerX, footerW, footerY, align, lineH);
+                footerY += lineH;
+            }
+
+            if (_showPageNumber)
+            {
+                footerY += _pageGapBefore;
+                var pageFont = CrearFuente(null, _pageFontSize);
+                var pageBrush = _hasPageColor ? new XSolidBrush(_pageColor) : XBrushes.Black;
+                var pageText = $"{_pageLabel} {_pageNumber}";
+                var ascent = pageFont.Size * pageFont.Metrics.Ascent / pageFont.Metrics.UnitsPerEm;
+                var descent = pageFont.Size * Math.Abs(pageFont.Metrics.Descent) / pageFont.Metrics.UnitsPerEm;
+                var textHeight = ascent + descent;
+                var baselineY = footerY + (pageLineH - textHeight) / 2 + ascent;
+                var format = new XStringFormat { Alignment = align, LineAlignment = XLineAlignment.BaseLine };
+                _gfx.DrawString(pageText, pageFont, pageBrush, new XPoint(align == XStringAlignment.Center ? footerX + footerW / 2 : align == XStringAlignment.Far ? footerX + footerW : footerX, baselineY), format);
+            }
+        }
+    }
+
+    // ==================== GENERIC FOOTER TABLE ====================
+
+    private void DibujarTablaFooterGenerico()
+    {
+        if (_footerJsonRows == null || _footerConfigNode == null) return;
+
+        var pageColWidth = CssToPoints(_footerConfigNode["pageColWidth"]?.GetValue<string>() ?? "0");
+        var tableX = _mLeft - _footerExtend;
+        var tableW = _pageW - _mLeft - _mRight + _footerExtend * 2;
+        var tableY = _contentBottom + _footerGapBefore;
+
+        DibujarFilasFooter(_footerJsonRows, tableX, tableY, tableW);
+    }
+
+    private void DibujarFilasFooter(JsonArray jsonRows, double tableX, double tableY, double tableW)
+    {
+        var pageColWidth  = CssToPoints(_footerConfigNode?["pageColWidth"]?.GetValue<string>() ?? "0");
+        var pageLabel     = _footerConfigNode?["pageLabel"]?.GetValue<string>() ?? _pageLabel;
+        var pageTotalLabel = _footerConfigNode?["pageTotalLabel"]?.GetValue<string>() ?? "of";
+        var pageTotal     = _footerConfigNode?["pageTotal"]?.GetValue<bool>() ?? false;
+        var pageBgHex     = _footerConfigNode?["pageBgColor"]?.GetValue<string>();
+        var pageColorHex  = _footerConfigNode?["pageColor"]?.GetValue<string>();
+        var defaultFontSz = _footerFontSize;
+
+        var gridColWidths = ComputarColumnasFooterPdf(jsonRows, tableW, pageColWidth);
+
+        var y = tableY;
+        foreach (var jsonRow in jsonRows)
+        {
+            if (jsonRow is not JsonObject rowObj) continue;
+            var cells = rowObj["cells"]?.AsArray();
+            if (cells is null || cells.Count == 0) continue;
+
+            // Measure row height
+            var rowH = 0.0;
+            int gi = 0;
+            foreach (var cellNode in cells)
+            {
+                if (cellNode == null) continue;
+                var colspan = cellNode["colspan"]?.GetValue<int>() ?? 1;
+                var css = ParseCss(cellNode["style"]?.GetValue<string>());
+                var (padT, _, padB, _) = ObtenerPadding(css);
+                var fontSize = css.TryGetValue("font-size", out var fsStr) ? PtValue(fsStr) : defaultFontSz;
+                double contentH;
+                if (cellNode["rows"] is JsonArray)
+                    contentH = MedirAltoCeldasAnidadas(cellNode["rows"]!.AsArray(), defaultFontSz);
+                else if (!string.IsNullOrEmpty(cellNode["image"]?.GetValue<string>()))
+                    contentH = CssToPoints(cellNode["imageHeight"]?.GetValue<string>() ?? "0.35in");
+                else
+                    contentH = fontSize;
+                rowH = Math.Max(rowH, padT + contentH + padB);
+                gi += colspan;
+            }
+
+            // Draw row cells
+            var x = tableX;
+            gi = 0;
+            foreach (var cellNode in cells)
+            {
+                if (cellNode == null) continue;
+                var colspan = cellNode["colspan"]?.GetValue<int>() ?? 1;
+                var cls = cellNode["class"]?.GetValue<string>() ?? "";
+                var css = ParseCss(cellNode["style"]?.GetValue<string>());
+                var (padT, padR, padB, padL) = ObtenerPadding(css);
+                var fontSize = css.TryGetValue("font-size", out var fsStr) ? PtValue(fsStr) : defaultFontSz;
+
+                var cellW = 0.0;
+                for (int k = gi; k < Math.Min(gi + colspan, gridColWidths.Count); k++)
+                    cellW += gridColWidths[k];
+                gi += colspan;
+
+                // Background fill
+                if (cls == "sr-pie-pagnum" && !string.IsNullOrEmpty(pageBgHex))
+                {
+                    var c = NormalizarColor(pageBgHex);
+                    _gfx.DrawRectangle(new XSolidBrush(XColor.FromArgb(
+                        Convert.ToInt32(c[..2], 16), Convert.ToInt32(c[2..4], 16), Convert.ToInt32(c[4..6], 16))),
+                        new XRect(x, y, cellW, rowH));
+                }
+                else if (css.TryGetValue("background-color", out var bgHex))
+                {
+                    var c = NormalizarColor(bgHex);
+                    _gfx.DrawRectangle(new XSolidBrush(XColor.FromArgb(
+                        Convert.ToInt32(c[..2], 16), Convert.ToInt32(c[2..4], 16), Convert.ToInt32(c[4..6], 16))),
+                        new XRect(x, y, cellW, rowH));
+                }
+
+                var textX = x + padL;
+                var textW = Math.Max(0, cellW - padL - padR);
+                var align = MapXAlign(css.GetValueOrDefault("text-align", cls == "sr-pie-pagnum" ? "center" : "left"));
+                var font = CrearFuente(css, fontSize);
+                var colorHex = cls == "sr-pie-pagnum" ? pageColorHex : css.GetValueOrDefault("color", null);
+                XBrush brush = string.IsNullOrEmpty(colorHex)
+                    ? XBrushes.Black
+                    : new XSolidBrush(XColor.FromArgb(
+                        Convert.ToInt32(NormalizarColor(colorHex)[..2], 16),
+                        Convert.ToInt32(NormalizarColor(colorHex)[2..4], 16),
+                        Convert.ToInt32(NormalizarColor(colorHex)[4..6], 16)));
+
+                var contentY = y + padT + (rowH - padT - padB - fontSize) / 2;
+
+                if (cls == "sr-pie-pagnum")
+                {
+                    var pageText = pageTotal
+                        ? $"{pageLabel} {_pageNumber} {pageTotalLabel} ?"
+                        : $"{pageLabel} {_pageNumber}";
+                    DibujarLineaTexto(pageText, font, textX, textW, contentY, align, fontSize);
+                }
+                else if (cellNode["rows"] is JsonArray nestedRows)
+                {
+                    DibujarFilasFooter(nestedRows, x, y, cellW);
+                }
+                else if (!string.IsNullOrEmpty(cellNode["image"]?.GetValue<string>()))
+                {
+                    var imgBytes = ResolveAssetBytes(cellNode["image"]!.GetValue<string>());
+                    if (imgBytes is { Length: > 0 })
+                    {
+                        var tW = CssToPoints(cellNode["imageWidth"]?.GetValue<string>() ?? "1in");
+                        var tH = CssToPoints(cellNode["imageHeight"]?.GetValue<string>() ?? "0.35in");
+                        var ratio = Math.Min(tW / tW, tH / tH);
+                        var iW = tW * ratio;
+                        var iH = tH * ratio;
+                        var imgX = align == XStringAlignment.Far ? x + cellW - padR - iW
+                                 : align == XStringAlignment.Center ? x + (cellW - iW) / 2
+                                 : x + padL;
+                        var imgY = y + (rowH - iH) / 2;
+                        using var ms = new MemoryStream(imgBytes);
+                        var img = XImage.FromStream(ms);
+                        _gfx.DrawImage(img, imgX, imgY, iW, iH);
+                        img.Dispose();
+                    }
+                }
+                else
+                {
+                    var text = cellNode["text"]?.GetValue<string>() ?? "";
+                    DibujarLineaTexto(text, font, textX, textW, contentY, align, fontSize);
+                }
+
+                x += cellW;
+            }
+
+            y += rowH;
+        }
+    }
+
+    private double MedirAltoCeldasAnidadas(JsonArray nestedRows, double defaultFontSz)
+    {
+        var h = 0.0;
+        foreach (var row in nestedRows)
+        {
+            if (row is not JsonObject ro) continue;
+            var cells = ro["cells"]?.AsArray();
+            if (cells == null) continue;
+            var rowH = 0.0;
+            foreach (var cell in cells)
+            {
+                if (cell == null) continue;
+                var css = ParseCss(cell["style"]?.GetValue<string>());
+                var (padT, _, padB, _) = ObtenerPadding(css);
+                var fs = css.TryGetValue("font-size", out var fsStr) ? PtValue(fsStr) : defaultFontSz;
+                rowH = Math.Max(rowH, padT + fs + padB);
+            }
+            h += rowH;
+        }
+        return h;
+    }
+
+    private List<double> ComputarColumnasFooterPdf(JsonArray rows, double tableWidth, double pageColWidth)
+    {
+        JsonArray? refRow = null;
+        int bestCount = 0;
+        foreach (var row in rows)
+        {
+            if (row is not JsonObject ro) continue;
+            var cells = ro["cells"]?.AsArray();
+            if (cells == null) continue;
+            int count = cells.Sum(c => c?["colspan"]?.GetValue<int>() ?? 1);
+            if (count > bestCount) { bestCount = count; refRow = cells; }
+        }
+
+        if (refRow == null || bestCount == 0) return [tableWidth];
+
+        var widths = new double[bestCount];
+        double usedFixed = 0;
+        var autoIdxs = new List<int>();
+        int gi = 0;
+
+        foreach (var cellNode in refRow)
+        {
+            if (cellNode == null) continue;
+            var colspan = cellNode["colspan"]?.GetValue<int>() ?? 1;
+            var cls = cellNode["class"]?.GetValue<string>() ?? "";
+            var css = ParseCss(cellNode["style"]?.GetValue<string>());
+
+            double w = cls == "sr-pie-pagnum" && pageColWidth > 0
+                ? pageColWidth
+                : CssToPoints(css.GetValueOrDefault("width", "0"));
+
+            double perCol = colspan > 0 ? w / colspan : 0;
+            for (int k = gi; k < gi + colspan && k < bestCount; k++)
+            {
+                widths[k] = perCol;
+                if (perCol == 0) autoIdxs.Add(k);
+                else usedFixed += perCol;
+            }
+            gi += colspan;
+        }
+
+        if (autoIdxs.Count > 0)
+        {
+            double autoW = Math.Max(0, tableWidth - usedFixed) / autoIdxs.Count;
+            foreach (var idx in autoIdxs) widths[idx] = autoW;
+        }
+
+        return [.. widths];
     }
 
     private void DibujarBordePagina()
