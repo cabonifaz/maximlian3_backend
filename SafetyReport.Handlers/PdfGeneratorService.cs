@@ -2386,15 +2386,17 @@ public class PdfGeneratorService
             foreach (var prop in obj)
             {
                 var val = prop.Value?.ToString() ?? "";
-                if (prop.Key.Contains("style", StringComparison.OrdinalIgnoreCase) ||
-                    prop.Key.Contains("Style", StringComparison.Ordinal))
+                if (prop.Key.Equals("fontWeight", StringComparison.OrdinalIgnoreCase))
                 {
-                    if (Regex.IsMatch(val, @"font-weight\s*:\s*(bold|[6-9]\d\d|[1-9]\d{3})", RegexOptions.IgnoreCase))
-                        variantes.Add("b");
-                    if (Regex.IsMatch(val, @"font-style\s*:\s*(italic|oblique)", RegexOptions.IgnoreCase))
-                        variantes.Add("i");
-                    if (variantes.Contains("b") && variantes.Contains("i"))
-                        variantes.Add("bi");
+                    DetectarVariantePesoFuente(val, variantes);
+                }
+                else if (prop.Key.Equals("fontStyle", StringComparison.OrdinalIgnoreCase))
+                {
+                    DetectarVarianteEstiloFuente(val, variantes);
+                }
+                else if (prop.Key.Contains("style", StringComparison.OrdinalIgnoreCase))
+                {
+                    DetectarVariantesEnTextoCss(val, variantes);
                 }
                 DetectarVariantesEnNodo(prop.Value, variantes);
             }
@@ -2406,12 +2408,50 @@ public class PdfGeneratorService
         }
     }
 
+    private static void DetectarVariantesEnTextoCss(string css, HashSet<string> variantes)
+    {
+        var weight = Regex.Match(css, @"font-weight\s*:\s*([^;]+)", RegexOptions.IgnoreCase);
+        if (weight.Success)
+            DetectarVariantePesoFuente(weight.Groups[1].Value, variantes);
+
+        var style = Regex.Match(css, @"font-style\s*:\s*([^;]+)", RegexOptions.IgnoreCase);
+        if (style.Success)
+            DetectarVarianteEstiloFuente(style.Groups[1].Value, variantes);
+    }
+
+    private static void DetectarVariantePesoFuente(string value, HashSet<string> variantes)
+    {
+        var trimmed = value.Trim();
+        if (trimmed.Equals("bold", StringComparison.OrdinalIgnoreCase) ||
+            int.TryParse(trimmed, out var weight) && weight >= 600)
+            variantes.Add("b");
+        DetectarVarianteBoldItalic(variantes);
+    }
+
+    private static void DetectarVarianteEstiloFuente(string value, HashSet<string> variantes)
+    {
+        var trimmed = value.Trim();
+        if (trimmed.Equals("italic", StringComparison.OrdinalIgnoreCase) ||
+            trimmed.Equals("oblique", StringComparison.OrdinalIgnoreCase))
+            variantes.Add("i");
+        DetectarVarianteBoldItalic(variantes);
+    }
+
+    private static void DetectarVarianteBoldItalic(HashSet<string> variantes)
+    {
+        if (variantes.Contains("b") && variantes.Contains("i"))
+            variantes.Add("bi");
+    }
+
     public static Dictionary<string, string> ObtenerRutasS3Fuentes(string fontFamily, HashSet<string> variantes)
     {
         var baseName = fontFamily.Split(',')[0].Trim().ToLowerInvariant().Replace(" ", "");
         var rutas = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
         foreach (var variante in variantes)
-            rutas[baseName + variante] = $"fuentes/{baseName}{variante}.ttf";
+        {
+            var archivoVariante = variante == "bi" ? "z" : variante;
+            rutas[baseName + variante] = $"fuentes/{baseName}{archivoVariante}.ttf";
+        }
         return rutas;
     }
 
@@ -2441,21 +2481,31 @@ public class PdfGeneratorService
             };
 
             var baseName = familyName.ToLowerInvariant().Replace(" ", "");
-            var candidates = new[]
-            {
-                baseName + suffix,
-                baseName,
-            };
+            var exact = baseName + suffix;
+            if (_fonts.ContainsKey(exact))
+                return new FontResolverInfo(exact);
 
-            foreach (var candidate in candidates)
-                if (_fonts.ContainsKey(candidate))
-                    return new FontResolverInfo(candidate);
+            if (isBold && isItalic && _fonts.ContainsKey(baseName + "b"))
+                return new FontResolverInfo(baseName + "b", XStyleSimulations.ItalicSimulation);
+            if (isBold && isItalic && _fonts.ContainsKey(baseName + "i"))
+                return new FontResolverInfo(baseName + "i", XStyleSimulations.BoldSimulation);
+            if (_fonts.ContainsKey(baseName))
+                return new FontResolverInfo(baseName, ObtenerSimulacionFuente(isBold, isItalic));
 
             if (_fonts.Count > 0)
-                return new FontResolverInfo(_fonts.Keys.First());
+                return new FontResolverInfo(_fonts.Keys.First(), ObtenerSimulacionFuente(isBold, isItalic));
 
             return null;
         }
+
+        private static XStyleSimulations ObtenerSimulacionFuente(bool isBold, bool isItalic) =>
+            (isBold, isItalic) switch
+            {
+                (true, true) => XStyleSimulations.BoldItalicSimulation,
+                (true, false) => XStyleSimulations.BoldSimulation,
+                (false, true) => XStyleSimulations.ItalicSimulation,
+                _ => XStyleSimulations.None
+            };
 
         public byte[]? GetFont(string faceName)
         {

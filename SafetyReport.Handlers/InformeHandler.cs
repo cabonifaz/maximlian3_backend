@@ -607,6 +607,25 @@ namespace SafetyReport.Handlers
             var tareas = rutasS3.Select(async kv =>
             {
                 var bytes = await _s3.DescargarBytesAsync(kv.Value);
+                if ((bytes == null || bytes.Length == 0) &&
+                    kv.Value.StartsWith("fuentes/", StringComparison.OrdinalIgnoreCase))
+                {
+                    bytes = await _s3.DescargarBytesAsync(
+                        "fonts/" + kv.Value["fuentes/".Length..]);
+                }
+                if ((bytes == null || bytes.Length == 0) &&
+                    kv.Key.EndsWith("bi", StringComparison.OrdinalIgnoreCase) &&
+                    kv.Value.EndsWith("z.ttf", StringComparison.OrdinalIgnoreCase))
+                {
+                    bytes = await _s3.DescargarBytesAsync(
+                        kv.Value[..^"z.ttf".Length] + "bi.ttf");
+                    if ((bytes == null || bytes.Length == 0) &&
+                        kv.Value.StartsWith("fuentes/", StringComparison.OrdinalIgnoreCase))
+                    {
+                        var biName = kv.Value["fuentes/".Length..^"z.ttf".Length] + "bi.ttf";
+                        bytes = await _s3.DescargarBytesAsync("fonts/" + biName);
+                    }
+                }
                 return (Nombre: kv.Key, Bytes: bytes);
             });
 
