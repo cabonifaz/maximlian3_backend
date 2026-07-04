@@ -1,6 +1,7 @@
 using System.Text.Json.Nodes;
 using System.Text.RegularExpressions;
 using System.IO.Compression;
+using System.Globalization;
 using PdfSharp;
 using PdfSharp.Drawing;
 using PdfSharp.Drawing.Layout;
@@ -13,6 +14,7 @@ namespace SafetyReport.Handlers;
 public class PdfGeneratorService
 {
     private string _fontFamily = "Calibri";
+    private const string FallbackSymbolFontFamily = "Calibri";
     private double _fontSize = 10;
     private double _lineSpacingMultiplier = 1.15;
     private double _contentIndentL = 0;
@@ -1493,8 +1495,8 @@ public class PdfGeneratorService
                 var txtX = blockX + imgDrawW + gap;
                 foreach (var line in lines)
                 {
-                    _gfx.DrawString(line, font, textBrush,
-                        new XRect(txtX, textY, measuredTxt + 1, lineH), XStringFormats.CenterLeft);
+                    DibujarLineaTexto(line, font, txtX, measuredTxt + 1, textY,
+                        XStringAlignment.Near, lineH, textBrush);
                     textY += lineH;
                 }
             }
@@ -1814,8 +1816,63 @@ public class PdfGeneratorService
         var textHeight = ascent + descent;
         var baselineY = y + (lh - textHeight) / 2 + ascent;
         var format = new XStringFormat { Alignment = align, LineAlignment = XLineAlignment.BaseLine };
-        _gfx.DrawString(text, font, brush ?? XBrushes.Black, new XPoint(align == XStringAlignment.Center ? x + width / 2 : align == XStringAlignment.Far ? x + width : x, baselineY), format);
+        var textBrush = brush ?? XBrushes.Black;
+        if (!RequiereFuenteFallback(text))
+        {
+            _gfx.DrawString(text, font, textBrush, new XPoint(align == XStringAlignment.Center ? x + width / 2 : align == XStringAlignment.Far ? x + width : x, baselineY), format);
+            return;
+        }
+
+        var fallbackFont = CrearFuenteFallback(font);
+        var runs = DividirRunsFuenteFallback(text);
+        var totalW = runs.Sum(run => _gfx.MeasureString(run.Text, run.UseFallback ? fallbackFont : font).Width);
+        var curX = align switch
+        {
+            XStringAlignment.Center => x + (width - totalW) / 2,
+            XStringAlignment.Far => x + width - totalW,
+            _ => x
+        };
+
+        foreach (var run in runs)
+        {
+            var runFont = run.UseFallback ? fallbackFont : font;
+            _gfx.DrawString(run.Text, runFont, textBrush, new XPoint(curX, baselineY), new XStringFormat { Alignment = XStringAlignment.Near, LineAlignment = XLineAlignment.BaseLine });
+            curX += _gfx.MeasureString(run.Text, runFont).Width;
+        }
     }
+
+    private XFont CrearFuenteFallback(XFont baseFont)
+    {
+        var style = XFontStyleEx.Regular;
+        if (baseFont.Bold) style |= XFontStyleEx.Bold;
+        if (baseFont.Italic) style |= XFontStyleEx.Italic;
+        return new XFont(FallbackSymbolFontFamily, baseFont.Size, style);
+    }
+
+    private static bool RequiereFuenteFallback(string text) =>
+        text.Any(EsCaracterFuenteFallback);
+
+    private static List<(string Text, bool UseFallback)> DividirRunsFuenteFallback(string text)
+    {
+        var runs = new List<(string Text, bool UseFallback)>();
+        var start = 0;
+        var currentFallback = EsCaracterFuenteFallback(text[0]);
+
+        for (var i = 1; i < text.Length; i++)
+        {
+            var useFallback = EsCaracterFuenteFallback(text[i]);
+            if (useFallback == currentFallback) continue;
+            runs.Add((text[start..i], currentFallback));
+            start = i;
+            currentFallback = useFallback;
+        }
+
+        runs.Add((text[start..], currentFallback));
+        return runs;
+    }
+
+    private static bool EsCaracterFuenteFallback(char ch) =>
+        CharUnicodeInfo.GetUnicodeCategory(ch) == UnicodeCategory.CurrencySymbol;
 
     private void DibujarSubrayado(double x, double width, double y, double lineHeight, XFont font, XBrush brush)
     {
@@ -2451,6 +2508,12 @@ public class PdfGeneratorService
         {
             var archivoVariante = variante == "bi" ? "z" : variante;
             rutas[baseName + variante] = $"fuentes/{baseName}{archivoVariante}.ttf";
+        }
+        const string fallbackBaseName = "calibri";
+        foreach (var variante in variantes)
+        {
+            var archivoVariante = variante == "bi" ? "z" : variante;
+            rutas.TryAdd(fallbackBaseName + variante, $"fuentes/{fallbackBaseName}{archivoVariante}.ttf");
         }
         return rutas;
     }
