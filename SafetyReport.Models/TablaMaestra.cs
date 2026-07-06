@@ -89,7 +89,7 @@
 
     public class FiltroTablaMaestraRequest
     {
-        public int? idMaestro { get; set; }
+        public string? idsMaestro { get; set; }  // comma-separated, e.g. "2,44,60"; null returns all
     }
 
     public class ObtenerTablaMaestraRequest

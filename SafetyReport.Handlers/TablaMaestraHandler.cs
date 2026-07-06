@@ -14,11 +14,11 @@ namespace SafetyReport.Handlers
             _translator = translator;
         }
 
-        public async Task<Respuesta> ListarAsync(UsuarioGeneral usuarioLogueado, int? idMaestro)
+        public async Task<Respuesta> ListarAsync(UsuarioGeneral usuarioLogueado, string? idsMaestro)
         {
             try
             {
-                return await _dao.ListarAsync(usuarioLogueado, idMaestro);
+                return await _dao.ListarAsync(usuarioLogueado, idsMaestro);
             }
             catch (Exception ex)
             {
