@@ -63,7 +63,7 @@ namespace SafetyReport.DAO
                 cmd.Parameters.Add("@vchIdsMaestro", SqlDbType.VarChar, -1).Value = (object?)idsMaestro ?? DBNull.Value;
 
                 await cn.OpenAsync();
-                return await LeerRespuestaAsync<TablaMaestraItem>(cmd);
+                return await LeerRespuestaAsync<TablaMaestraGroup>(cmd);
             }
             catch (Exception ex)
             {
@@ -71,7 +71,7 @@ namespace SafetyReport.DAO
                 {
                     IdTipoMensaje = 3,
                     Mensaje = ex.Message,
-                    Result = new List<TablaMaestraItem>()
+                    Result = new List<TablaMaestraGroup>()
                 };
             }
         }

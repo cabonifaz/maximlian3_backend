@@ -26,7 +26,7 @@ namespace SafetyReport.Handlers
                 {
                     IdTipoMensaje = 3,
                     Mensaje = "Error interno del servidor.",
-                    Result = new List<TablaMaestraItem>()
+                    Result = new List<TablaMaestraGroup>()
                 };
             }
         }
