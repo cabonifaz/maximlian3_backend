@@ -103,7 +103,7 @@ namespace SafetyReport.Handlers
                     Titulo = request.Titulo,
                     Descripcion = request.Descripcion,
                     FechaNoticia = request.FechaNoticia,
-                    IdCategoria = request.IdCategoria
+                    Categoria = request.Categoria
                 };
 
                 for (var i = 0; i < request.Archivos.Count; i++)

@@ -221,7 +221,7 @@ namespace SafetyReport.DAO
                 cmd.Parameters.Add("@vchTitulo", SqlDbType.VarChar, 1024).Value = (object?)request.Titulo ?? DBNull.Value;
                 cmd.Parameters.Add("@vchDescripcion", SqlDbType.VarChar, -1).Value = (object?)request.Descripcion ?? DBNull.Value;
                 cmd.Parameters.Add("@dtFechaNoticia", SqlDbType.DateTime).Value = (object?)request.FechaNoticia ?? DBNull.Value;
-                cmd.Parameters.Add("@intIdCategoria", SqlDbType.Int).Value = (object?)request.IdCategoria ?? DBNull.Value;
+                cmd.Parameters.Add("@vchCategoria", SqlDbType.VarChar, 255).Value = (object?)request.Categoria ?? DBNull.Value;
 
                 var tvpArchivos = new DataTable();
                 tvpArchivos.Columns.Add("IdCompaniaNoticiaArchivo", typeof(int));
@@ -267,7 +267,7 @@ namespace SafetyReport.DAO
                 cmd.Parameters.Add("@vchTitulo", SqlDbType.VarChar, 1024).Value = (object?)request.Titulo ?? DBNull.Value;
                 cmd.Parameters.Add("@vchDescripcion", SqlDbType.VarChar, -1).Value = (object?)request.Descripcion ?? DBNull.Value;
                 cmd.Parameters.Add("@dtFechaNoticia", SqlDbType.DateTime).Value = (object?)request.FechaNoticia ?? DBNull.Value;
-                cmd.Parameters.Add("@intIdCategoria", SqlDbType.Int).Value = (object?)request.IdCategoria ?? DBNull.Value;
+                cmd.Parameters.Add("@vchCategoria", SqlDbType.VarChar, 255).Value = (object?)request.Categoria ?? DBNull.Value;
 
                 var tvpArchivos = new DataTable();
                 tvpArchivos.Columns.Add("IdCompaniaNoticiaArchivo", typeof(int));

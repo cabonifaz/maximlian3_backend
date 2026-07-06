@@ -105,7 +105,7 @@ namespace SafetyReport.Models
         public string? Titulo { get; set; }
         public string? Descripcion { get; set; }
         public DateTime? FechaNoticia { get; set; }
-        public int? IdCategoria { get; set; }
+        public string? Categoria { get; set; }
         public List<CompaniaNoticiaArchivoItem> Archivos { get; set; } = new();
     }
 
@@ -115,7 +115,7 @@ namespace SafetyReport.Models
         public string? Titulo { get; set; }
         public string? Descripcion { get; set; }
         public DateTime? FechaNoticia { get; set; }
-        public int? IdCategoria { get; set; }
+        public string? Categoria { get; set; }
         public List<IFormFile> Archivos { get; set; } = new();
         public List<int> IdTiposArchivo { get; set; } = new();
     }
@@ -127,7 +127,7 @@ namespace SafetyReport.Models
         public string? Titulo { get; set; }
         public string? Descripcion { get; set; }
         public DateTime? FechaNoticia { get; set; }
-        public int? IdCategoria { get; set; }
+        public string? Categoria { get; set; }
         public List<CompaniaNoticiaArchivoItem> Archivos { get; set; } = new();
     }
 
@@ -173,7 +173,6 @@ namespace SafetyReport.Models
         public string? Titulo { get; set; }
         public string? Descripcion { get; set; }
         public DateTime? FechaNoticia { get; set; }
-        public int? IdCategoria { get; set; }
         public string? Categoria { get; set; }
         public List<CompaniaNoticiaArchivoConsulta> Archivos { get; set; } = new();
     }
@@ -186,7 +185,6 @@ namespace SafetyReport.Models
         public string? Titulo { get; set; }
         public string? Descripcion { get; set; }
         public DateTime? FechaNoticia { get; set; }
-        public int? IdCategoria { get; set; }
         public string? Categoria { get; set; }
     }
 
