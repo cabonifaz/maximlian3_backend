@@ -90,7 +90,7 @@ namespace SafetyReport.Handlers
 
             if (!string.IsNullOrWhiteSpace(mime))
             {
-                var respuesta = await _tablaMaestraDao.ListarAsync(usuarioLogueado, 34);
+                var respuesta = await _tablaMaestraDao.ListarAsync(usuarioLogueado, "34");
                 if (respuesta.IdTipoMensaje == 2 && respuesta.Result is List<TablaMaestraItem> items)
                 {
                     var match = items.FirstOrDefault(i =>
