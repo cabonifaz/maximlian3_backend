@@ -1,5 +1,7 @@
 using System.Text.Json.Nodes;
 using System.Text.RegularExpressions;
+using System.IO.Compression;
+using System.Globalization;
 using PdfSharp;
 using PdfSharp.Drawing;
 using PdfSharp.Drawing.Layout;
@@ -12,6 +14,7 @@ namespace SafetyReport.Handlers;
 public class PdfGeneratorService
 {
     private string _fontFamily = "Calibri";
+    private const string FallbackSymbolFontFamily = "Calibri";
     private double _fontSize = 10;
     private double _lineSpacingMultiplier = 1.15;
     private double _contentIndentL = 0;
@@ -25,6 +28,12 @@ public class PdfGeneratorService
     private XImage? _wmImage;
     private double _wmImgW, _wmImgH, _wmX, _wmY;
 
+    private string? _fp_wmRef;
+    private double _fp_wmWidth, _fp_wmHeight, _fp_wmOpacity;
+    private string _fp_wmPosition = "";
+    private XImage? _fp_wmImage;
+    private double _fp_wmImgW, _fp_wmImgH, _fp_wmX, _fp_wmY;
+
     private double _pageW, _pageH;
     private double _mTop, _mBottom, _mLeft, _mRight;
     private double _logoBoxW, _logoBoxH;
@@ -36,9 +45,21 @@ public class PdfGeneratorService
     private string _pageLabel = "Page";
     private double _footerFontSize = 7;
     private string _footerAlign = "left";
+    private string _footerFontWeight = "";
+    private string _footerFontStyle = "";
+    private string _footerTextColor = "";
+    private string _pageAlign = "below";
     private double _footerGapBefore = 0;
     private double _footerIndentL = 0;
     private double _footerIndentR = 0;
+    private double _footerExtend = 0;
+    private string _footerLayout = "";
+    private JsonNode? _footerConfigNode;
+    private JsonArray? _footerJsonRows;
+    private JsonNode? _firstFooterConfigNode;
+    private JsonArray? _firstFooterJsonRows;
+    private double _firstFooterGapBefore = 0;
+    private double _firstFooterExtend = 0;
     private bool _showPageNumber = true;
     private double _pageFontSize;
     private double _pageGapBefore;
@@ -55,6 +76,7 @@ public class PdfGeneratorService
     private double _contentTop;
     private double _contentBottom;
     private int _pageNumber;
+    private int _totalPages;
     private readonly HashSet<string> _drawnBorderLines = [];
 
     private double _lastMarginBottom;
@@ -101,10 +123,12 @@ public class PdfGeneratorService
         _lastAppliedBottomSpacing = 0;
         _hasLastParagraph = false;
         _pageNumber = 0;
+        _totalPages = 0;
 
         var config = json["document"];
         LeerConfigGlobal(config);
         PrepararMarcaAgua();
+        PrepararMarcaAguaPrimeraPagina();
         NuevaPagina();
 
         var sections = json["sections"]?.AsArray();
@@ -116,7 +140,8 @@ public class PdfGeneratorService
 
         var ms = new MemoryStream();
         _gfx.Dispose();
-        AplicarOpacidadMarcaAgua();
+        AplicarPiePaginas();
+        AplicarMarcasAgua();
         _doc.Save(ms);
         ms.Position = 0;
         return ms;
@@ -153,9 +178,21 @@ public class PdfGeneratorService
         _pageLabel = config["footer"]?["pageLabel"]?.GetValue<string>() ?? "Page";
         _footerFontSize = PtValue(config["footer"]?["fontSize"]?.GetValue<string>() ?? "7pt");
         _footerAlign = config["footer"]?["align"]?.GetValue<string>() ?? "left";
+        _footerFontWeight = config["footer"]?["fontWeight"]?.GetValue<string>() ?? "";
+        _footerFontStyle = config["footer"]?["fontStyle"]?.GetValue<string>() ?? "";
+        _footerTextColor = config["footer"]?["textColor"]?.GetValue<string>() ?? "";
+        _pageAlign = config["footer"]?["pageAlign"]?.GetValue<string>() ?? "below";
         _footerGapBefore = CssToPoints(config["footer"]?["gapBefore"]?.GetValue<string>() ?? "0");
         _footerIndentL = CssToPoints(config["footerIndent"]?["left"]?.GetValue<string>() ?? "0");
         _footerIndentR = CssToPoints(config["footerIndent"]?["right"]?.GetValue<string>() ?? "0");
+        _footerExtend = CssToPoints(config["footer"]?["footerExtend"]?.GetValue<string>() ?? "0");
+        _footerLayout = config["footer"]?["layout"]?.GetValue<string>() ?? "";
+        _footerConfigNode = config["footer"];
+        _footerJsonRows = config["footer"]?["rows"]?.AsArray();
+        _firstFooterConfigNode = config["firstPageFooter"];
+        _firstFooterJsonRows = config["firstPageFooter"]?["rows"]?.AsArray();
+        _firstFooterGapBefore = CssToPoints(config["firstPageFooter"]?["gapBefore"]?.GetValue<string>() ?? "0");
+        _firstFooterExtend = CssToPoints(config["firstPageFooter"]?["footerExtend"]?.GetValue<string>() ?? "0");
         _showPageNumber = config["footer"]?["showPageNumber"]?.GetValue<bool>() ?? true;
         _pageFontSize = PtValue(config["footer"]?["pageFontSize"]?.GetValue<string>() ?? config["footer"]?["fontSize"]?.GetValue<string>() ?? "7pt");
         _pageGapBefore = CssToPoints(config["footer"]?["pageGapBefore"]?.GetValue<string>() ?? "0");
@@ -182,6 +219,16 @@ public class PdfGeneratorService
             _wmOpacity = wmNode["opacity"]?.GetValue<double>() ?? 1.0;
             _wmPosition = wmNode["position"]?.GetValue<string>() ?? "center center";
             _wmRef = wmNode["image"]?.GetValue<string>();
+        }
+
+        var fpWmNode = config["firstPageWatermark"];
+        if (fpWmNode is JsonObject)
+        {
+            _fp_wmWidth = CssToPoints(fpWmNode["width"]?.GetValue<string>() ?? "0");
+            _fp_wmHeight = CssToPoints(fpWmNode["height"]?.GetValue<string>() ?? "0");
+            _fp_wmOpacity = fpWmNode["opacity"]?.GetValue<double>() ?? 1.0;
+            _fp_wmPosition = fpWmNode["position"]?.GetValue<string>() ?? "center center";
+            _fp_wmRef = fpWmNode["image"]?.GetValue<string>();
         }
 
         var pageBorderNode = config["pageBorder"];
@@ -219,8 +266,19 @@ public class PdfGeneratorService
 
         DibujarMarcaAgua();
         DibujarEncabezado();
-        DibujarPiePagina();
         DibujarBordePagina();
+    }
+
+    private void AplicarPiePaginas()
+    {
+        _totalPages = _doc.Pages.Count;
+        for (var i = 0; i < _doc.Pages.Count; i++)
+        {
+            _pageNumber = i + 1;
+            using var pageGfx = XGraphics.FromPdfPage(_doc.Pages[i], XGraphicsPdfPageOptions.Append);
+            _gfx = pageGfx;
+            DibujarPiePagina();
+        }
     }
 
     private bool AsegurarEspacio(double height)
@@ -273,47 +331,88 @@ public class PdfGeneratorService
     {
     }
 
-    private void AplicarOpacidadMarcaAgua()
+    private void AplicarMarcasAgua()
     {
-        if (_wmImage is null || _wmOpacity >= 1.0) return;
+        for (var i = 0; i < _doc.Pages.Count; i++)
+        {
+            if (i == 0 && _fp_wmImage is not null)
+                AplicarMarcaAguaPagina(_doc.Pages[i], _fp_wmImage, _fp_wmX, _fp_wmY, _fp_wmImgW, _fp_wmImgH, _fp_wmOpacity, "GSfpwm");
+            else if (_wmImage is not null)
+                AplicarMarcaAguaPagina(_doc.Pages[i], _wmImage, _wmX, _wmY, _wmImgW, _wmImgH, _wmOpacity, "GSwm");
+        }
+    }
 
+    private void AplicarMarcaAguaPagina(PdfPage page, XImage image, double x, double y, double width, double height, double opacity, string gsName)
+    {
         var extGState = new PdfExtGState(_doc);
-        extGState.StrokeAlpha = _wmOpacity;
-        extGState.NonStrokeAlpha = _wmOpacity;
+        extGState.StrokeAlpha = opacity;
+        extGState.NonStrokeAlpha = opacity;
         _doc.Internals.AddObject(extGState);
 
-        foreach (var page in _doc.Pages)
+        using (var wmGfx = XGraphics.FromPdfPage(page, XGraphicsPdfPageOptions.Prepend))
         {
-            using var wmGfx = XGraphics.FromPdfPage(page, XGraphicsPdfPageOptions.Prepend);
-            wmGfx.DrawImage(_wmImage, _wmX, _wmY, _wmImgW, _wmImgH);
+            wmGfx.DrawImage(image, x, y, width, height);
         }
 
-        foreach (var page in _doc.Pages)
+        var resources = page.Elements.GetDictionary("/Resources");
+        if (resources is null) return;
+
+        var gsDict = resources.Elements.GetDictionary("/ExtGState");
+        if (gsDict is null)
         {
-            var resources = page.Elements.GetDictionary("/Resources");
-            if (resources is null) continue;
-
-            var gsDict = resources.Elements.GetDictionary("/ExtGState");
-            if (gsDict is null)
-            {
-                gsDict = new PdfDictionary(_doc);
-                resources.Elements["/ExtGState"] = gsDict;
-            }
-            gsDict.Elements["/GSwm"] = extGState.Reference!;
-
-            var wmContent = page.Contents.Elements[0];
-            if (wmContent is PdfReference wmRef)
-                wmContent = wmRef.Value;
-            if (wmContent is PdfDictionary wmDict)
-            {
-                var stream = wmDict.Stream;
-                stream.TryUnfilter();
-                var str = System.Text.Encoding.Latin1.GetString(stream.Value);
-                str = str.Replace("/GS0 gs", "");
-                str = "q /GSwm gs\n" + str + "\nQ\n";
-                stream.Value = System.Text.Encoding.Latin1.GetBytes(str);
-            }
+            gsDict = new PdfDictionary(_doc);
+            resources.Elements["/ExtGState"] = gsDict;
         }
+        gsDict.Elements[$"/{gsName}"] = extGState.Reference!;
+
+        var wmContent = page.Contents.Elements[0];
+        if (wmContent is PdfReference wmRef)
+            wmContent = wmRef.Value;
+        if (wmContent is PdfDictionary wmDict)
+        {
+            var stream = wmDict.Stream;
+            stream.TryUnfilter();
+            var str = System.Text.Encoding.Latin1.GetString(stream.Value);
+            str = str.Replace("/GS0 gs", "");
+            str = $"q /{gsName} gs\n" + str + "\nQ\n";
+            stream.Value = System.Text.Encoding.Latin1.GetBytes(str);
+        }
+    }
+
+    private void PrepararMarcaAguaPrimeraPagina()
+    {
+        var watermarkBytes = ResolveAssetBytes(_fp_wmRef);
+        if (watermarkBytes is null || watermarkBytes.Length == 0 || _fp_wmWidth <= 0 || _fp_wmHeight <= 0) return;
+
+        try
+        {
+            var imgStream = new MemoryStream(watermarkBytes);
+            _fp_wmImage = XImage.FromStream(imgStream);
+
+            var scaleW = _fp_wmWidth / _fp_wmImage.PointWidth;
+            var scaleH = _fp_wmHeight / _fp_wmImage.PointHeight;
+            var scale = Math.Min(scaleW, scaleH);
+            _fp_wmImgW = _fp_wmImage.PointWidth * scale;
+            _fp_wmImgH = _fp_wmImage.PointHeight * scale;
+
+            var parts = _fp_wmPosition.Split(' ', StringSplitOptions.RemoveEmptyEntries);
+            var hPos = parts.Length > 0 ? parts[0] : "center";
+            var vPos = parts.Length > 1 ? parts[1] : "center";
+
+            _fp_wmX = hPos switch
+            {
+                "left" => 0.0,
+                "right" => _pageW - _fp_wmImgW,
+                _ => (_pageW - _fp_wmImgW) / 2
+            };
+            _fp_wmY = vPos switch
+            {
+                "top" => 0.0,
+                "bottom" => _pageH - _fp_wmImgH,
+                _ => (_pageH - _fp_wmImgH) / 2
+            };
+        }
+        catch { _fp_wmImage = null; }
     }
 
     private void DibujarEncabezado()
@@ -348,46 +447,328 @@ public class PdfGeneratorService
 
     private void DibujarPiePagina()
     {
-        var footerFont = CrearFuente(null, _footerFontSize);
-        var lineH = _footerFontSize;
-        var footerX = _mLeft + _footerIndentL;
-        var footerW = _pageW - _mLeft - _mRight - _footerIndentL - _footerIndentR;
-        var align = MapXAlign(_footerAlign);
-        var footerLines = new List<string>();
-
-        if (!string.IsNullOrEmpty(_footerText))
+        if (_footerLayout == "table" && _footerJsonRows != null)
         {
-            var rawLines = _footerText.Replace("\r\n", "\n").Replace('\r', '\n').Split('\n');
-            foreach (var rawLine in rawLines)
-                footerLines.AddRange(PartirEnLineas(rawLine, footerFont, footerW));
+            if (_pageNumber == 1 && _firstFooterConfigNode != null && _firstFooterJsonRows != null)
+                DibujarTablaFooterGenerico(_firstFooterJsonRows, _firstFooterConfigNode, _firstFooterExtend, _firstFooterGapBefore);
+            else
+                DibujarTablaFooterGenerico(_footerJsonRows, _footerConfigNode, _footerExtend, _footerGapBefore);
+            return;
         }
 
-        var pageLineH = _showPageNumber ? _pageFontSize : 0;
-        var footerBlockH = footerLines.Count * lineH
-                         + (_showPageNumber ? _pageGapBefore + pageLineH : 0);
+        var footerCss = new Dictionary<string, string> { ["font-size"] = $"{_footerFontSize}pt" };
+        if (!string.IsNullOrEmpty(_footerFontWeight)) footerCss["font-weight"] = _footerFontWeight;
+        if (!string.IsNullOrEmpty(_footerFontStyle)) footerCss["font-style"] = _footerFontStyle;
+        var footerFont = CrearFuente(footerCss, _footerFontSize);
+        XBrush footerBrush = XBrushes.Black;
+        if (!string.IsNullOrEmpty(_footerTextColor)) {
+            var fc = NormalizarColor(_footerTextColor);
+            footerBrush = new XSolidBrush(XColor.FromArgb(Convert.ToInt32(fc[..2], 16), Convert.ToInt32(fc[2..4], 16), Convert.ToInt32(fc[4..6], 16)));
+        }
+        var lineH = _footerFontSize;
+        var footerX = _mLeft - _footerExtend + _footerIndentL;
+        var footerW = _pageW - _mLeft - _mRight + _footerExtend * 2 - _footerIndentL - _footerIndentR;
         var footerY = _footerMarginBottom > 0
-            ? _pageH - _footerMarginBottom - footerBlockH
+            ? _pageH - _footerMarginBottom - _footerFontSize
             : _contentBottom + _footerGapBefore;
 
-        foreach (var line in footerLines)
+        if (_pageAlign == "left" || _pageAlign == "right")
         {
-            DibujarLineaTexto(line, footerFont, footerX, footerW, footerY, align, lineH);
-            footerY += lineH;
-        }
-
-        if (_showPageNumber)
-        {
-            footerY += _pageGapBefore;
             var pageFont = CrearFuente(null, _pageFontSize);
             var pageBrush = _hasPageColor ? new XSolidBrush(_pageColor) : XBrushes.Black;
             var pageText = $"{_pageLabel} {_pageNumber}";
             var ascent = pageFont.Size * pageFont.Metrics.Ascent / pageFont.Metrics.UnitsPerEm;
             var descent = pageFont.Size * Math.Abs(pageFont.Metrics.Descent) / pageFont.Metrics.UnitsPerEm;
-            var textHeight = ascent + descent;
-            var baselineY = footerY + (pageLineH - textHeight) / 2 + ascent;
-            var format = new XStringFormat { Alignment = align, LineAlignment = XLineAlignment.BaseLine };
-            _gfx.DrawString(pageText, pageFont, pageBrush, new XPoint(align == XStringAlignment.Center ? footerX + footerW / 2 : align == XStringAlignment.Far ? footerX + footerW : footerX, baselineY), format);
+            var baselineY = footerY + (_pageFontSize - ascent - descent) / 2 + ascent;
+
+            var pageXAlign = _pageAlign == "left" ? XStringAlignment.Near : XStringAlignment.Far;
+            var pageX = _pageAlign == "left" ? footerX : footerX + footerW;
+            var pageFormat = new XStringFormat { Alignment = pageXAlign, LineAlignment = XLineAlignment.BaseLine };
+            if (_showPageNumber)
+                _gfx.DrawString(pageText, pageFont, pageBrush, new XPoint(pageX, baselineY), pageFormat);
+
+            if (!string.IsNullOrEmpty(_footerText))
+            {
+                var textXAlign = _pageAlign == "left" ? XStringAlignment.Far : XStringAlignment.Near;
+                var textX = _pageAlign == "left" ? footerX + footerW : footerX;
+                var textFormat = new XStringFormat { Alignment = textXAlign, LineAlignment = XLineAlignment.BaseLine };
+                _gfx.DrawString(_footerText, footerFont, footerBrush, new XPoint(textX, baselineY), textFormat);
+            }
         }
+        else
+        {
+            var align = MapXAlign(_footerAlign);
+            var footerLines = new List<string>();
+            if (!string.IsNullOrEmpty(_footerText))
+            {
+                var rawLines = _footerText.Replace("\r\n", "\n").Replace('\r', '\n').Split('\n');
+                foreach (var rawLine in rawLines)
+                    footerLines.AddRange(PartirEnLineas(rawLine, footerFont, footerW));
+            }
+
+            var pageLineH = _showPageNumber ? _pageFontSize : 0;
+            var footerBlockH = footerLines.Count * lineH + (_showPageNumber ? _pageGapBefore + pageLineH : 0);
+            footerY = _footerMarginBottom > 0
+                ? _pageH - _footerMarginBottom - footerBlockH
+                : _contentBottom + _footerGapBefore;
+
+            foreach (var line in footerLines)
+            {
+                DibujarLineaTexto(line, footerFont, footerX, footerW, footerY, align, lineH, footerBrush);
+                footerY += lineH;
+            }
+
+            if (_showPageNumber)
+            {
+                footerY += _pageGapBefore;
+                var pageFont = CrearFuente(null, _pageFontSize);
+                var pageBrush = _hasPageColor ? new XSolidBrush(_pageColor) : XBrushes.Black;
+                var pageText = $"{_pageLabel} {_pageNumber}";
+                var ascent = pageFont.Size * pageFont.Metrics.Ascent / pageFont.Metrics.UnitsPerEm;
+                var descent = pageFont.Size * Math.Abs(pageFont.Metrics.Descent) / pageFont.Metrics.UnitsPerEm;
+                var textHeight = ascent + descent;
+                var baselineY = footerY + (pageLineH - textHeight) / 2 + ascent;
+                var format = new XStringFormat { Alignment = align, LineAlignment = XLineAlignment.BaseLine };
+                _gfx.DrawString(pageText, pageFont, pageBrush, new XPoint(align == XStringAlignment.Center ? footerX + footerW / 2 : align == XStringAlignment.Far ? footerX + footerW : footerX, baselineY), format);
+            }
+        }
+    }
+
+    // ==================== GENERIC FOOTER TABLE ====================
+
+    private void DibujarTablaFooterGenerico(JsonArray jsonRows, JsonNode? footerConfig, double footerExtend, double footerGapBefore)
+    {
+        if (footerConfig == null) return;
+
+        var pageColWidth = CssToPoints(footerConfig["pageColWidth"]?.GetValue<string>() ?? "0");
+        var tableX = _mLeft - footerExtend;
+        var tableW = _pageW - _mLeft - _mRight + footerExtend * 2;
+        var tableY = _contentBottom + footerGapBefore;
+
+        DibujarContainerStyleFooter(footerConfig, tableX, tableY, tableW);
+        DibujarFilasFooter(jsonRows, tableX, tableY, tableW, footerConfig);
+    }
+
+    private void DibujarFilasFooter(JsonArray jsonRows, double tableX, double tableY, double tableW, JsonNode? footerConfig)
+    {
+        var pageColWidth  = CssToPoints(footerConfig?["pageColWidth"]?.GetValue<string>() ?? "0");
+        var pageLabel     = footerConfig?["pageLabel"]?.GetValue<string>() ?? _pageLabel;
+        var pageTotalLabel = footerConfig?["pageTotalLabel"]?.GetValue<string>() ?? "of";
+        var pageTotal     = footerConfig?["pageTotal"]?.GetValue<bool>() ?? false;
+        var pageBgHex     = footerConfig?["pageBgColor"]?.GetValue<string>();
+        var pageColorHex  = footerConfig?["pageColor"]?.GetValue<string>();
+        var defaultFontSz = PtValue(footerConfig?["fontSize"]?.GetValue<string>() ?? $"{_footerFontSize}pt");
+
+        var gridColWidths = ComputarColumnasFooterPdf(jsonRows, tableW, pageColWidth);
+
+        var y = tableY;
+        foreach (var jsonRow in jsonRows)
+        {
+            if (jsonRow is not JsonObject rowObj) continue;
+            var cells = rowObj["cells"]?.AsArray();
+            if (cells is null || cells.Count == 0) continue;
+
+            // Measure row height
+            var rowH = 0.0;
+            int gi = 0;
+            foreach (var cellNode in cells)
+            {
+                if (cellNode == null) continue;
+                var colspan = cellNode["colspan"]?.GetValue<int>() ?? 1;
+                var css = ParseCss(cellNode["style"]?.GetValue<string>());
+                var (padT, _, padB, _) = ObtenerPadding(css);
+                var fontSize = css.TryGetValue("font-size", out var fsStr) ? PtValue(fsStr) : defaultFontSz;
+                double contentH;
+                if (cellNode["rows"] is JsonArray)
+                    contentH = MedirAltoCeldasAnidadas(cellNode["rows"]!.AsArray(), defaultFontSz);
+                else if (!string.IsNullOrEmpty(cellNode["image"]?.GetValue<string>()))
+                    contentH = CssToPoints(cellNode["imageHeight"]?.GetValue<string>() ?? "0.35in");
+                else
+                    contentH = fontSize;
+                rowH = Math.Max(rowH, padT + contentH + padB);
+                gi += colspan;
+            }
+
+            // Draw row cells
+            var x = tableX;
+            gi = 0;
+            foreach (var cellNode in cells)
+            {
+                if (cellNode == null) continue;
+                var colspan = cellNode["colspan"]?.GetValue<int>() ?? 1;
+                var cls = cellNode["class"]?.GetValue<string>() ?? "";
+                var css = ParseCss(cellNode["style"]?.GetValue<string>());
+                var (padT, padR, padB, padL) = ObtenerPadding(css);
+                var fontSize = css.TryGetValue("font-size", out var fsStr) ? PtValue(fsStr) : defaultFontSz;
+
+                var cellW = 0.0;
+                for (int k = gi; k < Math.Min(gi + colspan, gridColWidths.Count); k++)
+                    cellW += gridColWidths[k];
+                gi += colspan;
+
+                // Background fill
+                if (cls == "sr-pie-pagnum" && !string.IsNullOrEmpty(pageBgHex))
+                {
+                    var c = NormalizarColor(pageBgHex);
+                    _gfx.DrawRectangle(new XSolidBrush(XColor.FromArgb(
+                        Convert.ToInt32(c[..2], 16), Convert.ToInt32(c[2..4], 16), Convert.ToInt32(c[4..6], 16))),
+                        new XRect(x, y, cellW, rowH));
+                }
+                else if (css.TryGetValue("background-color", out var bgHex))
+                {
+                    var c = NormalizarColor(bgHex);
+                    _gfx.DrawRectangle(new XSolidBrush(XColor.FromArgb(
+                        Convert.ToInt32(c[..2], 16), Convert.ToInt32(c[2..4], 16), Convert.ToInt32(c[4..6], 16))),
+                        new XRect(x, y, cellW, rowH));
+                }
+
+                var textX = x + padL;
+                var textW = Math.Max(0, cellW - padL - padR);
+                var align = MapXAlign(css.GetValueOrDefault("text-align", cls == "sr-pie-pagnum" ? "center" : "left"));
+                var font = CrearFuente(css, fontSize);
+                var colorHex = cls == "sr-pie-pagnum" ? pageColorHex : css.GetValueOrDefault("color", null);
+                XBrush brush = string.IsNullOrEmpty(colorHex)
+                    ? XBrushes.Black
+                    : new XSolidBrush(XColor.FromArgb(
+                        Convert.ToInt32(NormalizarColor(colorHex)[..2], 16),
+                        Convert.ToInt32(NormalizarColor(colorHex)[2..4], 16),
+                        Convert.ToInt32(NormalizarColor(colorHex)[4..6], 16)));
+
+                var contentY = y + padT + (rowH - padT - padB - fontSize) / 2;
+
+                if (cls == "sr-pie-pagnum")
+                {
+                    var pageText = pageTotal
+                        ? $"{pageLabel} {_pageNumber} {pageTotalLabel} {_totalPages}"
+                        : $"{pageLabel} {_pageNumber}";
+                    DibujarLineaTexto(pageText, font, textX, textW, contentY, align, fontSize, brush);
+                }
+                else if (cellNode["rows"] is JsonArray nestedRows)
+                {
+                    DibujarFilasFooter(nestedRows, x + padL, y + padT, Math.Max(0, cellW - padL - padR), footerConfig);
+                }
+                else if (!string.IsNullOrEmpty(cellNode["image"]?.GetValue<string>()))
+                {
+                    var imgBytes = ResolveAssetBytes(cellNode["image"]!.GetValue<string>());
+                    if (imgBytes is { Length: > 0 })
+                    {
+                        var tW = CssToPoints(cellNode["imageWidth"]?.GetValue<string>() ?? "1in");
+                        var tH = CssToPoints(cellNode["imageHeight"]?.GetValue<string>() ?? "0.35in");
+                        var ratio = Math.Min(tW / tW, tH / tH);
+                        var iW = tW * ratio;
+                        var iH = tH * ratio;
+                        var imgX = align == XStringAlignment.Far ? x + cellW - padR - iW
+                                 : align == XStringAlignment.Center ? x + (cellW - iW) / 2
+                                 : x + padL;
+                        var imgY = y + (rowH - iH) / 2;
+                        using var ms = new MemoryStream(imgBytes);
+                        var img = XImage.FromStream(ms);
+                        _gfx.DrawImage(img, imgX, imgY, iW, iH);
+                        img.Dispose();
+                    }
+                }
+                else
+                {
+                    var text = cellNode["text"]?.GetValue<string>() ?? "";
+                    DibujarLineaTexto(text, font, textX, textW, contentY, align, fontSize, brush);
+                }
+
+                x += cellW;
+            }
+
+            y += rowH;
+        }
+    }
+
+    private void DibujarContainerStyleFooter(JsonNode? footerConfig, double tableX, double tableY, double tableW)
+    {
+        var css = ParseCss(footerConfig?["containerStyle"]?.GetValue<string>());
+        if (!css.TryGetValue("border-top", out var borderTop)) return;
+
+        var match = Regex.Match(borderTop, @"([\d.]+)\s*(px|pt)?\s+\w+\s+(#[0-9a-fA-F]{3,6})");
+        if (!match.Success) return;
+
+        var width = match.Groups[2].Value.Equals("px", StringComparison.OrdinalIgnoreCase)
+            ? double.Parse(match.Groups[1].Value, System.Globalization.CultureInfo.InvariantCulture) * 0.75
+            : double.Parse(match.Groups[1].Value, System.Globalization.CultureInfo.InvariantCulture);
+        var color = XColor.FromArgb(
+            Convert.ToInt32(NormalizarColor(match.Groups[3].Value)[..2], 16),
+            Convert.ToInt32(NormalizarColor(match.Groups[3].Value)[2..4], 16),
+            Convert.ToInt32(NormalizarColor(match.Groups[3].Value)[4..6], 16));
+
+        _gfx.DrawLine(new XPen(color, width), tableX, tableY, tableX + tableW, tableY);
+    }
+
+    private double MedirAltoCeldasAnidadas(JsonArray nestedRows, double defaultFontSz)
+    {
+        var h = 0.0;
+        foreach (var row in nestedRows)
+        {
+            if (row is not JsonObject ro) continue;
+            var cells = ro["cells"]?.AsArray();
+            if (cells == null) continue;
+            var rowH = 0.0;
+            foreach (var cell in cells)
+            {
+                if (cell == null) continue;
+                var css = ParseCss(cell["style"]?.GetValue<string>());
+                var (padT, _, padB, _) = ObtenerPadding(css);
+                var fs = css.TryGetValue("font-size", out var fsStr) ? PtValue(fsStr) : defaultFontSz;
+                rowH = Math.Max(rowH, padT + fs + padB);
+            }
+            h += rowH;
+        }
+        return h;
+    }
+
+    private List<double> ComputarColumnasFooterPdf(JsonArray rows, double tableWidth, double pageColWidth)
+    {
+        JsonArray? refRow = null;
+        int bestCount = 0;
+        foreach (var row in rows)
+        {
+            if (row is not JsonObject ro) continue;
+            var cells = ro["cells"]?.AsArray();
+            if (cells == null) continue;
+            int count = cells.Sum(c => c?["colspan"]?.GetValue<int>() ?? 1);
+            if (count > bestCount) { bestCount = count; refRow = cells; }
+        }
+
+        if (refRow == null || bestCount == 0) return [tableWidth];
+
+        var widths = new double[bestCount];
+        double usedFixed = 0;
+        var autoIdxs = new List<int>();
+        int gi = 0;
+
+        foreach (var cellNode in refRow)
+        {
+            if (cellNode == null) continue;
+            var colspan = cellNode["colspan"]?.GetValue<int>() ?? 1;
+            var cls = cellNode["class"]?.GetValue<string>() ?? "";
+            var css = ParseCss(cellNode["style"]?.GetValue<string>());
+
+            double w = cls == "sr-pie-pagnum" && pageColWidth > 0
+                ? pageColWidth
+                : CssToPoints(css.GetValueOrDefault("width", "0"));
+
+            double perCol = colspan > 0 ? w / colspan : 0;
+            for (int k = gi; k < gi + colspan && k < bestCount; k++)
+            {
+                widths[k] = perCol;
+                if (perCol == 0) autoIdxs.Add(k);
+                else usedFixed += perCol;
+            }
+            gi += colspan;
+        }
+
+        if (autoIdxs.Count > 0)
+        {
+            double autoW = Math.Max(0, tableWidth - usedFixed) / autoIdxs.Count;
+            foreach (var idx in autoIdxs) widths[idx] = autoW;
+        }
+
+        return [.. widths];
     }
 
     private void DibujarBordePagina()
@@ -405,12 +786,22 @@ public class PdfGeneratorService
 
     private void RenderizarSeccion(JsonNode section)
     {
+        var css = ParseCss(section["style"]?.GetValue<string>());
+        if (DebeForzarSaltoPagina(section, css))
+        {
+            if (_y > _contentTop)
+                NuevaPagina();
+            LimpiarParrafoAnterior();
+            _pendingTableBottomMargin = 0;
+        }
+
         var type = section["type"]?.GetValue<string>() ?? "";
         switch (type)
         {
             case "heading": RenderHeading(section); break;
             case "subtitle": RenderSubtitle(section); break;
             case "text": RenderText(section); break;
+            case "inline": RenderInline(section); break;
             case "keyValue": RenderKeyValue(section); break;
             case "borderedBox": RenderBorderedBox(section); break;
             case "referenceBox": RenderReferenceBox(section); break;
@@ -425,6 +816,11 @@ public class PdfGeneratorService
             case "spacer": RenderSpacer(section); break;
         }
     }
+
+    private static bool DebeForzarSaltoPagina(JsonNode section, Dictionary<string, string> css) =>
+        (section["pageBreak"]?.GetValue<bool>() ?? false)
+        || css.GetValueOrDefault("page-break-before", "") == "always"
+        || css.GetValueOrDefault("break-before", "") == "page";
 
     private void RenderHeading(JsonNode section)
     {
@@ -447,7 +843,7 @@ public class PdfGeneratorService
         var x = _mLeft + _contentIndentL;
         var w = _contentWidth;
         var align = MapXAlign(css.GetValueOrDefault("text-align", "left"));
-        DibujarLineaTexto(text, font, x, w, _y, align, lineH);
+        DibujarLineaTexto(text, font, x, w, _y, align, lineH, ObtenerBrushTexto(css));
         _y += textH;
         _y += after;
 
@@ -474,7 +870,7 @@ public class PdfGeneratorService
         _y += before;
         var x = _mLeft + _contentIndentL;
         var align = MapXAlign(css.GetValueOrDefault("text-align", "left"));
-        DibujarLineaTexto(text, font, x, _contentWidth, _y, align, lineH);
+        DibujarLineaTexto(text, font, x, _contentWidth, _y, align, lineH, ObtenerBrushTexto(css));
         _y += textH;
         _y += after;
 
@@ -516,10 +912,47 @@ public class PdfGeneratorService
             foreach (var wl in wrapped)
             {
                 AsegurarEspacio(lineH);
-                DibujarLineaTexto(wl, font, x, w, _y, XStringAlignment.Near, lineH);
+                DibujarLineaTexto(wl, font, x, w, _y, XStringAlignment.Near, lineH, ObtenerBrushTexto(css));
                 _y += lineH;
             }
         }
+
+        RegistrarParrafo(afterM, afterP, appliedBottomSpacing: 0);
+    }
+
+    private void RenderInline(JsonNode section)
+    {
+        var runs = section["runs"]?.AsArray();
+        if (runs == null || runs.Count == 0) return;
+
+        var pCss = ParseCss(section["style"]?.GetValue<string>());
+        var lineH = LineHeight(pCss);
+        var x = _mLeft + _contentIndentL;
+        var w = _contentWidth;
+        var (_, afterM) = ObtenerMargenVertical(pCss);
+        var (_, afterP) = ObtenerPaddingVertical(pCss);
+        var before = 0d;
+        ColapsarMargenParrafoAnterior(pCss, ref before);
+        AplicarMargenPendienteTabla(pCss, ref before);
+        _y += before;
+
+        AsegurarEspacio(lineH);
+        var curX = x;
+        foreach (var runNode in runs)
+        {
+            if (runNode == null) continue;
+            var text = runNode["text"]?.GetValue<string>() ?? "";
+            if (string.IsNullOrEmpty(text)) continue;
+            var css = CombinarCssHeredable(pCss, ParseCss(runNode["style"]?.GetValue<string>()));
+            var font = CrearFuente(css);
+            var textW = _gfx.MeasureString(text, font).Width;
+            var brush = ObtenerBrushTexto(css);
+            DibujarLineaTexto(text, font, curX, w - (curX - x), _y, XStringAlignment.Near, lineH, brush);
+            if (css.GetValueOrDefault("text-decoration", "").Contains("underline", StringComparison.OrdinalIgnoreCase))
+                DibujarSubrayado(curX, textW, _y, lineH, font, brush);
+            curX += textW;
+        }
+        _y += lineH;
 
         RegistrarParrafo(afterM, afterP, appliedBottomSpacing: 0);
     }
@@ -558,6 +991,7 @@ public class PdfGeneratorService
             }
         }
 
+        var columnWidths = fixedWidth && tblW > 0 ? ComputarAnchosColumnasKeyValuePdf(rows, tblW) : null;
         var tableRows = new List<TableRowData>();
         foreach (var row in rows)
         {
@@ -566,6 +1000,7 @@ public class PdfGeneratorService
             var rowCells = new List<CellData>();
             var cellList = cells.Where(c => c is not null).ToList();
             double usedW = 0;
+            int gridIdx = 0;
 
             for (int i = 0; i < cellList.Count; i++)
             {
@@ -573,9 +1008,12 @@ public class PdfGeneratorService
                 var text = cell["text"]?.GetValue<string>() ?? "";
                 var cellCss = ParseCss(cell["style"]?.GetValue<string>());
                 var effectiveCss = CombinarCssHeredable(tblCss, cellCss);
+                var colspan = Math.Max(1, cell["colspan"]?.GetValue<int>() ?? 1);
 
                 double cellW;
-                if (fixedWidth && i == cellList.Count - 1)
+                if (columnWidths != null && gridIdx < columnWidths.Count)
+                    cellW = columnWidths.Skip(gridIdx).Take(colspan).Sum();
+                else if (fixedWidth && i == cellList.Count - 1)
                     cellW = Math.Max(0, tblW - usedW);
                 else
                 {
@@ -586,17 +1024,73 @@ public class PdfGeneratorService
                         var (_, padR, _, padL) = ObtenerPadding(effectiveCss);
                         cellW = _gfx.MeasureString(text, font).Width + padL + padR;
                     }
-                    usedW += cellW;
                 }
 
-                rowCells.Add(new CellData(text, cellW, effectiveCss,
+                rowCells.Add(new CellData(text, cellW, effectiveCss, Colspan: colspan,
                     ImageBytes: ResolveAssetBytes(cell["image"]?.GetValue<string>())));
+                usedW += cellW;
+                gridIdx += colspan;
             }
 
             tableRows.Add(new TableRowData(rowCells));
         }
 
         DibujarTabla(tableRows, tblW, tblCss);
+    }
+
+    private static List<double> ComputarAnchosColumnasKeyValuePdf(JsonArray rows, double tableWidth)
+    {
+        var columnCount = rows
+            .OfType<JsonArray>()
+            .Select(row => row.Sum(cell => cell is null ? 0 : Math.Max(1, cell["colspan"]?.GetValue<int>() ?? 1)))
+            .DefaultIfEmpty(0)
+            .Max();
+        if (columnCount <= 0 || tableWidth <= 0) return [];
+
+        var widths = new double[columnCount];
+        foreach (var row in rows.OfType<JsonArray>())
+        {
+            var cells = row.Where(cell => cell is not null).ToList();
+            var gridIdx = 0;
+            for (var i = 0; i < cells.Count && gridIdx < columnCount; i++)
+            {
+                var cellCss = ParseCss(cells[i]!["style"]?.GetValue<string>());
+                var explicitWidth = CssToPoints(cellCss.GetValueOrDefault("width", ""));
+                var colspan = Math.Max(1, cells[i]!["colspan"]?.GetValue<int>() ?? 1);
+                if (explicitWidth > 0 && colspan == 1)
+                    widths[gridIdx] = Math.Max(widths[gridIdx], explicitWidth);
+                gridIdx += colspan;
+            }
+        }
+
+        var fixedTotal = widths.Sum();
+        if (fixedTotal > tableWidth)
+        {
+            var scale = tableWidth / fixedTotal;
+            for (var i = 0; i < widths.Length; i++)
+                widths[i] *= scale;
+            return [.. widths];
+        }
+
+        var autoIndexes = widths
+            .Select((width, index) => (width, index))
+            .Where(item => item.width <= 0)
+            .Select(item => item.index)
+            .ToList();
+
+        if (autoIndexes.Count == 0)
+        {
+            var missing = tableWidth - fixedTotal;
+            if (missing > 0)
+                widths[^1] += missing;
+            return [.. widths];
+        }
+
+        var autoWidth = Math.Max(0, tableWidth - fixedTotal) / autoIndexes.Count;
+        foreach (var index in autoIndexes)
+            widths[index] = autoWidth;
+
+        return [.. widths];
     }
 
     private void RenderBorderedBox(JsonNode section)
@@ -760,7 +1254,7 @@ public class PdfGeneratorService
 
             AsegurarEspacio(before + titleLineH);
             _y += before;
-            DibujarLineaTexto(title, titleFont, _mLeft + _contentIndentL, _contentWidth, _y, XStringAlignment.Near, titleLineH);
+            DibujarLineaTexto(title, titleFont, _mLeft + _contentIndentL, _contentWidth, _y, XStringAlignment.Near, titleLineH, ObtenerBrushTexto(titleCss));
             _y += titleLineH + after;
             RegistrarParrafo(tAfterM, tAfterP, after);
 
@@ -790,7 +1284,7 @@ public class PdfGeneratorService
                     foreach (var wl in PartirEnLineas(line, contentFont, _contentWidth))
                     {
                         AsegurarEspacio(contentLineH);
-                        DibujarLineaTexto(wl, contentFont, _mLeft + _contentIndentL, _contentWidth, _y, XStringAlignment.Near, contentLineH);
+                        DibujarLineaTexto(wl, contentFont, _mLeft + _contentIndentL, _contentWidth, _y, XStringAlignment.Near, contentLineH, ObtenerBrushTexto(contentCss));
                         _y += contentLineH;
                     }
                 }
@@ -901,7 +1395,7 @@ public class PdfGeneratorService
         var cellX = tableX;
         foreach (var cell in row.Cells)
         {
-            var cellW = cell.Colspan > 1 ? tableWidth : cell.Width;
+            var cellW = cell.Width;
             var css = cell.Css;
             var (padT, padR, padB, padL) = ObtenerPadding(css);
             var font = CrearFuente(css);
@@ -920,45 +1414,73 @@ public class PdfGeneratorService
             }
 
             double imgDrawW = 0, imgDrawH = 0;
+            double imgX = 0, imgY = 0;
+            var hasDirectImagePosition = false;
             XImage? cellImg = null;
             MemoryStream? cellImgStream = null;
-            string bgPosX = "0";
-            string bgPosY = "center";
+            var bgPosition = ObtenerPosicionFondoPdf("0 center", cellW, rowH, 0, 0);
             if (cell.ImageBytes is { Length: > 0 } imgBytes)
             {
                 var bgSize = css.GetValueOrDefault("background-size", "auto auto");
                 var sizeParts = bgSize.Trim().Split(' ');
                 var hPart = sizeParts.Length >= 2 ? sizeParts[1] : "auto";
                 var wPart = sizeParts.Length >= 1 ? sizeParts[0] : "auto";
-                var bgPosParts = css.GetValueOrDefault("background-position", "0 center").Trim().Split(' ');
-                bgPosX = bgPosParts.Length > 0 ? bgPosParts[0] : "0";
-                bgPosY = bgPosParts.Length > 1 ? bgPosParts[1] : "center";
                 try
                 {
-                    cellImgStream = new MemoryStream(imgBytes);
+                    cellImgStream = new MemoryStream(PrepararImagenParaPdf(imgBytes));
                     cellImg = XImage.FromStream(cellImgStream);
 
-                    imgDrawH = hPart.EndsWith("%") && double.TryParse(hPart.TrimEnd('%'),
+                    if (bgSize.Trim().Equals("contain", StringComparison.OrdinalIgnoreCase))
+                    {
+                        var boxW = Math.Max(1, cellW - padL - padR);
+                        var boxH = Math.Max(1, rowH - padT - padB);
+                        var sourceW = cellImg.PointWidth > 0 ? cellImg.PointWidth : boxW;
+                        var sourceH = cellImg.PointHeight > 0 ? cellImg.PointHeight : boxH;
+                        var scale = Math.Min(boxW / sourceW, boxH / sourceH);
+                        imgDrawW = sourceW * scale;
+                        imgDrawH = sourceH * scale;
+                        imgX = cellX + padL + Math.Max(0, (boxW - imgDrawW) / 2);
+                        imgY = rowY + padT + Math.Max(0, (boxH - imgDrawH) / 2);
+                        hasDirectImagePosition = true;
+                    }
+                    else
+                    {
+                        imgDrawH = hPart.EndsWith("%") && double.TryParse(hPart.TrimEnd('%'),
                             System.Globalization.NumberStyles.Any,
                             System.Globalization.CultureInfo.InvariantCulture, out var pct)
-                        ? rowH * pct / 100.0
-                        : !hPart.Equals("auto", StringComparison.OrdinalIgnoreCase)
-                            ? CssToPoints(hPart)
-                            : rowH * 0.7;
+                            ? rowH * pct / 100.0
+                            : !hPart.Equals("auto", StringComparison.OrdinalIgnoreCase)
+                                ? CssToPoints(hPart)
+                                : rowH * 0.7;
 
-                    imgDrawW = wPart.Equals("auto", StringComparison.OrdinalIgnoreCase)
-                        ? cellImg.PointWidth / cellImg.PointHeight * imgDrawH
-                        : CssToPoints(wPart);
+                        imgDrawW = wPart.Equals("auto", StringComparison.OrdinalIgnoreCase)
+                            ? cellImg.PointWidth / cellImg.PointHeight * imgDrawH
+                            : CssToPoints(wPart);
+                    }
+                    bgPosition = ObtenerPosicionFondoPdf(
+                        css.GetValueOrDefault("background-position", "0 center"),
+                        cellW,
+                        rowH,
+                        imgDrawW,
+                        imgDrawH);
                 }
                 catch { cellImg = null; cellImgStream?.Dispose(); cellImgStream = null; }
             }
 
-            var lines = PartirEnLineas(cell.Text, font, textW);
-            var textY = rowY + padT;
+            var lines = PartirTextoCelda(cell.Text, font, textW, css);
+            var textBlockH = Math.Max(1, lines.Count) * lineH;
+            var textY = ObtenerAlineacionVerticalCelda(css) switch
+            {
+                "middle" => rowY + padT + Math.Max(0, rowH - padT - padB - textBlockH) / 2,
+                "bottom" => rowY + rowH - padB - textBlockH,
+                _ => rowY + padT
+            };
 
             var blockCenter = cellImg is not null
+                && !string.IsNullOrEmpty(cell.Text)
                 && align == XStringAlignment.Center
-                && bgPosX.Equals("center", StringComparison.OrdinalIgnoreCase);
+                && bgPosition.XKeyword.Equals("center", StringComparison.OrdinalIgnoreCase)
+                && bgPosition.YKeyword.Equals("center", StringComparison.OrdinalIgnoreCase);
 
             if (blockCenter)
             {
@@ -967,13 +1489,14 @@ public class PdfGeneratorService
                 var measuredTxt = _gfx.MeasureString(firstLine, font).Width;
                 var blockW = imgDrawW + gap + measuredTxt;
                 var blockX = cellX + padL + (textW - blockW) / 2;
-                var imgY = rowY + (rowH - imgDrawH) / 2;
-                _gfx.DrawImage(cellImg!, blockX, imgY, imgDrawW, imgDrawH);
+                var blockImgY = rowY + (rowH - imgDrawH) / 2;
+                var textBrush = ObtenerBrushTexto(css);
+                _gfx.DrawImage(cellImg!, blockX, blockImgY, imgDrawW, imgDrawH);
                 var txtX = blockX + imgDrawW + gap;
                 foreach (var line in lines)
                 {
-                    _gfx.DrawString(line, font, XBrushes.Black,
-                        new XRect(txtX, textY, measuredTxt + 1, lineH), XStringFormats.CenterLeft);
+                    DibujarLineaTexto(line, font, txtX, measuredTxt + 1, textY,
+                        XStringAlignment.Near, lineH, textBrush);
                     textY += lineH;
                 }
             }
@@ -981,25 +1504,16 @@ public class PdfGeneratorService
             {
                 if (cellImg is not null)
                 {
-                    var posX = bgPosX.Equals("center", StringComparison.OrdinalIgnoreCase)
-                        ? (cellW - imgDrawW) / 2
-                        : bgPosX.Equals("right", StringComparison.OrdinalIgnoreCase)
-                            ? cellW - imgDrawW
-                            : bgPosX.Equals("left", StringComparison.OrdinalIgnoreCase)
-                                ? 0
-                                : CssToPoints(bgPosX);
-                    var imgY = bgPosY.Equals("center", StringComparison.OrdinalIgnoreCase)
-                        ? rowY + (rowH - imgDrawH) / 2
-                        : bgPosY.Equals("bottom", StringComparison.OrdinalIgnoreCase)
-                            ? rowY + rowH - imgDrawH
-                            : bgPosY.Equals("top", StringComparison.OrdinalIgnoreCase)
-                                ? rowY
-                                : rowY + CssToPoints(bgPosY);
-                    _gfx.DrawImage(cellImg, cellX + posX, imgY, imgDrawW, imgDrawH);
+                    if (imgDrawW > 0 && imgDrawH > 0)
+                        _gfx.DrawImage(cellImg,
+                            hasDirectImagePosition ? imgX : cellX + bgPosition.XOffset,
+                            hasDirectImagePosition ? imgY : rowY + bgPosition.YOffset,
+                            imgDrawW,
+                            imgDrawH);
                 }
                 foreach (var line in lines)
                 {
-                    DibujarLineaTexto(line, font, cellX + padL, textW, textY, align, lineH);
+                    DibujarLineaTexto(line, font, cellX + padL, textW, textY, align, lineH, ObtenerBrushTexto(css));
                     textY += lineH;
                 }
             }
@@ -1081,17 +1595,65 @@ public class PdfGeneratorService
         double maxH = 0;
         foreach (var cell in row.Cells)
         {
-            var cellW = cell.Colspan > 1 ? tableWidth : cell.Width;
+            var cellW = cell.Width;
             var css = cell.Css;
             var (padT, padR, padB, padL) = ObtenerPadding(css);
             var font = CrearFuente(css);
             var lineH = LineHeight(css);
             var textW = Math.Max(0, cellW - padL - padR);
-            var lines = PartirEnLineas(cell.Text, font, textW);
+            var lines = PartirTextoCelda(cell.Text, font, textW, css);
             var cellH = padT + Math.Max(1, lines.Count) * lineH + padB;
+            cellH = Math.Max(cellH, CssToPoints(css.GetValueOrDefault("height", "")));
             maxH = Math.Max(maxH, cellH);
         }
         return maxH;
+    }
+
+    private static (string XKeyword, double XOffset, string YKeyword, double YOffset) ObtenerPosicionFondoPdf(
+        string? backgroundPosition,
+        double cellWidth,
+        double cellHeight,
+        double imageWidth,
+        double imageHeight)
+    {
+        var parts = (backgroundPosition ?? "0 center")
+            .Trim()
+            .Split(' ', StringSplitOptions.RemoveEmptyEntries);
+
+        var xKeyword = parts.Length > 0 ? parts[0] : "0";
+        var xInset = parts.Length > 1 && EsLongitudCss(parts[1]) ? CssToPoints(parts[1]) : 0;
+        var yKeyword = "center";
+        var yInset = 0d;
+
+        if (parts.Length >= 4)
+        {
+            yKeyword = parts[2];
+            yInset = EsLongitudCss(parts[3]) ? CssToPoints(parts[3]) : 0;
+        }
+        else if (parts.Length >= 2 && !EsLongitudCss(parts[1]))
+        {
+            yKeyword = parts[1];
+        }
+
+        var xOffset = xKeyword.ToLowerInvariant() switch
+        {
+            "right" => Math.Max(0, cellWidth - imageWidth - xInset),
+            "center" => Math.Max(0, (cellWidth - imageWidth) / 2),
+            "left" => xInset,
+            _ when EsLongitudCss(xKeyword) => CssToPoints(xKeyword),
+            _ => 0
+        };
+
+        var yOffset = yKeyword.ToLowerInvariant() switch
+        {
+            "bottom" => Math.Max(0, cellHeight - imageHeight - yInset),
+            "center" => Math.Max(0, (cellHeight - imageHeight) / 2),
+            "top" => yInset,
+            _ when EsLongitudCss(yKeyword) => CssToPoints(yKeyword),
+            _ => 0
+        };
+
+        return (xKeyword, xOffset, yKeyword, yOffset);
     }
 
     private void DibujarBordeTabla(
@@ -1245,7 +1807,7 @@ public class PdfGeneratorService
 
     // ==================== DRAWING HELPERS ====================
 
-    private void DibujarLineaTexto(string text, XFont font, double x, double width, double y, XStringAlignment align, double lineHeight = 0)
+    private void DibujarLineaTexto(string text, XFont font, double x, double width, double y, XStringAlignment align, double lineHeight = 0, XBrush? brush = null)
     {
         if (string.IsNullOrEmpty(text)) return;
         var lh = lineHeight > 0 ? lineHeight : font.GetHeight();
@@ -1254,7 +1816,73 @@ public class PdfGeneratorService
         var textHeight = ascent + descent;
         var baselineY = y + (lh - textHeight) / 2 + ascent;
         var format = new XStringFormat { Alignment = align, LineAlignment = XLineAlignment.BaseLine };
-        _gfx.DrawString(text, font, XBrushes.Black, new XPoint(align == XStringAlignment.Center ? x + width / 2 : align == XStringAlignment.Far ? x + width : x, baselineY), format);
+        var textBrush = brush ?? XBrushes.Black;
+        if (!RequiereFuenteFallback(text))
+        {
+            _gfx.DrawString(text, font, textBrush, new XPoint(align == XStringAlignment.Center ? x + width / 2 : align == XStringAlignment.Far ? x + width : x, baselineY), format);
+            return;
+        }
+
+        var fallbackFont = CrearFuenteFallback(font);
+        var runs = DividirRunsFuenteFallback(text);
+        var totalW = runs.Sum(run => _gfx.MeasureString(run.Text, run.UseFallback ? fallbackFont : font).Width);
+        var curX = align switch
+        {
+            XStringAlignment.Center => x + (width - totalW) / 2,
+            XStringAlignment.Far => x + width - totalW,
+            _ => x
+        };
+
+        foreach (var run in runs)
+        {
+            var runFont = run.UseFallback ? fallbackFont : font;
+            _gfx.DrawString(run.Text, runFont, textBrush, new XPoint(curX, baselineY), new XStringFormat { Alignment = XStringAlignment.Near, LineAlignment = XLineAlignment.BaseLine });
+            curX += _gfx.MeasureString(run.Text, runFont).Width;
+        }
+    }
+
+    private XFont CrearFuenteFallback(XFont baseFont)
+    {
+        var style = XFontStyleEx.Regular;
+        if (baseFont.Bold) style |= XFontStyleEx.Bold;
+        if (baseFont.Italic) style |= XFontStyleEx.Italic;
+        return new XFont(FallbackSymbolFontFamily, baseFont.Size, style);
+    }
+
+    private static bool RequiereFuenteFallback(string text) =>
+        text.Any(EsCaracterFuenteFallback);
+
+    private static List<(string Text, bool UseFallback)> DividirRunsFuenteFallback(string text)
+    {
+        var runs = new List<(string Text, bool UseFallback)>();
+        var start = 0;
+        var currentFallback = EsCaracterFuenteFallback(text[0]);
+
+        for (var i = 1; i < text.Length; i++)
+        {
+            var useFallback = EsCaracterFuenteFallback(text[i]);
+            if (useFallback == currentFallback) continue;
+            runs.Add((text[start..i], currentFallback));
+            start = i;
+            currentFallback = useFallback;
+        }
+
+        runs.Add((text[start..], currentFallback));
+        return runs;
+    }
+
+    private static bool EsCaracterFuenteFallback(char ch) =>
+        CharUnicodeInfo.GetUnicodeCategory(ch) == UnicodeCategory.CurrencySymbol;
+
+    private void DibujarSubrayado(double x, double width, double y, double lineHeight, XFont font, XBrush brush)
+    {
+        var lh = lineHeight > 0 ? lineHeight : font.GetHeight();
+        var ascent = font.Size * font.Metrics.Ascent / font.Metrics.UnitsPerEm;
+        var descent = font.Size * Math.Abs(font.Metrics.Descent) / font.Metrics.UnitsPerEm;
+        var baselineY = y + (lh - ascent - descent) / 2 + ascent;
+        var underlineY = baselineY + Math.Max(1, font.Size * 0.08);
+        var color = brush is XSolidBrush solidBrush ? solidBrush.Color : XColors.Black;
+        _gfx.DrawLine(new XPen(color, Math.Max(0.5, font.Size * 0.05)), x, underlineY, x + width, underlineY);
     }
 
     private List<string> PartirEnLineas(string text, XFont font, double maxWidth)
@@ -1285,6 +1913,26 @@ public class PdfGeneratorService
         return lines;
     }
 
+    private List<string> PartirTextoCelda(string text, XFont font, double maxWidth, Dictionary<string, string> css)
+    {
+        var whiteSpace = css.GetValueOrDefault("white-space", "normal");
+        var preserveBreaks = whiteSpace is "pre-line" or "pre-wrap" or "pre";
+        var preserveSpaces = whiteSpace is "pre-wrap" or "pre";
+
+        if (!preserveBreaks)
+            return PartirEnLineas(Regex.Replace(text, @"\s+", " ").Trim(), font, maxWidth);
+
+        var result = new List<string>();
+        var rawLines = text.Replace("\r\n", "\n").Replace('\r', '\n').Split('\n');
+        foreach (var rawLine in rawLines)
+        {
+            var line = preserveSpaces ? rawLine : Regex.Replace(rawLine, @"[\t ]+", " ").Trim();
+            result.AddRange(PartirEnLineas(line, font, maxWidth));
+        }
+
+        return result.Count > 0 ? result : [""];
+    }
+
     // ==================== FONT HELPERS ====================
 
     private XFont CrearFuente(Dictionary<string, string>? css, double? overrideSize = null)
@@ -1301,6 +1949,18 @@ public class PdfGeneratorService
             style |= XFontStyleEx.Italic;
 
         return new XFont(family, size, style);
+    }
+
+    private static XBrush ObtenerBrushTexto(Dictionary<string, string>? css)
+    {
+        if (css == null || !css.TryGetValue("color", out var colorHex))
+            return XBrushes.Black;
+
+        var c = NormalizarColor(colorHex);
+        return new XSolidBrush(XColor.FromArgb(
+            Convert.ToInt32(c[..2], 16),
+            Convert.ToInt32(c[2..4], 16),
+            Convert.ToInt32(c[4..6], 16)));
     }
 
     private double LineHeight(Dictionary<string, string>? css, double? fontSize = null)
@@ -1488,6 +2148,20 @@ public class PdfGeneratorService
         return Regex.IsMatch(color, "^[0-9a-fA-F]{6}$") ? color.ToUpperInvariant() : "000000";
     }
 
+    private static bool EsLongitudCss(string value) =>
+        Regex.IsMatch(value, @"^[\d.]+\s*(in|pt|px)?$", RegexOptions.IgnoreCase);
+
+    private static string ObtenerAlineacionVerticalCelda(Dictionary<string, string> css)
+    {
+        var verticalAlign = css.GetValueOrDefault("vertical-align", "top").ToLowerInvariant();
+        return verticalAlign switch
+        {
+            "middle" or "center" => "middle",
+            "bottom" => "bottom",
+            _ => "top"
+        };
+    }
+
     private static double ObtenerBorderSpacing(Dictionary<string, string> css)
     {
         if (!css.TryGetValue("border-spacing", out var spacing)) return 0;
@@ -1549,6 +2223,204 @@ public class PdfGeneratorService
         };
     }
 
+    private static byte[] PrepararImagenParaPdf(byte[] bytes) =>
+        AplanarPngIndexadoTransparente(bytes) ?? bytes;
+
+    private static byte[]? AplanarPngIndexadoTransparente(byte[] bytes)
+    {
+        try
+        {
+            ReadOnlySpan<byte> sig = stackalloc byte[] { 137, 80, 78, 71, 13, 10, 26, 10 };
+            if (bytes.Length < 33 || !bytes.AsSpan(0, 8).SequenceEqual(sig)) return null;
+
+            var offset = 8;
+            var width = 0;
+            var height = 0;
+            var bitDepth = 0;
+            var colorType = 0;
+            var interlace = 0;
+            byte[]? palette = null;
+            byte[]? transparency = null;
+            using var idat = new MemoryStream();
+
+            while (offset + 12 <= bytes.Length)
+            {
+                var length = LeerUInt32BigEndian(bytes, offset);
+                offset += 4;
+                if (offset + 4 + length + 4 > bytes.Length) return null;
+                var type = System.Text.Encoding.ASCII.GetString(bytes, offset, 4);
+                offset += 4;
+                var dataOffset = offset;
+                offset += (int)length;
+                offset += 4;
+
+                if (type == "IHDR")
+                {
+                    width = (int)LeerUInt32BigEndian(bytes, dataOffset);
+                    height = (int)LeerUInt32BigEndian(bytes, dataOffset + 4);
+                    bitDepth = bytes[dataOffset + 8];
+                    colorType = bytes[dataOffset + 9];
+                    interlace = bytes[dataOffset + 12];
+                }
+                else if (type == "PLTE")
+                    palette = bytes.AsSpan(dataOffset, (int)length).ToArray();
+                else if (type == "tRNS")
+                    transparency = bytes.AsSpan(dataOffset, (int)length).ToArray();
+                else if (type == "IDAT")
+                    idat.Write(bytes, dataOffset, (int)length);
+                else if (type == "IEND")
+                    break;
+            }
+
+            if (width <= 0 || height <= 0 || colorType != 3 || interlace != 0 || palette is null || transparency is null)
+                return null;
+            if (bitDepth is not (1 or 2 or 4 or 8)) return null;
+
+            idat.Position = 0;
+            using var inflated = new MemoryStream();
+            using (var z = new ZLibStream(idat, CompressionMode.Decompress, leaveOpen: true))
+                z.CopyTo(inflated);
+
+            var rowBytes = (width * bitDepth + 7) / 8;
+            var raw = inflated.ToArray();
+            if (raw.Length < height * (rowBytes + 1)) return null;
+
+            var prev = new byte[rowBytes];
+            var cur = new byte[rowBytes];
+            using var rgbRows = new MemoryStream();
+            var rawOffset = 0;
+            for (var y = 0; y < height; y++)
+            {
+                var filter = raw[rawOffset++];
+                Array.Copy(raw, rawOffset, cur, 0, rowBytes);
+                rawOffset += rowBytes;
+                DesfiltrarPng(cur, prev, filter, 1);
+
+                rgbRows.WriteByte(0);
+                for (var x = 0; x < width; x++)
+                {
+                    var idx = LeerIndicePng(cur, x, bitDepth);
+                    var p = idx * 3;
+                    if (p + 2 >= palette.Length)
+                    {
+                        rgbRows.WriteByte(255); rgbRows.WriteByte(255); rgbRows.WriteByte(255);
+                        continue;
+                    }
+                    var alpha = idx < transparency.Length ? transparency[idx] : (byte)255;
+                    rgbRows.WriteByte(MezclarConBlanco(palette[p], alpha));
+                    rgbRows.WriteByte(MezclarConBlanco(palette[p + 1], alpha));
+                    rgbRows.WriteByte(MezclarConBlanco(palette[p + 2], alpha));
+                }
+
+                (prev, cur) = (cur, prev);
+            }
+
+            using var compressed = new MemoryStream();
+            using (var z = new ZLibStream(compressed, CompressionLevel.Optimal, leaveOpen: true))
+                z.Write(rgbRows.ToArray());
+
+            return CrearPngRgb(width, height, compressed.ToArray());
+        }
+        catch
+        {
+            return null;
+        }
+    }
+
+    private static void DesfiltrarPng(byte[] row, byte[] prev, int filter, int bpp)
+    {
+        for (var i = 0; i < row.Length; i++)
+        {
+            var left = i >= bpp ? row[i - bpp] : 0;
+            var up = prev[i];
+            var upLeft = i >= bpp ? prev[i - bpp] : 0;
+            row[i] = filter switch
+            {
+                1 => (byte)(row[i] + left),
+                2 => (byte)(row[i] + up),
+                3 => (byte)(row[i] + ((left + up) >> 1)),
+                4 => (byte)(row[i] + Paeth(left, up, upLeft)),
+                _ => row[i]
+            };
+        }
+    }
+
+    private static int LeerIndicePng(byte[] row, int x, int bitDepth)
+    {
+        var bit = x * bitDepth;
+        var value = row[bit / 8];
+        var shift = 8 - bitDepth - bit % 8;
+        return (value >> shift) & ((1 << bitDepth) - 1);
+    }
+
+    private static byte MezclarConBlanco(byte value, byte alpha) =>
+        (byte)Math.Round((value * alpha + 255 * (255 - alpha)) / 255.0);
+
+    private static int Paeth(int a, int b, int c)
+    {
+        var p = a + b - c;
+        var pa = Math.Abs(p - a);
+        var pb = Math.Abs(p - b);
+        var pc = Math.Abs(p - c);
+        return pa <= pb && pa <= pc ? a : pb <= pc ? b : c;
+    }
+
+    private static byte[] CrearPngRgb(int width, int height, byte[] idat)
+    {
+        using var ms = new MemoryStream();
+        ms.Write(new byte[] { 137, 80, 78, 71, 13, 10, 26, 10 });
+        var ihdr = new byte[13];
+        EscribirUInt32BigEndian(ihdr, 0, (uint)width);
+        EscribirUInt32BigEndian(ihdr, 4, (uint)height);
+        ihdr[8] = 8;
+        ihdr[9] = 2;
+        EscribirChunkPng(ms, "IHDR", ihdr);
+        EscribirChunkPng(ms, "IDAT", idat);
+        EscribirChunkPng(ms, "IEND", []);
+        return ms.ToArray();
+    }
+
+    private static void EscribirChunkPng(Stream stream, string type, byte[] data)
+    {
+        var typeBytes = System.Text.Encoding.ASCII.GetBytes(type);
+        Span<byte> len = stackalloc byte[4];
+        EscribirUInt32BigEndian(len, 0, (uint)data.Length);
+        stream.Write(len);
+        stream.Write(typeBytes);
+        stream.Write(data);
+        var crc = Crc32(typeBytes, data);
+        Span<byte> crcBytes = stackalloc byte[4];
+        EscribirUInt32BigEndian(crcBytes, 0, crc);
+        stream.Write(crcBytes);
+    }
+
+    private static uint LeerUInt32BigEndian(byte[] data, int offset) =>
+        ((uint)data[offset] << 24) | ((uint)data[offset + 1] << 16) | ((uint)data[offset + 2] << 8) | data[offset + 3];
+
+    private static void EscribirUInt32BigEndian(Span<byte> data, int offset, uint value)
+    {
+        data[offset] = (byte)(value >> 24);
+        data[offset + 1] = (byte)(value >> 16);
+        data[offset + 2] = (byte)(value >> 8);
+        data[offset + 3] = (byte)value;
+    }
+
+    private static uint Crc32(byte[] type, byte[] data)
+    {
+        var crc = 0xffffffffu;
+        foreach (var b in type) crc = ActualizarCrc32(crc, b);
+        foreach (var b in data) crc = ActualizarCrc32(crc, b);
+        return crc ^ 0xffffffffu;
+    }
+
+    private static uint ActualizarCrc32(uint crc, byte b)
+    {
+        crc ^= b;
+        for (var i = 0; i < 8; i++)
+            crc = (crc & 1) != 0 ? 0xedb88320u ^ (crc >> 1) : crc >> 1;
+        return crc;
+    }
+
     // ==================== DATA TYPES ====================
 
     private record BoxShadowData(double OffsetX, double OffsetY, string Color);
@@ -1571,15 +2443,17 @@ public class PdfGeneratorService
             foreach (var prop in obj)
             {
                 var val = prop.Value?.ToString() ?? "";
-                if (prop.Key.Contains("style", StringComparison.OrdinalIgnoreCase) ||
-                    prop.Key.Contains("Style", StringComparison.Ordinal))
+                if (prop.Key.Equals("fontWeight", StringComparison.OrdinalIgnoreCase))
                 {
-                    if (Regex.IsMatch(val, @"font-weight\s*:\s*(bold|[6-9]\d\d|[1-9]\d{3})", RegexOptions.IgnoreCase))
-                        variantes.Add("b");
-                    if (Regex.IsMatch(val, @"font-style\s*:\s*(italic|oblique)", RegexOptions.IgnoreCase))
-                        variantes.Add("i");
-                    if (variantes.Contains("b") && variantes.Contains("i"))
-                        variantes.Add("bi");
+                    DetectarVariantePesoFuente(val, variantes);
+                }
+                else if (prop.Key.Equals("fontStyle", StringComparison.OrdinalIgnoreCase))
+                {
+                    DetectarVarianteEstiloFuente(val, variantes);
+                }
+                else if (prop.Key.Contains("style", StringComparison.OrdinalIgnoreCase))
+                {
+                    DetectarVariantesEnTextoCss(val, variantes);
                 }
                 DetectarVariantesEnNodo(prop.Value, variantes);
             }
@@ -1591,12 +2465,56 @@ public class PdfGeneratorService
         }
     }
 
+    private static void DetectarVariantesEnTextoCss(string css, HashSet<string> variantes)
+    {
+        var weight = Regex.Match(css, @"font-weight\s*:\s*([^;]+)", RegexOptions.IgnoreCase);
+        if (weight.Success)
+            DetectarVariantePesoFuente(weight.Groups[1].Value, variantes);
+
+        var style = Regex.Match(css, @"font-style\s*:\s*([^;]+)", RegexOptions.IgnoreCase);
+        if (style.Success)
+            DetectarVarianteEstiloFuente(style.Groups[1].Value, variantes);
+    }
+
+    private static void DetectarVariantePesoFuente(string value, HashSet<string> variantes)
+    {
+        var trimmed = value.Trim();
+        if (trimmed.Equals("bold", StringComparison.OrdinalIgnoreCase) ||
+            int.TryParse(trimmed, out var weight) && weight >= 600)
+            variantes.Add("b");
+        DetectarVarianteBoldItalic(variantes);
+    }
+
+    private static void DetectarVarianteEstiloFuente(string value, HashSet<string> variantes)
+    {
+        var trimmed = value.Trim();
+        if (trimmed.Equals("italic", StringComparison.OrdinalIgnoreCase) ||
+            trimmed.Equals("oblique", StringComparison.OrdinalIgnoreCase))
+            variantes.Add("i");
+        DetectarVarianteBoldItalic(variantes);
+    }
+
+    private static void DetectarVarianteBoldItalic(HashSet<string> variantes)
+    {
+        if (variantes.Contains("b") && variantes.Contains("i"))
+            variantes.Add("bi");
+    }
+
     public static Dictionary<string, string> ObtenerRutasS3Fuentes(string fontFamily, HashSet<string> variantes)
     {
         var baseName = fontFamily.Split(',')[0].Trim().ToLowerInvariant().Replace(" ", "");
         var rutas = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
         foreach (var variante in variantes)
-            rutas[baseName + variante] = $"fuentes/{baseName}{variante}.ttf";
+        {
+            var archivoVariante = variante == "bi" ? "z" : variante;
+            rutas[baseName + variante] = $"fuentes/{baseName}{archivoVariante}.ttf";
+        }
+        const string fallbackBaseName = "calibri";
+        foreach (var variante in variantes)
+        {
+            var archivoVariante = variante == "bi" ? "z" : variante;
+            rutas.TryAdd(fallbackBaseName + variante, $"fuentes/{fallbackBaseName}{archivoVariante}.ttf");
+        }
         return rutas;
     }
 
@@ -1626,21 +2544,31 @@ public class PdfGeneratorService
             };
 
             var baseName = familyName.ToLowerInvariant().Replace(" ", "");
-            var candidates = new[]
-            {
-                baseName + suffix,
-                baseName,
-            };
+            var exact = baseName + suffix;
+            if (_fonts.ContainsKey(exact))
+                return new FontResolverInfo(exact);
 
-            foreach (var candidate in candidates)
-                if (_fonts.ContainsKey(candidate))
-                    return new FontResolverInfo(candidate);
+            if (isBold && isItalic && _fonts.ContainsKey(baseName + "b"))
+                return new FontResolverInfo(baseName + "b", XStyleSimulations.ItalicSimulation);
+            if (isBold && isItalic && _fonts.ContainsKey(baseName + "i"))
+                return new FontResolverInfo(baseName + "i", XStyleSimulations.BoldSimulation);
+            if (_fonts.ContainsKey(baseName))
+                return new FontResolverInfo(baseName, ObtenerSimulacionFuente(isBold, isItalic));
 
             if (_fonts.Count > 0)
-                return new FontResolverInfo(_fonts.Keys.First());
+                return new FontResolverInfo(_fonts.Keys.First(), ObtenerSimulacionFuente(isBold, isItalic));
 
             return null;
         }
+
+        private static XStyleSimulations ObtenerSimulacionFuente(bool isBold, bool isItalic) =>
+            (isBold, isItalic) switch
+            {
+                (true, true) => XStyleSimulations.BoldItalicSimulation,
+                (true, false) => XStyleSimulations.BoldSimulation,
+                (false, true) => XStyleSimulations.ItalicSimulation,
+                _ => XStyleSimulations.None
+            };
 
         public byte[]? GetFont(string faceName)
         {

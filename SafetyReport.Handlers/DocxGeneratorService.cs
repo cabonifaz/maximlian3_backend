@@ -23,6 +23,9 @@ public partial class DocxGeneratorService
     private int _lastBodyPaddingBottom;
     private Dictionary<string, byte[]>? _assets;
     private MainDocumentPart? _mainPart;
+    private FooterPart? _defaultFooterPart;
+    private FooterPart? _firstFooterPart;
+    private HeaderPart? _firstHeaderPart;
     private uint _nextDrawingId = 100;
     // Max measured last-cell width across all auto-width right-aligned keyValue tables,
     // used to normalize value cells into a uniform column.
@@ -42,6 +45,9 @@ public partial class DocxGeneratorService
 
             _assets = assets;
             _mainPart = mainPart;
+            _defaultFooterPart = null;
+            _firstFooterPart = null;
+            _firstHeaderPart = null;
             _nextDrawingId = 100;
             _pendingTableBottomMargin = 0;
             _lastBodyParagraph = null;
@@ -89,12 +95,17 @@ public partial class DocxGeneratorService
 
     private void RenderizarSeccion(Body body, JsonNode section)
     {
+        var css = ParseCss(section["style"]?.GetValue<string>());
+        if (DebeForzarSaltoPagina(section, css))
+            AgregarSaltoPagina(body);
+
         var type = section["type"]?.GetValue<string>() ?? "";
         switch (type)
         {
             case "heading": RenderHeading(body, section); break;
             case "subtitle": RenderSubtitle(body, section); break;
             case "text": RenderText(body, section); break;
+            case "inline": RenderInline(body, section); break;
             case "keyValue": RenderKeyValue(body, section); break;
             case "borderedBox": RenderBorderedBox(body, section); break;
             case "referenceBox": RenderReferenceBox(body, section); break;
@@ -108,6 +119,19 @@ public partial class DocxGeneratorService
             case "repeatDetail": RenderRepeatDetail(body, section); break;
             case "spacer": RenderSpacer(body, section); break;
         }
+    }
+
+    private static bool DebeForzarSaltoPagina(JsonNode section, Dictionary<string, string> css) =>
+        (section["pageBreak"]?.GetValue<bool>() ?? false)
+        || css.GetValueOrDefault("page-break-before", "") == "always"
+        || css.GetValueOrDefault("break-before", "") == "page";
+
+    private void AgregarSaltoPagina(Body body)
+    {
+        if (body.Elements().Any())
+            body.Append(new Paragraph(new Run(new Break { Type = BreakValues.Page })));
+        LimpiarUltimoParrafoBody();
+        _pendingTableBottomMargin = 0;
     }
 
     private void RenderHeading(Body body, JsonNode section)
@@ -188,6 +212,36 @@ public partial class DocxGeneratorService
         RegistrarParrafoBody(para, css);
     }
 
+    private void RenderInline(Body body, JsonNode section)
+    {
+        var runs = section["runs"]?.AsArray();
+        if (runs == null || runs.Count == 0) return;
+
+        var pCss = ParseCss(section["style"]?.GetValue<string>());
+        var para = new Paragraph();
+        var pPr = new ParagraphProperties();
+        pPr.Append(new SpacingBetweenLines { After = "0", Line = CssLineSpacing(pCss).ToString(), LineRule = LineSpacingRuleValues.Exact });
+        AplicarMargenPendienteTabla(pPr, pCss);
+        ColapsarMargenParrafoAnterior(body, pPr, pCss);
+        AgregarIndentacion(pPr);
+        para.Append(pPr);
+
+        foreach (var runNode in runs)
+        {
+            if (runNode == null) continue;
+            var text = runNode["text"]?.GetValue<string>() ?? "";
+            if (string.IsNullOrEmpty(text)) continue;
+            var css = ParseCss(runNode["style"]?.GetValue<string>());
+            var run = new Run();
+            run.Append(CrearRunProperties(css));
+            AgregarTextoAlRun(run, text, css, permitirSaltos: false);
+            para.Append(run);
+        }
+
+        body.Append(para);
+        RegistrarParrafoBody(para, pCss);
+    }
+
     private void RenderKeyValue(Body body, JsonNode section)
     {
         var tblCss = ParseCss(section["style"]?.GetValue<string>());
@@ -205,6 +259,7 @@ public partial class DocxGeneratorService
             !EsColorClaro(ObtenerBorde(kvBottom).Color) && !EsColorClaro(ObtenerBorde(kvRight).Color);
         var cellSpacingTwips = (!esOutsetKv && tblCss.TryGetValue("border-spacing", out var bsp))
             ? CssToTwips(bsp.Trim().Split(' ')[0]) : 0;
+        var inheritTableBorderInCells = HeredarBordeTablaEnCeldas(tblCss);
 
         // Pre-pass: for auto-width tables, estimate total width from cell content.
         // Word auto-sizes tighter than PDF/HTML, so we compute an explicit width,
@@ -221,7 +276,7 @@ public partial class DocxGeneratorService
                 {
                     if (cell is null) continue;
                     var cellCss = ParseCss(cell["style"]?.GetValue<string>());
-                    var effectiveCss = CombinarCssHeredable(tblCss, cellCss);
+                    var effectiveCss = CombinarCssHeredable(tblCss, cellCss, inheritTableBorderInCells);
                     var w = CssToTwips(cellCss.GetValueOrDefault("width", ""));
                     if (w <= 0)
                         w = EstimarAnchoCeldaTwips(cell["text"]?.GetValue<string>() ?? "", effectiveCss);
@@ -238,6 +293,14 @@ public partial class DocxGeneratorService
         var tblWDocx = tblW + (maxCellCount > 0 ? (maxCellCount + 1) * cellSpacingTwips : 0);
 
         var table = CrearTabla(tblCss);
+        var columnWidths = fixedWidth && tblW > 0 ? ComputarAnchosColumnasKeyValue(rows, tblW) : null;
+        if (columnWidths is { Count: > 0 })
+        {
+            var tblGrid = new TableGrid();
+            foreach (var cw in columnWidths)
+                tblGrid.Append(new GridColumn { Width = cw.ToString() });
+            table.Append(tblGrid);
+        }
 
         // Upgrade auto-width table to fixed layout using the computed width.
         // Replace tblW={0,auto}+jc with tblW={n,dxa}+tblInd+tblLayout=fixed,
@@ -265,25 +328,35 @@ public partial class DocxGeneratorService
             var tr = CrearFilaTabla();
             var cellList = cells.Where(c => c is not null).ToList();
             int usedW = 0;
+            int gridIdx = 0;
+            var rowHeight = 0;
+            foreach (var cell in cellList)
+            {
+                var cellCss = ParseCss(cell!["style"]?.GetValue<string>());
+                rowHeight = Math.Max(rowHeight, CssToTwips(cellCss.GetValueOrDefault("height", "")));
+            }
+            AplicarAltoFila(tr, rowHeight);
 
             for (int i = 0; i < cellList.Count; i++)
             {
                 var cell = cellList[i]!;
                 var text = cell["text"]?.GetValue<string>() ?? "";
                 var cellCss = ParseCss(cell["style"]?.GetValue<string>());
-                var effectiveCss = CombinarCssHeredable(tblCss, cellCss);
+                var effectiveCss = CombinarCssHeredable(tblCss, cellCss, inheritTableBorderInCells);
                 var imgBytes = ResolveAssetBytes(cell["image"]?.GetValue<string>());
+                var colspan = Math.Max(1, cell["colspan"]?.GetValue<int>() ?? 1);
 
                 int cellW;
                 bool isAutoCell = CssToTwips(cellCss.GetValueOrDefault("width", "")) <= 0;
-                if (i == cellList.Count - 1 && tblW > 0)
+                if (columnWidths != null && gridIdx < columnWidths.Count)
+                    cellW = columnWidths.Skip(gridIdx).Take(colspan).Sum();
+                else if (i == cellList.Count - 1 && tblW > 0)
                     cellW = Math.Max(0, tblW - usedW);
                 else
                 {
                     cellW = isAutoCell ? 0 : CssToTwips(cellCss["width"]);
                     if (cellW <= 0)
                         cellW = EstimarAnchoCeldaTwips(text, effectiveCss);
-                    usedW += cellW;
                 }
 
                 // Auto-width cells in right-aligned tables flush their text to the
@@ -292,13 +365,74 @@ public partial class DocxGeneratorService
                 if (isAutoRightAligned && isAutoCell)
                     effectiveCss["text-align"] = "right";
 
-                tr.Append(CrearCeldaTexto(text, cellW, effectiveCss, imageBytes: imgBytes));
+                tr.Append(CrearCeldaTexto(text, cellW, effectiveCss, colspan: colspan, imageBytes: imgBytes));
+                usedW += cellW;
+                gridIdx += colspan;
             }
 
             table.Append(tr);
         }
 
         AgregarTablaConMargen(body, table, tblCss);
+    }
+
+    private static List<int> ComputarAnchosColumnasKeyValue(JsonArray rows, int tableWidth)
+    {
+        var columnCount = rows
+            .OfType<JsonArray>()
+            .Select(row => row.Sum(cell => cell is null ? 0 : Math.Max(1, cell["colspan"]?.GetValue<int>() ?? 1)))
+            .DefaultIfEmpty(0)
+            .Max();
+        if (columnCount <= 0 || tableWidth <= 0) return [];
+
+        var widths = new int[columnCount];
+        foreach (var row in rows.OfType<JsonArray>())
+        {
+            var cells = row.Where(cell => cell is not null).ToList();
+            var gridIdx = 0;
+            for (var i = 0; i < cells.Count && gridIdx < columnCount; i++)
+            {
+                var cellCss = ParseCss(cells[i]!["style"]?.GetValue<string>());
+                var explicitWidth = CssToTwips(cellCss.GetValueOrDefault("width", ""));
+                var colspan = Math.Max(1, cells[i]!["colspan"]?.GetValue<int>() ?? 1);
+                if (explicitWidth > 0 && colspan == 1)
+                    widths[gridIdx] = Math.Max(widths[gridIdx], explicitWidth);
+                gridIdx += colspan;
+            }
+        }
+
+        var fixedTotal = widths.Sum();
+        if (fixedTotal > tableWidth)
+        {
+            var scale = (double)tableWidth / fixedTotal;
+            for (var i = 0; i < widths.Length; i++)
+                widths[i] = (int)Math.Round(widths[i] * scale);
+            return [.. widths];
+        }
+
+        var autoIndexes = widths
+            .Select((width, index) => (width, index))
+            .Where(item => item.width <= 0)
+            .Select(item => item.index)
+            .ToList();
+
+        if (autoIndexes.Count == 0)
+        {
+            var missing = tableWidth - fixedTotal;
+            if (missing > 0)
+                widths[^1] += missing;
+            return [.. widths];
+        }
+
+        var autoWidth = Math.Max(0, tableWidth - fixedTotal) / autoIndexes.Count;
+        foreach (var index in autoIndexes)
+            widths[index] = autoWidth;
+
+        var roundingMissing = tableWidth - widths.Sum();
+        if (roundingMissing != 0)
+            widths[autoIndexes[^1]] += roundingMissing;
+
+        return [.. widths];
     }
 
     private int EstimarAnchoCeldaTwips(string text, Dictionary<string, string> css)
@@ -498,9 +632,8 @@ public partial class DocxGeneratorService
 
     private void RenderSpacer(Body body, JsonNode section)
     {
-        var height = section["height"]?.GetValue<string>() ?? "0.3in";
         FlushPendingTableMargin(body);
-        body.Append(CrearParrafoEspaciador(CssToTwips(height)));
+        body.Append(CrearParrafoEspaciador(CssToTwips(section["height"]?.GetValue<string>() ?? "0.3in")));
         LimpiarUltimoParrafoBody();
     }
 
@@ -519,27 +652,52 @@ public partial class DocxGeneratorService
         var logoBytes = ResolveAssetBytes(config?["header"]?["logo"]?.GetValue<string>());
         var watermarkBytes = ResolveAssetBytes(config?["watermark"]?["image"]?.GetValue<string>());
 
+        var fpWatermarkBytes = ResolveAssetBytes(config?["firstPageWatermark"]?["image"]?.GetValue<string>());
         var hasLogo = logoBytes is not null && logoBytes.Length > 0;
         var hasWatermark = watermarkBytes is not null && watermarkBytes.Length > 0;
-        if (!hasLogo && !hasWatermark) return;
+        var hasFirstPageWatermark = fpWatermarkBytes is not null && fpWatermarkBytes.Length > 0;
+        if (!hasLogo && !hasWatermark && !hasFirstPageWatermark) return;
 
-        var headerPart = mainPart.AddNewPart<HeaderPart>();
-        var header = new Header();
+        HeaderPart? headerPart = null;
+        Header? header = null;
 
-        if (!hasLogo)
+        if (hasWatermark || hasLogo)
         {
-            AgregarMarcaAguaAlHeader(headerPart, header, config, watermarkBytes!);
-            headerPart.Header = header;
-            headerPart.Header.Save();
-            return;
+            headerPart = mainPart.AddNewPart<HeaderPart>();
+            header = new Header();
         }
 
+        if (headerPart != null && header != null)
+        {
+            if (hasLogo)
+                AgregarLogoAlHeader(headerPart, header, config, logoBytes!);
+
+            AgregarMarcaAguaAlHeader(headerPart, header, config, watermarkBytes);
+
+            headerPart.Header = header;
+            headerPart.Header.Save();
+        }
+
+        if (hasFirstPageWatermark)
+        {
+            _firstHeaderPart = mainPart.AddNewPart<HeaderPart>();
+            var fpHeader = new Header();
+            if (hasLogo)
+                AgregarLogoAlHeader(_firstHeaderPart, fpHeader, config, logoBytes!);
+            AgregarMarcaAguaAlHeader(_firstHeaderPart, fpHeader, config, fpWatermarkBytes, firstPage: true);
+            _firstHeaderPart.Header = fpHeader;
+            _firstHeaderPart.Header.Save();
+        }
+    }
+
+    private void AgregarLogoAlHeader(HeaderPart headerPart, Header header, JsonNode? config, byte[] logoBytes)
+    {
         var logoBoxW = CssToEmu(config?["header"]?["logoWidth"]?.GetValue<string>() ?? "1.3in");
         var logoBoxH = CssToEmu(config?["header"]?["logoHeight"]?.GetValue<string>() ?? "0.55in");
-        var (logoW, logoH) = AjustarImagenContain(logoBytes!, logoBoxW, logoBoxH);
+        var (logoW, logoH) = AjustarImagenContain(logoBytes, logoBoxW, logoBoxH);
         var align = config?["header"]?["align"]?.GetValue<string>() ?? "center";
 
-        var imagePart = logoBytes!.Length >= 2 && logoBytes[0] == 0xFF && logoBytes[1] == 0xD8
+        var imagePart = logoBytes.Length >= 2 && logoBytes[0] == 0xFF && logoBytes[1] == 0xD8
             ? headerPart.AddImagePart(ImagePartType.Jpeg)
             : headerPart.AddImagePart(ImagePartType.Png);
         using (var imgStream = new MemoryStream(logoBytes))
@@ -551,7 +709,7 @@ public partial class DocxGeneratorService
             new DW.Inline(
                 new DW.Extent { Cx = logoW, Cy = logoH },
                 new DW.EffectExtent { LeftEdge = 0, TopEdge = 0, RightEdge = 0, BottomEdge = 0 },
-                new DW.DocProperties { Id = 1, Name = "Logo" },
+                new DW.DocProperties { Id = _nextDrawingId++, Name = "Logo" },
                 new DW.NonVisualGraphicFrameDrawingProperties(
                     new A.GraphicFrameLocks { NoChangeAspect = true }),
                 new A.Graphic(
@@ -591,18 +749,13 @@ public partial class DocxGeneratorService
         para.Append(run);
 
         header.Append(para);
-
-        AgregarMarcaAguaAlHeader(headerPart, header, config, watermarkBytes);
-
-        headerPart.Header = header;
-        headerPart.Header.Save();
     }
 
-    private void AgregarMarcaAguaAlHeader(HeaderPart headerPart, Header header, JsonNode? config, byte[]? watermarkBytes)
+    private void AgregarMarcaAguaAlHeader(HeaderPart headerPart, Header header, JsonNode? config, byte[]? watermarkBytes, bool firstPage = false)
     {
         if (watermarkBytes is null || watermarkBytes.Length == 0) return;
 
-        var wmNode = config?["watermark"];
+        var wmNode = firstPage ? config?["firstPageWatermark"] : config?["watermark"];
         if (wmNode is null) return;
 
         var wmWidthPt = CssToPt(wmNode["width"]?.GetValue<string>() ?? "0");
@@ -705,11 +858,13 @@ public partial class DocxGeneratorService
     {
         var footerText = config?["footer"]?["text"]?.GetValue<string>();
         var footerPart = mainPart.AddNewPart<FooterPart>();
+        _defaultFooterPart = footerPart;
         var footer = new Footer();
         var footerFontSizeHp = PtToHalfPt(config?["footer"]?["fontSize"]?.GetValue<string>() ?? "7pt");
         var footerFontSize = footerFontSizeHp.ToString();
         var footerLineHeight = (footerFontSizeHp * 10).ToString();
         var footerAlign = config?["footer"]?["align"]?.GetValue<string>() ?? "left";
+        var pageAlign = config?["footer"]?["pageAlign"]?.GetValue<string>() ?? "below";
         var fiL = CssToTwips(config?["footerIndent"]?["left"]?.GetValue<string>() ?? "0");
         var fiR = CssToTwips(config?["footerIndent"]?["right"]?.GetValue<string>() ?? "0");
         var gapBefore = CssToTwips(config?["footer"]?["gapBefore"]?.GetValue<string>() ?? "0");
@@ -718,11 +873,56 @@ public partial class DocxGeneratorService
         var footerPageW = CssToTwips(config?["pageSize"]?["width"]?.GetValue<string>());
         var footerMl = CssToTwips(config?["margins"]?["left"]?.GetValue<string>());
         var footerMr = CssToTwips(config?["margins"]?["right"]?.GetValue<string>());
-        var footerTableWidth = footerPageW - footerMl - footerMr;
+        var footerExtend = CssToTwips(config?["footer"]?["footerExtend"]?.GetValue<string>() ?? "0");
+        var footerTableWidth = footerPageW - footerMl - footerMr + footerExtend * 2;
+        var footerTableInd = footerExtend > 0 ? -footerExtend : 0;
+
+        // Generic rows/cells table layout
+        var footerLayout = config?["footer"]?["layout"]?.GetValue<string>();
+        var footerJsonRows = config?["footer"]?["rows"]?.AsArray();
+        if (footerLayout == "table" && footerJsonRows != null)
+        {
+            if (gapBefore > 0)
+                footer.Append(new Paragraph(new ParagraphProperties(
+                    new SpacingBetweenLines { Before = gapBefore.ToString(), After = "0", Line = "1", LineRule = LineSpacingRuleValues.Exact })));
+            footer.Append(ConstruirTablaFooterGenerico(footerJsonRows, footerTableWidth, footerTableInd, config?["footer"], footerPart));
+            footer.Append(CrearParrafoCero());
+            footerPart.Footer = footer;
+            footerPart.Footer.Save();
+
+            // First-page footer
+            var fpConfig = config?["firstPageFooter"];
+            var fpRows = fpConfig?["rows"]?.AsArray();
+            if (fpConfig != null && fpRows != null)
+            {
+                var fpExtend = CssToTwips(fpConfig["footerExtend"]?.GetValue<string>() ?? "0");
+                var fpTableWidth = footerPageW - footerMl - footerMr + fpExtend * 2;
+                var fpTableInd = fpExtend > 0 ? -fpExtend : 0;
+                var fpGapBefore = CssToTwips(fpConfig["gapBefore"]?.GetValue<string>() ?? "0");
+                var fpFooterPart = mainPart.AddNewPart<FooterPart>();
+                _firstFooterPart = fpFooterPart;
+                var fpFooter = new Footer();
+                if (fpGapBefore > 0)
+                    fpFooter.Append(new Paragraph(new ParagraphProperties(
+                        new SpacingBetweenLines { Before = fpGapBefore.ToString(), After = "0", Line = "1", LineRule = LineSpacingRuleValues.Exact })));
+                fpFooter.Append(ConstruirTablaFooterGenerico(fpRows, fpTableWidth, fpTableInd, fpConfig, fpFooterPart));
+                var defaultFooterHeight = gapBefore + EstimarAltoTablaFooter(footerJsonRows, config?["footer"]);
+                var firstFooterHeight = fpGapBefore + EstimarAltoTablaFooter(fpRows, fpConfig);
+                var missingFooterHeight = defaultFooterHeight - firstFooterHeight;
+                if (missingFooterHeight > 0)
+                    fpFooter.Append(CrearParrafoAlto(missingFooterHeight));
+                fpFooter.Append(CrearParrafoCero());
+                fpFooterPart.Footer = fpFooter;
+                fpFooterPart.Footer.Save();
+            }
+
+            return;
+        }
 
         var footerTable = new Table();
         footerTable.Append(new TableProperties(
             new TableWidth { Width = footerTableWidth.ToString(), Type = TableWidthUnitValues.Dxa },
+            new TableIndentation { Width = footerTableInd, Type = TableWidthUnitValues.Dxa },
             new TableLayout { Type = TableLayoutValues.Fixed }));
 
         var footerBoxHeight = CssToTwips(config?["margins"]?["bottom"]?.GetValue<string>()) - footerMBottom - gapBefore;
@@ -731,43 +931,39 @@ public partial class DocxGeneratorService
         footerRow.Append(new TableRowProperties(
             new TableRowHeight { Val = (uint)footerBoxHeight, HeightType = HeightRuleValues.Exact }));
 
-        var footerCell = new TableCell();
-        footerCell.Append(new TableCellProperties(
-            new TableCellWidth { Width = "5000", Type = TableWidthUnitValues.Pct },
-            new TableCellMargin(
-                new TopMargin { Width = "0", Type = TableWidthUnitValues.Dxa },
-                new BottomMargin { Width = "0", Type = TableWidthUnitValues.Dxa },
-                new LeftMargin { Width = fiL.ToString(), Type = TableWidthUnitValues.Dxa },
-                new RightMargin { Width = fiR.ToString(), Type = TableWidthUnitValues.Dxa }),
-            new TableCellVerticalAlignment { Val = TableVerticalAlignmentValues.Top }));
-
-        // Footer text
-        if (!string.IsNullOrEmpty(footerText))
+        if (pageAlign == "left" || pageAlign == "right")
         {
-            var para = new Paragraph();
-            var pPr = new ParagraphProperties();
-            pPr.Append(new Justification { Val = MapAlign(footerAlign) });
-            pPr.Append(new SpacingBetweenLines { Before = "0", After = "0", Line = footerLineHeight, LineRule = LineSpacingRuleValues.Exact });
-            para.Append(pPr);
+            // Two-cell row: page number on one side, text on the other
+            var pageBgColorVal = config?["footer"]?["pageBgColor"]?.GetValue<string>();
+            var textColorVal   = config?["footer"]?["textColor"]?.GetValue<string>();
+            var textBold       = config?["footer"]?["textBold"]?.GetValue<bool>() ?? false;
+            var pageTotal      = config?["footer"]?["pageTotal"]?.GetValue<bool>() ?? false;
+            var pageColW       = CssToTwips(config?["footer"]?["pageColWidth"]?.GetValue<string>() ?? "0");
+            if (pageColW == 0) pageColW = footerTableWidth / 2;
+            var textColW       = footerTableWidth - pageColW;
 
-            var run = new Run();
-            run.Append(new RunProperties(new FontSize { Val = footerFontSize }, new RunFonts { Ascii = _fontFamily, HighAnsi = _fontFamily }));
-            var footerLines = footerText.Replace("\r\n", "\n").Replace('\r', '\n').Split('\n');
-            for (var i = 0; i < footerLines.Length; i++)
+            TableCell BuildCell(int width, JustificationValues justify, string? bgColor, string marginL, string marginR)
             {
-                if (i > 0) run.Append(new Break());
-                run.Append(new Text(footerLines[i]) { Space = SpaceProcessingModeValues.Preserve });
+                var tcPr = new TableCellProperties(
+                    new TableCellWidth { Width = width.ToString(), Type = TableWidthUnitValues.Dxa },
+                    new TableCellMargin(
+                        new TopMargin { Width = "0", Type = TableWidthUnitValues.Dxa },
+                        new BottomMargin { Width = "0", Type = TableWidthUnitValues.Dxa },
+                        new LeftMargin { Width = marginL, Type = TableWidthUnitValues.Dxa },
+                        new RightMargin { Width = marginR, Type = TableWidthUnitValues.Dxa }),
+                    new TableCellVerticalAlignment { Val = TableVerticalAlignmentValues.Center });
+                if (!string.IsNullOrEmpty(bgColor))
+                    tcPr.Append(new Shading { Val = ShadingPatternValues.Clear, Color = "auto", Fill = NormalizarColor(bgColor) });
+                var cell = new TableCell();
+                cell.Append(tcPr);
+                return cell;
             }
-            para.Append(run);
-            footerCell.Append(para);
-        }
 
-        if (showPageNumber)
-        {
             var pageFontSizeHp = PtToHalfPt(config?["footer"]?["pageFontSize"]?.GetValue<string>() ?? config?["footer"]?["fontSize"]?.GetValue<string>() ?? "7pt");
             var pageFontSizeStr = pageFontSizeHp.ToString();
             var pageLineHeight = (pageFontSizeHp * 10).ToString();
             var pageColorVal = config?["footer"]?["pageColor"]?.GetValue<string>();
+            var pageLabel = config?["footer"]?["pageLabel"]?.GetValue<string>() ?? "Page";
 
             RunProperties BuildPageRunProps()
             {
@@ -777,46 +973,591 @@ public partial class DocxGeneratorService
                 return rp;
             }
 
-            var paraPage = new Paragraph();
-            var pPrPage = new ParagraphProperties();
-            pPrPage.Append(new Justification { Val = MapAlign(footerAlign) });
-            var pageGapBefore = CssToTwips(config?["footer"]?["pageGapBefore"]?.GetValue<string>() ?? "0");
-            pPrPage.Append(new SpacingBetweenLines { Before = pageGapBefore.ToString(), After = "0", Line = pageLineHeight, LineRule = LineSpacingRuleValues.Exact });
-            paraPage.Append(pPrPage);
+            // Page number cell
+            var pageJustify = pageAlign == "left" ? JustificationValues.Left : JustificationValues.Right;
+            var pageCell = BuildCell((int)pageColW, pageJustify, pageBgColorVal, fiL.ToString(), "0");
+            if (showPageNumber)
+            {
+                var paraPage = new Paragraph();
+                var pPrPage = new ParagraphProperties();
+                pPrPage.Append(new Justification { Val = JustificationValues.Center });
+                pPrPage.Append(new SpacingBetweenLines { Before = "0", After = "0", Line = pageLineHeight, LineRule = LineSpacingRuleValues.Exact });
+                paraPage.Append(pPrPage);
+                var runPage = new Run();
+                runPage.Append(BuildPageRunProps());
+                runPage.Append(new Text(pageLabel + " ") { Space = SpaceProcessingModeValues.Preserve });
+                paraPage.Append(runPage);
+                var runField = new Run();
+                runField.Append(BuildPageRunProps());
+                runField.Append(new FieldChar { FieldCharType = FieldCharValues.Begin });
+                paraPage.Append(runField);
+                var runCode = new Run();
+                runCode.Append(BuildPageRunProps());
+                runCode.Append(new FieldCode(" PAGE ") { Space = SpaceProcessingModeValues.Preserve });
+                paraPage.Append(runCode);
+                var runEnd = new Run();
+                runEnd.Append(BuildPageRunProps());
+                runEnd.Append(new FieldChar { FieldCharType = FieldCharValues.End });
+                paraPage.Append(runEnd);
 
-            var pageLabel = config?["footer"]?["pageLabel"]?.GetValue<string>() ?? "Page";
-            var runPage = new Run();
-            runPage.Append(BuildPageRunProps());
-            runPage.Append(new Text(pageLabel + " ") { Space = SpaceProcessingModeValues.Preserve });
-            paraPage.Append(runPage);
+                if (pageTotal)
+                {
+                    var runOf = new Run();
+                    runOf.Append(BuildPageRunProps());
+                    runOf.Append(new Text(" of ") { Space = SpaceProcessingModeValues.Preserve });
+                    paraPage.Append(runOf);
 
-            var runField = new Run();
-            runField.Append(BuildPageRunProps());
-            runField.Append(new FieldChar { FieldCharType = FieldCharValues.Begin });
-            paraPage.Append(runField);
+                    var runTotalField = new Run();
+                    runTotalField.Append(BuildPageRunProps());
+                    runTotalField.Append(new FieldChar { FieldCharType = FieldCharValues.Begin });
+                    paraPage.Append(runTotalField);
 
-            var runCode = new Run();
-            runCode.Append(BuildPageRunProps());
-            runCode.Append(new FieldCode(" PAGE ") { Space = SpaceProcessingModeValues.Preserve });
-            paraPage.Append(runCode);
+                    var runTotalCode = new Run();
+                    runTotalCode.Append(BuildPageRunProps());
+                    runTotalCode.Append(new FieldCode(" NUMPAGES ") { Space = SpaceProcessingModeValues.Preserve });
+                    paraPage.Append(runTotalCode);
 
-            var runEnd = new Run();
-            runEnd.Append(BuildPageRunProps());
-            runEnd.Append(new FieldChar { FieldCharType = FieldCharValues.End });
-            paraPage.Append(runEnd);
+                    var runTotalEnd = new Run();
+                    runTotalEnd.Append(BuildPageRunProps());
+                    runTotalEnd.Append(new FieldChar { FieldCharType = FieldCharValues.End });
+                    paraPage.Append(runTotalEnd);
+                }
 
-            footerCell.Append(paraPage);
+                pageCell.Append(paraPage);
+            }
+            else
+            {
+                pageCell.Append(new Paragraph());
+            }
+
+            // Text cell
+            var textJustify = pageAlign == "left" ? JustificationValues.Left : JustificationValues.Right;
+            var textCell = BuildCell((int)textColW, textJustify, null, "0", fiR.ToString());
+            if (!string.IsNullOrEmpty(footerText))
+            {
+                var para = new Paragraph();
+                var pPr = new ParagraphProperties();
+                pPr.Append(new Justification { Val = textJustify });
+                pPr.Append(new SpacingBetweenLines { Before = "0", After = "0", Line = footerLineHeight, LineRule = LineSpacingRuleValues.Exact });
+                para.Append(pPr);
+                var runProps = new RunProperties(new FontSize { Val = footerFontSize }, new RunFonts { Ascii = _fontFamily, HighAnsi = _fontFamily });
+                if (textBold) runProps.Append(new Bold());
+                if (!string.IsNullOrEmpty(textColorVal)) runProps.Append(new Color { Val = NormalizarColor(textColorVal) });
+                var run = new Run();
+                run.Append(runProps);
+                var footerLines = footerText.Replace("\r\n", "\n").Replace('\r', '\n').Split('\n');
+                for (var i = 0; i < footerLines.Length; i++)
+                {
+                    if (i > 0) run.Append(new Break());
+                    run.Append(new Text(footerLines[i]) { Space = SpaceProcessingModeValues.Preserve });
+                }
+                para.Append(run);
+                textCell.Append(para);
+            }
+            else
+            {
+                textCell.Append(new Paragraph());
+            }
+
+            if (pageAlign == "left")
+            {
+                footerRow.Append(pageCell);
+                footerRow.Append(textCell);
+            }
+            else
+            {
+                footerRow.Append(textCell);
+                footerRow.Append(pageCell);
+            }
+        }
+        else
+        {
+            // Single cell: text above, page number below
+            var footerCell = new TableCell();
+            footerCell.Append(new TableCellProperties(
+                new TableCellWidth { Width = "5000", Type = TableWidthUnitValues.Pct },
+                new TableCellMargin(
+                    new TopMargin { Width = "0", Type = TableWidthUnitValues.Dxa },
+                    new BottomMargin { Width = "0", Type = TableWidthUnitValues.Dxa },
+                    new LeftMargin { Width = fiL.ToString(), Type = TableWidthUnitValues.Dxa },
+                    new RightMargin { Width = fiR.ToString(), Type = TableWidthUnitValues.Dxa }),
+                new TableCellVerticalAlignment { Val = TableVerticalAlignmentValues.Top }));
+
+            if (!string.IsNullOrEmpty(footerText))
+            {
+                var para = new Paragraph();
+                var pPr = new ParagraphProperties();
+                pPr.Append(new Justification { Val = MapAlign(footerAlign) });
+                pPr.Append(new SpacingBetweenLines { Before = "0", After = "0", Line = footerLineHeight, LineRule = LineSpacingRuleValues.Exact });
+                para.Append(pPr);
+                var run = new Run();
+                var footerRunProps = new RunProperties(new FontSize { Val = footerFontSize }, new RunFonts { Ascii = _fontFamily, HighAnsi = _fontFamily });
+                var fwVal = config?["footer"]?["fontWeight"]?.GetValue<string>();
+                var fiVal = config?["footer"]?["fontStyle"]?.GetValue<string>();
+                var ftColor = config?["footer"]?["textColor"]?.GetValue<string>();
+                if (fwVal is "bold" or "700" || (int.TryParse(fwVal, out var fwn) && fwn >= 600)) footerRunProps.Append(new Bold());
+                if (fiVal is "italic" or "oblique") footerRunProps.Append(new Italic());
+                if (!string.IsNullOrEmpty(ftColor)) footerRunProps.Append(new Color { Val = NormalizarColor(ftColor) });
+                run.Append(footerRunProps);
+                var footerLines = footerText.Replace("\r\n", "\n").Replace('\r', '\n').Split('\n');
+                for (var i = 0; i < footerLines.Length; i++)
+                {
+                    if (i > 0) run.Append(new Break());
+                    run.Append(new Text(footerLines[i]) { Space = SpaceProcessingModeValues.Preserve });
+                }
+                para.Append(run);
+                footerCell.Append(para);
+            }
+
+            if (showPageNumber)
+            {
+                var pageFontSizeHp = PtToHalfPt(config?["footer"]?["pageFontSize"]?.GetValue<string>() ?? config?["footer"]?["fontSize"]?.GetValue<string>() ?? "7pt");
+                var pageFontSizeStr = pageFontSizeHp.ToString();
+                var pageLineHeight = (pageFontSizeHp * 10).ToString();
+                var pageColorVal = config?["footer"]?["pageColor"]?.GetValue<string>();
+
+                RunProperties BuildPageRunProps()
+                {
+                    var rp = new RunProperties(new FontSize { Val = pageFontSizeStr }, new RunFonts { Ascii = _fontFamily, HighAnsi = _fontFamily });
+                    if (!string.IsNullOrEmpty(pageColorVal))
+                        rp.Append(new Color { Val = NormalizarColor(pageColorVal) });
+                    return rp;
+                }
+
+                var paraPage = new Paragraph();
+                var pPrPage = new ParagraphProperties();
+                pPrPage.Append(new Justification { Val = MapAlign(footerAlign) });
+                var pageGapBefore = CssToTwips(config?["footer"]?["pageGapBefore"]?.GetValue<string>() ?? "0");
+                pPrPage.Append(new SpacingBetweenLines { Before = pageGapBefore.ToString(), After = "0", Line = pageLineHeight, LineRule = LineSpacingRuleValues.Exact });
+                paraPage.Append(pPrPage);
+
+                var pageLabel = config?["footer"]?["pageLabel"]?.GetValue<string>() ?? "Page";
+                var runPage = new Run();
+                runPage.Append(BuildPageRunProps());
+                runPage.Append(new Text(pageLabel + " ") { Space = SpaceProcessingModeValues.Preserve });
+                paraPage.Append(runPage);
+
+                var runField = new Run();
+                runField.Append(BuildPageRunProps());
+                runField.Append(new FieldChar { FieldCharType = FieldCharValues.Begin });
+                paraPage.Append(runField);
+
+                var runCode = new Run();
+                runCode.Append(BuildPageRunProps());
+                runCode.Append(new FieldCode(" PAGE ") { Space = SpaceProcessingModeValues.Preserve });
+                paraPage.Append(runCode);
+
+                var runEnd = new Run();
+                runEnd.Append(BuildPageRunProps());
+                runEnd.Append(new FieldChar { FieldCharType = FieldCharValues.End });
+                paraPage.Append(runEnd);
+
+                footerCell.Append(paraPage);
+            }
+
+            if (!footerCell.Elements<Paragraph>().Any())
+                footerCell.Append(new Paragraph());
+
+            footerRow.Append(footerCell);
         }
 
-        if (!footerCell.Elements<Paragraph>().Any())
-            footerCell.Append(new Paragraph());
-
-        footerRow.Append(footerCell);
         footerTable.Append(footerRow);
         footer.Append(footerTable);
 
         footerPart.Footer = footer;
         footerPart.Footer.Save();
+    }
+
+    // ==================== GENERIC FOOTER TABLE ====================
+
+    private Table ConstruirTablaFooterGenerico(JsonArray jsonRows, int tableWidth, int tableInd, JsonNode? footerConfig, FooterPart footerPart, bool aplicarContainerStyle = true)
+    {
+        var defaultFontSizeHp = PtToHalfPt(footerConfig?["fontSize"]?.GetValue<string>() ?? "11pt");
+        var pageLabel      = footerConfig?["pageLabel"]?.GetValue<string>() ?? "Page";
+        var pageTotalLabel = footerConfig?["pageTotalLabel"]?.GetValue<string>() ?? "of";
+        var pageTotal      = footerConfig?["pageTotal"]?.GetValue<bool>() ?? false;
+        var pageBgColor    = footerConfig?["pageBgColor"]?.GetValue<string>();
+        var pageColor      = footerConfig?["pageColor"]?.GetValue<string>();
+        var pageColWidth   = CssToTwips(footerConfig?["pageColWidth"]?.GetValue<string>() ?? "0");
+
+        var gridColWidths = ComputarColumnasFooter(jsonRows, tableWidth, pageColWidth);
+
+        var table = new Table();
+        var tableProperties = new TableProperties(
+            new TableWidth { Width = tableWidth.ToString(), Type = TableWidthUnitValues.Dxa },
+            new TableIndentation { Width = tableInd, Type = TableWidthUnitValues.Dxa },
+            new TableLayout { Type = TableLayoutValues.Fixed });
+        if (aplicarContainerStyle)
+            AplicarContainerStyleFooter(tableProperties, footerConfig);
+        table.Append(tableProperties);
+
+        var tblGrid = new TableGrid();
+        foreach (var cw in gridColWidths) tblGrid.Append(new GridColumn { Width = cw.ToString() });
+        table.Append(tblGrid);
+
+        foreach (var jsonRow in jsonRows)
+        {
+            if (jsonRow is not JsonObject rowObj) continue;
+            var cells = rowObj["cells"]?.AsArray();
+            if (cells is null || cells.Count == 0) continue;
+
+            var tableRow = new TableRow();
+            int gridIdx = 0;
+
+            foreach (var cellNode in cells)
+            {
+                if (cellNode is null) continue;
+                var css     = ParseCss(cellNode["style"]?.GetValue<string>());
+                var cls     = cellNode["class"]?.GetValue<string>() ?? "";
+                var colspan = cellNode["colspan"]?.GetValue<int>() ?? 1;
+                var text    = cellNode["text"]?.GetValue<string>() ?? "";
+                var imgKey  = cellNode["image"]?.GetValue<string>() ?? "";
+
+                var cellWidth = 0;
+                for (int k = gridIdx; k < Math.Min(gridIdx + colspan, gridColWidths.Count); k++)
+                    cellWidth += gridColWidths[k];
+                gridIdx += colspan;
+
+                TableCell tc;
+                if (cls == "sr-pie-pagnum")
+                    tc = FooterCeldaPageNum(cellWidth, css, pageLabel, pageTotalLabel, pageTotal, pageBgColor, pageColor, defaultFontSizeHp, colspan);
+                else if (cellNode["rows"] is JsonArray nestedRows)
+                    tc = FooterCeldaConTablaInterna(nestedRows, cellWidth, css, colspan, defaultFontSizeHp, footerConfig, footerPart);
+                else if (!string.IsNullOrEmpty(imgKey))
+                    tc = FooterCeldaImagen(ResolveAssetBytes(imgKey), cellWidth, css, colspan,
+                            cellNode["imageWidth"]?.GetValue<string>() ?? "",
+                            cellNode["imageHeight"]?.GetValue<string>() ?? "", footerPart);
+                else
+                    tc = FooterCeldaTexto(text, cellWidth, css, colspan, defaultFontSizeHp);
+
+                tableRow.Append(tc);
+            }
+
+            table.Append(tableRow);
+        }
+
+        return table;
+    }
+
+    private Table ConstruirCajaTablaFooter(JsonArray jsonRows, int tableWidth, int tableInd, int boxHeight, int paddingTop, JsonNode? footerConfig, FooterPart footerPart)
+    {
+        var outerTable = new Table();
+        outerTable.Append(new TableProperties(
+            new TableWidth { Width = tableWidth.ToString(), Type = TableWidthUnitValues.Dxa },
+            new TableIndentation { Width = tableInd, Type = TableWidthUnitValues.Dxa },
+            new TableLayout { Type = TableLayoutValues.Fixed }));
+        outerTable.Append(new TableGrid(new GridColumn { Width = tableWidth.ToString() }));
+
+        var outerRow = new TableRow();
+        if (boxHeight > 0)
+        {
+            outerRow.Append(new TableRowProperties(
+                new TableRowHeight { Val = (uint)boxHeight, HeightType = HeightRuleValues.Exact }));
+        }
+
+        var outerCell = new TableCell();
+        outerCell.Append(new TableCellProperties(
+            new TableCellWidth { Width = tableWidth.ToString(), Type = TableWidthUnitValues.Dxa },
+            new TableCellMargin(
+                new TopMargin { Width = paddingTop.ToString(), Type = TableWidthUnitValues.Dxa },
+                new BottomMargin { Width = "0", Type = TableWidthUnitValues.Dxa },
+                new LeftMargin { Width = "0", Type = TableWidthUnitValues.Dxa },
+                new RightMargin { Width = "0", Type = TableWidthUnitValues.Dxa }),
+            new TableCellVerticalAlignment { Val = TableVerticalAlignmentValues.Center }));
+
+        outerCell.Append(ConstruirTablaFooterGenerico(jsonRows, tableWidth, 0, footerConfig, footerPart));
+        outerCell.Append(CrearParrafoCero());
+        outerRow.Append(outerCell);
+        outerTable.Append(outerRow);
+        return outerTable;
+    }
+
+    private List<int> ComputarColumnasFooter(JsonArray rows, int tableWidth, int pageColWidth)
+    {
+        JsonArray? refRow = null;
+        int bestGridCols = 0;
+        foreach (var row in rows)
+        {
+            if (row is not JsonObject ro) continue;
+            var cells = ro["cells"]?.AsArray();
+            if (cells == null) continue;
+            int count = cells.Sum(c => c?["colspan"]?.GetValue<int>() ?? 1);
+            if (count > bestGridCols) { bestGridCols = count; refRow = cells; }
+        }
+
+        if (refRow == null || bestGridCols == 0) return [tableWidth];
+
+        var widths = new int[bestGridCols];
+        int usedFixed = 0;
+        var autoIndices = new List<int>();
+        int gi = 0;
+
+        foreach (var cellNode in refRow)
+        {
+            if (cellNode == null) continue;
+            var colspan = cellNode["colspan"]?.GetValue<int>() ?? 1;
+            var cls = cellNode["class"]?.GetValue<string>() ?? "";
+            var css = ParseCss(cellNode["style"]?.GetValue<string>());
+
+            int w = cls == "sr-pie-pagnum" && pageColWidth > 0
+                ? pageColWidth
+                : CssToTwips(css.GetValueOrDefault("width", "0"));
+
+            int perCol = colspan > 0 ? w / colspan : 0;
+            for (int k = gi; k < gi + colspan && k < bestGridCols; k++)
+            {
+                widths[k] = perCol;
+                if (perCol == 0) autoIndices.Add(k);
+                else usedFixed += perCol;
+            }
+            gi += colspan;
+        }
+
+        if (autoIndices.Count > 0)
+        {
+            int autoW = Math.Max(0, tableWidth - usedFixed) / autoIndices.Count;
+            foreach (var idx in autoIndices) widths[idx] = autoW;
+        }
+
+        return [.. widths];
+    }
+
+    private TableCell FooterCeldaPageNum(int cellWidth, Dictionary<string, string> css, string pageLabel, string pageTotalLabel, bool pageTotal, string? pageBgColor, string? pageColor, int defaultFontSizeHp, int colspan)
+    {
+        var hp = css.TryGetValue("font-size", out var fs) ? PtToHalfPt(fs) : defaultFontSizeHp;
+        var lineH = (hp * 10).ToString();
+        var (padT, padR, padB, padL) = ObtenerPadding(css);
+
+        var tcPr = new TableCellProperties(
+            new TableCellWidth { Width = cellWidth.ToString(), Type = TableWidthUnitValues.Dxa },
+            new TableCellMargin(
+                new TopMargin    { Width = padT.ToString(), Type = TableWidthUnitValues.Dxa },
+                new BottomMargin { Width = padB.ToString(), Type = TableWidthUnitValues.Dxa },
+                new LeftMargin   { Width = padL.ToString(), Type = TableWidthUnitValues.Dxa },
+                new RightMargin  { Width = padR.ToString(), Type = TableWidthUnitValues.Dxa }),
+            new TableCellVerticalAlignment { Val = TableVerticalAlignmentValues.Center });
+        if (colspan > 1) tcPr.Append(new GridSpan { Val = colspan });
+        if (!string.IsNullOrEmpty(pageBgColor))
+            tcPr.Append(new Shading { Val = ShadingPatternValues.Clear, Color = "auto", Fill = NormalizarColor(pageBgColor) });
+
+        var tc = new TableCell();
+        tc.Append(tcPr);
+
+        RunProperties BuildRp()
+        {
+            var rp = new RunProperties(new FontSize { Val = hp.ToString() }, new RunFonts { Ascii = _fontFamily, HighAnsi = _fontFamily });
+            if (!string.IsNullOrEmpty(pageColor)) rp.Append(new Color { Val = NormalizarColor(pageColor) });
+            return rp;
+        }
+
+        var para = new Paragraph();
+        para.Append(new ParagraphProperties(
+            new Justification { Val = JustificationValues.Center },
+            new SpacingBetweenLines { Before = "0", After = "0", Line = lineH, LineRule = LineSpacingRuleValues.Exact }));
+
+        var r1 = new Run(); r1.Append(BuildRp()); r1.Append(new Text(pageLabel + " ") { Space = SpaceProcessingModeValues.Preserve }); para.Append(r1);
+        var r2 = new Run(); r2.Append(BuildRp()); r2.Append(new FieldChar { FieldCharType = FieldCharValues.Begin }); para.Append(r2);
+        var r3 = new Run(); r3.Append(BuildRp()); r3.Append(new FieldCode(" PAGE ") { Space = SpaceProcessingModeValues.Preserve }); para.Append(r3);
+        var r4 = new Run(); r4.Append(BuildRp()); r4.Append(new FieldChar { FieldCharType = FieldCharValues.End }); para.Append(r4);
+
+        if (pageTotal)
+        {
+            var r5 = new Run(); r5.Append(BuildRp()); r5.Append(new Text(" " + pageTotalLabel + " ") { Space = SpaceProcessingModeValues.Preserve }); para.Append(r5);
+            var r6 = new Run(); r6.Append(BuildRp()); r6.Append(new FieldChar { FieldCharType = FieldCharValues.Begin }); para.Append(r6);
+            var r7 = new Run(); r7.Append(BuildRp()); r7.Append(new FieldCode(" NUMPAGES ") { Space = SpaceProcessingModeValues.Preserve }); para.Append(r7);
+            var r8 = new Run(); r8.Append(BuildRp()); r8.Append(new FieldChar { FieldCharType = FieldCharValues.End }); para.Append(r8);
+        }
+
+        tc.Append(para);
+        return tc;
+    }
+
+    private TableCell FooterCeldaTexto(string text, int cellWidth, Dictionary<string, string> css, int colspan, int defaultFontSizeHp)
+    {
+        var hp   = css.TryGetValue("font-size", out var fs) ? PtToHalfPt(fs) : defaultFontSizeHp;
+        var lineH = (hp * 10).ToString();
+        var bold = css.TryGetValue("font-weight", out var fw) && (fw == "bold" || fw == "700");
+        var vAlign = css.TryGetValue("vertical-align", out var va) && va == "middle"
+            ? TableVerticalAlignmentValues.Center : TableVerticalAlignmentValues.Top;
+        var (padT, padR, padB, padL) = ObtenerPadding(css);
+
+        var tcPr = new TableCellProperties(
+            new TableCellWidth { Width = cellWidth.ToString(), Type = TableWidthUnitValues.Dxa },
+            new TableCellMargin(
+                new TopMargin    { Width = padT.ToString(), Type = TableWidthUnitValues.Dxa },
+                new BottomMargin { Width = padB.ToString(), Type = TableWidthUnitValues.Dxa },
+                new LeftMargin   { Width = padL.ToString(), Type = TableWidthUnitValues.Dxa },
+                new RightMargin  { Width = padR.ToString(), Type = TableWidthUnitValues.Dxa }),
+            new TableCellVerticalAlignment { Val = vAlign });
+        if (colspan > 1) tcPr.Append(new GridSpan { Val = colspan });
+        if (css.TryGetValue("background-color", out var bg))
+            tcPr.Append(new Shading { Val = ShadingPatternValues.Clear, Color = "auto", Fill = NormalizarColor(bg) });
+
+        var tc = new TableCell();
+        tc.Append(tcPr);
+
+        var para = new Paragraph();
+        var pPr = new ParagraphProperties(
+            new SpacingBetweenLines { Before = "0", After = "0", Line = lineH, LineRule = LineSpacingRuleValues.Exact });
+        if (css.TryGetValue("text-align", out var ta)) pPr.Append(new Justification { Val = MapAlign(ta) });
+        para.Append(pPr);
+
+        var rp = new RunProperties(new FontSize { Val = hp.ToString() }, new RunFonts { Ascii = _fontFamily, HighAnsi = _fontFamily });
+        if (bold) rp.Append(new Bold());
+        if (css.TryGetValue("color", out var color)) rp.Append(new Color { Val = NormalizarColor(color) });
+
+        var run = new Run();
+        run.Append(rp);
+        var lines = text.Replace("\r\n", "\n").Replace('\r', '\n').Split('\n');
+        for (int i = 0; i < lines.Length; i++)
+        {
+            if (i > 0) run.Append(new Break());
+            run.Append(new Text(lines[i]) { Space = SpaceProcessingModeValues.Preserve });
+        }
+        para.Append(run);
+        tc.Append(para);
+        return tc;
+    }
+
+    private TableCell FooterCeldaImagen(byte[]? imgBytes, int cellWidth, Dictionary<string, string> css, int colspan, string imgWidthStr, string imgHeightStr, FooterPart footerPart)
+    {
+        var vAlign = css.TryGetValue("vertical-align", out var va) && va == "middle"
+            ? TableVerticalAlignmentValues.Center : TableVerticalAlignmentValues.Top;
+        var (padT, padR, padB, padL) = ObtenerPadding(css);
+
+        var tcPr = new TableCellProperties(
+            new TableCellWidth { Width = cellWidth.ToString(), Type = TableWidthUnitValues.Dxa },
+            new TableCellMargin(
+                new TopMargin    { Width = padT.ToString(), Type = TableWidthUnitValues.Dxa },
+                new BottomMargin { Width = padB.ToString(), Type = TableWidthUnitValues.Dxa },
+                new LeftMargin   { Width = padL.ToString(), Type = TableWidthUnitValues.Dxa },
+                new RightMargin  { Width = padR.ToString(), Type = TableWidthUnitValues.Dxa }),
+            new TableCellVerticalAlignment { Val = vAlign });
+        if (colspan > 1) tcPr.Append(new GridSpan { Val = colspan });
+
+        var tc = new TableCell();
+        tc.Append(tcPr);
+
+        if (imgBytes is { Length: > 0 })
+        {
+            var targetW = !string.IsNullOrEmpty(imgWidthStr) ? CssToEmu(imgWidthStr) : CssToEmu("1in");
+            var targetH = !string.IsNullOrEmpty(imgHeightStr) ? CssToEmu(imgHeightStr) : CssToEmu("0.5in");
+            var (iW, iH) = AjustarImagenContain(imgBytes, targetW, targetH);
+
+            var imgPart = imgBytes.Length >= 2 && imgBytes[0] == 0xFF && imgBytes[1] == 0xD8
+                ? footerPart.AddImagePart(ImagePartType.Jpeg)
+                : footerPart.AddImagePart(ImagePartType.Png);
+            using (var s = new MemoryStream(imgBytes)) imgPart.FeedData(s);
+            var relId   = footerPart.GetIdOfPart(imgPart);
+            var drawId  = (uint)_nextDrawingId++;
+
+            var picture = new PIC.Picture(
+                new PIC.NonVisualPictureProperties(
+                    new PIC.NonVisualDrawingProperties { Id = 0, Name = "footer-img.png" },
+                    new PIC.NonVisualPictureDrawingProperties()),
+                new PIC.BlipFill(new A.Blip { Embed = relId }, new A.Stretch(new A.FillRectangle())),
+                new PIC.ShapeProperties(
+                    new A.Transform2D(new A.Offset { X = 0, Y = 0 }, new A.Extents { Cx = iW, Cy = iH }),
+                    new A.PresetGeometry(new A.AdjustValueList()) { Preset = A.ShapeTypeValues.Rectangle }));
+
+            var align = css.TryGetValue("text-align", out var ta) ? MapAlign(ta) : JustificationValues.Right;
+            var lineHeight = Math.Max(1, (int)Math.Ceiling(iH / 635.0));
+            var para = new Paragraph();
+            para.Append(new ParagraphProperties(
+                new Justification { Val = align },
+                new SpacingBetweenLines { Before = "0", After = "0", Line = lineHeight.ToString(), LineRule = LineSpacingRuleValues.AtLeast }));
+            var run = new Run();
+            run.Append(new RunProperties(new NoProof(), new FontSize { Val = "1" }));
+            run.Append(new Drawing(
+                new DW.Inline(
+                    new DW.Extent { Cx = iW, Cy = iH },
+                    new DW.EffectExtent { LeftEdge = 0, TopEdge = 0, RightEdge = 0, BottomEdge = 0 },
+                    new DW.DocProperties { Id = drawId, Name = "footer-img" },
+                    new DW.NonVisualGraphicFrameDrawingProperties(new A.GraphicFrameLocks { NoChangeAspect = true }),
+                    new A.Graphic(new A.GraphicData(picture) { Uri = "http://schemas.openxmlformats.org/drawingml/2006/picture" }))));
+            para.Append(run);
+            tc.Append(para);
+        }
+        else
+        {
+            tc.Append(new Paragraph());
+        }
+
+        return tc;
+    }
+
+    private TableCell FooterCeldaConTablaInterna(JsonArray nestedRows, int cellWidth, Dictionary<string, string> css, int colspan, int defaultFontSizeHp, JsonNode? footerConfig, FooterPart footerPart)
+    {
+        var vAlign = css.TryGetValue("vertical-align", out var va) && va == "middle"
+            ? TableVerticalAlignmentValues.Center : TableVerticalAlignmentValues.Top;
+
+        var tcPr = new TableCellProperties(
+            new TableCellWidth { Width = cellWidth.ToString(), Type = TableWidthUnitValues.Dxa },
+            new TableCellMargin(
+                new TopMargin    { Width = "0", Type = TableWidthUnitValues.Dxa },
+                new BottomMargin { Width = "0", Type = TableWidthUnitValues.Dxa },
+                new LeftMargin   { Width = "0", Type = TableWidthUnitValues.Dxa },
+                new RightMargin  { Width = "0", Type = TableWidthUnitValues.Dxa }),
+            new TableCellVerticalAlignment { Val = vAlign });
+        if (colspan > 1) tcPr.Append(new GridSpan { Val = colspan });
+
+        var tc = new TableCell();
+        tc.Append(tcPr);
+        tc.Append(ConstruirTablaFooterGenerico(nestedRows, cellWidth, 0, footerConfig, footerPart, aplicarContainerStyle: false));
+        tc.Append(CrearParrafoCero());
+        return tc;
+    }
+
+    private static Paragraph CrearParrafoCero()
+    {
+        return new Paragraph(
+            new ParagraphProperties(
+                new SpacingBetweenLines { Before = "0", After = "0", Line = "1", LineRule = LineSpacingRuleValues.Exact }),
+            new Run(new RunProperties(new FontSize { Val = "1" }), new Text("")));
+    }
+
+    private static Paragraph CrearParrafoAlto(int height)
+    {
+        return new Paragraph(
+            new ParagraphProperties(
+                new SpacingBetweenLines { Before = "0", After = "0", Line = height.ToString(), LineRule = LineSpacingRuleValues.Exact }),
+            new Run(new RunProperties(new FontSize { Val = "1" }), new Text("")));
+    }
+
+    private static void AplicarContainerStyleFooter(TableProperties tableProperties, JsonNode? footerConfig)
+    {
+        var css = ParseCss(footerConfig?["containerStyle"]?.GetValue<string>());
+        if (css.Count == 0) return;
+
+        if (css.TryGetValue("background-color", out var bgColor))
+            tableProperties.Append(new Shading { Val = ShadingPatternValues.Clear, Color = "auto", Fill = NormalizarColor(bgColor) });
+
+        if (css.TryGetValue("border", out var border) && EsBordeVisible(border))
+        {
+            var (size, color) = ObtenerBorde(border);
+            tableProperties.Append(new TableBorders(
+                CrearTopBorder(BorderValues.Single, size, color, false),
+                CrearBottomBorder(BorderValues.Single, size, color, false),
+                CrearLeftBorder(BorderValues.Single, size, color, false),
+                CrearRightBorder(BorderValues.Single, size, color, false),
+                new InsideHorizontalBorder { Val = BorderValues.Nil },
+                new InsideVerticalBorder { Val = BorderValues.Nil }));
+            return;
+        }
+
+        css.TryGetValue("border-top", out var top);
+        css.TryGetValue("border-bottom", out var bottom);
+        css.TryGetValue("border-left", out var left);
+        css.TryGetValue("border-right", out var right);
+        if (top == null && bottom == null && left == null && right == null) return;
+
+        tableProperties.Append(new TableBorders(
+            top != null && EsBordeVisible(top) ? CrearTopBorder(BorderValues.Single, ObtenerBorde(top).Size, ObtenerBorde(top).Color, false) : new TopBorder { Val = BorderValues.Nil },
+            bottom != null && EsBordeVisible(bottom) ? CrearBottomBorder(BorderValues.Single, ObtenerBorde(bottom).Size, ObtenerBorde(bottom).Color, false) : new BottomBorder { Val = BorderValues.Nil },
+            left != null && EsBordeVisible(left) ? CrearLeftBorder(BorderValues.Single, ObtenerBorde(left).Size, ObtenerBorde(left).Color, false) : new LeftBorder { Val = BorderValues.Nil },
+            right != null && EsBordeVisible(right) ? CrearRightBorder(BorderValues.Single, ObtenerBorde(right).Size, ObtenerBorde(right).Color, false) : new RightBorder { Val = BorderValues.Nil },
+            new InsideHorizontalBorder { Val = BorderValues.Nil },
+            new InsideVerticalBorder { Val = BorderValues.Nil }));
     }
 
     private void AgregarSectionProperties(Body body, MainDocumentPart mainPart, JsonNode? config)
@@ -835,6 +1576,11 @@ public partial class DocxGeneratorService
         var headerDistance = Math.Max(0, mt - logoHeight - headerGap - headerMarginTop);
         var footerGapBefore = CssToTwips(config["footer"]?["gapBefore"]?.GetValue<string>() ?? "0");
         var footerMarginBottom = CssToTwips(config["footer"]?["marginBottom"]?.GetValue<string>() ?? "0");
+        var footerLayout = config["footer"]?["layout"]?.GetValue<string>() ?? "";
+        var footerRows = config["footer"]?["rows"]?.AsArray();
+        var footerDistance = footerLayout == "table" && footerMarginBottom == 0 && footerRows != null
+            ? Math.Max(0, mb - EstimarAltoTablaFooter(footerRows, config["footer"]) - footerGapBefore)
+            : footerMarginBottom;
 
         var secPr = new SectionProperties();
         secPr.Append(new PageSize { Width = (uint)pageW, Height = (uint)pageH });
@@ -845,7 +1591,7 @@ public partial class DocxGeneratorService
             Left = (uint)ml,
             Right = (uint)mr,
             Header = (uint)headerDistance,
-            Footer = (uint)footerMarginBottom
+            Footer = (uint)footerDistance
         });
 
         // Page border
@@ -869,16 +1615,76 @@ public partial class DocxGeneratorService
         }
 
         // Link header
-        var headerPart = mainPart.HeaderParts.FirstOrDefault();
+        var headerPart = mainPart.HeaderParts.FirstOrDefault(p => p != _firstHeaderPart);
         if (headerPart != null)
             secPr.InsertAt(new HeaderReference { Type = HeaderFooterValues.Default, Id = mainPart.GetIdOfPart(headerPart) }, 0);
 
-        // Link footer
-        var footerPart = mainPart.FooterParts.FirstOrDefault();
-        if (footerPart != null)
-            secPr.InsertAt(new FooterReference { Type = HeaderFooterValues.Default, Id = mainPart.GetIdOfPart(footerPart) }, 0);
+        if (_firstHeaderPart != null)
+        {
+            secPr.InsertAt(new HeaderReference { Type = HeaderFooterValues.First, Id = mainPart.GetIdOfPart(_firstHeaderPart) }, 0);
+            if (_firstFooterPart is null)
+                secPr.InsertAt(new TitlePage(), 0);
+        }
+
+        // Link footer(s)
+        if (_defaultFooterPart != null)
+        {
+            secPr.InsertAt(new FooterReference { Type = HeaderFooterValues.Default, Id = mainPart.GetIdOfPart(_defaultFooterPart) }, 0);
+        }
+
+        if (_firstFooterPart != null)
+        {
+            secPr.InsertAt(new FooterReference { Type = HeaderFooterValues.First, Id = mainPart.GetIdOfPart(_firstFooterPart) }, 0);
+            secPr.InsertAt(new TitlePage(), 0);
+        }
 
         body.Append(secPr);
+    }
+
+    private static int EstimarAltoTablaFooter(JsonArray rows, JsonNode? footerConfig)
+    {
+        var defaultFontSizeHp = PtToHalfPt(footerConfig?["fontSize"]?.GetValue<string>() ?? "11pt");
+        var total = 0;
+
+        foreach (var rowNode in rows)
+        {
+            if (rowNode is not JsonObject rowObj) continue;
+            var cells = rowObj["cells"]?.AsArray();
+            if (cells is null || cells.Count == 0) continue;
+
+            var rowHeight = 0;
+            foreach (var cell in cells)
+            {
+                if (cell is null) continue;
+                rowHeight = Math.Max(rowHeight, EstimarAltoCeldaFooter(cell, defaultFontSizeHp, footerConfig));
+            }
+            total += rowHeight;
+        }
+
+        return total;
+    }
+
+    private static int EstimarAltoCeldaFooter(JsonNode cell, int defaultFontSizeHp, JsonNode? footerConfig)
+    {
+        var css = ParseCss(cell["style"]?.GetValue<string>());
+        var (padT, _, padB, _) = ObtenerPadding(css);
+
+        var contentHeight = 0;
+        if (cell["rows"] is JsonArray nestedRows)
+        {
+            contentHeight = EstimarAltoTablaFooter(nestedRows, footerConfig);
+        }
+        else if (!string.IsNullOrWhiteSpace(cell["image"]?.GetValue<string>()))
+        {
+            contentHeight = CssToTwips(cell["imageHeight"]?.GetValue<string>() ?? "0.35in");
+        }
+        else
+        {
+            var hp = css.TryGetValue("font-size", out var fs) ? PtToHalfPt(fs) : defaultFontSizeHp;
+            contentHeight = hp * 10;
+        }
+
+        return padT + contentHeight + padB;
     }
 
     private void AgregarTablaConMargen(Body body, Table table, Dictionary<string, string> tblCss)
@@ -1000,17 +1806,21 @@ public partial class DocxGeneratorService
         // Borders
         bool esTablaOutset = false;
         var tableBorderShadow = css.ContainsKey("box-shadow");
+        var collapseBorders = EsBorderCollapseCollapse(css);
         if (css.TryGetValue("border", out var tableBorder) && EsBordeVisible(tableBorder))
         {
             var (size, color) = ObtenerBorde(tableBorder);
-            tPr.Append(new TableBorders(
+            var borders = new TableBorders(
                 CrearTopBorder(BorderValues.Single, size, color, tableBorderShadow),
                 CrearBottomBorder(BorderValues.Single, size, color, tableBorderShadow),
                 CrearLeftBorder(BorderValues.Single, size, color, tableBorderShadow),
-                CrearRightBorder(BorderValues.Single, size, color, tableBorderShadow),
-                new InsideHorizontalBorder { Val = BorderValues.Single, Size = size, Space = 0, Color = color },
-                new InsideVerticalBorder { Val = BorderValues.Single, Size = size, Space = 0, Color = color }
-            ));
+                CrearRightBorder(BorderValues.Single, size, color, tableBorderShadow));
+            if (collapseBorders)
+            {
+                borders.Append(new InsideHorizontalBorder { Val = BorderValues.Single, Size = size, Space = 0, Color = color });
+                borders.Append(new InsideVerticalBorder { Val = BorderValues.Single, Size = size, Space = 0, Color = color });
+            }
+            tPr.Append(borders);
         }
         else
         {
@@ -1032,14 +1842,17 @@ public partial class DocxGeneratorService
                 var tblVal = esTablaOutset ? BorderValues.ThreeDEmboss : BorderValues.Single;
                 var tblCol = esTablaOutset ? "auto" : (bottomColor ?? topColor ?? "000000");
                 var tblSizeDocx = esTablaOutset ? ObtenerTamanoBordeOutsetDocx(css, tblSize) : tblSize;
-                tPr.Append(new TableBorders(
+                var borders = new TableBorders(
                     CrearTopBorder(tblVal, tblSizeDocx, tblCol, tableBorderShadow),
                     CrearBottomBorder(tblVal, tblSizeDocx, tblCol, tableBorderShadow),
                     CrearLeftBorder(tblVal, tblSizeDocx, tblCol, tableBorderShadow),
-                    CrearRightBorder(tblVal, tblSizeDocx, tblCol, tableBorderShadow),
-                    new InsideHorizontalBorder { Val = tblVal, Size = tblSizeDocx, Space = 0, Color = tblCol },
-                    new InsideVerticalBorder { Val = tblVal, Size = tblSizeDocx, Space = 0, Color = tblCol }
-                ));
+                    CrearRightBorder(tblVal, tblSizeDocx, tblCol, tableBorderShadow));
+                if (collapseBorders)
+                {
+                    borders.Append(new InsideHorizontalBorder { Val = tblVal, Size = tblSizeDocx, Space = 0, Color = tblCol });
+                    borders.Append(new InsideVerticalBorder { Val = tblVal, Size = tblSizeDocx, Space = 0, Color = tblCol });
+                }
+                tPr.Append(borders);
             }
         }
 
@@ -1139,14 +1952,16 @@ public partial class DocxGeneratorService
             tcPr.Append(new Shading { Val = ShadingPatternValues.Clear, Color = "auto", Fill = NormalizarColor(bgColor) });
 
         var (padTop, padRight, padBottom, padLeft) = ObtenerPadding(css);
+        var cellVerticalAlign = ObtenerAlineacionVerticalCelda(css);
+        var useParagraphTopPadding = cellVerticalAlign == TableVerticalAlignmentValues.Top;
         tcPr.Append(new TableCellMargin(
-            new TopMargin { Width = padTop.ToString(), Type = TableWidthUnitValues.Dxa },
+            new TopMargin { Width = useParagraphTopPadding ? "0" : padTop.ToString(), Type = TableWidthUnitValues.Dxa },
             new BottomMargin { Width = padBottom.ToString(), Type = TableWidthUnitValues.Dxa },
             new LeftMargin { Width = padLeft.ToString(), Type = TableWidthUnitValues.Dxa },
             new RightMargin { Width = padRight.ToString(), Type = TableWidthUnitValues.Dxa }
         ));
 
-        tcPr.Append(new TableCellVerticalAlignment { Val = TableVerticalAlignmentValues.Top });
+        tcPr.Append(new TableCellVerticalAlignment { Val = cellVerticalAlign });
         tc.Append(tcPr);
 
         var hp = css != null && css.TryGetValue("font-size", out var fs) ? PtToHalfPt(fs) : _fontSizeHp;
@@ -1156,7 +1971,7 @@ public partial class DocxGeneratorService
         var pPr = new ParagraphProperties();
         pPr.Append(new SpacingBetweenLines
         {
-            Before = "0",
+            Before = useParagraphTopPadding ? padTop.ToString() : "0",
             After = "0",
             Line = CssLineSpacing(css, hp).ToString(),
             LineRule = LineSpacingRuleValues.Exact
@@ -1171,12 +1986,23 @@ public partial class DocxGeneratorService
         if (imageBytes is not null && imageBytes.Length > 0 && _mainPart is not null)
         {
             var bgSize = css?.GetValueOrDefault("background-size", "auto auto") ?? "auto auto";
+            var isContainSize = bgSize.Trim().Equals("contain", StringComparison.OrdinalIgnoreCase);
             var sizeParts = bgSize.Trim().Split(' ');
             var hPart = sizeParts.Length >= 2 ? sizeParts[1] : "auto";
             var wPart = sizeParts.Length >= 1 ? sizeParts[0] : "auto";
 
-            long targetH, targetW;
-            if (hPart.EndsWith("%") && double.TryParse(hPart.TrimEnd('%'),
+            long targetH, targetW = long.MaxValue / 2;
+            if (isContainSize)
+            {
+                targetW = widthTwips > 0 ? widthTwips * 635L : long.MaxValue / 2;
+                targetH = CssToEmu(css?.GetValueOrDefault("height", "") ?? "");
+                if (targetH <= 0)
+                {
+                    var lineHEmu = (long)(hp / 2.0 * 12700 * _lineSpacingMultiplier);
+                    targetH = lineHEmu + (long)((padTop + padBottom) * 635L);
+                }
+            }
+            else if (hPart.EndsWith("%") && double.TryParse(hPart.TrimEnd('%'),
                     System.Globalization.NumberStyles.Any,
                     System.Globalization.CultureInfo.InvariantCulture, out var pct))
             {
@@ -1192,9 +2018,12 @@ public partial class DocxGeneratorService
                 targetH = (long)((lineHEmu + (long)((padTop + padBottom) * 635L)) * 0.7);
             }
 
-            targetW = wPart.Equals("auto", StringComparison.OrdinalIgnoreCase)
-                ? long.MaxValue / 2
-                : CssToEmu(wPart);
+            if (!isContainSize)
+            {
+                targetW = wPart.Equals("auto", StringComparison.OrdinalIgnoreCase)
+                    ? long.MaxValue / 2
+                    : CssToEmu(wPart);
+            }
 
             var (imgW, imgH) = AjustarImagenContain(imageBytes, targetW, targetH);
 
@@ -1207,10 +2036,14 @@ public partial class DocxGeneratorService
             var relId = _mainPart.GetIdOfPart(imgPart);
             var drawId = _nextDrawingId++;
 
-            var bgPosParts = (css?.GetValueOrDefault("background-position", "center center") ?? "center center")
-                .Trim().Split(' ');
-            var bgPosX = bgPosParts.Length > 0 ? bgPosParts[0] : "center";
-            var isMode3 = !bgPosX.Equals("center", StringComparison.OrdinalIgnoreCase);
+            var bgPosition = ObtenerPosicionFondoDocx(
+                css?.GetValueOrDefault("background-position", "center center"),
+                widthTwips,
+                imgW,
+                imgH);
+            var isMode3 = isContainSize
+                || !bgPosition.XKeyword.Equals("center", StringComparison.OrdinalIgnoreCase)
+                || !bgPosition.YKeyword.Equals("center", StringComparison.OrdinalIgnoreCase);
 
             var picture = new PIC.Picture(
                 new PIC.NonVisualPictureProperties(
@@ -1233,14 +2066,17 @@ public partial class DocxGeneratorService
             Drawing imgDrawing;
             if (isMode3)
             {
-                var posXEmu = CssToEmu(bgPosX);
+                OpenXmlElement verticalPositionChild = bgPosition.YKeyword.Equals("center", StringComparison.OrdinalIgnoreCase)
+                    ? new DW.VerticalAlignment { Text = "center" }
+                    : new DW.PositionOffset(bgPosition.YOffsetEmu.ToString());
+
                 imgDrawing = new Drawing(
                     new DW.Anchor(
                         new DW.SimplePosition { X = 0, Y = 0 },
-                        new DW.HorizontalPosition(new DW.PositionOffset(posXEmu.ToString()))
+                        new DW.HorizontalPosition(new DW.PositionOffset(bgPosition.XOffsetEmu.ToString()))
                             { RelativeFrom = DW.HorizontalRelativePositionValues.Column },
-                        new DW.VerticalPosition(new DW.VerticalAlignment { Text = "center" })
-                            { RelativeFrom = DW.VerticalRelativePositionValues.Line },
+                        new DW.VerticalPosition(verticalPositionChild)
+                            { RelativeFrom = DW.VerticalRelativePositionValues.Paragraph },
                         new DW.Extent { Cx = imgW, Cy = imgH },
                         new DW.EffectExtent { LeftEdge = 0, TopEdge = 0, RightEdge = 0, BottomEdge = 0 },
                         new DW.WrapNone(),
@@ -1292,6 +2128,84 @@ public partial class DocxGeneratorService
         return row;
     }
 
+    private static void AplicarAltoFila(TableRow row, int heightTwips)
+    {
+        if (heightTwips <= 0) return;
+
+        var properties = row.GetFirstChild<TableRowProperties>();
+        if (properties == null)
+        {
+            properties = new TableRowProperties();
+            row.PrependChild(properties);
+        }
+
+        properties.Append(new TableRowHeight
+        {
+            Val = (uint)heightTwips,
+            HeightType = HeightRuleValues.Exact
+        });
+    }
+
+    private static (string XKeyword, long XOffsetEmu, string YKeyword, long YOffsetEmu) ObtenerPosicionFondoDocx(
+        string? backgroundPosition,
+        int cellWidthTwips,
+        long imageWidthEmu,
+        long imageHeightEmu)
+    {
+        var parts = (backgroundPosition ?? "center center")
+            .Trim()
+            .Split(' ', StringSplitOptions.RemoveEmptyEntries);
+
+        var xKeyword = parts.Length > 0 ? parts[0] : "center";
+        var xInset = parts.Length > 1 && EsLongitudCss(parts[1]) ? CssToEmu(parts[1]) : 0;
+        var yKeyword = "center";
+        var yInset = 0L;
+
+        if (parts.Length >= 4)
+        {
+            yKeyword = parts[2];
+            yInset = EsLongitudCss(parts[3]) ? CssToEmu(parts[3]) : 0;
+        }
+        else if (parts.Length >= 2 && !EsLongitudCss(parts[1]))
+        {
+            yKeyword = parts[1];
+        }
+
+        var cellWidthEmu = cellWidthTwips > 0 ? cellWidthTwips * 635L : 0;
+        var xOffset = xKeyword.ToLowerInvariant() switch
+        {
+            "right" when cellWidthEmu > 0 => Math.Max(0, cellWidthEmu - imageWidthEmu - xInset),
+            "center" when cellWidthEmu > 0 => Math.Max(0, (cellWidthEmu - imageWidthEmu) / 2),
+            "left" => xInset,
+            _ when EsLongitudCss(xKeyword) => CssToEmu(xKeyword),
+            _ => 0
+        };
+
+        var yOffset = yKeyword.ToLowerInvariant() switch
+        {
+            "top" => yInset,
+            _ when EsLongitudCss(yKeyword) => CssToEmu(yKeyword),
+            _ => 0
+        };
+
+        return (xKeyword, xOffset, yKeyword, yOffset);
+    }
+
+    private static bool EsLongitudCss(string value) =>
+        Regex.IsMatch(value, @"^[\d.]+\s*(in|pt|px)?$", RegexOptions.IgnoreCase);
+
+    private static TableVerticalAlignmentValues ObtenerAlineacionVerticalCelda(Dictionary<string, string>? css)
+    {
+        var verticalAlign = css?.GetValueOrDefault("vertical-align")?.ToLowerInvariant();
+        return verticalAlign switch
+        {
+            "middle" => TableVerticalAlignmentValues.Center,
+            "center" => TableVerticalAlignmentValues.Center,
+            "bottom" => TableVerticalAlignmentValues.Bottom,
+            _ => TableVerticalAlignmentValues.Top
+        };
+    }
+
     private RunProperties CrearRunProperties(Dictionary<string, string>? css)
     {
         var properties = new RunProperties();
@@ -1338,7 +2252,8 @@ public partial class DocxGeneratorService
 
     private Dictionary<string, string> CombinarCssHeredable(
         Dictionary<string, string> parent,
-        Dictionary<string, string>? child)
+        Dictionary<string, string>? child,
+        bool inheritBorder = true)
     {
         string[] inheritedProperties =
         [
@@ -1348,8 +2263,12 @@ public partial class DocxGeneratorService
 
         var result = new Dictionary<string, string>();
         foreach (var property in inheritedProperties)
+        {
+            if (property == "border" && !inheritBorder)
+                continue;
             if (parent.TryGetValue(property, out var value))
                 result[property] = value;
+        }
 
         if (child != null)
             foreach (var pair in child)
@@ -1357,6 +2276,12 @@ public partial class DocxGeneratorService
 
         return result;
     }
+
+    private static bool EsBorderCollapseCollapse(Dictionary<string, string> css) =>
+        css.GetValueOrDefault("border-collapse", "").Equals("collapse", StringComparison.OrdinalIgnoreCase);
+
+    private static bool HeredarBordeTablaEnCeldas(Dictionary<string, string> css) =>
+        EsBorderCollapseCollapse(css);
 
     private string ObtenerFamiliaFuente(Dictionary<string, string>? css)
     {
@@ -1783,13 +2708,14 @@ public partial class DocxGeneratorService
 
     private static long CssToEmu(string value)
     {
-        var m = Regex.Match(value, @"([\d.]+)\s*(in|pt|)");
+        var m = Regex.Match(value, @"([\d.]+)\s*(in|pt|px|)");
         if (!m.Success || !double.TryParse(m.Groups[1].Value, System.Globalization.NumberStyles.Any, System.Globalization.CultureInfo.InvariantCulture, out var num))
             return 0;
         return m.Groups[2].Value switch
         {
             "in" => (long)(num * 914400),
             "pt" => (long)(num * 12700),
+            "px" => (long)(num * 9525),
             _ => (long)(num * 914400)
         };
     }
