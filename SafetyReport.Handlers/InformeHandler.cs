@@ -331,9 +331,11 @@ namespace SafetyReport.Handlers
 
                 if (ruta == null || formatos == null || formatos.Count == 0 || !tieneFormato)
                 {
-                    var generado = formato == ".docx"
-                        ? await GenerarDocumentoDocxAsync(usuarioLogueado, request)
-                        : await GenerarDocumentoPdfAsync(usuarioLogueado, request);
+                    var generado = formato == ".xml"
+                        ? await GenerarDocumentoXmlAsync(usuarioLogueado, request)
+                        : formato == ".docx"
+                            ? await GenerarDocumentoDocxAsync(usuarioLogueado, request)
+                            : await GenerarDocumentoPdfAsync(usuarioLogueado, request);
                     if (generado.IdTipoMensaje != 2) return generado;
 
                     respuestaRuta = await _dao.ObtenerRutaDocumentoAsync(usuarioLogueado, request.IdInforme, request.IdPedido);
@@ -478,6 +480,37 @@ namespace SafetyReport.Handlers
                     IdTipoMensaje = 2,
                     Mensaje       = "Documento generado correctamente.",
                     Result        = new { documento = estructura, nombreInforme }
+                };
+            }
+            catch (Exception)
+            {
+                return new Respuesta { IdTipoMensaje = 3, Mensaje = "Error interno del servidor.", Result = null };
+            }
+        }
+
+        public async Task<Respuesta> GenerarDocumentoXmlAsync(UsuarioGeneral usuarioLogueado, FiltroGenerarDocumento request)
+        {
+            try
+            {
+                var docExistente = await ObtenerDocumentoExistente(usuarioLogueado, request, ".xml");
+                if (docExistente != null) return docExistente;
+
+                var (respuesta, nombreInforme) = await _dao.GenerarDocumentoXmlAsync(usuarioLogueado, request.IdInforme, request.IdPedido);
+                if (respuesta.IdTipoMensaje != 2 || respuesta.Result is not string xmlStr || string.IsNullOrWhiteSpace(xmlStr))
+                    return new Respuesta { IdTipoMensaje = respuesta.IdTipoMensaje, Mensaje = respuesta.Mensaje, Result = null };
+
+                var nombreArchivo = !string.IsNullOrWhiteSpace(nombreInforme) ? nombreInforme : "documento";
+                var rutaBase = $"informes/pedido-{request.IdPedido}/informe-{request.IdInforme}/{nombreArchivo}";
+                using var xmlStream = new MemoryStream(System.Text.Encoding.UTF8.GetBytes(xmlStr));
+                await _s3.UploadStreamAsync(rutaBase + ".xml", xmlStream, "application/xml");
+
+                await ActualizarDocumentoJsonAsync(usuarioLogueado, request, rutaBase, ".xml");
+
+                return new Respuesta
+                {
+                    IdTipoMensaje = 2,
+                    Mensaje = "Documento XML generado correctamente.",
+                    Result = new { nombreInforme }
                 };
             }
             catch (Exception)
@@ -657,7 +690,7 @@ namespace SafetyReport.Handlers
                 return new Respuesta
                 {
                     IdTipoMensaje = 2,
-                    Mensaje = formato == ".pdf" ? "Documento PDF ya existe." : "Documento DOCX ya existe.",
+                    Mensaje = $"Documento {formato.TrimStart('.').ToUpper()} ya existe.",
                     Result = new { nombreInforme = ruta.Split('/').Last() }
                 };
             }
