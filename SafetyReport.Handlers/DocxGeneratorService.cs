@@ -874,7 +874,8 @@ public partial class DocxGeneratorService
         var footerMl = CssToTwips(config?["margins"]?["left"]?.GetValue<string>());
         var footerMr = CssToTwips(config?["margins"]?["right"]?.GetValue<string>());
         var footerExtend = CssToTwips(config?["footer"]?["footerExtend"]?.GetValue<string>() ?? "0");
-        var footerTableWidth = footerPageW - footerMl - footerMr + footerExtend * 2;
+        var footerBaseWidth = footerPageW - footerMl - footerMr;
+        var footerTableWidth = footerBaseWidth + footerExtend * 2;
         var footerTableInd = footerExtend > 0 ? -footerExtend : 0;
 
         // Generic rows/cells table layout
@@ -919,10 +920,14 @@ public partial class DocxGeneratorService
             return;
         }
 
+        var normalFooterTableWidth = Math.Max(0, footerBaseWidth - fiL - fiR + footerExtend * 2);
+        var normalFooterTableInd = fiL - footerExtend;
+
         var footerTable = new Table();
         footerTable.Append(new TableProperties(
-            new TableWidth { Width = footerTableWidth.ToString(), Type = TableWidthUnitValues.Dxa },
-            new TableIndentation { Width = footerTableInd, Type = TableWidthUnitValues.Dxa },
+            new TableWidth { Width = normalFooterTableWidth.ToString(), Type = TableWidthUnitValues.Dxa },
+            new TableJustification { Val = TableRowAlignmentValues.Left },
+            new TableIndentation { Width = normalFooterTableInd, Type = TableWidthUnitValues.Dxa },
             new TableLayout { Type = TableLayoutValues.Fixed }));
 
         var footerBoxHeight = CssToTwips(config?["margins"]?["bottom"]?.GetValue<string>()) - footerMBottom - gapBefore;
@@ -939,8 +944,8 @@ public partial class DocxGeneratorService
             var textBold       = config?["footer"]?["textBold"]?.GetValue<bool>() ?? false;
             var pageTotal      = config?["footer"]?["pageTotal"]?.GetValue<bool>() ?? false;
             var pageColW       = CssToTwips(config?["footer"]?["pageColWidth"]?.GetValue<string>() ?? "0");
-            if (pageColW == 0) pageColW = footerTableWidth / 2;
-            var textColW       = footerTableWidth - pageColW;
+            if (pageColW == 0) pageColW = normalFooterTableWidth / 2;
+            var textColW       = normalFooterTableWidth - pageColW;
 
             TableCell BuildCell(int width, JustificationValues justify, string? bgColor, string marginL, string marginR)
             {
@@ -975,7 +980,7 @@ public partial class DocxGeneratorService
 
             // Page number cell
             var pageJustify = pageAlign == "left" ? JustificationValues.Left : JustificationValues.Right;
-            var pageCell = BuildCell((int)pageColW, pageJustify, pageBgColorVal, fiL.ToString(), "0");
+            var pageCell = BuildCell((int)pageColW, pageJustify, pageBgColorVal, "0", "0");
             if (showPageNumber)
             {
                 var paraPage = new Paragraph();
@@ -1032,7 +1037,7 @@ public partial class DocxGeneratorService
 
             // Text cell
             var textJustify = pageAlign == "left" ? JustificationValues.Left : JustificationValues.Right;
-            var textCell = BuildCell((int)textColW, textJustify, null, "0", fiR.ToString());
+            var textCell = BuildCell((int)textColW, textJustify, null, "0", "0");
             if (!string.IsNullOrEmpty(footerText))
             {
                 var para = new Paragraph();
@@ -1079,8 +1084,8 @@ public partial class DocxGeneratorService
                 new TableCellMargin(
                     new TopMargin { Width = "0", Type = TableWidthUnitValues.Dxa },
                     new BottomMargin { Width = "0", Type = TableWidthUnitValues.Dxa },
-                    new LeftMargin { Width = fiL.ToString(), Type = TableWidthUnitValues.Dxa },
-                    new RightMargin { Width = fiR.ToString(), Type = TableWidthUnitValues.Dxa }),
+                    new LeftMargin { Width = "0", Type = TableWidthUnitValues.Dxa },
+                    new RightMargin { Width = "0", Type = TableWidthUnitValues.Dxa }),
                 new TableCellVerticalAlignment { Val = TableVerticalAlignmentValues.Top }));
 
             if (!string.IsNullOrEmpty(footerText))
