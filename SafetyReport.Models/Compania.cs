@@ -1,5 +1,4 @@
 using System.Text.Json;
-using Microsoft.AspNetCore.Http;
 
 namespace SafetyReport.Models
 {
@@ -107,17 +106,6 @@ namespace SafetyReport.Models
         public DateTime? FechaNoticia { get; set; }
         public string? Categoria { get; set; }
         public List<CompaniaNoticiaArchivoItem> Archivos { get; set; } = new();
-    }
-
-    public class CompaniaNoticiaCrearForm
-    {
-        public int IdCompania { get; set; }
-        public string? Titulo { get; set; }
-        public string? Descripcion { get; set; }
-        public DateTime? FechaNoticia { get; set; }
-        public string? Categoria { get; set; }
-        public List<IFormFile> Archivos { get; set; } = new();
-        public List<int> IdTiposArchivo { get; set; } = new();
     }
 
     public class CompaniaNoticiaEditar

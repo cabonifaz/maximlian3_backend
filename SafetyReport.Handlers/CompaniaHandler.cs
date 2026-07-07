@@ -10,13 +10,13 @@ namespace SafetyReport.Handlers
     {
         private readonly CompaniaDAO _dao;
         private readonly IS3UploadService _s3UploadService;
-        private readonly TablaMaestraDAO _tablaMaestraDao;
+        private readonly FormatoDocumentoResolver _formatoDocumentoResolver;
 
-        public CompaniaHandler(CompaniaDAO dao, IS3UploadService s3UploadService, TablaMaestraDAO tablaMaestraDao)
+        public CompaniaHandler(CompaniaDAO dao, IS3UploadService s3UploadService, FormatoDocumentoResolver formatoDocumentoResolver)
         {
             _dao = dao;
             _s3UploadService = s3UploadService;
-            _tablaMaestraDao = tablaMaestraDao;
+            _formatoDocumentoResolver = formatoDocumentoResolver;
         }
 
         public async Task<Respuesta> CrearAsync(UsuarioGeneral usuarioLogueado, List<CompaniaCrear> lstCompanias)
@@ -91,62 +91,11 @@ namespace SafetyReport.Handlers
             }
         }
 
-        public async Task<Respuesta> CrearNoticiaAsync(UsuarioGeneral usuarioLogueado, CompaniaNoticiaCrearForm request)
-        {
-            var rutasSubidas = new List<string>();
-
-            try
-            {
-                var noticia = new CompaniaNoticiaCrear
-                {
-                    IdCompania = request.IdCompania,
-                    Titulo = request.Titulo,
-                    Descripcion = request.Descripcion,
-                    FechaNoticia = request.FechaNoticia,
-                    Categoria = request.Categoria
-                };
-
-                for (var i = 0; i < request.Archivos.Count; i++)
-                {
-                    var archivo = request.Archivos[i];
-                    if (archivo == null || archivo.Length == 0)
-                        continue;
-
-                    var rutaArchivo = GenerarRutaCompaniaNoticiaArchivo(request.IdCompania, archivo.FileName);
-                    var formatoArchivo = await ResolverFormatoDocumentoAsync(usuarioLogueado, archivo.ContentType, archivo.FileName);
-                    await _s3UploadService.UploadFileAsync(rutaArchivo, archivo);
-                    rutasSubidas.Add(rutaArchivo);
-
-                    noticia.Archivos.Add(new CompaniaNoticiaArchivoItem
-                    {
-                        IdTipoArchivo = i < request.IdTiposArchivo.Count ? request.IdTiposArchivo[i] : 0,
-                        NombreArchivo = archivo.FileName,
-                        NombreDocumento = archivo.FileName,
-                        FormatoArchivo = formatoArchivo,
-                        Extension = Path.GetExtension(archivo.FileName).TrimStart('.').ToUpperInvariant(),
-                        TamanoBytes = archivo.Length,
-                        ArchivoUrl = rutaArchivo
-                    });
-                }
-
-                var respuesta = await _dao.CrearNoticiaAsync(usuarioLogueado, noticia);
-                if (respuesta.IdTipoMensaje != 2)
-                    await EliminarRutasS3Async(rutasSubidas);
-
-                return respuesta;
-            }
-            catch (Exception ex)
-            {
-                await EliminarRutasS3Async(rutasSubidas);
-                return new Respuesta { IdTipoMensaje = 3, Mensaje = "Error interno del servidor.", Result = new List<CompaniaNoticiaCreada>() };
-            }
-        }
-
         public async Task<Respuesta> CrearNoticiaAsync(UsuarioGeneral usuarioLogueado, CompaniaNoticiaCrear request)
         {
             try
             {
-                PrepararArchivosNoticia(request.IdCompania, request.Archivos);
+                await PrepararArchivosNoticiaAsync(usuarioLogueado, request.IdCompania, request.Archivos);
                 var respuesta = await _dao.CrearNoticiaAsync(usuarioLogueado, request);
                 AgregarArchivosPresignados(respuesta, request.Archivos);
                 return respuesta;
@@ -161,7 +110,7 @@ namespace SafetyReport.Handlers
         {
             try
             {
-                PrepararArchivosNoticia(request.IdCompania, request.Archivos);
+                await PrepararArchivosNoticiaAsync(usuarioLogueado, request.IdCompania, request.Archivos);
                 var respuesta = await _dao.EditarNoticiaAsync(usuarioLogueado, request);
                 AgregarArchivosPresignados(respuesta, request.Archivos);
                 return respuesta;
@@ -283,7 +232,7 @@ namespace SafetyReport.Handlers
             }
         }
 
-        private void PrepararArchivosNoticia(int idCompania, List<CompaniaNoticiaArchivoItem>? archivos)
+        private async Task PrepararArchivosNoticiaAsync(UsuarioGeneral usuarioLogueado, int idCompania, List<CompaniaNoticiaArchivoItem>? archivos)
         {
             if (archivos == null)
                 return;
@@ -305,9 +254,10 @@ namespace SafetyReport.Handlers
 
                 archivo.ArchivoUrl = rutaArchivo;
                 archivo.NombreDocumento = nombreDocumento;
-                archivo.Extension = string.IsNullOrWhiteSpace(archivo.Extension)
-                    ? Path.GetExtension(nombreDocumento ?? archivo.ArchivoUrl).TrimStart('.').ToUpperInvariant()
-                    : archivo.Extension.TrimStart('.').ToUpperInvariant();
+                archivo.Extension = await _formatoDocumentoResolver.ResolverAsync(
+                    usuarioLogueado,
+                    archivo.FormatoArchivo,
+                    nombreDocumento ?? archivo.ArchivoUrl);
                 archivo.UploadUrl = _s3UploadService.GenerarUploadUrl(rutaArchivo, formatoArchivo);
             }
         }
@@ -363,23 +313,6 @@ namespace SafetyReport.Handlers
             }
         }
 
-        private async Task EliminarRutasS3Async(List<string> rutas)
-        {
-            foreach (var ruta in rutas)
-            {
-                if (string.IsNullOrWhiteSpace(ruta))
-                    continue;
-
-                try
-                {
-                    await _s3UploadService.DeleteFileAsync(ruta);
-                }
-                catch
-                {
-                }
-            }
-        }
-
         private static string GenerarRutaCompaniaNoticiaArchivo(int idCompania, string nombreArchivo)
         {
             var extension = Path.GetExtension(nombreArchivo);
@@ -390,25 +323,6 @@ namespace SafetyReport.Handlers
                 nombreLimpio = "archivo";
 
             return $"companias/{idCompania}/noticias/adjuntos/{nombreLimpio}-{Guid.NewGuid():N}{extension}";
-        }
-
-        private async Task<string> ResolverFormatoDocumentoAsync(UsuarioGeneral usuarioLogueado, string formatoArchivo, string nombreArchivo)
-        {
-            var mime = (formatoArchivo ?? string.Empty).Trim().ToUpperInvariant();
-
-            if (!string.IsNullOrWhiteSpace(mime))
-            {
-                var respuesta = await _tablaMaestraDao.ListarAsync(usuarioLogueado, 34);
-                if (respuesta.IdTipoMensaje == 2 && respuesta.Result is List<TablaMaestraItem> items)
-                {
-                    var match = items.FirstOrDefault(i =>
-                        string.Equals(i.String3, mime, StringComparison.OrdinalIgnoreCase));
-                    if (match?.String1 != null)
-                        return match.String1.ToUpperInvariant();
-                }
-            }
-
-            return Path.GetExtension(nombreArchivo).TrimStart('.').ToUpperInvariant();
         }
 
         private static byte[] GenerarExcelNoticiasDetalle(List<CompaniaNoticiaDetalleListaConsulta> items)
