@@ -801,6 +801,8 @@ namespace SafetyReport.Models
         public string? Busqueda { get; set; }
         public int? IdPedido { get; set; }
         public int? IdEstado { get; set; }
+        public int? IdPlantilla { get; set; }
+        public int? IdTipoTramite { get; set; }
         public int? NumPag { get; set; }
     }
 
@@ -817,6 +819,7 @@ namespace SafetyReport.Models
         public string? Vigencia { get; set; }
         public string? TipoTramite { get; set; }
         public int? IdInformeOriginal { get; set; }
+        public int? RequiereTraduccion { get; set; }
     }
 
     public class InformeListaResult
