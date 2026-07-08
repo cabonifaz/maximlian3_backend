@@ -146,6 +146,7 @@ namespace SafetyReport.Models
         public string? Idioma { get; set; }
         public bool LogoImprimible { get; set; }
         public int Estado { get; set; }
+        public int? IdFase { get; set; }
         public string? DescripcionEstado { get; set; }
         public string? ColorLetra { get; set; }
         public string? ColorFondo { get; set; }
