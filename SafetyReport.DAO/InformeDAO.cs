@@ -1066,9 +1066,9 @@ namespace SafetyReport.DAO
                 AgregarParametrosAuditoria(cmd, u);
                 cmd.Parameters.Add("@vchBusqueda", SqlDbType.VarChar, 255).Value = (object?)filtro.Busqueda ?? DBNull.Value;
                 cmd.Parameters.Add("@intIdPedido", SqlDbType.Int).Value = (object?)filtro.IdPedido ?? DBNull.Value;
-                cmd.Parameters.Add("@intIdEstado", SqlDbType.Int).Value = (object?)filtro.IdEstado ?? DBNull.Value;
-                cmd.Parameters.Add("@intIdPlantilla", SqlDbType.Int).Value = (object?)filtro.IdPlantilla ?? DBNull.Value;
-                cmd.Parameters.Add("@intIdTipoTramite", SqlDbType.Int).Value = (object?)filtro.IdTipoTramite ?? DBNull.Value;
+                cmd.Parameters.Add("@vchIdEstado", SqlDbType.VarChar, 255).Value = (object?)filtro.IdEstado ?? DBNull.Value;
+                cmd.Parameters.Add("@vchIdPlantilla", SqlDbType.VarChar, 255).Value = (object?)filtro.IdPlantilla ?? DBNull.Value;
+                cmd.Parameters.Add("@vchIdTipoTramite", SqlDbType.VarChar, 255).Value = (object?)filtro.IdTipoTramite ?? DBNull.Value;
                 cmd.Parameters.Add("@numPag", SqlDbType.Int).Value = (object?)filtro.NumPag ?? DBNull.Value;
                 await cn.OpenAsync();
 
