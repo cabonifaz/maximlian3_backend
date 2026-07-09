@@ -145,6 +145,7 @@ builder.Services.AddScoped<UsuarioDAO>();
 builder.Services.AddScoped<UsuarioHandler>();
 builder.Services.AddScoped<TablaMaestraDAO>();
 builder.Services.AddScoped<TablaMaestraHandler>();
+builder.Services.AddScoped<FormatoDocumentoResolver>();
 builder.Services.AddScoped<ClienteDAO>();
 builder.Services.AddScoped<ClienteHandler>();
 builder.Services.AddScoped<TarifarioDAO>();

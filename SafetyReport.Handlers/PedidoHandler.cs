@@ -8,14 +8,14 @@ namespace SafetyReport.Handlers
         private readonly PedidoDAO _dao;
         private readonly PedidoArchivoDAO _pedidoArchivoDao;
         private readonly IS3UploadService _s3UploadService;
-        private readonly TablaMaestraDAO _tablaMaestraDao;
+        private readonly FormatoDocumentoResolver _formatoDocumentoResolver;
 
-        public PedidoHandler(PedidoDAO dao, PedidoArchivoDAO pedidoArchivoDao, IS3UploadService s3UploadService, TablaMaestraDAO tablaMaestraDao)
+        public PedidoHandler(PedidoDAO dao, PedidoArchivoDAO pedidoArchivoDao, IS3UploadService s3UploadService, FormatoDocumentoResolver formatoDocumentoResolver)
         {
             _dao = dao;
             _pedidoArchivoDao = pedidoArchivoDao;
             _s3UploadService = s3UploadService;
-            _tablaMaestraDao = tablaMaestraDao;
+            _formatoDocumentoResolver = formatoDocumentoResolver;
         }
 
         public async Task<Respuesta> CrearAsync(UsuarioGeneral usuarioLogueado, Pedido request)
@@ -37,7 +37,7 @@ namespace SafetyReport.Handlers
                 {
                     foreach (var archivo in request.Archivos)
                     {
-                        var formatoDocumento = await ResolverFormatoDocumentoAsync(usuarioLogueado, archivo.FormatoArchivo, archivo.NombreDocumento);
+                        var formatoDocumento = await _formatoDocumentoResolver.ResolverAsync(usuarioLogueado, archivo.FormatoArchivo, archivo.NombreDocumento);
                         var rutaDefecto = _s3UploadService.GenerarRutaPedidoArchivo(idPedido, archivo.NombreDocumento, 0);
 
                         var archivoCrear = new PedidoArchivoCrear
@@ -194,23 +194,5 @@ namespace SafetyReport.Handlers
             }
         }
 
-        private async Task<string> ResolverFormatoDocumentoAsync(UsuarioGeneral usuarioLogueado, string formatoArchivo, string nombreArchivo)
-        {
-            var mime = (formatoArchivo ?? string.Empty).Trim().ToUpperInvariant();
-
-            if (!string.IsNullOrWhiteSpace(mime))
-            {
-                var respuesta = await _tablaMaestraDao.ListarAsync(usuarioLogueado, "34");
-                if (respuesta.IdTipoMensaje == 2 && respuesta.Result is List<TablaMaestraItem> items)
-                {
-                    var match = items.FirstOrDefault(i =>
-                        string.Equals(i.String3, mime, StringComparison.OrdinalIgnoreCase));
-                    if (match?.String1 != null)
-                        return match.String1.ToUpperInvariant();
-                }
-            }
-
-            return Path.GetExtension(nombreArchivo).TrimStart('.').ToUpperInvariant();
-        }
     }
 }
