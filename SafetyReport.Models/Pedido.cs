@@ -134,6 +134,8 @@ namespace SafetyReport.Models
     {
         public int IdEstadoAsignacion { get; set; }
         public int? IdEstadoInforme { get; set; }
+        public string? DescripcionEstadoInforme { get; set; }
+        public string? DescripcionAsignacion { get; set; }
         public string? Descripcion { get; set; }
     }
 
