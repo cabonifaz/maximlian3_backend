@@ -87,9 +87,15 @@
         public int IdTablaMaestra { get; set; }
     }
 
+    public class TablaMaestraGroup
+    {
+        public int IdMaestro { get; set; }
+        public List<TablaMaestraItem>? Items { get; set; }
+    }
+
     public class FiltroTablaMaestraRequest
     {
-        public int? idMaestro { get; set; }
+        public string? idsMaestro { get; set; }  // comma-separated, e.g. "2,44,60"; null returns all
     }
 
     public class ObtenerTablaMaestraRequest

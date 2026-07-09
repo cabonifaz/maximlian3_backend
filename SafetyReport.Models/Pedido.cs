@@ -133,6 +133,9 @@ namespace SafetyReport.Models
     public class PedidoAsignacionResumen
     {
         public int IdEstadoAsignacion { get; set; }
+        public int? IdEstadoInforme { get; set; }
+        public string? DescripcionEstadoInforme { get; set; }
+        public string? DescripcionAsignacion { get; set; }
         public string? Descripcion { get; set; }
     }
 
@@ -144,6 +147,7 @@ namespace SafetyReport.Models
         public string? Investigado { get; set; }
         public int IdIdioma { get; set; }
         public string? Idioma { get; set; }
+        public int? RequiereTraduccion { get; set; }
         public bool LogoImprimible { get; set; }
         public int Estado { get; set; }
         public string? DescripcionEstado { get; set; }

@@ -940,6 +940,40 @@ namespace SafetyReport.DAO
             }
         }
 
+        public async Task<(Respuesta respuesta, string? nombreInforme)> GenerarDocumentoXmlAsync(UsuarioGeneral u, int idInforme, int idPedido)
+        {
+            try
+            {
+                using SqlConnection cn = new(_dbConfig.ConnectionString);
+                using SqlCommand cmd = new("Pedido_GenerarDocumentoXML", cn) { CommandType = CommandType.StoredProcedure };
+                AgregarParametrosAuditoria(cmd, u);
+                cmd.Parameters.Add("@intIdInforme", SqlDbType.Int).Value = idInforme;
+                cmd.Parameters.Add("@intIdPedido", SqlDbType.Int).Value = idPedido;
+                await cn.OpenAsync();
+
+                var respuesta = new Respuesta();
+                string? nombreInforme = null;
+                using var dr = await cmd.ExecuteReaderAsync();
+                if (await dr.ReadAsync())
+                {
+                    respuesta.IdTipoMensaje = dr["IdTipoMensaje"] != DBNull.Value ? Convert.ToInt32(dr["IdTipoMensaje"]) : 0;
+                    respuesta.Mensaje = dr["Mensaje"]?.ToString() ?? string.Empty;
+                    respuesta.Result = dr["Result"]?.ToString();
+                    nombreInforme = dr["NombreInforme"]?.ToString();
+                }
+                else
+                {
+                    respuesta.IdTipoMensaje = 1;
+                    respuesta.Mensaje = "No se obtuvo respuesta del procedimiento.";
+                }
+                return (respuesta, nombreInforme);
+            }
+            catch (Exception ex)
+            {
+                return (new Respuesta { IdTipoMensaje = 3, Mensaje = ex.Message }, null);
+            }
+        }
+
         public async Task<Respuesta> ObtenerDocumentoAsync(UsuarioGeneral u, int idInforme, int idPedido)
         {
             try
@@ -1032,7 +1066,9 @@ namespace SafetyReport.DAO
                 AgregarParametrosAuditoria(cmd, u);
                 cmd.Parameters.Add("@vchBusqueda", SqlDbType.VarChar, 255).Value = (object?)filtro.Busqueda ?? DBNull.Value;
                 cmd.Parameters.Add("@intIdPedido", SqlDbType.Int).Value = (object?)filtro.IdPedido ?? DBNull.Value;
-                cmd.Parameters.Add("@intIdEstado", SqlDbType.Int).Value = (object?)filtro.IdEstado ?? DBNull.Value;
+                cmd.Parameters.Add("@vchIdEstado", SqlDbType.VarChar, 255).Value = (object?)filtro.IdEstado ?? DBNull.Value;
+                cmd.Parameters.Add("@vchIdPlantilla", SqlDbType.VarChar, 255).Value = (object?)filtro.IdPlantilla ?? DBNull.Value;
+                cmd.Parameters.Add("@vchIdTipoTramite", SqlDbType.VarChar, 255).Value = (object?)filtro.IdTipoTramite ?? DBNull.Value;
                 cmd.Parameters.Add("@numPag", SqlDbType.Int).Value = (object?)filtro.NumPag ?? DBNull.Value;
                 await cn.OpenAsync();
 
