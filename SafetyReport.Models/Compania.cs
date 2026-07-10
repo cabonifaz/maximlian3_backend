@@ -147,11 +147,33 @@ namespace SafetyReport.Models
         public int IdCompaniaNoticia { get; set; }
         public int IdTipoArchivo { get; set; }
         public string? TipoArchivo { get; set; }
+        public string? NombreDocumento { get; set; }
+        public string? Extension { get; set; }
+        public long? TamanoBytes { get; set; }
+    }
+
+    public class CompaniaNoticiaArchivoIdRequest
+    {
+        public int IdCompaniaNoticiaArchivo { get; set; }
+    }
+
+    public class CompaniaNoticiaArchivoDescargaConsulta
+    {
+        public int IdCompaniaNoticiaArchivo { get; set; }
+        public int IdCompaniaNoticia { get; set; }
+        public int IdTipoArchivo { get; set; }
         public string? ArchivoUrl { get; set; }
         public string? NombreDocumento { get; set; }
         public string? Extension { get; set; }
         public long? TamanoBytes { get; set; }
         public string? DownloadUrl { get; set; }
+    }
+
+    public class CompaniaNoticiaArchivoEliminado
+    {
+        public int IdCompaniaNoticiaArchivo { get; set; }
+        public int IdCompaniaNoticia { get; set; }
+        public string? ArchivoUrl { get; set; }
     }
 
     public class CompaniaNoticiaConsulta

@@ -125,9 +125,7 @@ namespace SafetyReport.Handlers
         {
             try
             {
-                var respuesta = await _dao.ObtenerNoticiaAsync(usuarioLogueado, request);
-                AgregarUrlsDescarga(respuesta);
-                return respuesta;
+                return await _dao.ObtenerNoticiaAsync(usuarioLogueado, request);
             }
             catch (Exception ex)
             {
@@ -135,13 +133,59 @@ namespace SafetyReport.Handlers
             }
         }
 
+        public async Task<Respuesta> ObtenerNoticiaArchivoAsync(UsuarioGeneral usuarioLogueado, CompaniaNoticiaArchivoIdRequest request)
+        {
+            try
+            {
+                var respuesta = await _dao.ObtenerNoticiaArchivoAsync(usuarioLogueado, request.IdCompaniaNoticiaArchivo);
+                if (respuesta.IdTipoMensaje == 2 && respuesta.Result is List<CompaniaNoticiaArchivoDescargaConsulta> archivos && archivos.Count > 0)
+                {
+                    var archivo = archivos[0];
+                    if (!string.IsNullOrWhiteSpace(archivo.ArchivoUrl))
+                        archivo.DownloadUrl = _s3UploadService.GenerarDownloadUrl(archivo.ArchivoUrl, archivo.NombreDocumento ?? archivo.ArchivoUrl);
+                    archivo.ArchivoUrl = string.Empty;
+                }
+                return respuesta;
+            }
+            catch (Exception ex)
+            {
+                return new Respuesta { IdTipoMensaje = 3, Mensaje = "Error interno del servidor.", Result = new List<CompaniaNoticiaArchivoDescargaConsulta>() };
+            }
+        }
+
+        public async Task<Respuesta> EliminarNoticiaArchivoAsync(UsuarioGeneral usuarioLogueado, CompaniaNoticiaArchivoIdRequest request)
+        {
+            try
+            {
+                var respuesta = await _dao.EliminarNoticiaArchivoAsync(usuarioLogueado, request.IdCompaniaNoticiaArchivo);
+                if (respuesta.IdTipoMensaje == 2 && respuesta.Result is List<CompaniaNoticiaArchivoEliminado> archivos && archivos.Count > 0)
+                {
+                    var archivo = archivos[0];
+                    if (!string.IsNullOrWhiteSpace(archivo.ArchivoUrl))
+                    {
+                        try
+                        {
+                            await _s3UploadService.DeleteFileAsync(archivo.ArchivoUrl);
+                        }
+                        catch
+                        {
+                        }
+                    }
+                    archivo.ArchivoUrl = string.Empty;
+                }
+                return respuesta;
+            }
+            catch (Exception ex)
+            {
+                return new Respuesta { IdTipoMensaje = 3, Mensaje = "Error interno del servidor.", Result = new List<CompaniaNoticiaArchivoEliminado>() };
+            }
+        }
+
         public async Task<Respuesta> ListarNoticiasAsync(UsuarioGeneral usuarioLogueado, FiltroCompaniaNoticia filtro)
         {
             try
             {
-                var respuesta = await _dao.ListarNoticiasAsync(usuarioLogueado, filtro);
-                AgregarUrlsDescarga(respuesta);
-                return respuesta;
+                return await _dao.ListarNoticiasAsync(usuarioLogueado, filtro);
             }
             catch (Exception ex)
             {
@@ -272,45 +316,11 @@ namespace SafetyReport.Handlers
                 .ToList();
         }
 
-        private void AgregarUrlsDescarga(Respuesta respuesta)
-        {
-            if (respuesta.IdTipoMensaje != 2)
-                return;
-
-            if (respuesta.Result is List<CompaniaNoticiaConsulta> noticias)
-            {
-                foreach (var noticia in noticias)
-                    AgregarUrlsDescarga(noticia.Archivos);
-            }
-        }
-
-        private void AgregarUrlsDescarga(List<CompaniaNoticiaArchivoConsulta> archivos)
-        {
-            foreach (var archivo in archivos)
-            {
-                if (!string.IsNullOrWhiteSpace(archivo.ArchivoUrl))
-                    archivo.DownloadUrl = _s3UploadService.GenerarDownloadUrl(archivo.ArchivoUrl);
-            }
-        }
-
+        // TODO: EliminarNoticiaAsync no longer deletes S3 files here — CompaniaNoticia_Obtener
+        // stopped returning ArchivoUrl. Pending replacement of the delete flow.
         private async Task EliminarArchivosS3Async(Respuesta obtener)
         {
-            if (obtener.IdTipoMensaje != 2 || obtener.Result is not List<CompaniaNoticiaConsulta> noticias)
-                return;
-
-            foreach (var archivo in noticias.SelectMany(n => n.Archivos))
-            {
-                if (string.IsNullOrWhiteSpace(archivo.ArchivoUrl))
-                    continue;
-
-                try
-                {
-                    await _s3UploadService.DeleteFileAsync(archivo.ArchivoUrl);
-                }
-                catch
-                {
-                }
-            }
+            await Task.CompletedTask;
         }
 
         private static string GenerarRutaCompaniaNoticiaArchivo(int idCompania, string nombreArchivo)
