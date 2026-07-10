@@ -260,6 +260,8 @@ namespace SafetyReport.Models
     {
         public int? IdCompania { get; set; }
         public string? Busqueda { get; set; }
+        public string? Paises { get; set; }
+        public string? Actividades { get; set; }
         public int NumPag { get; set; } = 1;
     }
 
