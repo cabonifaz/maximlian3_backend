@@ -431,6 +431,8 @@ namespace SafetyReport.DAO
                 cmd.Parameters.Add("@intIdRol", SqlDbType.Int).Value = usuarioLogueado.IdRol;
                 cmd.Parameters.Add("@intIdCompania", SqlDbType.Int).Value = (object?)filtro.IdCompania ?? DBNull.Value;
                 cmd.Parameters.Add("@vchBusqueda", SqlDbType.VarChar, 255).Value = (object?)filtro.Busqueda ?? DBNull.Value;
+                cmd.Parameters.Add("@vchTipoEstadoFinanciero", SqlDbType.VarChar, -1).Value = (object?)filtro.TipoEstadoFinanciero ?? DBNull.Value;
+                cmd.Parameters.Add("@vchEstado", SqlDbType.VarChar, -1).Value = (object?)filtro.Estado ?? DBNull.Value;
                 cmd.Parameters.Add("@numPag", SqlDbType.Int).Value = filtro.NumPag;
                 await cn.OpenAsync();
 
