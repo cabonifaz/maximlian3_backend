@@ -82,6 +82,20 @@ namespace SafetyReport.WebApi.Controllers
             return Ok(respuesta);
         }
 
+        [HttpGet("noticia/archivo/obtener")]
+        public async Task<IActionResult> ObtenerNoticiaArchivo([FromQuery] CompaniaNoticiaArchivoIdRequest request)
+        {
+            var respuesta = await _companiaHandler.ObtenerNoticiaArchivoAsync(UsuarioLogueado, request);
+            return Ok(respuesta);
+        }
+
+        [HttpPost("noticia/archivo/eliminar")]
+        public async Task<IActionResult> EliminarNoticiaArchivo([FromBody] CompaniaNoticiaArchivoIdRequest request)
+        {
+            var respuesta = await _companiaHandler.EliminarNoticiaArchivoAsync(UsuarioLogueado, request);
+            return Ok(respuesta);
+        }
+
         [HttpGet("noticia/listar")]
         public async Task<IActionResult> ListarNoticias([FromQuery] FiltroCompaniaNoticia filtro)
         {

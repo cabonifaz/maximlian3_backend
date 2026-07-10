@@ -319,6 +319,46 @@ namespace SafetyReport.DAO
             }
         }
 
+        public async Task<Respuesta> ObtenerNoticiaArchivoAsync(UsuarioGeneral usuarioLogueado, int idCompaniaNoticiaArchivo)
+        {
+            try
+            {
+                using SqlConnection cn = new(_dbConfig.ConnectionString);
+                using SqlCommand cmd = new("CompaniaNoticiaArchivo_Obtener", cn) { CommandType = CommandType.StoredProcedure };
+                cmd.Parameters.Add("@intIdUsuario", SqlDbType.Int).Value = usuarioLogueado.IdUsuario;
+                cmd.Parameters.Add("@vchUsuario", SqlDbType.VarChar, 32).Value = usuarioLogueado.Usuario;
+                cmd.Parameters.Add("@intIdEmpresa", SqlDbType.Int).Value = usuarioLogueado.IdEmpresa;
+                cmd.Parameters.Add("@intIdRol", SqlDbType.Int).Value = usuarioLogueado.IdRol;
+                cmd.Parameters.Add("@intIdCompaniaNoticiaArchivo", SqlDbType.Int).Value = idCompaniaNoticiaArchivo;
+                await cn.OpenAsync();
+                return await LeerRespuestaAsync<CompaniaNoticiaArchivoDescargaConsulta>(cmd);
+            }
+            catch (Exception ex)
+            {
+                return new Respuesta { IdTipoMensaje = 3, Mensaje = ex.Message, Result = new List<CompaniaNoticiaArchivoDescargaConsulta>() };
+            }
+        }
+
+        public async Task<Respuesta> EliminarNoticiaArchivoAsync(UsuarioGeneral usuarioLogueado, int idCompaniaNoticiaArchivo)
+        {
+            try
+            {
+                using SqlConnection cn = new(_dbConfig.ConnectionString);
+                using SqlCommand cmd = new("CompaniaNoticiaArchivo_Eliminar", cn) { CommandType = CommandType.StoredProcedure };
+                cmd.Parameters.Add("@intIdUsuario", SqlDbType.Int).Value = usuarioLogueado.IdUsuario;
+                cmd.Parameters.Add("@vchUsuario", SqlDbType.VarChar, 32).Value = usuarioLogueado.Usuario;
+                cmd.Parameters.Add("@intIdEmpresa", SqlDbType.Int).Value = usuarioLogueado.IdEmpresa;
+                cmd.Parameters.Add("@intIdRol", SqlDbType.Int).Value = usuarioLogueado.IdRol;
+                cmd.Parameters.Add("@intIdCompaniaNoticiaArchivo", SqlDbType.Int).Value = idCompaniaNoticiaArchivo;
+                await cn.OpenAsync();
+                return await LeerRespuestaAsync<CompaniaNoticiaArchivoEliminado>(cmd);
+            }
+            catch (Exception ex)
+            {
+                return new Respuesta { IdTipoMensaje = 3, Mensaje = ex.Message, Result = new List<CompaniaNoticiaArchivoEliminado>() };
+            }
+        }
+
         public async Task<Respuesta> ListarNoticiasAsync(UsuarioGeneral usuarioLogueado, FiltroCompaniaNoticia filtro)
         {
             try
@@ -391,6 +431,8 @@ namespace SafetyReport.DAO
                 cmd.Parameters.Add("@intIdRol", SqlDbType.Int).Value = usuarioLogueado.IdRol;
                 cmd.Parameters.Add("@intIdCompania", SqlDbType.Int).Value = (object?)filtro.IdCompania ?? DBNull.Value;
                 cmd.Parameters.Add("@vchBusqueda", SqlDbType.VarChar, 255).Value = (object?)filtro.Busqueda ?? DBNull.Value;
+                cmd.Parameters.Add("@vchTipoEstadoFinanciero", SqlDbType.VarChar, -1).Value = (object?)filtro.TipoEstadoFinanciero ?? DBNull.Value;
+                cmd.Parameters.Add("@vchEstado", SqlDbType.VarChar, -1).Value = (object?)filtro.Estado ?? DBNull.Value;
                 cmd.Parameters.Add("@numPag", SqlDbType.Int).Value = filtro.NumPag;
                 await cn.OpenAsync();
 
@@ -452,6 +494,8 @@ namespace SafetyReport.DAO
                 cmd.Parameters.Add("@intIdRol", SqlDbType.Int).Value = usuarioLogueado.IdRol;
                 cmd.Parameters.Add("@intIdCompania", SqlDbType.Int).Value = (object?)filtro.IdCompania ?? DBNull.Value;
                 cmd.Parameters.Add("@vchBusqueda", SqlDbType.VarChar, 255).Value = (object?)filtro.Busqueda ?? DBNull.Value;
+                cmd.Parameters.Add("@vchPaises", SqlDbType.VarChar, -1).Value = (object?)filtro.Paises ?? DBNull.Value;
+                cmd.Parameters.Add("@vchActividades", SqlDbType.VarChar, -1).Value = (object?)filtro.Actividades ?? DBNull.Value;
                 cmd.Parameters.Add("@numPag", SqlDbType.Int).Value = filtro.NumPag;
                 await cn.OpenAsync();
 
