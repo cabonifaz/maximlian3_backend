@@ -156,6 +156,8 @@ builder.Services.AddScoped<PedidoHandler>();
 builder.Services.AddScoped<PedidoDAO>();
 builder.Services.AddScoped<AsignacionHandler>();
 builder.Services.AddScoped<AsignacionDAO>();
+builder.Services.AddScoped<DocxGeneratorService>();
+builder.Services.AddScoped<PdfGeneratorService>();
 builder.Services.AddScoped<InformeHandler>();
 builder.Services.AddScoped<InformeDAO>();
 builder.Services.AddScoped<InformeObservacionHandler>();
@@ -202,17 +204,21 @@ builder.Services.AddSingleton<IAmazonBedrockRuntime>(sp =>
     return new AmazonBedrockRuntimeClient(credenciales, regionEndpoint);
 });
 builder.Services.AddSingleton<BedrockService>();
+
+var bedrockTranslationConfig = builder.Configuration.GetSection("BedrockTranslation").Get<BedrockTranslationConfig>()
+    ?? throw new Exception("Falta configuración BedrockTranslation");
+builder.Services.AddSingleton(bedrockTranslationConfig);
 builder.Services.AddSingleton(sp =>
 {
     var bedrock = sp.GetRequiredService<BedrockService>();
-    var modelId = builder.Configuration["BedrockTranslation:TablaMaestra"] ?? "amazon.nova-lite-v1:0";
-    return new BedrockTranslationService(bedrock, modelId);
+    var config = sp.GetRequiredService<BedrockTranslationConfig>();
+    return new BedrockTranslationService(bedrock, config.TablaMaestra);
 });
 builder.Services.AddSingleton(sp =>
 {
     var bedrock = sp.GetRequiredService<BedrockService>();
-    var modelId = builder.Configuration["BedrockTranslation:Informe"] ?? "meta.llama4-maverick-17b-instruct-v1:0";
-    return new BedrockInformeTranslationService(bedrock, modelId);
+    var config = sp.GetRequiredService<BedrockTranslationConfig>();
+    return new BedrockInformeTranslationService(bedrock, config.Informe);
 });
 builder.Services.AddScoped<InformeTranslationHandler>();
 

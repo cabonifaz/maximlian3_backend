@@ -16,9 +16,11 @@ namespace SafetyReport.Handlers
         private readonly IS3UploadService _s3;
         private readonly N8nService _n8n;
         private readonly N8nConfig _n8nConfig;
+        private readonly DocxGeneratorService _docxGenerator;
+        private readonly PdfGeneratorService _pdfGenerator;
         private readonly int _s3ExpirationMinutes;
 
-        public InformeHandler(InformeDAO dao, InformeLocalImagenDAO localImagenDAO, PedidoDAO pedidoDAO, PlantillaDocumentoDAO plantillaDAO, IS3UploadService s3, N8nService n8n, N8nConfig n8nConfig, IConfiguration configuration)
+        public InformeHandler(InformeDAO dao, InformeLocalImagenDAO localImagenDAO, PedidoDAO pedidoDAO, PlantillaDocumentoDAO plantillaDAO, IS3UploadService s3, N8nService n8n, N8nConfig n8nConfig, DocxGeneratorService docxGenerator, PdfGeneratorService pdfGenerator, IConfiguration configuration)
         {
             _dao = dao;
             _localImagenDAO = localImagenDAO;
@@ -27,6 +29,8 @@ namespace SafetyReport.Handlers
             _s3 = s3;
             _n8n = n8n;
             _n8nConfig = n8nConfig;
+            _docxGenerator = docxGenerator;
+            _pdfGenerator = pdfGenerator;
             _s3ExpirationMinutes = int.TryParse(configuration["AWS:S3ExpirationTime"], out var exp) ? exp : 15;
         }
 
@@ -537,8 +541,7 @@ namespace SafetyReport.Handlers
                 await DescargarFuentesAsync(estructura!);
                 var allAssets = await DescargarTodosAssetsAsync(estructura);
 
-                var generador = new DocxGeneratorService();
-                using var docxStream = generador.GenerarDocx(estructura!, allAssets);
+                using var docxStream = _docxGenerator.GenerarDocx(estructura!, allAssets);
 
                 var nombreArchivo = !string.IsNullOrWhiteSpace(nombreInforme) ? nombreInforme : "documento";
                 var rutaBase = $"informes/pedido-{request.IdPedido}/informe-{request.IdInforme}/{nombreArchivo}";
@@ -577,8 +580,7 @@ namespace SafetyReport.Handlers
                 await DescargarFuentesAsync(estructura!);
                 var allAssets = await DescargarTodosAssetsAsync(estructura);
 
-                var generador = new PdfGeneratorService();
-                using var pdfStream = generador.GenerarPdf(estructura!, allAssets);
+                using var pdfStream = _pdfGenerator.GenerarPdf(estructura!, allAssets);
 
                 var nombreArchivo = !string.IsNullOrWhiteSpace(nombreInforme) ? nombreInforme : "documento";
                 var rutaBase = $"informes/pedido-{request.IdPedido}/informe-{request.IdInforme}/{nombreArchivo}";
