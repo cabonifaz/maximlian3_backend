@@ -23,7 +23,7 @@ namespace SafetyReport.Handlers
                 return new Respuesta
                 {
                     IdTipoMensaje = 3,
-                    Mensaje = ex.Message,
+                    Mensaje = "Error interno del servidor.",
                     Result = new List<AsignacionCreada>()
                 };
             }
@@ -40,7 +40,7 @@ namespace SafetyReport.Handlers
                 return new Respuesta
                 {
                     IdTipoMensaje = 3,
-                    Mensaje = ex.Message,
+                    Mensaje = "Error interno del servidor.",
                     Result = new List<AsignacionCreada>()
                 };
             }
@@ -57,7 +57,7 @@ namespace SafetyReport.Handlers
                 return new Respuesta
                 {
                     IdTipoMensaje = 3,
-                    Mensaje = ex.Message,
+                    Mensaje = "Error interno del servidor.",
                     Result = new AsignacionListaResult()
                 };
             }
@@ -74,8 +74,25 @@ namespace SafetyReport.Handlers
                 return new Respuesta
                 {
                     IdTipoMensaje = 3,
-                    Mensaje = ex.Message,
+                    Mensaje = "Error interno del servidor.",
                     Result = new List<AsignacionConsulta>()
+                };
+            }
+        }
+
+        public async Task<Respuesta> BandejaAsync(UsuarioGeneral usuarioLogueado, FiltroAsignacionBandeja filtro)
+        {
+            try
+            {
+                return await _dao.BandejaAsync(usuarioLogueado, filtro);
+            }
+            catch (Exception ex)
+            {
+                return new Respuesta
+                {
+                    IdTipoMensaje = 3,
+                    Mensaje = "Error interno del servidor.",
+                    Result = new AsignacionBandejaResult()
                 };
             }
         }
@@ -91,7 +108,7 @@ namespace SafetyReport.Handlers
                 return new Respuesta
                 {
                     IdTipoMensaje = 3,
-                    Mensaje = ex.Message,
+                    Mensaje = "Error interno del servidor.",
                     Result = new List<EliminarAsignacionResult>()
                 };
             }

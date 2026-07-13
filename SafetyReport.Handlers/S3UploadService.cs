@@ -48,6 +48,20 @@ public class S3UploadService : IS3UploadService
         return _s3Client.GetPreSignedURL(request);
     }
 
+    public string GenerarDownloadUrl(string rutaArchivo, string nombreDescarga)
+    {
+        var request = new GetPreSignedUrlRequest
+        {
+            BucketName = _bucketName,
+            Key = rutaArchivo,
+            Verb = HttpVerb.GET,
+            Expires = DateTime.UtcNow.AddMinutes(_s3ExpirationMinutes),
+        };
+        request.ResponseHeaderOverrides.ContentDisposition = $"attachment; filename=\"{nombreDescarga}\"";
+
+        return _s3Client.GetPreSignedURL(request);
+    }
+
     public string GenerarUploadUrl(string rutaArchivo, string formatoArchivo)
     {
         var request = new GetPreSignedUrlRequest
@@ -55,11 +69,34 @@ public class S3UploadService : IS3UploadService
             BucketName = _bucketName,
             Key = rutaArchivo,
             Verb = HttpVerb.PUT,
-            Expires = DateTime.UtcNow.AddMinutes(_s3ExpirationMinutes),
-            ContentType = formatoArchivo
+            Expires = DateTime.UtcNow.AddMinutes(_s3ExpirationMinutes)
         };
 
         return _s3Client.GetPreSignedURL(request);
+    }
+
+    public List<string> GenerarUploadUrlsBatch(List<string> sufijos, string formatoArchivo)
+    {
+        var expiry = DateTime.UtcNow.AddMinutes(_s3ExpirationMinutes);
+        return sufijos.Select(sufijo => _s3Client.GetPreSignedURL(new GetPreSignedUrlRequest
+        {
+            BucketName = _bucketName,
+            Key        = sufijo,
+            Verb       = HttpVerb.PUT,
+            Expires    = expiry
+        })).ToList();
+    }
+
+    public List<string> GenerarDownloadUrlsBatch(List<string> sufijos)
+    {
+        var expiry = DateTime.UtcNow.AddMinutes(_s3ExpirationMinutes);
+        return sufijos.Select(sufijo => _s3Client.GetPreSignedURL(new GetPreSignedUrlRequest
+        {
+            BucketName = _bucketName,
+            Key        = sufijo,
+            Verb       = HttpVerb.GET,
+            Expires    = expiry
+        })).ToList();
     }
 
     public async Task UploadFileAsync(string rutaArchivo, IFormFile file)
@@ -81,6 +118,35 @@ public class S3UploadService : IS3UploadService
         };
 
         await _s3Client.PutObjectAsync(putRequest);
+    }
+
+    public async Task UploadStreamAsync(string rutaArchivo, Stream stream, string contentType)
+    {
+        var putRequest = new PutObjectRequest
+        {
+            BucketName = _bucketName,
+            Key = rutaArchivo,
+            InputStream = stream,
+            ContentType = contentType,
+            AutoCloseStream = false
+        };
+
+        await _s3Client.PutObjectAsync(putRequest);
+    }
+
+    public async Task<byte[]?> DescargarBytesAsync(string rutaArchivo)
+    {
+        try
+        {
+            var response = await _s3Client.GetObjectAsync(_bucketName, rutaArchivo);
+            using var ms = new MemoryStream();
+            await response.ResponseStream.CopyToAsync(ms);
+            return ms.ToArray();
+        }
+        catch
+        {
+            return null;
+        }
     }
 
     public async Task DeleteFileAsync(string rutaArchivo)
@@ -118,6 +184,25 @@ public class S3UploadService : IS3UploadService
         await _s3Client.CopyObjectAsync(copyRequest);
 
         await DeleteFileAsync(rutaOrigen);
+    }
+
+    public async Task CopiarArchivoAsync(string rutaOrigen, string rutaDestino)
+    {
+        if (string.IsNullOrWhiteSpace(rutaOrigen))
+            throw new ArgumentException("rutaOrigen es requerido", nameof(rutaOrigen));
+        if (string.IsNullOrWhiteSpace(rutaDestino))
+            throw new ArgumentException("rutaDestino es requerido", nameof(rutaDestino));
+
+        var copyRequest = new CopyObjectRequest
+        {
+            SourceBucket = _bucketName,
+            SourceKey = rutaOrigen,
+            DestinationBucket = _bucketName,
+            DestinationKey = rutaDestino,
+            MetadataDirective = S3MetadataDirective.COPY
+        };
+
+        await _s3Client.CopyObjectAsync(copyRequest);
     }
 
 }

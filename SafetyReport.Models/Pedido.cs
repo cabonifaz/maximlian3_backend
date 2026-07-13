@@ -17,7 +17,7 @@ namespace SafetyReport.Models
         public string? NumeroDocumento { get; set; }
         public string? NombreCliente { get; set; }
         public int IdTipoPersona { get; set; }
-        public int IdCompania { get; set; }
+        public int IdEmpresaAtencion { get; set; }
         public string? NumeroDocumentoInvestigado { get; set; }
         public string InvestigarRazonSocialNombres { get; set; } = string.Empty;
         public int IdTarifario { get; set; }
@@ -133,7 +133,9 @@ namespace SafetyReport.Models
     public class PedidoAsignacionResumen
     {
         public int IdEstadoAsignacion { get; set; }
-        public string? Descripcion { get; set; }
+        public string? DescripcionAsignacion { get; set; }
+        public int? IdEstadoInforme { get; set; }
+        public string? DescripcionEstadoInforme { get; set; }
     }
 
     public class PedidoListaConsulta
@@ -144,6 +146,7 @@ namespace SafetyReport.Models
         public string? Investigado { get; set; }
         public int IdIdioma { get; set; }
         public string? Idioma { get; set; }
+        public int? RequiereTraduccion { get; set; }
         public bool LogoImprimible { get; set; }
         public int Estado { get; set; }
         public string? DescripcionEstado { get; set; }
@@ -158,6 +161,11 @@ namespace SafetyReport.Models
         public List<PedidoListaConsulta> lstPedido { get; set; } = new();
         public int TotalRegistros { get; set; }
         public int TotalPaginas { get; set; }
+        public int Pendiente { get; set; }
+        public int EnRevision { get; set; }
+        public int Aprobado { get; set; }
+        public int Observado { get; set; }
+        public int Cancelado { get; set; }
     }
 
     public class FiltroPedidoAsignacion

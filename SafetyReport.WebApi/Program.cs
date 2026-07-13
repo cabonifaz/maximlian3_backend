@@ -1,3 +1,4 @@
+using Amazon.BedrockRuntime;
 using Amazon.S3;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
@@ -5,11 +6,14 @@ using Microsoft.OpenApi;
 using SafetyReport.DAO;
 using SafetyReport.Handlers;
 using SafetyReport.Models;
+using SafetyReport.WebApi.Filters;
 using SafetyReport.WebApi.Helpers;
 
 var builder = WebApplication.CreateBuilder(args);
 
-builder.Services.AddControllers();
+builder.Services.AddControllers(options =>
+    options.Filters.Add<SanitizeErrorFilter>());
+builder.Services.AddRequestTimeouts();
 builder.Services.AddEndpointsApiExplorer();
 
 builder.Services.AddSwaggerGen(c =>
@@ -141,6 +145,7 @@ builder.Services.AddScoped<UsuarioDAO>();
 builder.Services.AddScoped<UsuarioHandler>();
 builder.Services.AddScoped<TablaMaestraDAO>();
 builder.Services.AddScoped<TablaMaestraHandler>();
+builder.Services.AddScoped<FormatoDocumentoResolver>();
 builder.Services.AddScoped<ClienteDAO>();
 builder.Services.AddScoped<ClienteHandler>();
 builder.Services.AddScoped<TarifarioDAO>();
@@ -151,8 +156,23 @@ builder.Services.AddScoped<PedidoHandler>();
 builder.Services.AddScoped<PedidoDAO>();
 builder.Services.AddScoped<AsignacionHandler>();
 builder.Services.AddScoped<AsignacionDAO>();
+builder.Services.AddScoped<DocxGeneratorService>();
+builder.Services.AddScoped<PdfGeneratorService>();
 builder.Services.AddScoped<InformeHandler>();
 builder.Services.AddScoped<InformeDAO>();
+builder.Services.AddScoped<InformeObservacionHandler>();
+builder.Services.AddScoped<InformeObservacionDAO>();
+builder.Services.AddScoped<InformeLocalImagenHandler>();
+builder.Services.AddScoped<InformeLocalImagenDAO>();
+builder.Services.AddScoped<InformeArchivoHandler>();
+builder.Services.AddScoped<InformeArchivoDAO>();
+builder.Services.AddScoped<PlantillaDocumentoDAO>();
+builder.Services.AddScoped<BancoHandler>();
+builder.Services.AddScoped<BancoDAO>();
+builder.Services.AddScoped<CompaniaHandler>();
+builder.Services.AddScoped<CompaniaDAO>();
+builder.Services.AddScoped<DirectorioEjecutivoHandler>();
+builder.Services.AddScoped<DirectorioEjecutivoDAO>();
 
 var awsRegion = builder.Configuration["AWS:Region"];
 var awsBucketName = builder.Configuration["AWS:BucketName"];
@@ -177,9 +197,42 @@ builder.Services.AddSingleton<IAmazonS3>(sp =>
 
 builder.Services.AddSingleton<IS3UploadService, S3UploadService>();
 
+builder.Services.AddSingleton<IAmazonBedrockRuntime>(sp =>
+{
+    var regionEndpoint = Amazon.RegionEndpoint.GetBySystemName(awsRegion);
+    var credenciales = new Amazon.Runtime.BasicAWSCredentials(awsAccessKey, awsSecretKey);
+    return new AmazonBedrockRuntimeClient(credenciales, regionEndpoint);
+});
+builder.Services.AddSingleton<BedrockService>();
+
+var bedrockTranslationConfig = builder.Configuration.GetSection("BedrockTranslation").Get<BedrockTranslationConfig>()
+    ?? throw new Exception("Falta configuración BedrockTranslation");
+builder.Services.AddSingleton(bedrockTranslationConfig);
+builder.Services.AddSingleton(sp =>
+{
+    var bedrock = sp.GetRequiredService<BedrockService>();
+    var config = sp.GetRequiredService<BedrockTranslationConfig>();
+    return new BedrockTranslationService(bedrock, config.TablaMaestra);
+});
+builder.Services.AddSingleton(sp =>
+{
+    var bedrock = sp.GetRequiredService<BedrockService>();
+    var config = sp.GetRequiredService<BedrockTranslationConfig>();
+    return new BedrockInformeTranslationService(bedrock, config.Informe);
+});
+builder.Services.AddScoped<InformeTranslationHandler>();
+
 builder.Services.AddScoped<PedidoArchivoHandler>();
 builder.Services.AddScoped<PedidoArchivoDAO>();
 builder.Services.AddScoped<CognitoTokenValidator>();
+
+var n8nConfig = builder.Configuration.GetSection("N8n").Get<N8nConfig>()
+    ?? throw new Exception("Falta configuración N8n");
+builder.Services.AddSingleton(n8nConfig);
+builder.Services.AddHttpClient<N8nService>(client =>
+{
+    client.Timeout = TimeSpan.FromSeconds(300);
+});
 
 var app = builder.Build();
 
@@ -187,6 +240,7 @@ app.UseSwagger();
 app.UseSwaggerUI();
 
 app.UseCors("LocalDev");
+app.UseRequestTimeouts();
 
 app.UseAuthentication();
 app.UseAuthorization();

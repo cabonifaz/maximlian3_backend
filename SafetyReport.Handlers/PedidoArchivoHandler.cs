@@ -9,13 +9,13 @@ namespace SafetyReport.Handlers
     {
         private readonly PedidoArchivoDAO _dao;
         private readonly IS3UploadService _s3UploadService;
-        private readonly TablaMaestraDAO _tablaMaestraDao;
+        private readonly FormatoDocumentoResolver _formatoDocumentoResolver;
 
-        public PedidoArchivoHandler(PedidoArchivoDAO dao, IS3UploadService s3UploadService, TablaMaestraDAO tablaMaestraDao)
+        public PedidoArchivoHandler(PedidoArchivoDAO dao, IS3UploadService s3UploadService, FormatoDocumentoResolver formatoDocumentoResolver)
         {
             _dao = dao;
             _s3UploadService = s3UploadService;
-            _tablaMaestraDao = tablaMaestraDao;
+            _formatoDocumentoResolver = formatoDocumentoResolver;
         }
 
         public async Task<Respuesta> CrearAsync(UsuarioGeneral usuarioLogueado, PedidoArchivoCrearBatch request)
@@ -27,7 +27,7 @@ namespace SafetyReport.Handlers
 
                 foreach (var archivo in request.Archivos)
                 {
-                    var formatoDocumento = await ResolverFormatoDocumentoAsync(usuarioLogueado, archivo.FormatoArchivo, archivo.NombreDocumento);
+                    var formatoDocumento = await _formatoDocumentoResolver.ResolverAsync(usuarioLogueado, archivo.FormatoArchivo, archivo.NombreDocumento);
                     var rutaDefecto = _s3UploadService.GenerarRutaPedidoArchivo(request.IdPedido, archivo.NombreDocumento, 0);
 
                     var solicitudCrear = new PedidoArchivoCrear
@@ -73,34 +73,15 @@ namespace SafetyReport.Handlers
                     Result = archivosPresignados
                 };
             }
-            catch (Exception ex)
+            catch (Exception)
             {
                 return new Respuesta
                 {
                     IdTipoMensaje = 3,
-                    Mensaje = ex.Message,
+                    Mensaje = "Error interno del servidor.",
                     Result = new List<PedidoArchivoPresignado>()
                 };
             }
-        }
-
-        private async Task<string> ResolverFormatoDocumentoAsync(UsuarioGeneral usuarioLogueado, string formatoArchivo, string nombreArchivo)
-        {
-            var mime = (formatoArchivo ?? string.Empty).Trim().ToUpperInvariant();
-
-            if (!string.IsNullOrWhiteSpace(mime))
-            {
-                var respuesta = await _tablaMaestraDao.ListarAsync(usuarioLogueado, 34);
-                if (respuesta.IdTipoMensaje == 2 && respuesta.Result is List<TablaMaestraItem> items)
-                {
-                    var match = items.FirstOrDefault(i =>
-                        string.Equals(i.String3, mime, StringComparison.OrdinalIgnoreCase));
-                    if (match?.String1 != null)
-                        return match.String1.ToUpperInvariant();
-                }
-            }
-
-            return Path.GetExtension(nombreArchivo).TrimStart('.').ToUpperInvariant();
         }
 
         public async Task<Respuesta> EditarAsync(UsuarioGeneral usuarioLogueado, PedidoArchivoEditar request)
@@ -109,7 +90,7 @@ namespace SafetyReport.Handlers
             {
                 if (string.IsNullOrWhiteSpace(request.FormatoDocumento))
                 {
-                    request.FormatoDocumento = await ResolverFormatoDocumentoAsync(usuarioLogueado, request.FormatoDocumento, request.NombreDocumento);
+                    request.FormatoDocumento = await _formatoDocumentoResolver.ResolverAsync(usuarioLogueado, request.FormatoDocumento, request.NombreDocumento);
                 }
 
                 var respuestaObtener = await _dao.ObtenerAsync(usuarioLogueado, new PedidoArchivoIdRequest
@@ -147,12 +128,12 @@ namespace SafetyReport.Handlers
 
                 return daoRespuesta;
             }
-            catch (Exception ex)
+            catch (Exception)
             {
                 return new Respuesta
                 {
                     IdTipoMensaje = 3,
-                    Mensaje = ex.Message,
+                    Mensaje = "Error interno del servidor.",
                     Result = new List<PedidoArchivoCreado>()
                 };
             }
@@ -175,12 +156,12 @@ namespace SafetyReport.Handlers
 
                 return daoRespuesta;
             }
-            catch (Exception ex)
+            catch (Exception)
             {
                 return new Respuesta
                 {
                     IdTipoMensaje = 3,
-                    Mensaje = ex.Message,
+                    Mensaje = "Error interno del servidor.",
                     Result = new List<PedidoArchivoConsulta>()
                 };
             }
@@ -192,12 +173,12 @@ namespace SafetyReport.Handlers
             {
                 return await _dao.ListarAsync(usuarioLogueado, request);
             }
-            catch (Exception ex)
+            catch (Exception)
             {
                 return new Respuesta
                 {
                     IdTipoMensaje = 3,
-                    Mensaje = ex.Message,
+                    Mensaje = "Error interno del servidor.",
                     Result = new PedidoArchivoListaResult()
                 };
             }
@@ -230,12 +211,12 @@ namespace SafetyReport.Handlers
 
                 return daoRespuesta;
             }
-            catch (Exception ex)
+            catch (Exception)
             {
                 return new Respuesta
                 {
                     IdTipoMensaje = 3,
-                    Mensaje = ex.Message,
+                    Mensaje = "Error interno del servidor.",
                     Result = new List<PedidoArchivoEliminado>()
                 };
             }

@@ -482,3 +482,5 @@ $RECYCLE.BIN/
 *.swp
 
 SafetyReport.WebApi/appsettings.json
+
+SafetyReport.WebApi/Properties/launchSettings.json

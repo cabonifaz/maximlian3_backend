@@ -48,7 +48,7 @@ namespace SafetyReport.DAO
             };
         }
 
-        public async Task<Respuesta> ListarAsync(UsuarioGeneral usuarioLogueado, int? idMaestro)
+        public async Task<Respuesta> ListarAsync(UsuarioGeneral usuarioLogueado, string? idsMaestro)
         {
             try
             {
@@ -60,10 +60,10 @@ namespace SafetyReport.DAO
                 cmd.Parameters.Add("@vchUsuario", SqlDbType.VarChar, 32).Value = usuarioLogueado.Usuario;
                 cmd.Parameters.Add("@intIdEmpresa", SqlDbType.Int).Value = usuarioLogueado.IdEmpresa;
                 cmd.Parameters.Add("@intIdRol", SqlDbType.Int).Value = usuarioLogueado.IdRol;
-                cmd.Parameters.Add("@intIdMaestro", SqlDbType.Int).Value = (object?)idMaestro ?? DBNull.Value;
+                cmd.Parameters.Add("@vchIdsMaestro", SqlDbType.VarChar, -1).Value = (object?)idsMaestro ?? DBNull.Value;
 
                 await cn.OpenAsync();
-                return await LeerRespuestaAsync<TablaMaestraItem>(cmd);
+                return await LeerRespuestaAsync<TablaMaestraGroup>(cmd);
             }
             catch (Exception ex)
             {
@@ -71,12 +71,12 @@ namespace SafetyReport.DAO
                 {
                     IdTipoMensaje = 3,
                     Mensaje = ex.Message,
-                    Result = new List<TablaMaestraItem>()
+                    Result = new List<TablaMaestraGroup>()
                 };
             }
         }
 
-        public async Task<Respuesta> ListarInventarioAsync(UsuarioGeneral usuarioLogueado)
+        public async Task<Respuesta> ListarInventarioAsync(UsuarioGeneral usuarioLogueado, int? idMaestro)
         {
             try
             {
@@ -88,6 +88,7 @@ namespace SafetyReport.DAO
                 cmd.Parameters.Add("@vchUsuario", SqlDbType.VarChar, 32).Value = usuarioLogueado.Usuario;
                 cmd.Parameters.Add("@intIdEmpresa", SqlDbType.Int).Value = usuarioLogueado.IdEmpresa;
                 cmd.Parameters.Add("@intIdRol", SqlDbType.Int).Value = usuarioLogueado.IdRol;
+                cmd.Parameters.Add("@intIdMaestro", SqlDbType.Int).Value = (object?)idMaestro ?? DBNull.Value;
 
                 await cn.OpenAsync();
                 return await LeerRespuestaAsync<InventarioMaestroItem>(cmd);
@@ -130,7 +131,11 @@ namespace SafetyReport.DAO
 
                 cmd.Parameters.Add("@vchString1", SqlDbType.VarChar, 255).Value = (object?)request.String1 ?? DBNull.Value;
                 cmd.Parameters.Add("@vchString2", SqlDbType.VarChar, 255).Value = (object?)request.String2 ?? DBNull.Value;
-                cmd.Parameters.Add("@vchString3", SqlDbType.VarChar, 255).Value = (object?)request.String3 ?? DBNull.Value;
+                cmd.Parameters.Add("@vchString3", SqlDbType.NVarChar, 255).Value = (object?)request.String3 ?? DBNull.Value;
+                cmd.Parameters.Add("@vchString4", SqlDbType.VarChar, 255).Value = (object?)request.String4 ?? DBNull.Value;
+                cmd.Parameters.Add("@vchString5", SqlDbType.VarChar, 255).Value = (object?)request.String5 ?? DBNull.Value;
+                cmd.Parameters.Add("@vchString6", SqlDbType.VarChar, 255).Value = (object?)request.String6 ?? DBNull.Value;
+                cmd.Parameters.Add("@vchString7", SqlDbType.VarChar, 255).Value = (object?)request.String7 ?? DBNull.Value;
                 cmd.Parameters.Add("@dtDate1", SqlDbType.DateTime).Value = (object?)request.Date1 ?? DBNull.Value;
                 cmd.Parameters.Add("@dtDate2", SqlDbType.DateTime).Value = (object?)request.Date2 ?? DBNull.Value;
                 cmd.Parameters.Add("@dtDate3", SqlDbType.DateTime).Value = (object?)request.Date3 ?? DBNull.Value;
@@ -175,7 +180,11 @@ namespace SafetyReport.DAO
 
                 cmd.Parameters.Add("@vchString1", SqlDbType.VarChar, 255).Value = (object?)request.String1 ?? DBNull.Value;
                 cmd.Parameters.Add("@vchString2", SqlDbType.VarChar, 255).Value = (object?)request.String2 ?? DBNull.Value;
-                cmd.Parameters.Add("@vchString3", SqlDbType.VarChar, 255).Value = (object?)request.String3 ?? DBNull.Value;
+                cmd.Parameters.Add("@vchString3", SqlDbType.NVarChar, 255).Value = (object?)request.String3 ?? DBNull.Value;
+                cmd.Parameters.Add("@vchString4", SqlDbType.VarChar, 255).Value = (object?)request.String4 ?? DBNull.Value;
+                cmd.Parameters.Add("@vchString5", SqlDbType.VarChar, 255).Value = (object?)request.String5 ?? DBNull.Value;
+                cmd.Parameters.Add("@vchString6", SqlDbType.VarChar, 255).Value = (object?)request.String6 ?? DBNull.Value;
+                cmd.Parameters.Add("@vchString7", SqlDbType.VarChar, 255).Value = (object?)request.String7 ?? DBNull.Value;
                 cmd.Parameters.Add("@dtDate1", SqlDbType.DateTime).Value = (object?)request.Date1 ?? DBNull.Value;
                 cmd.Parameters.Add("@dtDate2", SqlDbType.DateTime).Value = (object?)request.Date2 ?? DBNull.Value;
                 cmd.Parameters.Add("@dtDate3", SqlDbType.DateTime).Value = (object?)request.Date3 ?? DBNull.Value;
@@ -237,6 +246,47 @@ namespace SafetyReport.DAO
                 cmd.Parameters.Add("@intIdEmpresa", SqlDbType.Int).Value = usuarioLogueado.IdEmpresa;
                 cmd.Parameters.Add("@intIdRol", SqlDbType.Int).Value = usuarioLogueado.IdRol;
                 cmd.Parameters.Add("@intIdTablaMaestra", SqlDbType.Int).Value = idTablaMaestra;
+
+                await cn.OpenAsync();
+                return await LeerRespuestaAsync<TablaMaestraResultado>(cmd);
+            }
+            catch (Exception ex)
+            {
+                return new Respuesta
+                {
+                    IdTipoMensaje = 3,
+                    Mensaje = ex.Message,
+                    Result = new List<TablaMaestraResultado>()
+                };
+            }
+        }
+        public async Task<Respuesta> ActualizarTraduccionesAsync(UsuarioGeneral usuarioLogueado, int idMaestro, int? num1, decimal? num2, decimal? num3, string? string4, string? string5, string? string6, string? string7)
+        {
+            try
+            {
+                using SqlConnection cn = new(_dbConfig.ConnectionString);
+                using SqlCommand cmd = new("TablaMaestra_ActualizarTraducciones", cn);
+
+                cmd.CommandType = CommandType.StoredProcedure;
+                cmd.Parameters.Add("@intIdUsuario", SqlDbType.Int).Value = usuarioLogueado.IdUsuario;
+                cmd.Parameters.Add("@vchUsuario", SqlDbType.VarChar, 32).Value = usuarioLogueado.Usuario;
+                cmd.Parameters.Add("@intIdEmpresa", SqlDbType.Int).Value = usuarioLogueado.IdEmpresa;
+                cmd.Parameters.Add("@intIdRol", SqlDbType.Int).Value = usuarioLogueado.IdRol;
+                cmd.Parameters.Add("@intIdMaestro", SqlDbType.Int).Value = idMaestro;
+                cmd.Parameters.Add("@intNum1", SqlDbType.Int).Value = (object?)num1 ?? DBNull.Value;
+
+                cmd.Parameters.Add("@decNum2", SqlDbType.Decimal).Value = (object?)num2 ?? DBNull.Value;
+                cmd.Parameters["@decNum2"].Precision = 18;
+                cmd.Parameters["@decNum2"].Scale = 6;
+
+                cmd.Parameters.Add("@decNum3", SqlDbType.Decimal).Value = (object?)num3 ?? DBNull.Value;
+                cmd.Parameters["@decNum3"].Precision = 18;
+                cmd.Parameters["@decNum3"].Scale = 6;
+
+                cmd.Parameters.Add("@vchString4", SqlDbType.VarChar, 255).Value = (object?)string4 ?? DBNull.Value;
+                cmd.Parameters.Add("@vchString5", SqlDbType.VarChar, 255).Value = (object?)string5 ?? DBNull.Value;
+                cmd.Parameters.Add("@vchString6", SqlDbType.VarChar, 255).Value = (object?)string6 ?? DBNull.Value;
+                cmd.Parameters.Add("@vchString7", SqlDbType.VarChar, 255).Value = (object?)string7 ?? DBNull.Value;
 
                 await cn.OpenAsync();
                 return await LeerRespuestaAsync<TablaMaestraResultado>(cmd);
