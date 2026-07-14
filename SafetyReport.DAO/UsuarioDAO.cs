@@ -42,7 +42,7 @@ namespace SafetyReport.DAO
             {
                 respuesta.IdTipoMensaje = dr["IdTipoMensaje"] != DBNull.Value
                     ? Convert.ToInt32(dr["IdTipoMensaje"])
-                    : 0;
+                    : 3;
 
                 respuesta.Mensaje = dr["Mensaje"]?.ToString() ?? string.Empty;
 
@@ -57,7 +57,7 @@ namespace SafetyReport.DAO
             }
             else
             {
-                respuesta.IdTipoMensaje = 1;
+                respuesta.IdTipoMensaje = 3;
                 respuesta.Mensaje = "No se obtuvo respuesta del procedimiento.";
                 respuesta.Result = new List<T>();
             }
@@ -202,7 +202,7 @@ namespace SafetyReport.DAO
                 {
                     respuesta.IdTipoMensaje = dr["IdTipoMensaje"] != DBNull.Value
                         ? Convert.ToInt32(dr["IdTipoMensaje"])
-                        : 0;
+                        : 3;
                     respuesta.Mensaje = dr["Mensaje"]?.ToString() ?? string.Empty;
 
                     var json = dr["Result"]?.ToString();
@@ -215,7 +215,7 @@ namespace SafetyReport.DAO
                 }
                 else
                 {
-                    respuesta.IdTipoMensaje = 1;
+                    respuesta.IdTipoMensaje = 3;
                     respuesta.Mensaje = "No se obtuvo respuesta del procedimiento.";
                     respuesta.Result = new UsuarioListaResult();
                 }

@@ -24,7 +24,7 @@ namespace SafetyReport.DAO
                 {
                     IdTipoMensaje = dr["IdTipoMensaje"] != DBNull.Value
                         ? Convert.ToInt32(dr["IdTipoMensaje"])
-                        : 0,
+                        : 3,
                     Mensaje = dr["Mensaje"]?.ToString() ?? string.Empty
                 };
 
@@ -42,7 +42,7 @@ namespace SafetyReport.DAO
 
             return new Respuesta
             {
-                IdTipoMensaje = 1,
+                IdTipoMensaje = 3,
                 Mensaje = "No se obtuvo respuesta del procedimiento.",
                 Result = new List<T>()
             };
