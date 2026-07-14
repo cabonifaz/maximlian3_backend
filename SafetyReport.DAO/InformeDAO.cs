@@ -640,6 +640,214 @@ namespace SafetyReport.DAO
             return t;
         }
 
+        private static DataTable ConstruirTablaIdentificacion(InformeCrear r)
+        {
+            var t = new DataTable();
+            t.Columns.Add("IdTipoPersona", typeof(int));
+            t.Columns.Add("Nombre", typeof(string));
+            t.Columns.Add("NombreComercial", typeof(string));
+            t.Columns.Add("IdPais", typeof(int));
+            t.Columns.Add("OperacionesTCMoneda", typeof(int));
+            t.Columns.Add("TaxIdType", typeof(int));
+            t.Columns.Add("TaxNum", typeof(string));
+            t.Columns.Add("Direccion", typeof(string));
+            t.Columns.Add("Ubigeo", typeof(string));
+            t.Columns.Add("CodigoPostal", typeof(string));
+            t.Columns.Add("Telefono", typeof(string));
+            t.Columns.Add("Fax", typeof(string));
+            t.Columns.Add("Email", typeof(string));
+            t.Columns.Add("PaginaWeb", typeof(string));
+            t.Columns.Add("IdEstadoManual", typeof(int));
+            t.Columns.Add("DatosAdicionales", typeof(string));
+            t.Columns.Add("ObservacionesIdentificacion", typeof(string));
+            t.Rows.Add(
+                (object?)r.IdTipoPersona ?? DBNull.Value,
+                (object?)r.Nombre ?? DBNull.Value,
+                (object?)r.NombreComercial ?? DBNull.Value,
+                (object?)r.IdPais ?? DBNull.Value,
+                (object?)r.OperacionesTCMoneda ?? DBNull.Value,
+                (object?)r.TaxIdType ?? DBNull.Value,
+                (object?)r.TaxNum ?? DBNull.Value,
+                (object?)r.Direccion ?? DBNull.Value,
+                (object?)r.Ubigeo ?? DBNull.Value,
+                (object?)r.CodigoPostal ?? DBNull.Value,
+                (object?)r.Telefono ?? DBNull.Value,
+                (object?)r.Fax ?? DBNull.Value,
+                (object?)r.Email ?? DBNull.Value,
+                (object?)r.PaginaWeb ?? DBNull.Value,
+                (object?)r.IdEstadoManual ?? DBNull.Value,
+                (object?)r.DatosAdicionales ?? DBNull.Value,
+                (object?)r.ObservacionesIdentificacion ?? DBNull.Value
+            );
+            return t;
+        }
+
+        private static DataTable ConstruirTablaAspectosLegales(InformeCrear r)
+        {
+            var t = new DataTable();
+            t.Columns.Add("IdTipoEmpresa", typeof(int));
+            t.Columns.Add("FechaConstitucion", typeof(DateTime));
+            t.Columns.Add("IdCiudadRegistro", typeof(int));
+            t.Columns.Add("IdNotaria", typeof(string));
+            t.Columns.Add("IdNotario", typeof(string));
+            t.Columns.Add("IdRegistro", typeof(string));
+            t.Columns.Add("IdPlazo", typeof(string));
+            t.Columns.Add("IdOperacionesCambioDivisas", typeof(int));
+            t.Columns.Add("CapitalInicial", typeof(decimal));
+            t.Columns.Add("CapitalPagado", typeof(decimal));
+            t.Columns.Add("FechaUltimoIncremento", typeof(DateTime));
+            t.Columns.Add("IdTipoIncremento", typeof(int));
+            t.Columns.Add("PatrimonioNeto", typeof(decimal));
+            t.Columns.Add("TipoAcciones", typeof(string));
+            t.Columns.Add("ValorAcciones", typeof(decimal));
+            t.Columns.Add("CotizaBolsa", typeof(bool));
+            t.Columns.Add("TipoCambio", typeof(decimal));
+            t.Columns.Add("IdTipoCambio", typeof(int));
+            t.Columns.Add("Antecedentes", typeof(string));
+            t.Columns.Add("AspectosLegales", typeof(string));
+            t.Columns.Add("ComentariosAspectoLegal", typeof(string));
+            t.Rows.Add(
+                (object?)r.IdTipoEmpresa ?? DBNull.Value,
+                (object?)r.FechaConstitucion ?? DBNull.Value,
+                (object?)r.IdCiudadRegistro ?? DBNull.Value,
+                (object?)r.IdNotaria ?? DBNull.Value,
+                (object?)r.IdNotario ?? DBNull.Value,
+                (object?)r.IdRegistro ?? DBNull.Value,
+                (object?)r.IdPlazo ?? DBNull.Value,
+                (object?)r.IdOperacionesCambioDivisas ?? DBNull.Value,
+                D2(r.CapitalInicial),
+                D2(r.CapitalPagado),
+                (object?)r.FechaUltimoIncremento ?? DBNull.Value,
+                (object?)r.IdTipoIncremento ?? DBNull.Value,
+                D2(r.PatrimonioNeto),
+                (object?)r.TipoAcciones ?? DBNull.Value,
+                D2(r.ValorAcciones),
+                (object?)r.CotizaBolsa ?? DBNull.Value,
+                D6(r.TipoCambio),
+                (object?)r.IdTipoCambio ?? DBNull.Value,
+                (object?)r.Antecedentes ?? DBNull.Value,
+                (object?)r.AspectosLegales ?? DBNull.Value,
+                (object?)r.ComentariosAspectoLegal ?? DBNull.Value
+            );
+            return t;
+        }
+
+        private static DataTable ConstruirTablaRamoOperaciones(InformeCrear r)
+        {
+            var t = new DataTable();
+            t.Columns.Add("IdSector", typeof(int));
+            t.Columns.Add("Actividad", typeof(string));
+            t.Columns.Add("IdIsicCategoria", typeof(int));
+            t.Columns.Add("IdIsicClase", typeof(int));
+            t.Columns.Add("ActividadPrincipal", typeof(string));
+            t.Columns.Add("VentasContado", typeof(decimal));
+            t.Columns.Add("VentasContadoText", typeof(string));
+            t.Columns.Add("VentasCredito", typeof(decimal));
+            t.Columns.Add("VentasCreditoText", typeof(string));
+            t.Columns.Add("IdVentasCreditoTiempo", typeof(int));
+            t.Columns.Add("VentasInternacionales", typeof(decimal));
+            t.Columns.Add("VentasInternacionalesText", typeof(string));
+            t.Columns.Add("VentasNacionales", typeof(decimal));
+            t.Columns.Add("VentasNacionalesText", typeof(string));
+            t.Columns.Add("ComprasNacionales", typeof(decimal));
+            t.Columns.Add("ComprasNacionalesText", typeof(string));
+            t.Columns.Add("ComprasInternacionales", typeof(decimal));
+            t.Columns.Add("ComprasInternacionalesText", typeof(string));
+            t.Columns.Add("ComprasContadoNacionales", typeof(decimal));
+            t.Columns.Add("ComprasContadoNacionalesText", typeof(string));
+            t.Columns.Add("ComprasCreditoNacionales", typeof(decimal));
+            t.Columns.Add("ComprasCreditoNacionalesText", typeof(string));
+            t.Columns.Add("IdComprasCreditoNacionalesTiempo", typeof(int));
+            t.Columns.Add("ComprasContadoInternacionales", typeof(decimal));
+            t.Columns.Add("ComprasContadoInternacionalesText", typeof(string));
+            t.Columns.Add("ComprasCreditoInternacionales", typeof(decimal));
+            t.Columns.Add("ComprasCreditoInternacionalesText", typeof(string));
+            t.Columns.Add("IdComprasCreditoInternacionalesTiempo", typeof(int));
+            t.Columns.Add("NumeroEmpleados", typeof(int));
+            t.Columns.Add("NumeroEmpleadosText", typeof(string));
+            t.Columns.Add("ComentariosOperaciones", typeof(string));
+            t.Rows.Add(
+                (object?)r.IdSector ?? DBNull.Value,
+                (object?)r.Actividad ?? DBNull.Value,
+                (object?)r.IdIsicCategoria ?? DBNull.Value,
+                (object?)r.IdIsicClase ?? DBNull.Value,
+                (object?)r.ActividadPrincipal ?? DBNull.Value,
+                D2(r.VentasContado),
+                (object?)r.VentasContadoText ?? DBNull.Value,
+                D2(r.VentasCredito),
+                (object?)r.VentasCreditoText ?? DBNull.Value,
+                (object?)r.IdVentasCreditoTiempo ?? DBNull.Value,
+                D2(r.VentasInternacionales),
+                (object?)r.VentasInternacionalesText ?? DBNull.Value,
+                D2(r.VentasNacionales),
+                (object?)r.VentasNacionalesText ?? DBNull.Value,
+                D2(r.ComprasNacionales),
+                (object?)r.ComprasNacionalesText ?? DBNull.Value,
+                D2(r.ComprasInternacionales),
+                (object?)r.ComprasInternacionalesText ?? DBNull.Value,
+                D2(r.ComprasContadoNacionales),
+                (object?)r.ComprasContadoNacionalesText ?? DBNull.Value,
+                D2(r.ComprasCreditoNacionales),
+                (object?)r.ComprasCreditoNacionalesText ?? DBNull.Value,
+                (object?)r.IdComprasCreditoNacionalesTiempo ?? DBNull.Value,
+                D2(r.ComprasContadoInternacionales),
+                (object?)r.ComprasContadoInternacionalesText ?? DBNull.Value,
+                D2(r.ComprasCreditoInternacionales),
+                (object?)r.ComprasCreditoInternacionalesText ?? DBNull.Value,
+                (object?)r.IdComprasCreditoInternacionalesTiempo ?? DBNull.Value,
+                (object?)r.NumeroEmpleados ?? DBNull.Value,
+                (object?)r.NumeroEmpleadosText ?? DBNull.Value,
+                (object?)r.ComentariosOperaciones ?? DBNull.Value
+            );
+            return t;
+        }
+
+        private static DataTable ConstruirTablaInformacionFinanciera(InformeCrear r)
+        {
+            var t = new DataTable();
+            t.Columns.Add("ContenidoInformacionFinanciera", typeof(string));
+            t.Columns.Add("ComentarioInformacionFinanciera", typeof(string));
+            t.Columns.Add("ActivosFijos", typeof(string));
+            t.Columns.Add("Seguros", typeof(string));
+            t.Rows.Add(
+                (object?)r.ContenidoInformacionFinanciera ?? DBNull.Value,
+                (object?)r.ComentarioInformacionFinanciera ?? DBNull.Value,
+                (object?)r.ActivosFijos ?? DBNull.Value,
+                (object?)r.Seguros ?? DBNull.Value
+            );
+            return t;
+        }
+
+        private static DataTable ConstruirTablaBancosProveedores(InformeCrear r)
+        {
+            var t = new DataTable();
+            t.Columns.Add("ComentarioProveedor", typeof(string));
+            t.Columns.Add("ReferenciaBanco", typeof(string));
+            t.Columns.Add("Litigios", typeof(string));
+            t.Columns.Add("RiesgoPrincipal", typeof(string));
+            t.Columns.Add("Superintendecia", typeof(string));
+            t.Rows.Add(
+                (object?)r.ComentarioProveedor ?? DBNull.Value,
+                (object?)r.ReferenciaBanco ?? DBNull.Value,
+                (object?)r.Litigios ?? DBNull.Value,
+                (object?)r.RiesgoPrincipal ?? DBNull.Value,
+                (object?)r.Superintendecia ?? DBNull.Value
+            );
+            return t;
+        }
+
+        private static DataTable ConstruirTablaDatosGenerales(InformeCrear r)
+        {
+            var t = new DataTable();
+            t.Columns.Add("InformacionGeneral", typeof(string));
+            t.Columns.Add("OpinionCredito", typeof(string));
+            t.Rows.Add(
+                (object?)r.InformacionGeneral ?? DBNull.Value,
+                (object?)r.OpinionCredito ?? DBNull.Value
+            );
+            return t;
+        }
+
         // ── Decimal rounding helpers (match SQL TVP column precision) ────────────
 
         private static object D2(decimal? v) => v.HasValue ? (object)Math.Round(v.Value, 2, MidpointRounding.AwayFromZero) : DBNull.Value;
@@ -734,93 +942,20 @@ namespace SafetyReport.DAO
         private static void AgregarParametrosCampos(SqlCommand cmd, InformeCrear r)
         {
             cmd.Parameters.Add("@intIdPedido", SqlDbType.Int).Value = (object?)r.IdPedido ?? DBNull.Value;
-            cmd.Parameters.Add("@intIdTipoPersona", SqlDbType.Int).Value = (object?)r.IdTipoPersona ?? DBNull.Value;
-            cmd.Parameters.Add("@vchNombre", SqlDbType.VarChar, 255).Value = (object?)r.Nombre ?? DBNull.Value;
-            cmd.Parameters.Add("@vchNombreComercial", SqlDbType.VarChar, 255).Value = (object?)r.NombreComercial ?? DBNull.Value;
-            cmd.Parameters.Add("@intIdPais", SqlDbType.Int).Value = (object?)r.IdPais ?? DBNull.Value;
-            cmd.Parameters.Add("@intOperacionesTCMoneda", SqlDbType.Int).Value = (object?)r.OperacionesTCMoneda ?? DBNull.Value;
-            cmd.Parameters.Add("@intTaxIdType", SqlDbType.Int).Value = (object?)r.TaxIdType ?? DBNull.Value;
-            cmd.Parameters.Add("@vchTaxNum", SqlDbType.VarChar, 100).Value = (object?)r.TaxNum ?? DBNull.Value;
-            cmd.Parameters.Add("@vchDireccion", SqlDbType.VarChar, 1024).Value = (object?)r.Direccion ?? DBNull.Value;
-            cmd.Parameters.Add("@vchUbigeo", SqlDbType.VarChar, 150).Value = (object?)r.Ubigeo ?? DBNull.Value;
-            cmd.Parameters.Add("@vchCodigoPostal", SqlDbType.VarChar, 50).Value = (object?)r.CodigoPostal ?? DBNull.Value;
-            cmd.Parameters.Add("@vchTelefono", SqlDbType.VarChar, 2560).Value = (object?)r.Telefono ?? DBNull.Value;
-            cmd.Parameters.Add("@vchFax", SqlDbType.VarChar, 2560).Value = (object?)r.Fax ?? DBNull.Value;
-            cmd.Parameters.Add("@vchEmail", SqlDbType.VarChar, 2560).Value = (object?)r.Email ?? DBNull.Value;
-            cmd.Parameters.Add("@vchPaginaWeb", SqlDbType.VarChar, 512).Value = (object?)r.PaginaWeb ?? DBNull.Value;
-            cmd.Parameters.Add("@intIdEstadoManual", SqlDbType.Int).Value = (object?)r.IdEstadoManual ?? DBNull.Value;
-            cmd.Parameters.Add("@intIdEstadoInforme", SqlDbType.Int).Value = (object?)r.IdEstadoInforme ?? DBNull.Value;
-            cmd.Parameters.Add("@vchDatosAdicionales", SqlDbType.VarChar, -1).Value = (object?)r.DatosAdicionales ?? DBNull.Value;
-            cmd.Parameters.Add("@vchObservacionesIdentificacion", SqlDbType.VarChar, -1).Value = (object?)r.ObservacionesIdentificacion ?? DBNull.Value;
-            cmd.Parameters.Add("@intIdTipoEmpresa", SqlDbType.Int).Value = (object?)r.IdTipoEmpresa ?? DBNull.Value;
-            cmd.Parameters.Add("@dtFechaConstitucion", SqlDbType.DateTime).Value = (object?)r.FechaConstitucion ?? DBNull.Value;
-            cmd.Parameters.Add("@intIdCiudadRegistro", SqlDbType.Int).Value = (object?)r.IdCiudadRegistro ?? DBNull.Value;
-            cmd.Parameters.Add("@vchIdNotaria", SqlDbType.VarChar, 255).Value = (object?)r.IdNotaria ?? DBNull.Value;
-            cmd.Parameters.Add("@vchIdNotario", SqlDbType.VarChar, 255).Value = (object?)r.IdNotario ?? DBNull.Value;
-            cmd.Parameters.Add("@vchIdRegistro", SqlDbType.VarChar, 255).Value = (object?)r.IdRegistro ?? DBNull.Value;
-            cmd.Parameters.Add("@vchIdPlazo", SqlDbType.VarChar, 50).Value = (object?)r.IdPlazo ?? DBNull.Value;
-            cmd.Parameters.Add("@intIdOperacionesCambioDivisas", SqlDbType.Int).Value = (object?)r.IdOperacionesCambioDivisas ?? DBNull.Value;
-            cmd.Parameters.Add("@decCapitalInicial", SqlDbType.Decimal).Value = (object?)r.CapitalInicial ?? DBNull.Value;
-            cmd.Parameters.Add("@decCapitalPagado", SqlDbType.Decimal).Value = (object?)r.CapitalPagado ?? DBNull.Value;
-            cmd.Parameters.Add("@dtFechaUltimoIncremento", SqlDbType.DateTime).Value = (object?)r.FechaUltimoIncremento ?? DBNull.Value;
-            cmd.Parameters.Add("@intIdTipoIncremento", SqlDbType.Int).Value = (object?)r.IdTipoIncremento ?? DBNull.Value;
-            cmd.Parameters.Add("@decPatrimonioNeto", SqlDbType.Decimal).Value = (object?)r.PatrimonioNeto ?? DBNull.Value;
-            cmd.Parameters.Add("@vchTipoAcciones", SqlDbType.VarChar, 255).Value = (object?)r.TipoAcciones ?? DBNull.Value;
-            cmd.Parameters.Add("@decValorAcciones", SqlDbType.Decimal).Value = (object?)r.ValorAcciones ?? DBNull.Value;
-            cmd.Parameters.Add("@bitCotizaBolsa", SqlDbType.Bit).Value = (object?)r.CotizaBolsa ?? DBNull.Value;
-            cmd.Parameters.Add("@decTipoCambio", SqlDbType.Decimal).Value = (object?)r.TipoCambio ?? DBNull.Value;
-            cmd.Parameters.Add("@intIdTipoCambio", SqlDbType.Int).Value = (object?)r.IdTipoCambio ?? DBNull.Value;
-            cmd.Parameters.Add("@vchAntecedentes", SqlDbType.VarChar, -1).Value = (object?)r.Antecedentes ?? DBNull.Value;
-            cmd.Parameters.Add("@vchAspectosLegales", SqlDbType.VarChar, -1).Value = (object?)r.AspectosLegales ?? DBNull.Value;
-            cmd.Parameters.Add("@vchComentariosAspectoLegal", SqlDbType.VarChar, -1).Value = (object?)r.ComentariosAspectoLegal ?? DBNull.Value;
-            cmd.Parameters.Add("@intIdSector", SqlDbType.Int).Value = (object?)r.IdSector ?? DBNull.Value;
-            cmd.Parameters.Add("@vchActividad", SqlDbType.VarChar, 255).Value = (object?)r.Actividad ?? DBNull.Value;
-            cmd.Parameters.Add("@intIdIsicCategoria", SqlDbType.Int).Value = (object?)r.IdIsicCategoria ?? DBNull.Value;
-            cmd.Parameters.Add("@intIdIsicClase", SqlDbType.Int).Value = (object?)r.IdIsicClase ?? DBNull.Value;
-            cmd.Parameters.Add("@vchActividadPrincipal", SqlDbType.VarChar, -1).Value = (object?)r.ActividadPrincipal ?? DBNull.Value;
-            cmd.Parameters.Add("@decVentasContado", SqlDbType.Decimal).Value = (object?)r.VentasContado ?? DBNull.Value;
-            cmd.Parameters.Add("@vchVentasContadoText", SqlDbType.VarChar, 50).Value = (object?)r.VentasContadoText ?? DBNull.Value;
-            cmd.Parameters.Add("@decVentasCredito", SqlDbType.Decimal).Value = (object?)r.VentasCredito ?? DBNull.Value;
-            cmd.Parameters.Add("@vchVentasCreditoText", SqlDbType.VarChar, 50).Value = (object?)r.VentasCreditoText ?? DBNull.Value;
-            cmd.Parameters.Add("@intIdVentasCreditoTiempo", SqlDbType.Int).Value = (object?)r.IdVentasCreditoTiempo ?? DBNull.Value;
-            cmd.Parameters.Add("@decVentasInternacionales", SqlDbType.Decimal).Value = (object?)r.VentasInternacionales ?? DBNull.Value;
-            cmd.Parameters.Add("@vchVentasInternacionalesText", SqlDbType.VarChar, 50).Value = (object?)r.VentasInternacionalesText ?? DBNull.Value;
-            cmd.Parameters.Add("@decVentasNacionales", SqlDbType.Decimal).Value = (object?)r.VentasNacionales ?? DBNull.Value;
-            cmd.Parameters.Add("@vchVentasNacionalesText", SqlDbType.VarChar, 255).Value = (object?)r.VentasNacionalesText ?? DBNull.Value;
-            cmd.Parameters.Add("@decComprasNacionales", SqlDbType.Decimal).Value = (object?)r.ComprasNacionales ?? DBNull.Value;
-            cmd.Parameters.Add("@vchComprasNacionalesText", SqlDbType.VarChar, 255).Value = (object?)r.ComprasNacionalesText ?? DBNull.Value;
-            cmd.Parameters.Add("@decComprasInternacionales", SqlDbType.Decimal).Value = (object?)r.ComprasInternacionales ?? DBNull.Value;
-            cmd.Parameters.Add("@vchComprasInternacionalesText", SqlDbType.VarChar, 255).Value = (object?)r.ComprasInternacionalesText ?? DBNull.Value;
-            cmd.Parameters.Add("@decComprasContadoNacionales", SqlDbType.Decimal).Value = (object?)r.ComprasContadoNacionales ?? DBNull.Value;
-            cmd.Parameters.Add("@vchComprasContadoNacionalesText", SqlDbType.VarChar, 50).Value = (object?)r.ComprasContadoNacionalesText ?? DBNull.Value;
-            cmd.Parameters.Add("@decComprasCreditoNacionales", SqlDbType.Decimal).Value = (object?)r.ComprasCreditoNacionales ?? DBNull.Value;
-            cmd.Parameters.Add("@vchComprasCreditoNacionalesText", SqlDbType.VarChar, 50).Value = (object?)r.ComprasCreditoNacionalesText ?? DBNull.Value;
-            cmd.Parameters.Add("@intIdComprasCreditoNacionalesTiempo", SqlDbType.Int).Value = (object?)r.IdComprasCreditoNacionalesTiempo ?? DBNull.Value;
-            cmd.Parameters.Add("@decComprasContadoInternacionales", SqlDbType.Decimal).Value = (object?)r.ComprasContadoInternacionales ?? DBNull.Value;
-            cmd.Parameters.Add("@vchComprasContadoInternacionalesText", SqlDbType.VarChar, 50).Value = (object?)r.ComprasContadoInternacionalesText ?? DBNull.Value;
-            cmd.Parameters.Add("@decComprasCreditoInternacionales", SqlDbType.Decimal).Value = (object?)r.ComprasCreditoInternacionales ?? DBNull.Value;
-            cmd.Parameters.Add("@vchComprasCreditoInternacionalesText", SqlDbType.VarChar, 50).Value = (object?)r.ComprasCreditoInternacionalesText ?? DBNull.Value;
-            cmd.Parameters.Add("@intIdComprasCreditoInternacionalesTiempo", SqlDbType.Int).Value = (object?)r.IdComprasCreditoInternacionalesTiempo ?? DBNull.Value;
-            cmd.Parameters.Add("@intNumeroEmpleados", SqlDbType.Int).Value = (object?)r.NumeroEmpleados ?? DBNull.Value;
-            cmd.Parameters.Add("@vchNumeroEmpleadosText", SqlDbType.VarChar, 50).Value = (object?)r.NumeroEmpleadosText ?? DBNull.Value;
-            cmd.Parameters.Add("@vchComentariosOperaciones", SqlDbType.VarChar, -1).Value = (object?)r.ComentariosOperaciones ?? DBNull.Value;
-            cmd.Parameters.Add("@vchContenidoInformacionFinanciera", SqlDbType.VarChar, -1).Value = (object?)r.ContenidoInformacionFinanciera ?? DBNull.Value;
-            cmd.Parameters.Add("@vchComentarioInformacionFinanciera", SqlDbType.VarChar, -1).Value = (object?)r.ComentarioInformacionFinanciera ?? DBNull.Value;
-            cmd.Parameters.Add("@vchActivosFijos", SqlDbType.VarChar, -1).Value = (object?)r.ActivosFijos ?? DBNull.Value;
-            cmd.Parameters.Add("@vchSeguros", SqlDbType.VarChar, -1).Value = (object?)r.Seguros ?? DBNull.Value;
-            cmd.Parameters.Add("@vchComentarioProveedor", SqlDbType.VarChar, -1).Value = (object?)r.ComentarioProveedor ?? DBNull.Value;
-            cmd.Parameters.Add("@vchReferenciaBanco", SqlDbType.VarChar, -1).Value = (object?)r.ReferenciaBanco ?? DBNull.Value;
-            cmd.Parameters.Add("@vchLitigios", SqlDbType.VarChar, -1).Value = (object?)r.Litigios ?? DBNull.Value;
-            cmd.Parameters.Add("@vchRiesgoPrincipal", SqlDbType.VarChar, -1).Value = (object?)r.RiesgoPrincipal ?? DBNull.Value;
-            cmd.Parameters.Add("@vchSuperintendecia", SqlDbType.VarChar, -1).Value = (object?)r.Superintendecia ?? DBNull.Value;
-            cmd.Parameters.Add("@vchInformacionGeneral", SqlDbType.VarChar, -1).Value = (object?)r.InformacionGeneral ?? DBNull.Value;
-            cmd.Parameters.Add("@vchOpinionCredito", SqlDbType.VarChar, -1).Value = (object?)r.OpinionCredito ?? DBNull.Value;
             cmd.Parameters.Add("@bitFlgTieneInformacion", SqlDbType.Bit).Value = (object?)r.FlgTieneInformacion ?? DBNull.Value;
+            cmd.Parameters.Add("@intIdEstadoInforme", SqlDbType.Int).Value = (object?)r.IdEstadoInforme ?? DBNull.Value;
             cmd.Parameters.Add("@intIdFormatoFecha", SqlDbType.Int).Value = (object?)r.IdFormatoFecha ?? DBNull.Value;
         }
 
         private static void AgregarTvpsCampos(SqlCommand cmd, InformeCrear r)
         {
+            AgregarTvp(cmd, "@tvpIdentificacion", ConstruirTablaIdentificacion(r), "INFORME_IDENTIFICACION");
+            AgregarTvp(cmd, "@tvpAspectosLegales", ConstruirTablaAspectosLegales(r), "INFORME_ASPECTOS_LEGALES");
+            AgregarTvp(cmd, "@tvpRamoOperaciones", ConstruirTablaRamoOperaciones(r), "INFORME_RAMO_OPERACIONES");
+            AgregarTvp(cmd, "@tvpInformacionFinanciera", ConstruirTablaInformacionFinanciera(r), "INFORME_INFORMACION_FINANCIERA");
+            AgregarTvp(cmd, "@tvpBancosProveedores", ConstruirTablaBancosProveedores(r), "INFORME_BANCOS_PROVEEDORES");
+            AgregarTvp(cmd, "@tvpDatosGenerales", ConstruirTablaDatosGenerales(r), "INFORME_DATOS_GENERALES");
+
             AgregarTvp(cmd, "@lstBalances", ConstruirTablaBalances(r.lstBalances), "LISTA_INFORME_BALANCE");
             AgregarTvp(cmd, "@lstBalancesDesagregado", ConstruirTablaBalancesDesagregado(r.lstBalancesDesagregado), "LISTA_INFORME_BALANCE_DESAGREGADO");
             AgregarTvp(cmd, "@lstBalancesTotalizado", ConstruirTablaBalancesTotalizado(r.lstBalancesTotalizado), "LISTA_INFORME_BALANCE_TOTALIZADO");
