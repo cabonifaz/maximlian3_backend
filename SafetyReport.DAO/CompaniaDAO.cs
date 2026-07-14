@@ -21,7 +21,7 @@ namespace SafetyReport.DAO
             if (await dr.ReadAsync())
             {
                 respuesta.IdTipoMensaje = dr["IdTipoMensaje"] != DBNull.Value
-                    ? Convert.ToInt32(dr["IdTipoMensaje"]) : 0;
+                    ? Convert.ToInt32(dr["IdTipoMensaje"]) : 3;
                 respuesta.Mensaje = dr["Mensaje"]?.ToString() ?? string.Empty;
                 var json = dr["Result"]?.ToString();
                 respuesta.Result = respuesta.IdTipoMensaje == 2 && !string.IsNullOrWhiteSpace(json)
@@ -30,7 +30,7 @@ namespace SafetyReport.DAO
             }
             else
             {
-                respuesta.IdTipoMensaje = 1;
+                respuesta.IdTipoMensaje = 3;
                 respuesta.Mensaje = "No se obtuvo respuesta del procedimiento.";
                 respuesta.Result = new List<T>();
             }
@@ -146,7 +146,7 @@ namespace SafetyReport.DAO
                 using var dr = await cmd.ExecuteReaderAsync();
                 if (await dr.ReadAsync())
                 {
-                    respuesta.IdTipoMensaje = dr["IdTipoMensaje"] != DBNull.Value ? Convert.ToInt32(dr["IdTipoMensaje"]) : 0;
+                    respuesta.IdTipoMensaje = dr["IdTipoMensaje"] != DBNull.Value ? Convert.ToInt32(dr["IdTipoMensaje"]) : 3;
                     respuesta.Mensaje = dr["Mensaje"]?.ToString() ?? string.Empty;
                     var json = dr["Result"]?.ToString();
                     respuesta.Result = respuesta.IdTipoMensaje == 2 && !string.IsNullOrWhiteSpace(json)
@@ -155,7 +155,7 @@ namespace SafetyReport.DAO
                 }
                 else
                 {
-                    respuesta.IdTipoMensaje = 1;
+                    respuesta.IdTipoMensaje = 3;
                     respuesta.Mensaje = "No se obtuvo respuesta del procedimiento.";
                     respuesta.Result = new CompaniaListaResult();
                 }
@@ -378,7 +378,7 @@ namespace SafetyReport.DAO
                 using var dr = await cmd.ExecuteReaderAsync();
                 if (await dr.ReadAsync())
                 {
-                    respuesta.IdTipoMensaje = dr["IdTipoMensaje"] != DBNull.Value ? Convert.ToInt32(dr["IdTipoMensaje"]) : 0;
+                    respuesta.IdTipoMensaje = dr["IdTipoMensaje"] != DBNull.Value ? Convert.ToInt32(dr["IdTipoMensaje"]) : 3;
                     respuesta.Mensaje = dr["Mensaje"]?.ToString() ?? string.Empty;
                     var json = dr["Result"]?.ToString();
                     respuesta.Result = respuesta.IdTipoMensaje == 2 && !string.IsNullOrWhiteSpace(json)
@@ -387,7 +387,7 @@ namespace SafetyReport.DAO
                 }
                 else
                 {
-                    respuesta.IdTipoMensaje = 1;
+                    respuesta.IdTipoMensaje = 3;
                     respuesta.Mensaje = "No se obtuvo respuesta del procedimiento.";
                     respuesta.Result = new CompaniaNoticiaListaResult();
                 }
@@ -440,7 +440,7 @@ namespace SafetyReport.DAO
                 using var dr = await cmd.ExecuteReaderAsync();
                 if (await dr.ReadAsync())
                 {
-                    respuesta.IdTipoMensaje = dr["IdTipoMensaje"] != DBNull.Value ? Convert.ToInt32(dr["IdTipoMensaje"]) : 0;
+                    respuesta.IdTipoMensaje = dr["IdTipoMensaje"] != DBNull.Value ? Convert.ToInt32(dr["IdTipoMensaje"]) : 3;
                     respuesta.Mensaje = dr["Mensaje"]?.ToString() ?? string.Empty;
                     var json = dr["Result"]?.ToString();
                     respuesta.Result = respuesta.IdTipoMensaje == 2 && !string.IsNullOrWhiteSpace(json)
@@ -449,7 +449,7 @@ namespace SafetyReport.DAO
                 }
                 else
                 {
-                    respuesta.IdTipoMensaje = 1;
+                    respuesta.IdTipoMensaje = 3;
                     respuesta.Mensaje = "No se obtuvo respuesta del procedimiento.";
                     respuesta.Result = new CompaniaNoticiaBalanceListaResult();
                 }
@@ -503,7 +503,7 @@ namespace SafetyReport.DAO
                 using var dr = await cmd.ExecuteReaderAsync();
                 if (await dr.ReadAsync())
                 {
-                    respuesta.IdTipoMensaje = dr["IdTipoMensaje"] != DBNull.Value ? Convert.ToInt32(dr["IdTipoMensaje"]) : 0;
+                    respuesta.IdTipoMensaje = dr["IdTipoMensaje"] != DBNull.Value ? Convert.ToInt32(dr["IdTipoMensaje"]) : 3;
                     respuesta.Mensaje = dr["Mensaje"]?.ToString() ?? string.Empty;
                     var json = dr["Result"]?.ToString();
                     respuesta.Result = respuesta.IdTipoMensaje == 2 && !string.IsNullOrWhiteSpace(json)
@@ -512,7 +512,7 @@ namespace SafetyReport.DAO
                 }
                 else
                 {
-                    respuesta.IdTipoMensaje = 1;
+                    respuesta.IdTipoMensaje = 3;
                     respuesta.Mensaje = "No se obtuvo respuesta del procedimiento.";
                     respuesta.Result = new CompaniaNoticiaDetalleListaResult();
                 }
