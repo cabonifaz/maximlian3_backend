@@ -1,4 +1,5 @@
 using Microsoft.Data.SqlClient;
+using Microsoft.Extensions.Logging;
 using SafetyReport.Models;
 using System.Data;
 using System.Text.Json;
@@ -8,10 +9,12 @@ namespace SafetyReport.DAO
     public class InformeLocalImagenDAO
     {
         private readonly DbConfig _dbConfig;
+        private readonly ILogger<InformeLocalImagenDAO> _logger;
 
-        public InformeLocalImagenDAO(DbConfig dbConfig)
+        public InformeLocalImagenDAO(DbConfig dbConfig, ILogger<InformeLocalImagenDAO> logger)
         {
             _dbConfig = dbConfig;
+            _logger = logger;
         }
 
         public async Task<Respuesta> ObtenerUrlsImagenesAsync(UsuarioGeneral u, List<int> ids)
@@ -32,6 +35,8 @@ namespace SafetyReport.DAO
             }
             catch (Exception ex)
             {
+                _logger.LogError(ex, "Error no controlado en la capa de datos.");
+
                 return new Respuesta { IdTipoMensaje = 3, Mensaje = ex.Message, Result = new List<InformeLocalImagenUrl>() };
             }
         }
@@ -54,6 +59,8 @@ namespace SafetyReport.DAO
             }
             catch (Exception ex)
             {
+                _logger.LogError(ex, "Error no controlado en la capa de datos.");
+
                 return new Respuesta { IdTipoMensaje = 3, Mensaje = ex.Message, Result = new List<object>() };
             }
         }
@@ -69,7 +76,7 @@ namespace SafetyReport.DAO
             await cmd.ExecuteNonQueryAsync();
         }
 
-        private static async Task<Respuesta> LeerRespuestaAsync<T>(SqlCommand cmd)
+        private async Task<Respuesta> LeerRespuestaAsync<T>(SqlCommand cmd)
         {
             var respuesta = new Respuesta();
             using var dr = await cmd.ExecuteReaderAsync();
@@ -84,6 +91,8 @@ namespace SafetyReport.DAO
             }
             else
             {
+                _logger.LogWarning("El procedimiento {Procedimiento} no devolvio ninguna fila.", cmd.CommandText);
+
                 respuesta.IdTipoMensaje = 3;
                 respuesta.Mensaje = "No se obtuvo respuesta del procedimiento.";
                 respuesta.Result = new List<T>();

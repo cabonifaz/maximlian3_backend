@@ -1,3 +1,4 @@
+using Microsoft.Extensions.Logging;
 using SafetyReport.DAO;
 using SafetyReport.Models;
 
@@ -6,10 +7,12 @@ namespace SafetyReport.Handlers
     public class DirectorioEjecutivoHandler
     {
         private readonly DirectorioEjecutivoDAO _dao;
+        private readonly ILogger<DirectorioEjecutivoHandler> _logger;
 
-        public DirectorioEjecutivoHandler(DirectorioEjecutivoDAO dao)
+        public DirectorioEjecutivoHandler(DirectorioEjecutivoDAO dao, ILogger<DirectorioEjecutivoHandler> logger)
         {
             _dao = dao;
+            _logger = logger;
         }
 
         public async Task<Respuesta> CrearAsync(UsuarioGeneral usuarioLogueado, List<DirectorioEjecutivoCrear> lstDirectorios)
@@ -20,6 +23,8 @@ namespace SafetyReport.Handlers
             }
             catch (Exception ex)
             {
+                _logger.LogError(ex, "Error no controlado en la capa de negocio.");
+
                 return new Respuesta { IdTipoMensaje = 3, Mensaje = "Error interno del servidor.", Result = new List<DirectorioEjecutivoCreado>() };
             }
         }
@@ -32,6 +37,8 @@ namespace SafetyReport.Handlers
             }
             catch (Exception ex)
             {
+                _logger.LogError(ex, "Error no controlado en la capa de negocio.");
+
                 return new Respuesta { IdTipoMensaje = 3, Mensaje = "Error interno del servidor.", Result = new List<DirectorioEjecutivoCreado>() };
             }
         }
@@ -44,6 +51,8 @@ namespace SafetyReport.Handlers
             }
             catch (Exception ex)
             {
+                _logger.LogError(ex, "Error no controlado en la capa de negocio.");
+
                 return new Respuesta { IdTipoMensaje = 3, Mensaje = "Error interno del servidor.", Result = new List<DirectorioEjecutivoConsulta>() };
             }
         }
@@ -56,6 +65,8 @@ namespace SafetyReport.Handlers
             }
             catch (Exception ex)
             {
+                _logger.LogError(ex, "Error no controlado en la capa de negocio.");
+
                 return new Respuesta { IdTipoMensaje = 3, Mensaje = "Error interno del servidor.", Result = new DirectorioEjecutivoListaResult() };
             }
         }
@@ -68,6 +79,8 @@ namespace SafetyReport.Handlers
             }
             catch (Exception ex)
             {
+                _logger.LogError(ex, "Error no controlado en la capa de negocio.");
+
                 return new Respuesta { IdTipoMensaje = 3, Mensaje = "Error interno del servidor.", Result = new List<DirectorioEjecutivoEliminado>() };
             }
         }

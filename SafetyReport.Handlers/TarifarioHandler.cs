@@ -1,4 +1,5 @@
-﻿using SafetyReport.DAO;
+﻿using Microsoft.Extensions.Logging;
+using SafetyReport.DAO;
 using SafetyReport.Models;
 
 namespace SafetyReport.Handlers
@@ -6,10 +7,12 @@ namespace SafetyReport.Handlers
     public class TarifarioHandler
     {
         private readonly TarifarioDAO _dao;
+        private readonly ILogger<TarifarioHandler> _logger;
 
-        public TarifarioHandler(TarifarioDAO dao)
+        public TarifarioHandler(TarifarioDAO dao, ILogger<TarifarioHandler> logger)
         {
             _dao = dao;
+            _logger = logger;
         }
 
         public async Task<Respuesta> CrearAsync(UsuarioGeneral usuarioLogueado, TarifarioCrear request)
@@ -20,10 +23,12 @@ namespace SafetyReport.Handlers
             }
             catch (Exception ex)
             {
+                _logger.LogError(ex, "Error no controlado en la capa de negocio.");
+
                 return new Respuesta
                 {
                     IdTipoMensaje = 3,
-                    Mensaje = "Error interno del servidor.",
+                    Mensaje = ex.Message,
                     Result = new List<TarifarioCreado>()
                 };
             }
@@ -37,10 +42,12 @@ namespace SafetyReport.Handlers
             }
             catch (Exception ex)
             {
+                _logger.LogError(ex, "Error no controlado en la capa de negocio.");
+
                 return new Respuesta
                 {
                     IdTipoMensaje = 3,
-                    Mensaje = "Error interno del servidor.",
+                    Mensaje = ex.Message,
                     Result = new TarifarioListaResult()
                 };
             }
@@ -54,10 +61,12 @@ namespace SafetyReport.Handlers
             }
             catch (Exception ex)
             {
+                _logger.LogError(ex, "Error no controlado en la capa de negocio.");
+
                 return new Respuesta
                 {
                     IdTipoMensaje = 3,
-                    Mensaje = "Error interno del servidor.",
+                    Mensaje = ex.Message,
                     Result = new List<TarifarioConsulta>()
                 };
             }
@@ -71,10 +80,12 @@ namespace SafetyReport.Handlers
             }
             catch (Exception ex)
             {
+                _logger.LogError(ex, "Error no controlado en la capa de negocio.");
+
                 return new Respuesta
                 {
                     IdTipoMensaje = 3,
-                    Mensaje = "Error interno del servidor.",
+                    Mensaje = ex.Message,
                     Result = new List<TarifarioCreado>()
                 };
             }
@@ -88,10 +99,12 @@ namespace SafetyReport.Handlers
             }
             catch (Exception ex)
             {
+                _logger.LogError(ex, "Error no controlado en la capa de negocio.");
+
                 return new Respuesta
                 {
                     IdTipoMensaje = 3,
-                    Mensaje = "Error interno del servidor.",
+                    Mensaje = ex.Message,
                     Result = new List<TarifarioEliminado>()
                 };
             }
@@ -104,10 +117,12 @@ namespace SafetyReport.Handlers
             }
             catch (Exception ex)
             {
+                _logger.LogError(ex, "Error no controlado en la capa de negocio.");
+
                 return new Respuesta
                 {
                     IdTipoMensaje = 3,
-                    Mensaje = "Error interno del servidor.",
+                    Mensaje = ex.Message,
                     Result = new TarifarioListaCortaResult()
                 };
             }

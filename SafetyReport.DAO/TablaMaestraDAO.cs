@@ -1,4 +1,5 @@
 ﻿using Microsoft.Data.SqlClient;
+using Microsoft.Extensions.Logging;
 using SafetyReport.Models;
 using System.Data;
 using System.Text.Json;
@@ -8,13 +9,15 @@ namespace SafetyReport.DAO
     public class TablaMaestraDAO
     {
         private readonly DbConfig _dbConfig;
+        private readonly ILogger<TablaMaestraDAO> _logger;
 
-        public TablaMaestraDAO(DbConfig dbConfig)
+        public TablaMaestraDAO(DbConfig dbConfig, ILogger<TablaMaestraDAO> logger)
         {
             _dbConfig = dbConfig;
+            _logger = logger;
         }
 
-        private static async Task<Respuesta> LeerRespuestaAsync<T>(SqlCommand cmd)
+        private async Task<Respuesta> LeerRespuestaAsync<T>(SqlCommand cmd)
         {
             using var dr = await cmd.ExecuteReaderAsync();
 
@@ -39,6 +42,8 @@ namespace SafetyReport.DAO
 
                 return respuesta;
             }
+
+            _logger.LogWarning("El procedimiento {Procedimiento} no devolvio ninguna fila.", cmd.CommandText);
 
             return new Respuesta
             {
@@ -67,6 +72,8 @@ namespace SafetyReport.DAO
             }
             catch (Exception ex)
             {
+                _logger.LogError(ex, "Error no controlado en la capa de datos.");
+
                 return new Respuesta
                 {
                     IdTipoMensaje = 3,
@@ -95,6 +102,8 @@ namespace SafetyReport.DAO
             }
             catch (Exception ex)
             {
+                _logger.LogError(ex, "Error no controlado en la capa de datos.");
+
                 return new Respuesta
                 {
                     IdTipoMensaje = 3,
@@ -145,6 +154,8 @@ namespace SafetyReport.DAO
             }
             catch (Exception ex)
             {
+                _logger.LogError(ex, "Error no controlado en la capa de datos.");
+
                 return new Respuesta
                 {
                     IdTipoMensaje = 3,
@@ -194,6 +205,8 @@ namespace SafetyReport.DAO
             }
             catch (Exception ex)
             {
+                _logger.LogError(ex, "Error no controlado en la capa de datos.");
+
                 return new Respuesta
                 {
                     IdTipoMensaje = 3,
@@ -224,6 +237,8 @@ namespace SafetyReport.DAO
             }
             catch (Exception ex)
             {
+                _logger.LogError(ex, "Error no controlado en la capa de datos.");
+
                 return new Respuesta
                 {
                     IdTipoMensaje = 3,
@@ -252,6 +267,8 @@ namespace SafetyReport.DAO
             }
             catch (Exception ex)
             {
+                _logger.LogError(ex, "Error no controlado en la capa de datos.");
+
                 return new Respuesta
                 {
                     IdTipoMensaje = 3,
