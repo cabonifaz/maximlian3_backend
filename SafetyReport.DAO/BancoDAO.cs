@@ -17,29 +17,45 @@ namespace SafetyReport.DAO
             _logger = logger;
         }
 
-        private async Task<Respuesta> LeerRespuestaAsync<T>(SqlCommand cmd)
+        // ── Reader helpers ────────────────────────────────────────────────────────
+
+        private static string? GetNullableString(SqlDataReader dr, string columna) =>
+            dr[columna] == DBNull.Value ? null : dr[columna].ToString();
+
+        private static int? GetNullableInt(SqlDataReader dr, string columna) =>
+            dr[columna] == DBNull.Value ? null : Convert.ToInt32(dr[columna]);
+
+        // Lee el result set 1 (siempre presente): IdTipoMensaje, Mensaje.
+        private async Task<Respuesta> LeerCabeceraAsync(SqlDataReader dr, string procedimiento)
         {
             var respuesta = new Respuesta();
-            using var dr = await cmd.ExecuteReaderAsync();
+
             if (await dr.ReadAsync())
             {
                 respuesta.IdTipoMensaje = dr["IdTipoMensaje"] != DBNull.Value
-                    ? Convert.ToInt32(dr["IdTipoMensaje"]) : 3;
+                    ? Convert.ToInt32(dr["IdTipoMensaje"])
+                    : 3;
                 respuesta.Mensaje = dr["Mensaje"]?.ToString() ?? string.Empty;
-                var json = dr["Result"]?.ToString();
-                respuesta.Result = respuesta.IdTipoMensaje == 2 && !string.IsNullOrWhiteSpace(json)
-                    ? JsonSerializer.Deserialize<List<T>>(json, new JsonSerializerOptions { PropertyNameCaseInsensitive = true }) ?? new List<T>()
-                    : new List<T>();
             }
             else
             {
-                _logger.LogWarning("El procedimiento {Procedimiento} no devolvio ninguna fila.", cmd.CommandText);
+                _logger.LogWarning("El procedimiento {Procedimiento} no devolvio ninguna fila.", procedimiento);
 
                 respuesta.IdTipoMensaje = 3;
                 respuesta.Mensaje = "No se obtuvo respuesta del procedimiento.";
-                respuesta.Result = new List<T>();
             }
+
             return respuesta;
+        }
+
+        // Lee un result set de una sola columna IdBanco (result set 2 en éxito).
+        private static async Task<List<T>> LeerIdBancosAsync<T>(SqlDataReader dr, Func<int?, T> map)
+        {
+            var lista = new List<T>();
+            while (await dr.ReadAsync())
+                lista.Add(map(GetNullableInt(dr, "IdBanco")));
+
+            return lista;
         }
 
         public async Task<Respuesta> CrearAsync(UsuarioGeneral usuarioLogueado, List<BancoCrear> lstBancos)
@@ -47,7 +63,7 @@ namespace SafetyReport.DAO
             try
             {
                 using SqlConnection cn = new(_dbConfig.ConnectionString);
-                using SqlCommand cmd = new("Banco_Insertar", cn) { CommandType = CommandType.StoredProcedure };
+                using SqlCommand cmd = new("SP_Banco_Insertar", cn) { CommandType = CommandType.StoredProcedure };
                 cmd.Parameters.Add("@intIdUsuario", SqlDbType.Int).Value = usuarioLogueado.IdUsuario;
                 cmd.Parameters.Add("@vchUsuario", SqlDbType.VarChar, 32).Value = usuarioLogueado.Usuario;
                 cmd.Parameters.Add("@intIdEmpresa", SqlDbType.Int).Value = usuarioLogueado.IdEmpresa;
@@ -65,7 +81,16 @@ namespace SafetyReport.DAO
                 paramTvp.Value = tvp;
 
                 await cn.OpenAsync();
-                return await LeerRespuestaAsync<BancoCreado>(cmd);
+
+                using var dr = await cmd.ExecuteReaderAsync();
+                var respuesta = await LeerCabeceraAsync(dr, cmd.CommandText);
+
+                var creados = new List<BancoCreado>();
+                if (respuesta.IdTipoMensaje == 2 && await dr.NextResultAsync())
+                    creados = await LeerIdBancosAsync(dr, id => new BancoCreado { IdBanco = id ?? 0 });
+
+                respuesta.Result = creados;
+                return respuesta;
             }
             catch (Exception ex)
             {
@@ -80,7 +105,7 @@ namespace SafetyReport.DAO
             try
             {
                 using SqlConnection cn = new(_dbConfig.ConnectionString);
-                using SqlCommand cmd = new("Banco_Actualizar", cn) { CommandType = CommandType.StoredProcedure };
+                using SqlCommand cmd = new("SP_Banco_Actualizar", cn) { CommandType = CommandType.StoredProcedure };
                 cmd.Parameters.Add("@intIdUsuario", SqlDbType.Int).Value = usuarioLogueado.IdUsuario;
                 cmd.Parameters.Add("@vchUsuario", SqlDbType.VarChar, 32).Value = usuarioLogueado.Usuario;
                 cmd.Parameters.Add("@intIdEmpresa", SqlDbType.Int).Value = usuarioLogueado.IdEmpresa;
@@ -89,8 +114,18 @@ namespace SafetyReport.DAO
                 cmd.Parameters.Add("@intIdPais", SqlDbType.Int).Value = request.IdPais;
                 cmd.Parameters.Add("@vchNombre", SqlDbType.VarChar, 255).Value = request.Nombre;
                 cmd.Parameters.Add("@vchTelefono", SqlDbType.VarChar, 128).Value = (object?)request.Telefono ?? DBNull.Value;
+
                 await cn.OpenAsync();
-                return await LeerRespuestaAsync<BancoCreado>(cmd);
+
+                using var dr = await cmd.ExecuteReaderAsync();
+                var respuesta = await LeerCabeceraAsync(dr, cmd.CommandText);
+
+                var actualizados = new List<BancoCreado>();
+                if (respuesta.IdTipoMensaje == 2 && await dr.NextResultAsync())
+                    actualizados = await LeerIdBancosAsync(dr, id => new BancoCreado { IdBanco = id ?? 0 });
+
+                respuesta.Result = actualizados;
+                return respuesta;
             }
             catch (Exception ex)
             {
@@ -105,15 +140,37 @@ namespace SafetyReport.DAO
             try
             {
                 using SqlConnection cn = new(_dbConfig.ConnectionString);
-                using SqlCommand cmd = new("Banco_Obtener", cn) { CommandType = CommandType.StoredProcedure };
+                using SqlCommand cmd = new("SP_Banco_Obtener", cn) { CommandType = CommandType.StoredProcedure };
                 cmd.Parameters.Add("@intIdUsuario", SqlDbType.Int).Value = usuarioLogueado.IdUsuario;
                 cmd.Parameters.Add("@vchUsuario", SqlDbType.VarChar, 32).Value = usuarioLogueado.Usuario;
                 cmd.Parameters.Add("@intIdEmpresa", SqlDbType.Int).Value = usuarioLogueado.IdEmpresa;
                 cmd.Parameters.Add("@intIdRol", SqlDbType.Int).Value = usuarioLogueado.IdRol;
                 cmd.Parameters.Add("@intIdBanco", SqlDbType.Int).Value = (object?)request.IdBanco ?? DBNull.Value;
                 cmd.Parameters.Add("@vchNombre", SqlDbType.VarChar, 255).Value = (object?)request.Nombre ?? DBNull.Value;
+
                 await cn.OpenAsync();
-                return await LeerRespuestaAsync<BancoConsulta>(cmd);
+
+                using var dr = await cmd.ExecuteReaderAsync();
+                var respuesta = await LeerCabeceraAsync(dr, cmd.CommandText);
+
+                var lista = new List<BancoConsulta>();
+                if (respuesta.IdTipoMensaje == 2 && await dr.NextResultAsync())
+                {
+                    while (await dr.ReadAsync())
+                    {
+                        lista.Add(new BancoConsulta
+                        {
+                            IdBanco = Convert.ToInt32(dr["IdBanco"]),
+                            IdPais = Convert.ToInt32(dr["IdPais"]),
+                            Pais = GetNullableString(dr, "Pais"),
+                            Nombre = dr["Nombre"]?.ToString() ?? string.Empty,
+                            Telefono = GetNullableString(dr, "Telefono")
+                        });
+                    }
+                }
+
+                respuesta.Result = lista;
+                return respuesta;
             }
             catch (Exception ex)
             {
@@ -128,34 +185,45 @@ namespace SafetyReport.DAO
             try
             {
                 using SqlConnection cn = new(_dbConfig.ConnectionString);
-                using SqlCommand cmd = new("Banco_Listar", cn) { CommandType = CommandType.StoredProcedure };
+                using SqlCommand cmd = new("SP_Banco_Listar", cn) { CommandType = CommandType.StoredProcedure };
                 cmd.Parameters.Add("@intIdUsuario", SqlDbType.Int).Value = usuarioLogueado.IdUsuario;
                 cmd.Parameters.Add("@vchUsuario", SqlDbType.VarChar, 32).Value = usuarioLogueado.Usuario;
                 cmd.Parameters.Add("@intIdEmpresa", SqlDbType.Int).Value = usuarioLogueado.IdEmpresa;
                 cmd.Parameters.Add("@intIdRol", SqlDbType.Int).Value = usuarioLogueado.IdRol;
                 cmd.Parameters.Add("@vchBusqueda", SqlDbType.VarChar, 255).Value = (object?)filtro.Busqueda ?? DBNull.Value;
                 cmd.Parameters.Add("@numPag", SqlDbType.Int).Value = filtro.NumPag;
+
                 await cn.OpenAsync();
 
-                var respuesta = new Respuesta();
                 using var dr = await cmd.ExecuteReaderAsync();
-                if (await dr.ReadAsync())
-                {
-                    respuesta.IdTipoMensaje = dr["IdTipoMensaje"] != DBNull.Value ? Convert.ToInt32(dr["IdTipoMensaje"]) : 3;
-                    respuesta.Mensaje = dr["Mensaje"]?.ToString() ?? string.Empty;
-                    var json = dr["Result"]?.ToString();
-                    respuesta.Result = respuesta.IdTipoMensaje == 2 && !string.IsNullOrWhiteSpace(json)
-                        ? JsonSerializer.Deserialize<BancoListaResult>(json, new JsonSerializerOptions { PropertyNameCaseInsensitive = true }) ?? new BancoListaResult()
-                        : new BancoListaResult();
-                }
-                else
-                {
-                    _logger.LogWarning("El procedimiento {Procedimiento} no devolvio ninguna fila.", cmd.CommandText);
+                var respuesta = await LeerCabeceraAsync(dr, cmd.CommandText);
 
-                    respuesta.IdTipoMensaje = 3;
-                    respuesta.Mensaje = "No se obtuvo respuesta del procedimiento.";
-                    respuesta.Result = new BancoListaResult();
+                var resultado = new BancoListaResult();
+                if (respuesta.IdTipoMensaje == 2 && await dr.NextResultAsync())
+                {
+                    if (await dr.ReadAsync())
+                    {
+                        resultado.TotalRegistros = Convert.ToInt32(dr["TotalRegistros"]);
+                        resultado.TotalPaginas = Convert.ToInt32(dr["TotalPaginas"]);
+                    }
+
+                    if (await dr.NextResultAsync())
+                    {
+                        while (await dr.ReadAsync())
+                        {
+                            resultado.lstBancos.Add(new BancoConsulta
+                            {
+                                IdBanco = Convert.ToInt32(dr["IdBanco"]),
+                                IdPais = Convert.ToInt32(dr["IdPais"]),
+                                Pais = GetNullableString(dr, "Pais"),
+                                Nombre = dr["Nombre"]?.ToString() ?? string.Empty,
+                                Telefono = GetNullableString(dr, "Telefono")
+                            });
+                        }
+                    }
                 }
+
+                respuesta.Result = resultado;
                 return respuesta;
             }
             catch (Exception ex)
@@ -171,14 +239,24 @@ namespace SafetyReport.DAO
             try
             {
                 using SqlConnection cn = new(_dbConfig.ConnectionString);
-                using SqlCommand cmd = new("Banco_ObtenerCoincidencias", cn) { CommandType = CommandType.StoredProcedure };
+                using SqlCommand cmd = new("SP_Banco_ObtenerCoincidencias", cn) { CommandType = CommandType.StoredProcedure };
                 cmd.Parameters.Add("@intIdUsuario", SqlDbType.Int).Value = usuarioLogueado.IdUsuario;
                 cmd.Parameters.Add("@vchUsuario", SqlDbType.VarChar, 32).Value = usuarioLogueado.Usuario;
                 cmd.Parameters.Add("@intIdEmpresa", SqlDbType.Int).Value = usuarioLogueado.IdEmpresa;
                 cmd.Parameters.Add("@intIdRol", SqlDbType.Int).Value = usuarioLogueado.IdRol;
                 cmd.Parameters.Add("@jsonLista", SqlDbType.NVarChar, -1).Value = JsonSerializer.Serialize(lista);
+
                 await cn.OpenAsync();
-                return await LeerRespuestaAsync<BancoMatchResultItem>(cmd);
+
+                using var dr = await cmd.ExecuteReaderAsync();
+                var respuesta = await LeerCabeceraAsync(dr, cmd.CommandText);
+
+                var resultado = new List<BancoMatchResultItem>();
+                if (respuesta.IdTipoMensaje == 2 && await dr.NextResultAsync())
+                    resultado = await LeerIdBancosAsync(dr, id => new BancoMatchResultItem { IdBanco = id });
+
+                respuesta.Result = resultado;
+                return respuesta;
             }
             catch (Exception ex)
             {
@@ -193,14 +271,24 @@ namespace SafetyReport.DAO
             try
             {
                 using SqlConnection cn = new(_dbConfig.ConnectionString);
-                using SqlCommand cmd = new("Banco_Eliminar", cn) { CommandType = CommandType.StoredProcedure };
+                using SqlCommand cmd = new("SP_Banco_Eliminar", cn) { CommandType = CommandType.StoredProcedure };
                 cmd.Parameters.Add("@intIdUsuario", SqlDbType.Int).Value = usuarioLogueado.IdUsuario;
                 cmd.Parameters.Add("@vchUsuario", SqlDbType.VarChar, 32).Value = usuarioLogueado.Usuario;
                 cmd.Parameters.Add("@intIdEmpresa", SqlDbType.Int).Value = usuarioLogueado.IdEmpresa;
                 cmd.Parameters.Add("@intIdRol", SqlDbType.Int).Value = usuarioLogueado.IdRol;
                 cmd.Parameters.Add("@intIdBanco", SqlDbType.Int).Value = idBanco;
+
                 await cn.OpenAsync();
-                return await LeerRespuestaAsync<BancoEliminado>(cmd);
+
+                using var dr = await cmd.ExecuteReaderAsync();
+                var respuesta = await LeerCabeceraAsync(dr, cmd.CommandText);
+
+                var eliminados = new List<BancoEliminado>();
+                if (respuesta.IdTipoMensaje == 2 && await dr.NextResultAsync())
+                    eliminados = await LeerIdBancosAsync(dr, id => new BancoEliminado { IdBanco = id ?? 0 });
+
+                respuesta.Result = eliminados;
+                return respuesta;
             }
             catch (Exception ex)
             {
