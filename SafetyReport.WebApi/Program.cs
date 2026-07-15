@@ -3,18 +3,30 @@ using Amazon.S3;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi;
+using NLog;
+using NLog.Web;
 using SafetyReport.DAO;
 using SafetyReport.Handlers;
 using SafetyReport.Models;
 using SafetyReport.WebApi.Filters;
 using SafetyReport.WebApi.Helpers;
+using SafetyReport.WebApi.Logging;
+
+var nlogLogger = LogManager.Setup().LoadConfigurationFromAppSettings().GetCurrentClassLogger();
+
+try
+{
 
 var builder = WebApplication.CreateBuilder(args);
+
+builder.Logging.ClearProviders();
+builder.Host.UseNLog();
 
 builder.Services.AddControllers(options =>
     options.Filters.Add<SanitizeErrorFilter>());
 builder.Services.AddRequestTimeouts();
 builder.Services.AddEndpointsApiExplorer();
+builder.Services.AddHttpContextAccessor();
 
 builder.Services.AddSwaggerGen(c =>
 {
@@ -78,7 +90,11 @@ builder.Services.AddAuthentication(options =>
         // La validación del aud se hace manualmente en OnTokenValidated
         ValidateAudience = false,
         ValidateLifetime = true,
-        ValidateIssuerSigningKey = true
+        ValidateIssuerSigningKey = true,
+        // Los access tokens de Cognito traen el username en el claim "username",
+        // no en el claim estándar de .NET. Sin esto, HttpContext.User.Identity.Name
+        // (usado por ${aspnet-user-identity} en nlog.config) siempre sale NULL.
+        NameClaimType = "username"
     };
 
     options.Events = new JwtBearerEvents
@@ -236,6 +252,8 @@ builder.Services.AddHttpClient<N8nService>(client =>
 
 var app = builder.Build();
 
+S3FallbackTarget.UploadService = app.Services.GetRequiredService<IS3UploadService>();
+
 app.UseSwagger();
 app.UseSwaggerUI();
 
@@ -248,3 +266,14 @@ app.UseAuthorization();
 app.MapControllers();
 
 app.Run();
+
+}
+catch (Exception ex)
+{
+    nlogLogger.Error(ex, "Aplicacion detenida por una excepcion no controlada durante el arranque");
+    throw;
+}
+finally
+{
+    LogManager.Shutdown();
+}

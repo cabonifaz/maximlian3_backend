@@ -1,4 +1,5 @@
 ﻿using Microsoft.Data.SqlClient;
+using Microsoft.Extensions.Logging;
 using SafetyReport.Models;
 using System.Data;
 using System.Text.Json;
@@ -8,10 +9,12 @@ namespace SafetyReport.DAO
     public class PedidoDAO
     {
         private readonly DbConfig _dbConfig;
+        private readonly ILogger<PedidoDAO> _logger;
 
-        public PedidoDAO(DbConfig dbConfig)
+        public PedidoDAO(DbConfig dbConfig, ILogger<PedidoDAO> logger)
         {
             _dbConfig = dbConfig;
+            _logger = logger;
         }
 
         private static DataTable ConstruirTablaListaGeneralNum(List<int>? valores)
@@ -30,7 +33,7 @@ namespace SafetyReport.DAO
             return table;
         }
 
-        private static async Task<Respuesta> LeerRespuestaAsync<T>(SqlCommand cmd)
+        private async Task<Respuesta> LeerRespuestaAsync<T>(SqlCommand cmd)
         {
             var respuesta = new Respuesta();
 
@@ -55,6 +58,8 @@ namespace SafetyReport.DAO
             }
             else
             {
+                _logger.LogWarning("El procedimiento {Procedimiento} no devolvio ninguna fila.", cmd.CommandText);
+
                 respuesta.IdTipoMensaje = 3;
                 respuesta.Mensaje = "No se obtuvo respuesta del procedimiento.";
                 respuesta.Result = new List<T>();
@@ -109,6 +114,8 @@ namespace SafetyReport.DAO
             }
             catch (Exception ex)
             {
+                _logger.LogError(ex, "Error no controlado en la capa de datos.");
+
                 return new Respuesta
                 {
                     IdTipoMensaje = 3,
@@ -164,6 +171,8 @@ namespace SafetyReport.DAO
             }
             catch (Exception ex)
             {
+                _logger.LogError(ex, "Error no controlado en la capa de datos.");
+
                 return new Respuesta
                 {
                     IdTipoMensaje = 3,
@@ -201,6 +210,8 @@ namespace SafetyReport.DAO
             }
             catch (Exception ex)
             {
+                _logger.LogError(ex, "Error no controlado en la capa de datos.");
+
                 return new Respuesta
                 {
                     IdTipoMensaje = 3,
@@ -249,6 +260,8 @@ namespace SafetyReport.DAO
                 }
                 else
                 {
+                    _logger.LogWarning("El procedimiento {Procedimiento} no devolvio ninguna fila.", cmd.CommandText);
+
                     respuesta.IdTipoMensaje = 3;
                     respuesta.Mensaje = "No se obtuvo respuesta del procedimiento.";
                     respuesta.Result = new PedidoListaResult();
@@ -258,6 +271,8 @@ namespace SafetyReport.DAO
             }
             catch (Exception ex)
             {
+                _logger.LogError(ex, "Error no controlado en la capa de datos.");
+
                 return new Respuesta
                 {
                     IdTipoMensaje = 3,
@@ -307,6 +322,8 @@ namespace SafetyReport.DAO
                 }
                 else
                 {
+                    _logger.LogWarning("El procedimiento {Procedimiento} no devolvio ninguna fila.", cmd.CommandText);
+
                     respuesta.IdTipoMensaje = 3;
                     respuesta.Mensaje = "No se obtuvo respuesta del procedimiento.";
                     respuesta.Result = new PedidoAsignacionListaResult();
@@ -316,6 +333,8 @@ namespace SafetyReport.DAO
             }
             catch (Exception ex)
             {
+                _logger.LogError(ex, "Error no controlado en la capa de datos.");
+
                 return new Respuesta
                 {
                     IdTipoMensaje = 3,
@@ -344,6 +363,8 @@ namespace SafetyReport.DAO
             }
             catch (Exception ex)
             {
+                _logger.LogError(ex, "Error no controlado en la capa de datos.");
+
                 return new Respuesta
                 {
                     IdTipoMensaje = 3,
@@ -372,6 +393,8 @@ namespace SafetyReport.DAO
             }
             catch (Exception ex)
             {
+                _logger.LogError(ex, "Error no controlado en la capa de datos.");
+
                 return new Respuesta
                 {
                     IdTipoMensaje = 3,

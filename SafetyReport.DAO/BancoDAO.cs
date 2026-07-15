@@ -1,4 +1,5 @@
 using Microsoft.Data.SqlClient;
+using Microsoft.Extensions.Logging;
 using SafetyReport.Models;
 using System.Data;
 using System.Text.Json;
@@ -8,13 +9,15 @@ namespace SafetyReport.DAO
     public class BancoDAO
     {
         private readonly DbConfig _dbConfig;
+        private readonly ILogger<BancoDAO> _logger;
 
-        public BancoDAO(DbConfig dbConfig)
+        public BancoDAO(DbConfig dbConfig, ILogger<BancoDAO> logger)
         {
             _dbConfig = dbConfig;
+            _logger = logger;
         }
 
-        private static async Task<Respuesta> LeerRespuestaAsync<T>(SqlCommand cmd)
+        private async Task<Respuesta> LeerRespuestaAsync<T>(SqlCommand cmd)
         {
             var respuesta = new Respuesta();
             using var dr = await cmd.ExecuteReaderAsync();
@@ -30,6 +33,8 @@ namespace SafetyReport.DAO
             }
             else
             {
+                _logger.LogWarning("El procedimiento {Procedimiento} no devolvio ninguna fila.", cmd.CommandText);
+
                 respuesta.IdTipoMensaje = 3;
                 respuesta.Mensaje = "No se obtuvo respuesta del procedimiento.";
                 respuesta.Result = new List<T>();
@@ -64,6 +69,8 @@ namespace SafetyReport.DAO
             }
             catch (Exception ex)
             {
+                _logger.LogError(ex, "Error no controlado en la capa de datos.");
+
                 return new Respuesta { IdTipoMensaje = 3, Mensaje = ex.Message, Result = new List<BancoCreado>() };
             }
         }
@@ -87,6 +94,8 @@ namespace SafetyReport.DAO
             }
             catch (Exception ex)
             {
+                _logger.LogError(ex, "Error no controlado en la capa de datos.");
+
                 return new Respuesta { IdTipoMensaje = 3, Mensaje = ex.Message, Result = new List<BancoCreado>() };
             }
         }
@@ -108,6 +117,8 @@ namespace SafetyReport.DAO
             }
             catch (Exception ex)
             {
+                _logger.LogError(ex, "Error no controlado en la capa de datos.");
+
                 return new Respuesta { IdTipoMensaje = 3, Mensaje = ex.Message, Result = new List<BancoConsulta>() };
             }
         }
@@ -139,6 +150,8 @@ namespace SafetyReport.DAO
                 }
                 else
                 {
+                    _logger.LogWarning("El procedimiento {Procedimiento} no devolvio ninguna fila.", cmd.CommandText);
+
                     respuesta.IdTipoMensaje = 3;
                     respuesta.Mensaje = "No se obtuvo respuesta del procedimiento.";
                     respuesta.Result = new BancoListaResult();
@@ -147,6 +160,8 @@ namespace SafetyReport.DAO
             }
             catch (Exception ex)
             {
+                _logger.LogError(ex, "Error no controlado en la capa de datos.");
+
                 return new Respuesta { IdTipoMensaje = 3, Mensaje = ex.Message, Result = new BancoListaResult() };
             }
         }
@@ -167,6 +182,8 @@ namespace SafetyReport.DAO
             }
             catch (Exception ex)
             {
+                _logger.LogError(ex, "Error no controlado en la capa de datos.");
+
                 return new Respuesta { IdTipoMensaje = 3, Mensaje = ex.Message, Result = new List<BancoMatchResultItem>() };
             }
         }
@@ -187,6 +204,8 @@ namespace SafetyReport.DAO
             }
             catch (Exception ex)
             {
+                _logger.LogError(ex, "Error no controlado en la capa de datos.");
+
                 return new Respuesta { IdTipoMensaje = 3, Mensaje = ex.Message, Result = new List<BancoEliminado>() };
             }
         }

@@ -1,4 +1,5 @@
 ﻿using Microsoft.Data.SqlClient;
+using Microsoft.Extensions.Logging;
 using SafetyReport.Models;
 using System.Data;
 using System.Text.Json;
@@ -8,10 +9,12 @@ namespace SafetyReport.DAO
     public class UsuarioDAO
     {
         private readonly DbConfig _dbConfig;
+        private readonly ILogger<UsuarioDAO> _logger;
 
-        public UsuarioDAO(DbConfig dbConfig)
+        public UsuarioDAO(DbConfig dbConfig, ILogger<UsuarioDAO> logger)
         {
             _dbConfig = dbConfig;
+            _logger = logger;
         }
 
         private static DataTable ConstruirTablaListaGeneralNum(List<int>? valores)
@@ -32,7 +35,7 @@ namespace SafetyReport.DAO
             return table;
         }
 
-        private static async Task<Respuesta> LeerRespuestaAsync<T>(SqlCommand cmd)
+        private async Task<Respuesta> LeerRespuestaAsync<T>(SqlCommand cmd)
         {
             var respuesta = new Respuesta();
 
@@ -57,6 +60,8 @@ namespace SafetyReport.DAO
             }
             else
             {
+                _logger.LogWarning("El procedimiento {Procedimiento} no devolvio ninguna fila.", cmd.CommandText);
+
                 respuesta.IdTipoMensaje = 3;
                 respuesta.Mensaje = "No se obtuvo respuesta del procedimiento.";
                 respuesta.Result = new List<T>();
@@ -98,6 +103,8 @@ namespace SafetyReport.DAO
             }
             catch (Exception ex)
             {
+                _logger.LogError(ex, "Error no controlado en la capa de datos.");
+
                 return new Respuesta
                 {
                     IdTipoMensaje = 3,
@@ -140,6 +147,8 @@ namespace SafetyReport.DAO
             }
             catch (Exception ex)
             {
+                _logger.LogError(ex, "Error no controlado en la capa de datos.");
+
                 return new Respuesta
                 {
                     IdTipoMensaje = 3,
@@ -168,6 +177,8 @@ namespace SafetyReport.DAO
             }
             catch (Exception ex)
             {
+                _logger.LogError(ex, "Error no controlado en la capa de datos.");
+
                 return new Respuesta
                 {
                     IdTipoMensaje = 3,
@@ -215,6 +226,8 @@ namespace SafetyReport.DAO
                 }
                 else
                 {
+                    _logger.LogWarning("El procedimiento {Procedimiento} no devolvio ninguna fila.", cmd.CommandText);
+
                     respuesta.IdTipoMensaje = 3;
                     respuesta.Mensaje = "No se obtuvo respuesta del procedimiento.";
                     respuesta.Result = new UsuarioListaResult();
@@ -224,6 +237,8 @@ namespace SafetyReport.DAO
             }
             catch (Exception ex)
             {
+                _logger.LogError(ex, "Error no controlado en la capa de datos.");
+
                 return new Respuesta
                 {
                     IdTipoMensaje = 3,
@@ -252,6 +267,8 @@ namespace SafetyReport.DAO
             }
             catch (Exception ex)
             {
+                _logger.LogError(ex, "Error no controlado en la capa de datos.");
+
                 return new Respuesta
                 {
                     IdTipoMensaje = 3,
@@ -280,6 +297,8 @@ namespace SafetyReport.DAO
             }
             catch (Exception ex)
             {
+                _logger.LogError(ex, "Error no controlado en la capa de datos.");
+
                 return new Respuesta
                 {
                     IdTipoMensaje = 3,
@@ -315,6 +334,8 @@ namespace SafetyReport.DAO
             }
             catch (Exception ex)
             {
+                _logger.LogError(ex, "Error no controlado en la capa de datos.");
+
                 return new Respuesta
                 {
                     IdTipoMensaje = 3,
@@ -344,6 +365,8 @@ namespace SafetyReport.DAO
             }
             catch (Exception ex)
             {
+                _logger.LogError(ex, "Error no controlado en la capa de datos.");
+
                 return new Respuesta
                 {
                     IdTipoMensaje = 3,

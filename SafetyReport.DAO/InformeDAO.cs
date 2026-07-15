@@ -1,4 +1,5 @@
 using Microsoft.Data.SqlClient;
+using Microsoft.Extensions.Logging;
 using SafetyReport.Models;
 using System.Data;
 using System.Text.Json;
@@ -8,10 +9,12 @@ namespace SafetyReport.DAO
     public class InformeDAO
     {
         private readonly DbConfig _dbConfig;
+        private readonly ILogger<InformeDAO> _logger;
 
-        public InformeDAO(DbConfig dbConfig)
+        public InformeDAO(DbConfig dbConfig, ILogger<InformeDAO> logger)
         {
             _dbConfig = dbConfig;
+            _logger = logger;
         }
 
         // ── TVP builders ─────────────────────────────────────────────────────────
@@ -856,7 +859,7 @@ namespace SafetyReport.DAO
 
         // ── Reader helper ─────────────────────────────────────────────────────────
 
-        private static async Task<Respuesta> LeerRespuestaAsync<T>(SqlCommand cmd)
+        private async Task<Respuesta> LeerRespuestaAsync<T>(SqlCommand cmd)
         {
             var respuesta = new Respuesta();
             using var dr = await cmd.ExecuteReaderAsync();
@@ -871,6 +874,8 @@ namespace SafetyReport.DAO
             }
             else
             {
+                _logger.LogWarning("El procedimiento {Procedimiento} no devolvio ninguna fila.", cmd.CommandText);
+
                 respuesta.IdTipoMensaje = 3;
                 respuesta.Mensaje = "No se obtuvo respuesta del procedimiento.";
                 respuesta.Result = new List<T>();
@@ -878,7 +883,7 @@ namespace SafetyReport.DAO
             return respuesta;
         }
 
-        private static async Task<(Respuesta respuesta, List<InformeLocalImagenPendiente> imagenes)> LeerRespuestaConImagenesAsync<T>(SqlCommand cmd)
+        private async Task<(Respuesta respuesta, List<InformeLocalImagenPendiente> imagenes)> LeerRespuestaConImagenesAsync<T>(SqlCommand cmd)
         {
             var imagenes = new List<InformeLocalImagenPendiente>();
             var respuesta = new Respuesta();
@@ -901,6 +906,8 @@ namespace SafetyReport.DAO
                     }
                     else
                     {
+                        _logger.LogWarning("El procedimiento {Procedimiento} no devolvio ninguna fila.", cmd.CommandText);
+
                         respuesta.IdTipoMensaje = 3;
                         respuesta.Mensaje = "No se obtuvo respuesta del procedimiento.";
                         respuesta.Result = new List<T>();
@@ -987,6 +994,8 @@ namespace SafetyReport.DAO
             }
             catch (Exception ex)
             {
+                _logger.LogError(ex, "Error no controlado en la capa de datos.");
+
                 return (new Respuesta { IdTipoMensaje = 3, Mensaje = ex.Message, Result = new List<InformeCreado>() }, new());
             }
         }
@@ -1006,6 +1015,8 @@ namespace SafetyReport.DAO
             }
             catch (Exception ex)
             {
+                _logger.LogError(ex, "Error no controlado en la capa de datos.");
+
                 return (new Respuesta { IdTipoMensaje = 3, Mensaje = ex.Message, Result = new List<InformeCreado>() }, new());
             }
         }
@@ -1035,6 +1046,8 @@ namespace SafetyReport.DAO
                 }
                 else
                 {
+                    _logger.LogWarning("El procedimiento {Procedimiento} no devolvio ninguna fila.", cmd.CommandText);
+
                     respuesta.IdTipoMensaje = 3;
                     respuesta.Mensaje = "No se obtuvo respuesta del procedimiento.";
                     respuesta.Result = new List<InformeConsulta>();
@@ -1043,6 +1056,8 @@ namespace SafetyReport.DAO
             }
             catch (Exception ex)
             {
+                _logger.LogError(ex, "Error no controlado en la capa de datos.");
+
                 return new Respuesta { IdTipoMensaje = 3, Mensaje = ex.Message, Result = new List<InformeConsulta>() };
             }
         }
@@ -1070,6 +1085,8 @@ namespace SafetyReport.DAO
                 }
                 else
                 {
+                    _logger.LogWarning("El procedimiento {Procedimiento} no devolvio ninguna fila.", cmd.CommandText);
+
                     respuesta.IdTipoMensaje = 3;
                     respuesta.Mensaje = "No se obtuvo respuesta del procedimiento.";
                 }
@@ -1077,6 +1094,8 @@ namespace SafetyReport.DAO
             }
             catch (Exception ex)
             {
+                _logger.LogError(ex, "Error no controlado en la capa de datos.");
+
                 return (new Respuesta { IdTipoMensaje = 3, Mensaje = ex.Message }, null);
             }
         }
@@ -1104,6 +1123,8 @@ namespace SafetyReport.DAO
                 }
                 else
                 {
+                    _logger.LogWarning("El procedimiento {Procedimiento} no devolvio ninguna fila.", cmd.CommandText);
+
                     respuesta.IdTipoMensaje = 3;
                     respuesta.Mensaje = "No se obtuvo respuesta del procedimiento.";
                 }
@@ -1111,6 +1132,8 @@ namespace SafetyReport.DAO
             }
             catch (Exception ex)
             {
+                _logger.LogError(ex, "Error no controlado en la capa de datos.");
+
                 return (new Respuesta { IdTipoMensaje = 3, Mensaje = ex.Message }, null);
             }
         }
@@ -1129,6 +1152,8 @@ namespace SafetyReport.DAO
             }
             catch (Exception ex)
             {
+                _logger.LogError(ex, "Error no controlado en la capa de datos.");
+
                 return new Respuesta { IdTipoMensaje = 3, Mensaje = ex.Message, Result = new List<InformeDocumentoResult>() };
             }
         }
@@ -1147,6 +1172,8 @@ namespace SafetyReport.DAO
             }
             catch (Exception ex)
             {
+                _logger.LogError(ex, "Error no controlado en la capa de datos.");
+
                 return new Respuesta { IdTipoMensaje = 3, Mensaje = ex.Message, Result = new List<object>() };
             }
         }
@@ -1174,6 +1201,8 @@ namespace SafetyReport.DAO
                 }
                 else
                 {
+                    _logger.LogWarning("El procedimiento {Procedimiento} no devolvio ninguna fila.", cmd.CommandText);
+
                     respuesta.IdTipoMensaje = 3;
                     respuesta.Mensaje = "No se obtuvo respuesta del procedimiento.";
                 }
@@ -1181,6 +1210,8 @@ namespace SafetyReport.DAO
             }
             catch (Exception ex)
             {
+                _logger.LogError(ex, "Error no controlado en la capa de datos.");
+
                 return new Respuesta { IdTipoMensaje = 3, Mensaje = ex.Message, Result = null };
             }
         }
@@ -1199,6 +1230,8 @@ namespace SafetyReport.DAO
             }
             catch (Exception ex)
             {
+                _logger.LogError(ex, "Error no controlado en la capa de datos.");
+
                 return new Respuesta { IdTipoMensaje = 3, Mensaje = ex.Message, Result = new List<object>() };
             }
         }
@@ -1231,6 +1264,8 @@ namespace SafetyReport.DAO
                 }
                 else
                 {
+                    _logger.LogWarning("El procedimiento {Procedimiento} no devolvio ninguna fila.", cmd.CommandText);
+
                     respuesta.IdTipoMensaje = 3;
                     respuesta.Mensaje = "No se obtuvo respuesta del procedimiento.";
                     respuesta.Result = new InformeListaResult();
@@ -1239,6 +1274,8 @@ namespace SafetyReport.DAO
             }
             catch (Exception ex)
             {
+                _logger.LogError(ex, "Error no controlado en la capa de datos.");
+
                 return new Respuesta { IdTipoMensaje = 3, Mensaje = ex.Message, Result = new InformeListaResult() };
             }
         }
@@ -1312,6 +1349,8 @@ namespace SafetyReport.DAO
             }
             catch (Exception ex)
             {
+                _logger.LogError(ex, "Error no controlado en la capa de datos.");
+
                 return new Respuesta { IdTipoMensaje = 3, Mensaje = ex.Message, Result = new List<InformeBalanceDesagregadoCalculado>() };
             }
         }
@@ -1351,6 +1390,8 @@ namespace SafetyReport.DAO
             }
             catch (Exception ex)
             {
+                _logger.LogError(ex, "Error no controlado en la capa de datos.");
+
                 return new Respuesta { IdTipoMensaje = 3, Mensaje = ex.Message, Result = new List<InformeBalanceSeguroCalculado>() };
             }
         }
@@ -1391,6 +1432,8 @@ namespace SafetyReport.DAO
             }
             catch (Exception ex)
             {
+                _logger.LogError(ex, "Error no controlado en la capa de datos.");
+
                 return new Respuesta { IdTipoMensaje = 3, Mensaje = ex.Message, Result = new List<InformeBalanceBancoCalculado>() };
             }
         }
@@ -1440,6 +1483,8 @@ namespace SafetyReport.DAO
             }
             catch (Exception ex)
             {
+                _logger.LogError(ex, "Error no controlado en la capa de datos.");
+
                 return new Respuesta { IdTipoMensaje = 3, Mensaje = ex.Message, Result = new List<InformeBalanceTurquiaCalculado>() };
             }
         }
@@ -1466,6 +1511,8 @@ namespace SafetyReport.DAO
             }
             catch (Exception ex)
             {
+                _logger.LogError(ex, "Error no controlado en la capa de datos.");
+
                 return new Respuesta { IdTipoMensaje = 3, Mensaje = ex.Message, Result = new List<InformeBalanceTotalizadoCalculado>() };
             }
         }
@@ -1483,6 +1530,8 @@ namespace SafetyReport.DAO
             }
             catch (Exception ex)
             {
+                _logger.LogError(ex, "Error no controlado en la capa de datos.");
+
                 return new Respuesta { IdTipoMensaje = 3, Mensaje = ex.Message, Result = new List<InformeIdResult>() };
             }
         }
@@ -1500,6 +1549,8 @@ namespace SafetyReport.DAO
             }
             catch (Exception ex)
             {
+                _logger.LogError(ex, "Error no controlado en la capa de datos.");
+
                 return new Respuesta { IdTipoMensaje = 3, Mensaje = ex.Message, Result = new List<InformeEliminado>() };
             }
         }

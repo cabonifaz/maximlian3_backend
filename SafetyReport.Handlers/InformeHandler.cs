@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Logging;
 using SafetyReport.DAO;
 using SafetyReport.Models;
 using System.Text.Json;
@@ -19,8 +20,9 @@ namespace SafetyReport.Handlers
         private readonly DocxGeneratorService _docxGenerator;
         private readonly PdfGeneratorService _pdfGenerator;
         private readonly int _s3ExpirationMinutes;
+        private readonly ILogger<InformeHandler> _logger;
 
-        public InformeHandler(InformeDAO dao, InformeLocalImagenDAO localImagenDAO, PedidoDAO pedidoDAO, PlantillaDocumentoDAO plantillaDAO, IS3UploadService s3, N8nService n8n, N8nConfig n8nConfig, DocxGeneratorService docxGenerator, PdfGeneratorService pdfGenerator, IConfiguration configuration)
+        public InformeHandler(InformeDAO dao, InformeLocalImagenDAO localImagenDAO, PedidoDAO pedidoDAO, PlantillaDocumentoDAO plantillaDAO, IS3UploadService s3, N8nService n8n, N8nConfig n8nConfig, DocxGeneratorService docxGenerator, PdfGeneratorService pdfGenerator, IConfiguration configuration, ILogger<InformeHandler> logger)
         {
             _dao = dao;
             _localImagenDAO = localImagenDAO;
@@ -32,6 +34,7 @@ namespace SafetyReport.Handlers
             _docxGenerator = docxGenerator;
             _pdfGenerator = pdfGenerator;
             _s3ExpirationMinutes = int.TryParse(configuration["AWS:S3ExpirationTime"], out var exp) ? exp : 15;
+            _logger = logger;
         }
 
         private static readonly HashSet<string> _extensionesImagenPermitidas =
@@ -55,8 +58,10 @@ namespace SafetyReport.Handlers
                 AgregarUrlsPrefirmadas(respuesta, imagenes);
                 return respuesta;
             }
-            catch (Exception)
+            catch (Exception ex)
             {
+                _logger.LogError(ex, "Error no controlado en la capa de negocio.");
+
                 return new Respuesta { IdTipoMensaje = 3, Mensaje = "Error interno del servidor.", Result = new List<InformeCreado>() };
             }
         }
@@ -73,8 +78,10 @@ namespace SafetyReport.Handlers
                 AgregarUrlsPrefirmadas(respuesta, imagenes);
                 return respuesta;
             }
-            catch (Exception)
+            catch (Exception ex)
             {
+                _logger.LogError(ex, "Error no controlado en la capa de negocio.");
+
                 return new Respuesta { IdTipoMensaje = 3, Mensaje = "Error interno del servidor.", Result = new List<InformeCreado>() };
             }
         }
@@ -207,8 +214,10 @@ namespace SafetyReport.Handlers
 
                 return respuesta;
             }
-            catch (Exception)
+            catch (Exception ex)
             {
+                _logger.LogError(ex, "Error no controlado en la capa de negocio.");
+
                 return new Respuesta { IdTipoMensaje = 3, Mensaje = "Error interno del servidor.", Result = new List<InformeConsulta>() };
             }
         }
@@ -219,8 +228,10 @@ namespace SafetyReport.Handlers
             {
                 return await _dao.ListarAsync(usuarioLogueado, request);
             }
-            catch (Exception)
+            catch (Exception ex)
             {
+                _logger.LogError(ex, "Error no controlado en la capa de negocio.");
+
                 return new Respuesta { IdTipoMensaje = 3, Mensaje = "Error interno del servidor.", Result = new InformeListaResult() };
             }
         }
@@ -231,8 +242,10 @@ namespace SafetyReport.Handlers
             {
                 return await _dao.CalcularBalanceDesagregadoAsync(usuarioLogueado, request);
             }
-            catch (Exception)
+            catch (Exception ex)
             {
+                _logger.LogError(ex, "Error no controlado en la capa de negocio.");
+
                 return new Respuesta { IdTipoMensaje = 3, Mensaje = "Error interno del servidor.", Result = new List<InformeBalanceDesagregadoCalculado>() };
             }
         }
@@ -243,8 +256,10 @@ namespace SafetyReport.Handlers
             {
                 return await _dao.CalcularBalanceSeguroAsync(usuarioLogueado, request);
             }
-            catch (Exception)
+            catch (Exception ex)
             {
+                _logger.LogError(ex, "Error no controlado en la capa de negocio.");
+
                 return new Respuesta { IdTipoMensaje = 3, Mensaje = "Error interno del servidor.", Result = new List<InformeBalanceSeguroCalculado>() };
             }
         }
@@ -255,8 +270,10 @@ namespace SafetyReport.Handlers
             {
                 return await _dao.CalcularBalanceBancoAsync(usuarioLogueado, request);
             }
-            catch (Exception)
+            catch (Exception ex)
             {
+                _logger.LogError(ex, "Error no controlado en la capa de negocio.");
+
                 return new Respuesta { IdTipoMensaje = 3, Mensaje = "Error interno del servidor.", Result = new List<InformeBalanceBancoCalculado>() };
             }
         }
@@ -267,8 +284,10 @@ namespace SafetyReport.Handlers
             {
                 return await _dao.CalcularBalanceTurquiaAsync(usuarioLogueado, request);
             }
-            catch (Exception)
+            catch (Exception ex)
             {
+                _logger.LogError(ex, "Error no controlado en la capa de negocio.");
+
                 return new Respuesta { IdTipoMensaje = 3, Mensaje = "Error interno del servidor.", Result = new List<InformeBalanceTurquiaCalculado>() };
             }
         }
@@ -279,8 +298,10 @@ namespace SafetyReport.Handlers
             {
                 return await _dao.CalcularBalanceTotalizadoAsync(usuarioLogueado, request);
             }
-            catch (Exception)
+            catch (Exception ex)
             {
+                _logger.LogError(ex, "Error no controlado en la capa de negocio.");
+
                 return new Respuesta { IdTipoMensaje = 3, Mensaje = "Error interno del servidor.", Result = new List<InformeBalanceTotalizadoCalculado>() };
             }
         }
@@ -291,8 +312,10 @@ namespace SafetyReport.Handlers
             {
                 return await _dao.EliminarAsync(usuarioLogueado, request.IdInforme);
             }
-            catch (Exception)
+            catch (Exception ex)
             {
+                _logger.LogError(ex, "Error no controlado en la capa de negocio.");
+
                 return new Respuesta { IdTipoMensaje = 3, Mensaje = "Error interno del servidor.", Result = new List<InformeEliminado>() };
             }
         }
@@ -303,8 +326,10 @@ namespace SafetyReport.Handlers
             {
                 return await _dao.ActualizarEstadoAsync(usuarioLogueado, request.IdInforme, request.IdEstadoInforme);
             }
-            catch (Exception)
+            catch (Exception ex)
             {
+                _logger.LogError(ex, "Error no controlado en la capa de negocio.");
+
                 return new Respuesta { IdTipoMensaje = 3, Mensaje = "Error interno del servidor.", Result = new List<object>() };
             }
         }
@@ -362,8 +387,10 @@ namespace SafetyReport.Handlers
                     Result = new { url = downloadUrl, nombre = nombreDescarga }
                 };
             }
-            catch (Exception)
+            catch (Exception ex)
             {
+                _logger.LogError(ex, "Error no controlado en la capa de negocio.");
+
                 return new Respuesta { IdTipoMensaje = 3, Mensaje = "Error interno del servidor.", Result = null };
             }
         }
@@ -389,8 +416,10 @@ namespace SafetyReport.Handlers
                     Result = JsonSerializer.Deserialize<object>(n8nRespuesta, new JsonSerializerOptions { PropertyNameCaseInsensitive = true })
                 };
             }
-            catch (Exception)
+            catch (Exception ex)
             {
+                _logger.LogError(ex, "Error no controlado en la capa de negocio.");
+
                 return new Respuesta { IdTipoMensaje = 3, Mensaje = "Error interno del servidor.", Result = null };
             }
         }
@@ -415,8 +444,10 @@ namespace SafetyReport.Handlers
                     }
                 });
             }
-            catch (Exception)
+            catch (Exception ex)
             {
+                _logger.LogError(ex, "Error no controlado en la capa de negocio.");
+
                 return Task.FromResult(new Respuesta { IdTipoMensaje = 3, Mensaje = "Error interno del servidor.", Result = null });
             }
         }
@@ -446,8 +477,10 @@ namespace SafetyReport.Handlers
                     Result = JsonSerializer.Deserialize<object>(n8nRespuesta, new JsonSerializerOptions { PropertyNameCaseInsensitive = true })
                 };
             }
-            catch (Exception)
+            catch (Exception ex)
             {
+                _logger.LogError(ex, "Error no controlado en la capa de negocio.");
+
                 return new Respuesta { IdTipoMensaje = 3, Mensaje = "Error interno del servidor.", Result = null };
             }
         }
@@ -486,8 +519,10 @@ namespace SafetyReport.Handlers
                     Result        = new { documento = estructura, nombreInforme }
                 };
             }
-            catch (Exception)
+            catch (Exception ex)
             {
+                _logger.LogError(ex, "Error no controlado en la capa de negocio.");
+
                 return new Respuesta { IdTipoMensaje = 3, Mensaje = "Error interno del servidor.", Result = null };
             }
         }
@@ -517,8 +552,10 @@ namespace SafetyReport.Handlers
                     Result = new { nombreInforme }
                 };
             }
-            catch (Exception)
+            catch (Exception ex)
             {
+                _logger.LogError(ex, "Error no controlado en la capa de negocio.");
+
                 return new Respuesta { IdTipoMensaje = 3, Mensaje = "Error interno del servidor.", Result = null };
             }
         }
@@ -556,8 +593,10 @@ namespace SafetyReport.Handlers
                     Result = new { nombreInforme }
                 };
             }
-            catch (Exception)
+            catch (Exception ex)
             {
+                _logger.LogError(ex, "Error no controlado en la capa de negocio.");
+
                 return new Respuesta { IdTipoMensaje = 3, Mensaje = "Error interno del servidor.", Result = null };
             }
         }
@@ -595,8 +634,10 @@ namespace SafetyReport.Handlers
                     Result = new { nombreInforme }
                 };
             }
-            catch (Exception)
+            catch (Exception ex)
             {
+                _logger.LogError(ex, "Error no controlado en la capa de negocio.");
+
                 return new Respuesta { IdTipoMensaje = 3, Mensaje = "Error interno del servidor.", Result = null };
             }
         }

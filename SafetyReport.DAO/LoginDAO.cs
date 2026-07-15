@@ -1,4 +1,5 @@
 ﻿using Microsoft.Data.SqlClient;
+using Microsoft.Extensions.Logging;
 using SafetyReport.Models;
 using System.Data;
 using System.Text.Json;
@@ -8,10 +9,12 @@ namespace SafetyReport.DAO
     public class LoginDAO
     {
         private readonly DbConfig _dbConfig;
+        private readonly ILogger<LoginDAO> _logger;
 
-        public LoginDAO(DbConfig dbConfig)
+        public LoginDAO(DbConfig dbConfig, ILogger<LoginDAO> logger)
         {
             _dbConfig = dbConfig;
+            _logger = logger;
         }
 
         public async Task<Respuesta> AutenticarAsync(UsuarioGeneral usuarioActual)
@@ -48,6 +51,8 @@ namespace SafetyReport.DAO
                 }
                 else
                 {
+                    _logger.LogWarning("Usuario_AUTH no devolvio ninguna fila para {Usuario}.", usuarioActual.Usuario);
+
                     respuesta.IdTipoMensaje = 3;
                     respuesta.Mensaje = "No se obtuvo respuesta del procedimiento.";
                     respuesta.Result = new List<UsuarioLoginResponse>();
@@ -55,6 +60,8 @@ namespace SafetyReport.DAO
             }
             catch (Exception ex)
             {
+                _logger.LogError(ex, "Error no controlado autenticando al usuario {Usuario}.", usuarioActual.Usuario);
+
                 respuesta.IdTipoMensaje = 3;
                 respuesta.Mensaje = $"Error al autenticar: {ex.Message}";
                 respuesta.Result = new List<UsuarioLoginResponse>();
