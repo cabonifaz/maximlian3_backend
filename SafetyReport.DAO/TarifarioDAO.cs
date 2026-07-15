@@ -1,7 +1,6 @@
-﻿using Microsoft.Data.SqlClient;
+using Microsoft.Data.SqlClient;
 using SafetyReport.Models;
 using System.Data;
-using System.Text.Json;
 
 namespace SafetyReport.DAO
 {
@@ -14,11 +13,21 @@ namespace SafetyReport.DAO
             _dbConfig = dbConfig;
         }
 
-        private static async Task<Respuesta> LeerRespuestaAsync<T>(SqlCommand cmd)
+        private static int? GetNullableInt(SqlDataReader dr, string columnName)
+        {
+            var value = dr[columnName];
+            return value == DBNull.Value ? (int?)null : Convert.ToInt32(value);
+        }
+
+        private static string? GetNullableString(SqlDataReader dr, string columnName)
+        {
+            var value = dr[columnName];
+            return value == DBNull.Value ? null : value.ToString();
+        }
+
+        private static async Task<Respuesta> LeerCabeceraAsync(SqlDataReader dr)
         {
             var respuesta = new Respuesta();
-
-            using var dr = await cmd.ExecuteReaderAsync();
 
             if (await dr.ReadAsync())
             {
@@ -27,24 +36,26 @@ namespace SafetyReport.DAO
                     : 3;
 
                 respuesta.Mensaje = dr["Mensaje"]?.ToString() ?? string.Empty;
-
-                var json = dr["Result"]?.ToString();
-
-                respuesta.Result = respuesta.IdTipoMensaje == 2 && !string.IsNullOrWhiteSpace(json)
-                    ? JsonSerializer.Deserialize<List<T>>(json, new JsonSerializerOptions
-                    {
-                        PropertyNameCaseInsensitive = true
-                    }) ?? new List<T>()
-                    : new List<T>();
             }
             else
             {
                 respuesta.IdTipoMensaje = 3;
                 respuesta.Mensaje = "No se obtuvo respuesta del procedimiento.";
-                respuesta.Result = new List<T>();
             }
 
             return respuesta;
+        }
+
+        private static async Task<List<T>> LeerIdsAsync<T>(SqlDataReader dr, string columnName, Func<int?, T> factory)
+        {
+            var lista = new List<T>();
+
+            while (await dr.ReadAsync())
+            {
+                lista.Add(factory(GetNullableInt(dr, columnName)));
+            }
+
+            return lista;
         }
 
         public async Task<Respuesta> CrearAsync(UsuarioGeneral usuarioLogueado, TarifarioCrear request)
@@ -52,7 +63,7 @@ namespace SafetyReport.DAO
             try
             {
                 using SqlConnection cn = new SqlConnection(_dbConfig.ConnectionString);
-                using SqlCommand cmd = new SqlCommand("Tarifario_Insertar", cn);
+                using SqlCommand cmd = new SqlCommand("SP_Tarifario_Insertar", cn);
 
                 cmd.CommandType = CommandType.StoredProcedure;
 
@@ -77,7 +88,20 @@ namespace SafetyReport.DAO
                 cmd.Parameters["@decPenalidad"].Scale = 2;
 
                 await cn.OpenAsync();
-                return await LeerRespuestaAsync<TarifarioCreado>(cmd);
+
+                using var dr = await cmd.ExecuteReaderAsync();
+                var respuesta = await LeerCabeceraAsync(dr);
+
+                if (respuesta.IdTipoMensaje == 2 && await dr.NextResultAsync())
+                {
+                    respuesta.Result = await LeerIdsAsync(dr, "IdTarifario", id => new TarifarioCreado { IdTarifario = id ?? 0 });
+                }
+                else
+                {
+                    respuesta.Result = new List<TarifarioCreado>();
+                }
+
+                return respuesta;
             }
             catch (Exception ex)
             {
@@ -95,7 +119,7 @@ namespace SafetyReport.DAO
             try
             {
                 using SqlConnection cn = new SqlConnection(_dbConfig.ConnectionString);
-                using SqlCommand cmd = new SqlCommand("Tarifario_Listar", cn);
+                using SqlCommand cmd = new SqlCommand("SP_Tarifario_Listar", cn);
 
                 cmd.CommandType = CommandType.StoredProcedure;
 
@@ -109,29 +133,41 @@ namespace SafetyReport.DAO
 
                 await cn.OpenAsync();
 
-                var respuesta = new Respuesta();
                 using var dr = await cmd.ExecuteReaderAsync();
+                var respuesta = await LeerCabeceraAsync(dr);
 
-                if (await dr.ReadAsync())
+                if (respuesta.IdTipoMensaje == 2 && await dr.NextResultAsync())
                 {
-                    respuesta.IdTipoMensaje = dr["IdTipoMensaje"] != DBNull.Value
-                        ? Convert.ToInt32(dr["IdTipoMensaje"])
-                        : 3;
+                    var resultado = new TarifarioListaResult();
 
-                    respuesta.Mensaje = dr["Mensaje"]?.ToString() ?? string.Empty;
+                    if (await dr.ReadAsync())
+                    {
+                        resultado.TotalRegistros = Convert.ToInt32(dr["TotalRegistros"]);
+                        resultado.TotalPaginas = Convert.ToInt32(dr["TotalPaginas"]);
+                    }
 
-                    var json = dr["Result"]?.ToString();
-                    respuesta.Result = respuesta.IdTipoMensaje == 2 && !string.IsNullOrWhiteSpace(json)
-                        ? JsonSerializer.Deserialize<TarifarioListaResult>(json, new JsonSerializerOptions
+                    if (await dr.NextResultAsync())
+                    {
+                        while (await dr.ReadAsync())
                         {
-                            PropertyNameCaseInsensitive = true
-                        }) ?? new TarifarioListaResult()
-                        : new TarifarioListaResult();
+                            resultado.lstTarifario.Add(new TarifarioListaConsulta
+                            {
+                                IdTarifario = Convert.ToInt32(dr["IdTarifario"]),
+                                Producto = dr["Producto"]?.ToString() ?? string.Empty,
+                                Pais = dr["Pais"]?.ToString() ?? string.Empty,
+                                Moneda = dr["Moneda"]?.ToString() ?? string.Empty,
+                                TipoTramite = dr["TipoTramite"]?.ToString() ?? string.Empty,
+                                DiasMinMax = dr["DiasMinMax"]?.ToString() ?? string.Empty,
+                                Precio = Convert.ToDecimal(dr["Precio"]),
+                                Penalidad = Convert.ToDecimal(dr["Penalidad"])
+                            });
+                        }
+                    }
+
+                    respuesta.Result = resultado;
                 }
                 else
                 {
-                    respuesta.IdTipoMensaje = 3;
-                    respuesta.Mensaje = "No se obtuvo respuesta del procedimiento.";
                     respuesta.Result = new TarifarioListaResult();
                 }
 
@@ -153,7 +189,7 @@ namespace SafetyReport.DAO
             try
             {
                 using SqlConnection cn = new SqlConnection(_dbConfig.ConnectionString);
-                using SqlCommand cmd = new SqlCommand("Tarifario_Obtener", cn);
+                using SqlCommand cmd = new SqlCommand("SP_Tarifario_Obtener", cn);
 
                 cmd.CommandType = CommandType.StoredProcedure;
 
@@ -165,7 +201,39 @@ namespace SafetyReport.DAO
                 cmd.Parameters.Add("@intIdCliente", SqlDbType.Int).Value = request.idCliente;
 
                 await cn.OpenAsync();
-                return await LeerRespuestaAsync<TarifarioConsulta>(cmd);
+
+                using var dr = await cmd.ExecuteReaderAsync();
+                var respuesta = await LeerCabeceraAsync(dr);
+
+                if (respuesta.IdTipoMensaje == 2 && await dr.NextResultAsync())
+                {
+                    var lista = new List<TarifarioConsulta>();
+
+                    while (await dr.ReadAsync())
+                    {
+                        lista.Add(new TarifarioConsulta
+                        {
+                            IdTarifario = Convert.ToInt32(dr["IdTarifario"]),
+                            IdCliente = Convert.ToInt32(dr["IdCliente"]),
+                            IdProducto = Convert.ToInt32(dr["IdProducto"]),
+                            IdTipoTramite = Convert.ToInt32(dr["IdTipoTramite"]),
+                            IdPais = Convert.ToInt32(dr["IdPais"]),
+                            IdMoneda = Convert.ToInt32(dr["IdMoneda"]),
+                            DiasMax = Convert.ToInt32(dr["DiasMax"]),
+                            DiasMin = Convert.ToInt32(dr["DiasMin"]),
+                            Precio = Convert.ToDecimal(dr["Precio"]),
+                            Penalidad = Convert.ToDecimal(dr["Penalidad"])
+                        });
+                    }
+
+                    respuesta.Result = lista;
+                }
+                else
+                {
+                    respuesta.Result = new List<TarifarioConsulta>();
+                }
+
+                return respuesta;
             }
             catch (Exception ex)
             {
@@ -183,7 +251,7 @@ namespace SafetyReport.DAO
             try
             {
                 using SqlConnection cn = new SqlConnection(_dbConfig.ConnectionString);
-                using SqlCommand cmd = new SqlCommand("Tarifario_Actualizar", cn);
+                using SqlCommand cmd = new SqlCommand("SP_Tarifario_Actualizar", cn);
 
                 cmd.CommandType = CommandType.StoredProcedure;
 
@@ -209,7 +277,20 @@ namespace SafetyReport.DAO
                 cmd.Parameters["@decPenalidad"].Scale = 2;
 
                 await cn.OpenAsync();
-                return await LeerRespuestaAsync<TarifarioCreado>(cmd);
+
+                using var dr = await cmd.ExecuteReaderAsync();
+                var respuesta = await LeerCabeceraAsync(dr);
+
+                if (respuesta.IdTipoMensaje == 2 && await dr.NextResultAsync())
+                {
+                    respuesta.Result = await LeerIdsAsync(dr, "IdTarifario", id => new TarifarioCreado { IdTarifario = id ?? 0 });
+                }
+                else
+                {
+                    respuesta.Result = new List<TarifarioCreado>();
+                }
+
+                return respuesta;
             }
             catch (Exception ex)
             {
@@ -227,7 +308,7 @@ namespace SafetyReport.DAO
             try
             {
                 using SqlConnection cn = new SqlConnection(_dbConfig.ConnectionString);
-                using SqlCommand cmd = new SqlCommand("Tarifario_Eliminar", cn);
+                using SqlCommand cmd = new SqlCommand("SP_Tarifario_Eliminar", cn);
 
                 cmd.CommandType = CommandType.StoredProcedure;
 
@@ -239,7 +320,20 @@ namespace SafetyReport.DAO
                 cmd.Parameters.Add("@intIdCliente", SqlDbType.Int).Value = request.idCliente;
 
                 await cn.OpenAsync();
-                return await LeerRespuestaAsync<TarifarioEliminado>(cmd);
+
+                using var dr = await cmd.ExecuteReaderAsync();
+                var respuesta = await LeerCabeceraAsync(dr);
+
+                if (respuesta.IdTipoMensaje == 2 && await dr.NextResultAsync())
+                {
+                    respuesta.Result = await LeerIdsAsync(dr, "IdTarifario", id => new TarifarioEliminado { IdTarifario = id ?? 0 });
+                }
+                else
+                {
+                    respuesta.Result = new List<TarifarioEliminado>();
+                }
+
+                return respuesta;
             }
             catch (Exception ex)
             {
@@ -257,7 +351,7 @@ namespace SafetyReport.DAO
             try
             {
                 using SqlConnection cn = new SqlConnection(_dbConfig.ConnectionString);
-                using SqlCommand cmd = new SqlCommand("Tarifario_Listar_Corta", cn);
+                using SqlCommand cmd = new SqlCommand("SP_Tarifario_Listar_Corta", cn);
 
                 cmd.CommandType = CommandType.StoredProcedure;
 
@@ -272,30 +366,42 @@ namespace SafetyReport.DAO
 
                 await cn.OpenAsync();
 
-                var respuesta = new Respuesta();
                 using var dr = await cmd.ExecuteReaderAsync();
+                var respuesta = await LeerCabeceraAsync(dr);
 
-                if (await dr.ReadAsync())
+                if (respuesta.IdTipoMensaje == 2 && await dr.NextResultAsync())
                 {
-                    respuesta.IdTipoMensaje = dr["IdTipoMensaje"] != DBNull.Value
-                        ? Convert.ToInt32(dr["IdTipoMensaje"])
-                        : 3;
+                    var resultado = new TarifarioListaCortaResult();
 
-                    respuesta.Mensaje = dr["Mensaje"]?.ToString() ?? string.Empty;
+                    // primer result set posterior a la cabecera: TotalRegistros/TotalPaginas (no usados por este modelo)
+                    await dr.ReadAsync();
 
-                    var json = dr["Result"]?.ToString();
-                    respuesta.Result = respuesta.IdTipoMensaje == 2 && !string.IsNullOrWhiteSpace(json)
-                        ? JsonSerializer.Deserialize<TarifarioListaCortaResult>(json, new JsonSerializerOptions
+                    if (await dr.NextResultAsync())
+                    {
+                        while (await dr.ReadAsync())
                         {
-                            PropertyNameCaseInsensitive = true
-                        }) ?? new TarifarioListaCortaResult()
-                        : new TarifarioListaCortaResult();
+                            resultado.lstTarifario.Add(new TarifarioListaCorta
+                            {
+                                IdTarifario = Convert.ToInt32(dr["IdTarifario"]),
+                                TipoTramite = dr["TipoTramite"]?.ToString() ?? string.Empty,
+                                IdMoneda = Convert.ToInt32(dr["IdMoneda"]),
+                                SimboloMoneda = GetNullableString(dr, "SimboloMoneda") ?? string.Empty,
+                                Moneda = dr["Moneda"]?.ToString() ?? string.Empty,
+                                Precio = Convert.ToDecimal(dr["Precio"]),
+                                IdPais = Convert.ToInt32(dr["IdPais"]),
+                                IdProducto = Convert.ToInt32(dr["IdProducto"]),
+                                IdTipoTramite = Convert.ToInt32(dr["IdTipoTramite"]),
+                                DiasMin = Convert.ToInt32(dr["DiasMin"]),
+                                DiasMax = Convert.ToInt32(dr["DiasMax"])
+                            });
+                        }
+                    }
+
+                    respuesta.Result = resultado;
                 }
                 else
                 {
-                    respuesta.IdTipoMensaje = 3;
-                    respuesta.Mensaje = "No se obtuvo respuesta del procedimiento.";
-                    respuesta.Result = new TarifarioListaResult();
+                    respuesta.Result = new TarifarioListaCortaResult();
                 }
 
                 return respuesta;
@@ -306,7 +412,7 @@ namespace SafetyReport.DAO
                 {
                     IdTipoMensaje = 3,
                     Mensaje = ex.Message,
-                    Result = new TarifarioListaResult()
+                    Result = new TarifarioListaCortaResult()
                 };
             }
         }
