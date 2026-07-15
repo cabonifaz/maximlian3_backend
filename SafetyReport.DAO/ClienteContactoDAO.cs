@@ -1,7 +1,6 @@
-﻿using Microsoft.Data.SqlClient;
+using Microsoft.Data.SqlClient;
 using SafetyReport.Models;
 using System.Data;
-using System.Text.Json;
 
 namespace SafetyReport.DAO
 {
@@ -14,11 +13,21 @@ namespace SafetyReport.DAO
             _dbConfig = dbConfig;
         }
 
-        private static async Task<Respuesta> LeerRespuestaAsync<T>(SqlCommand cmd)
+        private static int? GetNullableInt(SqlDataReader dr, string columnName)
+        {
+            var value = dr[columnName];
+            return value == DBNull.Value ? (int?)null : Convert.ToInt32(value);
+        }
+
+        private static string? GetNullableString(SqlDataReader dr, string columnName)
+        {
+            var value = dr[columnName];
+            return value == DBNull.Value ? null : value.ToString();
+        }
+
+        private static async Task<Respuesta> LeerCabeceraAsync(SqlDataReader dr)
         {
             var respuesta = new Respuesta();
-
-            using var dr = await cmd.ExecuteReaderAsync();
 
             if (await dr.ReadAsync())
             {
@@ -27,24 +36,26 @@ namespace SafetyReport.DAO
                     : 3;
 
                 respuesta.Mensaje = dr["Mensaje"]?.ToString() ?? string.Empty;
-
-                var json = dr["Result"]?.ToString();
-
-                respuesta.Result = respuesta.IdTipoMensaje == 2 && !string.IsNullOrWhiteSpace(json)
-                    ? JsonSerializer.Deserialize<List<T>>(json, new JsonSerializerOptions
-                    {
-                        PropertyNameCaseInsensitive = true
-                    }) ?? new List<T>()
-                    : new List<T>();
             }
             else
             {
                 respuesta.IdTipoMensaje = 3;
                 respuesta.Mensaje = "No se obtuvo respuesta del procedimiento.";
-                respuesta.Result = new List<T>();
             }
 
             return respuesta;
+        }
+
+        private static async Task<List<T>> LeerIdsAsync<T>(SqlDataReader dr, string columnName, Func<int?, T> factory)
+        {
+            var lista = new List<T>();
+
+            while (await dr.ReadAsync())
+            {
+                lista.Add(factory(GetNullableInt(dr, columnName)));
+            }
+
+            return lista;
         }
 
         public async Task<Respuesta> CrearAsync(UsuarioGeneral usuarioLogueado, ClienteContactoCrear request)
@@ -52,7 +63,7 @@ namespace SafetyReport.DAO
             try
             {
                 using SqlConnection cn = new SqlConnection(_dbConfig.ConnectionString);
-                using SqlCommand cmd = new SqlCommand("ClienteContacto_Insertar", cn);
+                using SqlCommand cmd = new SqlCommand("SP_ClienteContacto_Insertar", cn);
 
                 cmd.CommandType = CommandType.StoredProcedure;
 
@@ -72,7 +83,20 @@ namespace SafetyReport.DAO
                 cmd.Parameters.Add("@bitEnviarCorreo", SqlDbType.Bit).Value = request.EnviarCorreo;
 
                 await cn.OpenAsync();
-                return await LeerRespuestaAsync<ClienteContactoCreado>(cmd);
+
+                using var dr = await cmd.ExecuteReaderAsync();
+                var respuesta = await LeerCabeceraAsync(dr);
+
+                if (respuesta.IdTipoMensaje == 2 && await dr.NextResultAsync())
+                {
+                    respuesta.Result = await LeerIdsAsync(dr, "IdClienteContacto", id => new ClienteContactoCreado { IdClienteContacto = id ?? 0 });
+                }
+                else
+                {
+                    respuesta.Result = new List<ClienteContactoCreado>();
+                }
+
+                return respuesta;
             }
             catch (Exception ex)
             {
@@ -90,7 +114,7 @@ namespace SafetyReport.DAO
             try
             {
                 using SqlConnection cn = new SqlConnection(_dbConfig.ConnectionString);
-                using SqlCommand cmd = new SqlCommand("ClienteContacto_Listar", cn);
+                using SqlCommand cmd = new SqlCommand("SP_ClienteContacto_Listar", cn);
 
                 cmd.CommandType = CommandType.StoredProcedure;
 
@@ -104,29 +128,40 @@ namespace SafetyReport.DAO
 
                 await cn.OpenAsync();
 
-                var respuesta = new Respuesta();
                 using var dr = await cmd.ExecuteReaderAsync();
+                var respuesta = await LeerCabeceraAsync(dr);
 
-                if (await dr.ReadAsync())
+                if (respuesta.IdTipoMensaje == 2 && await dr.NextResultAsync())
                 {
-                    respuesta.IdTipoMensaje = dr["IdTipoMensaje"] != DBNull.Value
-                        ? Convert.ToInt32(dr["IdTipoMensaje"])
-                        : 3;
+                    var resultado = new ClienteContactoListaResult();
 
-                    respuesta.Mensaje = dr["Mensaje"]?.ToString() ?? string.Empty;
+                    if (await dr.ReadAsync())
+                    {
+                        resultado.TotalRegistros = Convert.ToInt32(dr["TotalRegistros"]);
+                        resultado.TotalPaginas = Convert.ToInt32(dr["TotalPaginas"]);
+                    }
 
-                    var json = dr["Result"]?.ToString();
-                    respuesta.Result = respuesta.IdTipoMensaje == 2 && !string.IsNullOrWhiteSpace(json)
-                        ? JsonSerializer.Deserialize<ClienteContactoListaResult>(json, new JsonSerializerOptions
+                    if (await dr.NextResultAsync())
+                    {
+                        while (await dr.ReadAsync())
                         {
-                            PropertyNameCaseInsensitive = true
-                        }) ?? new ClienteContactoListaResult()
-                        : new ClienteContactoListaResult();
+                            resultado.lstClienteContactos.Add(new ClienteContactoListaDetalleResult
+                            {
+                                IdClienteContacto = Convert.ToInt32(dr["IdClienteContacto"]),
+                                Nombres = dr["Nombres"]?.ToString() ?? string.Empty,
+                                TipoContacto = dr["TipoContacto"]?.ToString() ?? string.Empty,
+                                AreaTrabajo = dr["AreaTrabajo"]?.ToString() ?? string.Empty,
+                                Telefono = GetNullableString(dr, "Telefono"),
+                                Correo = GetNullableString(dr, "Correo"),
+                                EnviarCorreo = Convert.ToBoolean(dr["EnviarCorreo"])
+                            });
+                        }
+                    }
+
+                    respuesta.Result = resultado;
                 }
                 else
                 {
-                    respuesta.IdTipoMensaje = 3;
-                    respuesta.Mensaje = "No se obtuvo respuesta del procedimiento.";
                     respuesta.Result = new ClienteContactoListaResult();
                 }
 
@@ -148,7 +183,7 @@ namespace SafetyReport.DAO
             try
             {
                 using SqlConnection cn = new SqlConnection(_dbConfig.ConnectionString);
-                using SqlCommand cmd = new SqlCommand("ClienteContacto_Obtener", cn);
+                using SqlCommand cmd = new SqlCommand("SP_ClienteContacto_Obtener", cn);
 
                 cmd.CommandType = CommandType.StoredProcedure;
 
@@ -160,7 +195,39 @@ namespace SafetyReport.DAO
                 cmd.Parameters.Add("@intIdCliente", SqlDbType.Int).Value = request.idCliente;
 
                 await cn.OpenAsync();
-                return await LeerRespuestaAsync<ClienteContactoSeleccionado>(cmd);
+
+                using var dr = await cmd.ExecuteReaderAsync();
+                var respuesta = await LeerCabeceraAsync(dr);
+
+                if (respuesta.IdTipoMensaje == 2 && await dr.NextResultAsync())
+                {
+                    var lista = new List<ClienteContactoSeleccionado>();
+
+                    while (await dr.ReadAsync())
+                    {
+                        lista.Add(new ClienteContactoSeleccionado
+                        {
+                            IdClienteContacto = Convert.ToInt32(dr["IdClienteContacto"]),
+                            IdCliente = Convert.ToInt32(dr["IdCliente"]),
+                            Codigo = GetNullableString(dr, "Codigo"),
+                            Nombres = dr["Nombres"]?.ToString() ?? string.Empty,
+                            IdTipoPersonaContacto = Convert.ToInt32(dr["IdTipoPersonaContacto"]),
+                            IdTipoContacto = Convert.ToInt32(dr["IdTipoContacto"]),
+                            IdAreaTrabajo = Convert.ToInt32(dr["IdAreaTrabajo"]),
+                            Telefono = GetNullableString(dr, "Telefono"),
+                            Correo = GetNullableString(dr, "Correo"),
+                            EnviarCorreo = Convert.ToBoolean(dr["EnviarCorreo"])
+                        });
+                    }
+
+                    respuesta.Result = lista;
+                }
+                else
+                {
+                    respuesta.Result = new List<ClienteContactoSeleccionado>();
+                }
+
+                return respuesta;
             }
             catch (Exception ex)
             {
@@ -178,7 +245,7 @@ namespace SafetyReport.DAO
             try
             {
                 using SqlConnection cn = new SqlConnection(_dbConfig.ConnectionString);
-                using SqlCommand cmd = new SqlCommand("ClienteContacto_Actualizar", cn);
+                using SqlCommand cmd = new SqlCommand("SP_ClienteContacto_Actualizar", cn);
 
                 cmd.CommandType = CommandType.StoredProcedure;
 
@@ -198,7 +265,20 @@ namespace SafetyReport.DAO
                 cmd.Parameters.Add("@bitEnviarCorreo", SqlDbType.Bit).Value = request.EnviarCorreo;
 
                 await cn.OpenAsync();
-                return await LeerRespuestaAsync<ClienteContactoCreado>(cmd);
+
+                using var dr = await cmd.ExecuteReaderAsync();
+                var respuesta = await LeerCabeceraAsync(dr);
+
+                if (respuesta.IdTipoMensaje == 2 && await dr.NextResultAsync())
+                {
+                    respuesta.Result = await LeerIdsAsync(dr, "IdClienteContacto", id => new ClienteContactoCreado { IdClienteContacto = id ?? 0 });
+                }
+                else
+                {
+                    respuesta.Result = new List<ClienteContactoCreado>();
+                }
+
+                return respuesta;
             }
             catch (Exception ex)
             {
@@ -216,7 +296,7 @@ namespace SafetyReport.DAO
             try
             {
                 using SqlConnection cn = new SqlConnection(_dbConfig.ConnectionString);
-                using SqlCommand cmd = new SqlCommand("ClienteContacto_Eliminar", cn);
+                using SqlCommand cmd = new SqlCommand("SP_ClienteContacto_Eliminar", cn);
 
                 cmd.CommandType = CommandType.StoredProcedure;
 
@@ -228,7 +308,20 @@ namespace SafetyReport.DAO
                 cmd.Parameters.Add("@intIdCliente", SqlDbType.Int).Value = request.idCliente;
 
                 await cn.OpenAsync();
-                return await LeerRespuestaAsync<ClienteContactoEliminado>(cmd);
+
+                using var dr = await cmd.ExecuteReaderAsync();
+                var respuesta = await LeerCabeceraAsync(dr);
+
+                if (respuesta.IdTipoMensaje == 2 && await dr.NextResultAsync())
+                {
+                    respuesta.Result = await LeerIdsAsync(dr, "IdClienteContacto", id => new ClienteContactoEliminado { IdClienteContacto = id ?? 0 });
+                }
+                else
+                {
+                    respuesta.Result = new List<ClienteContactoEliminado>();
+                }
+
+                return respuesta;
             }
             catch (Exception ex)
             {
