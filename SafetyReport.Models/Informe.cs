@@ -836,6 +836,26 @@ namespace SafetyReport.Models
         public int Vencido { get; set; }
     }
 
+    public class FiltroInformeIdPorCompania
+    {
+        public int IdCompania { get; set; }
+        public int? NumPag { get; set; }
+    }
+
+    public class InformeIdPorCompaniaConsulta
+    {
+        public int IdInforme { get; set; }
+        public int IdIdioma { get; set; }
+        public string? Nombre { get; set; }
+    }
+
+    public class InformeIdPorCompaniaListaResult
+    {
+        public List<InformeIdPorCompaniaConsulta> lstInformes { get; set; } = new();
+        public int TotalRegistros { get; set; }
+        public int TotalPaginas { get; set; }
+    }
+
     // ── Detail (Obtener) ─────────────────────────────────────────────────────────
 
     public class InformeBalanceConsulta

@@ -1665,6 +1665,54 @@ namespace SafetyReport.DAO
             }
         }
 
+        public async Task<Respuesta> ListarIdPorCompaniaAsync(UsuarioGeneral u, FiltroInformeIdPorCompania filtro)
+        {
+            try
+            {
+                using SqlConnection cn = new(_dbConfig.ConnectionString);
+                using SqlCommand cmd = new("SP_Informe_ListarIdPorCompania", cn) { CommandType = CommandType.StoredProcedure };
+                AgregarParametrosAuditoria(cmd, u);
+                cmd.Parameters.Add("@intIdCompania", SqlDbType.Int).Value = filtro.IdCompania;
+                cmd.Parameters.Add("@numPag", SqlDbType.Int).Value = (object?)filtro.NumPag ?? DBNull.Value;
+                await cn.OpenAsync();
+
+                using var dr = await cmd.ExecuteReaderAsync();
+                var respuesta = await LeerCabeceraAsync(dr, cmd.CommandText);
+
+                var resultado = new InformeIdPorCompaniaListaResult();
+                if (respuesta.IdTipoMensaje == 2 && await dr.NextResultAsync())
+                {
+                    if (await dr.ReadAsync())
+                    {
+                        resultado.TotalRegistros = Convert.ToInt32(dr["TotalRegistros"]);
+                        resultado.TotalPaginas = Convert.ToInt32(dr["TotalPaginas"]);
+                    }
+
+                    if (await dr.NextResultAsync())
+                    {
+                        while (await dr.ReadAsync())
+                        {
+                            resultado.lstInformes.Add(new InformeIdPorCompaniaConsulta
+                            {
+                                IdInforme = Convert.ToInt32(dr["IdInforme"]),
+                                IdIdioma = Convert.ToInt32(dr["IdIdioma"]),
+                                Nombre = GetNullableString(dr, "Nombre")
+                            });
+                        }
+                    }
+                }
+
+                respuesta.Result = resultado;
+                return respuesta;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error no controlado en la capa de datos.");
+
+                return new Respuesta { IdTipoMensaje = 3, Mensaje = ex.Message, Result = new InformeIdPorCompaniaListaResult() };
+            }
+        }
+
         public async Task<Respuesta> CalcularBalanceDesagregadoAsync(UsuarioGeneral u, InformeBalanceDesagregadoCalcularRequest r)
         {
             try
