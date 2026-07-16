@@ -278,7 +278,6 @@ namespace SafetyReport.Models
         public string? Direccion { get; set; }
         public string? Telefono { get; set; }
         public string? ActividadComercial { get; set; }
-        public int? NumeroEmpleados { get; set; }
     }
 
     public class CompaniaNoticiaDetalleListaResult
