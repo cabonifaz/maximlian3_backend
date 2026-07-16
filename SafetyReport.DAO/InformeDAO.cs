@@ -1695,7 +1695,8 @@ namespace SafetyReport.DAO
                             resultado.lstInformes.Add(new InformeIdPorCompaniaConsulta
                             {
                                 IdInforme = Convert.ToInt32(dr["IdInforme"]),
-                                IdIdioma = GetNullableInt(dr, "IdIdioma"),
+                                IdPedido = Convert.ToInt32(dr["IdPedido"]),
+                                Idioma = GetNullableString(dr, "Idioma"),
                                 Nombre = GetNullableString(dr, "Nombre")
                             });
                         }

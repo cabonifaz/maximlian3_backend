@@ -845,7 +845,8 @@ namespace SafetyReport.Models
     public class InformeIdPorCompaniaConsulta
     {
         public int IdInforme { get; set; }
-        public int? IdIdioma { get; set; }
+        public int IdPedido { get; set; }
+        public string? Idioma { get; set; }
         public string? Nombre { get; set; }
     }
 
