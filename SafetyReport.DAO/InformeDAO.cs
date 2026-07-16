@@ -1538,7 +1538,9 @@ namespace SafetyReport.DAO
                 cmd.Parameters.Add("@intIdInforme", SqlDbType.Int).Value = idInforme;
                 cmd.Parameters.Add("@intIdEstadoInforme", SqlDbType.Int).Value = idEstadoInforme;
                 await cn.OpenAsync();
-                return await LeerRespuestaAsync<object>(cmd);
+
+                using var dr = await cmd.ExecuteReaderAsync();
+                return await LeerCabeceraAsync(dr, cmd.CommandText);
             }
             catch (Exception ex)
             {
@@ -1585,7 +1587,9 @@ namespace SafetyReport.DAO
                 cmd.Parameters.Add("@intIdInforme", SqlDbType.Int).Value = idInforme;
                 cmd.Parameters.Add("@vchUrlDocumento", SqlDbType.VarChar, 500).Value = urlDocumento;
                 await cn.OpenAsync();
-                return await LeerRespuestaAsync<object>(cmd);
+
+                using var dr = await cmd.ExecuteReaderAsync();
+                return await LeerCabeceraAsync(dr, cmd.CommandText);
             }
             catch (Exception ex)
             {
@@ -1666,7 +1670,7 @@ namespace SafetyReport.DAO
             try
             {
                 using SqlConnection cn = new(_dbConfig.ConnectionString);
-                using SqlCommand cmd = new("Informe_Balance_Desagregado_Calcular", cn) { CommandType = CommandType.StoredProcedure };
+                using SqlCommand cmd = new("SP_Informe_Balance_Desagregado_Calcular", cn) { CommandType = CommandType.StoredProcedure };
                 cmd.Parameters.Add("@intIdUsuario",                              SqlDbType.Int).Value     = u.IdUsuario;
                 cmd.Parameters.Add("@vchUsuario",                                SqlDbType.VarChar, 32).Value = u.Usuario;
                 cmd.Parameters.Add("@intIdEmpresa",                              SqlDbType.Int).Value     = u.IdEmpresa;
