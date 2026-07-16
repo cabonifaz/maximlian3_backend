@@ -32,7 +32,7 @@ namespace SafetyReport.Handlers
             {
                 _logger.LogError(ex, "Error no controlado en la capa de negocio.");
 
-                return new Respuesta { IdTipoMensaje = 3, Mensaje = "Error interno del servidor.", Result = new List<CompaniaCreada>() };
+                return new Respuesta { IdTipoMensaje = 3, Mensaje = ex.Message, Result = new List<CompaniaCreada>() };
             }
         }
 
@@ -46,7 +46,7 @@ namespace SafetyReport.Handlers
             {
                 _logger.LogError(ex, "Error no controlado en la capa de negocio.");
 
-                return new Respuesta { IdTipoMensaje = 3, Mensaje = "Error interno del servidor.", Result = new List<CompaniaCreada>() };
+                return new Respuesta { IdTipoMensaje = 3, Mensaje = ex.Message, Result = new List<CompaniaCreada>() };
             }
         }
 
@@ -60,7 +60,7 @@ namespace SafetyReport.Handlers
             {
                 _logger.LogError(ex, "Error no controlado en la capa de negocio.");
 
-                return new Respuesta { IdTipoMensaje = 3, Mensaje = "Error interno del servidor.", Result = new List<CompaniaConsulta>() };
+                return new Respuesta { IdTipoMensaje = 3, Mensaje = ex.Message, Result = new List<CompaniaConsulta>() };
             }
         }
 
@@ -74,7 +74,7 @@ namespace SafetyReport.Handlers
             {
                 _logger.LogError(ex, "Error no controlado en la capa de negocio.");
 
-                return new Respuesta { IdTipoMensaje = 3, Mensaje = "Error interno del servidor.", Result = new CompaniaListaResult() };
+                return new Respuesta { IdTipoMensaje = 3, Mensaje = ex.Message, Result = new CompaniaListaResult() };
             }
         }
 
@@ -88,7 +88,7 @@ namespace SafetyReport.Handlers
             {
                 _logger.LogError(ex, "Error no controlado en la capa de negocio.");
 
-                return new Respuesta { IdTipoMensaje = 3, Mensaje = "Error interno del servidor.", Result = new List<CompaniaMatchResultItem>() };
+                return new Respuesta { IdTipoMensaje = 3, Mensaje = ex.Message, Result = new List<CompaniaMatchResultItem>() };
             }
         }
 
@@ -102,7 +102,7 @@ namespace SafetyReport.Handlers
             {
                 _logger.LogError(ex, "Error no controlado en la capa de negocio.");
 
-                return new Respuesta { IdTipoMensaje = 3, Mensaje = "Error interno del servidor.", Result = new List<CompaniaEliminada>() };
+                return new Respuesta { IdTipoMensaje = 3, Mensaje = ex.Message, Result = new List<CompaniaEliminada>() };
             }
         }
 
@@ -119,7 +119,7 @@ namespace SafetyReport.Handlers
             {
                 _logger.LogError(ex, "Error no controlado en la capa de negocio.");
 
-                return new Respuesta { IdTipoMensaje = 3, Mensaje = "Error interno del servidor.", Result = new List<CompaniaNoticiaCreada>() };
+                return new Respuesta { IdTipoMensaje = 3, Mensaje = ex.Message, Result = new List<CompaniaNoticiaCreada>() };
             }
         }
 
@@ -136,7 +136,7 @@ namespace SafetyReport.Handlers
             {
                 _logger.LogError(ex, "Error no controlado en la capa de negocio.");
 
-                return new Respuesta { IdTipoMensaje = 3, Mensaje = "Error interno del servidor.", Result = new List<CompaniaNoticiaCreada>() };
+                return new Respuesta { IdTipoMensaje = 3, Mensaje = ex.Message, Result = new List<CompaniaNoticiaCreada>() };
             }
         }
 
@@ -150,7 +150,7 @@ namespace SafetyReport.Handlers
             {
                 _logger.LogError(ex, "Error no controlado en la capa de negocio.");
 
-                return new Respuesta { IdTipoMensaje = 3, Mensaje = "Error interno del servidor.", Result = new List<CompaniaNoticiaConsulta>() };
+                return new Respuesta { IdTipoMensaje = 3, Mensaje = ex.Message, Result = new List<CompaniaNoticiaConsulta>() };
             }
         }
 
@@ -172,7 +172,7 @@ namespace SafetyReport.Handlers
             {
                 _logger.LogError(ex, "Error no controlado en la capa de negocio.");
 
-                return new Respuesta { IdTipoMensaje = 3, Mensaje = "Error interno del servidor.", Result = new List<CompaniaNoticiaArchivoDescargaConsulta>() };
+                return new Respuesta { IdTipoMensaje = 3, Mensaje = ex.Message, Result = new List<CompaniaNoticiaArchivoDescargaConsulta>() };
             }
         }
 
@@ -202,7 +202,7 @@ namespace SafetyReport.Handlers
             {
                 _logger.LogError(ex, "Error no controlado en la capa de negocio.");
 
-                return new Respuesta { IdTipoMensaje = 3, Mensaje = "Error interno del servidor.", Result = new List<CompaniaNoticiaArchivoEliminado>() };
+                return new Respuesta { IdTipoMensaje = 3, Mensaje = ex.Message, Result = new List<CompaniaNoticiaArchivoEliminado>() };
             }
         }
 
@@ -216,7 +216,7 @@ namespace SafetyReport.Handlers
             {
                 _logger.LogError(ex, "Error no controlado en la capa de negocio.");
 
-                return new Respuesta { IdTipoMensaje = 3, Mensaje = "Error interno del servidor.", Result = new CompaniaNoticiaListaResult() };
+                return new Respuesta { IdTipoMensaje = 3, Mensaje = ex.Message, Result = new CompaniaNoticiaListaResult() };
             }
         }
 
@@ -240,7 +240,7 @@ namespace SafetyReport.Handlers
             {
                 _logger.LogError(ex, "Error no controlado en la capa de negocio.");
 
-                return new Respuesta { IdTipoMensaje = 3, Mensaje = "Error interno del servidor.", Result = new List<CompaniaNoticiaEliminada>() };
+                return new Respuesta { IdTipoMensaje = 3, Mensaje = ex.Message, Result = new List<CompaniaNoticiaEliminada>() };
             }
         }
 
@@ -254,7 +254,7 @@ namespace SafetyReport.Handlers
             {
                 _logger.LogError(ex, "Error no controlado en la capa de negocio.");
 
-                return new Respuesta { IdTipoMensaje = 3, Mensaje = "Error interno del servidor.", Result = new CompaniaNoticiaBalanceListaResult() };
+                return new Respuesta { IdTipoMensaje = 3, Mensaje = ex.Message, Result = new CompaniaNoticiaBalanceListaResult() };
             }
         }
 
@@ -268,7 +268,7 @@ namespace SafetyReport.Handlers
             {
                 _logger.LogError(ex, "Error no controlado en la capa de negocio.");
 
-                return new Respuesta { IdTipoMensaje = 3, Mensaje = "Error interno del servidor.", Result = new List<CompaniaNoticiaBalanceConsulta>() };
+                return new Respuesta { IdTipoMensaje = 3, Mensaje = ex.Message, Result = new List<CompaniaNoticiaBalanceConsulta>() };
             }
         }
 
@@ -282,7 +282,7 @@ namespace SafetyReport.Handlers
             {
                 _logger.LogError(ex, "Error no controlado en la capa de negocio.");
 
-                return new Respuesta { IdTipoMensaje = 3, Mensaje = "Error interno del servidor.", Result = new CompaniaNoticiaDetalleListaResult() };
+                return new Respuesta { IdTipoMensaje = 3, Mensaje = ex.Message, Result = new CompaniaNoticiaDetalleListaResult() };
             }
         }
 
@@ -309,7 +309,7 @@ namespace SafetyReport.Handlers
             {
                 _logger.LogError(ex, "Error no controlado en la capa de negocio.");
 
-                return new Respuesta { IdTipoMensaje = 3, Mensaje = "Error interno del servidor.", Result = null! };
+                return new Respuesta { IdTipoMensaje = 3, Mensaje = ex.Message, Result = null! };
             }
         }
 
