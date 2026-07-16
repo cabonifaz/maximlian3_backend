@@ -403,8 +403,8 @@ namespace SafetyReport.Handlers
                     "Bandera",
                     "Direccion",
                     "Telefono",
-                    "Actividad Comercial",
-                    "Numero Empleados"));
+                    "Actividad Comercial"
+                    ));
 
                 foreach (var item in items)
                 {
@@ -416,8 +416,8 @@ namespace SafetyReport.Handlers
                         item.Bandera,
                         item.Direccion,
                         item.Telefono,
-                        item.ActividadComercial,
-                        item.NumeroEmpleados?.ToString()));
+                        item.ActividadComercial
+                        ));
                 }
 
                 workbookPart.Workbook.Save();
@@ -436,8 +436,8 @@ namespace SafetyReport.Handlers
                 CrearColumnaExcel(5, 5, 14),
                 CrearColumnaExcel(6, 6, 45),
                 CrearColumnaExcel(7, 7, 18),
-                CrearColumnaExcel(8, 8, 30),
-                CrearColumnaExcel(9, 9, 18));
+                CrearColumnaExcel(8, 8, 30)
+                );
         }
 
         private static Column CrearColumnaExcel(uint min, uint max, double width)

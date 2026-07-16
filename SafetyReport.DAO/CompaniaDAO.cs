@@ -933,8 +933,7 @@ namespace SafetyReport.DAO
                                 Bandera = GetNullableString(dr, "Bandera"),
                                 Direccion = GetNullableString(dr, "Direccion"),
                                 Telefono = GetNullableString(dr, "Telefono"),
-                                ActividadComercial = GetNullableString(dr, "ActividadComercial"),
-                                NumeroEmpleados = GetNullableInt(dr, "NumeroEmpleados")
+                                ActividadComercial = GetNullableString(dr, "ActividadComercial")
                             });
                         }
                     }
@@ -988,8 +987,7 @@ namespace SafetyReport.DAO
                             Bandera = GetNullableString(dr, "Bandera"),
                             Direccion = GetNullableString(dr, "Direccion"),
                             Telefono = GetNullableString(dr, "Telefono"),
-                            ActividadComercial = GetNullableString(dr, "ActividadComercial"),
-                            NumeroEmpleados = GetNullableInt(dr, "NumeroEmpleados")
+                            ActividadComercial = GetNullableString(dr, "ActividadComercial")
                         });
                     }
 
