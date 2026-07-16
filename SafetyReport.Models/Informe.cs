@@ -1112,4 +1112,9 @@ namespace SafetyReport.Models
     {
         public int IdInformeObservacion { get; set; }
     }
+
+    public class InformeObservacionIdResult
+    {
+        public int IdInformeObservacion { get; set; }
+    }
 }

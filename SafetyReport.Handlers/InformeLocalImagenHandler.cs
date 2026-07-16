@@ -39,7 +39,7 @@ namespace SafetyReport.Handlers
             {
                 _logger.LogError(ex, "Error no controlado en la capa de negocio.");
 
-                return new Respuesta { IdTipoMensaje = 3, Mensaje = "Error interno del servidor.", Result = new List<InformeLocalImagenUrl>() };
+                return new Respuesta { IdTipoMensaje = 3, Mensaje = ex.Message, Result = new List<InformeLocalImagenUrl>() };
             }
         }
 
@@ -53,7 +53,7 @@ namespace SafetyReport.Handlers
             {
                 _logger.LogError(ex, "Error no controlado en la capa de negocio.");
 
-                return new Respuesta { IdTipoMensaje = 3, Mensaje = "Error interno del servidor.", Result = new List<object>() };
+                return new Respuesta { IdTipoMensaje = 3, Mensaje = ex.Message, Result = new List<object>() };
             }
         }
     }

@@ -2,7 +2,6 @@ using Microsoft.Data.SqlClient;
 using Microsoft.Extensions.Logging;
 using SafetyReport.Models;
 using System.Data;
-using System.Text.Json;
 
 namespace SafetyReport.DAO
 {
@@ -22,11 +21,30 @@ namespace SafetyReport.DAO
             try
             {
                 using SqlConnection cn = new(_dbConfig.ConnectionString);
-                using SqlCommand cmd = new("InformeObservacion_Listar", cn) { CommandType = CommandType.StoredProcedure };
+                using SqlCommand cmd = new("SP_InformeObservacion_Listar", cn) { CommandType = CommandType.StoredProcedure };
                 AgregarParametrosAuditoria(cmd, u);
                 cmd.Parameters.Add("@intIdPedido", SqlDbType.Int).Value = idPedido;
                 await cn.OpenAsync();
-                return await LeerRespuestaAsync<InformeObservacionConsulta>(cmd);
+
+                using var dr = await cmd.ExecuteReaderAsync();
+                var respuesta = await LeerCabeceraAsync(dr, cmd.CommandText);
+
+                var lista = new List<InformeObservacionConsulta>();
+                if (respuesta.IdTipoMensaje == 2 && await dr.NextResultAsync())
+                {
+                    while (await dr.ReadAsync())
+                        lista.Add(new InformeObservacionConsulta
+                        {
+                            IdInformeObservacion = Convert.ToInt32(dr["IdInformeObservacion"]),
+                            IdInforme = Convert.ToInt32(dr["IdInforme"]),
+                            IdPedido = Convert.ToInt32(dr["IdPedido"]),
+                            Observacion = GetNullableString(dr, "Observacion"),
+                            Checked = Convert.ToBoolean(dr["Checked"])
+                        });
+                }
+
+                respuesta.Result = lista;
+                return respuesta;
             }
             catch (Exception ex)
             {
@@ -47,13 +65,22 @@ namespace SafetyReport.DAO
                     t.Rows.Add((object?)o.Observacion ?? DBNull.Value, o.Checked);
 
                 using SqlConnection cn = new(_dbConfig.ConnectionString);
-                using SqlCommand cmd = new("InformeObservacion_InsertarLote", cn) { CommandType = CommandType.StoredProcedure };
+                using SqlCommand cmd = new("SP_InformeObservacion_InsertarLote", cn) { CommandType = CommandType.StoredProcedure };
                 AgregarParametrosAuditoria(cmd, u);
                 cmd.Parameters.Add("@intIdInforme", SqlDbType.Int).Value = idInforme;
                 cmd.Parameters.Add("@intIdPedido", SqlDbType.Int).Value = idPedido;
                 AgregarTvp(cmd, "@lstObservaciones", t, "LISTA_INFORME_OBSERVACION");
                 await cn.OpenAsync();
-                return await LeerRespuestaAsync<object>(cmd);
+
+                using var dr = await cmd.ExecuteReaderAsync();
+                var respuesta = await LeerCabeceraAsync(dr, cmd.CommandText);
+
+                var lista = new List<InformeIdResult>();
+                if (respuesta.IdTipoMensaje == 2 && await dr.NextResultAsync() && await dr.ReadAsync())
+                    lista.Add(new InformeIdResult { IdInforme = Convert.ToInt32(dr["IdInforme"]) });
+
+                respuesta.Result = lista;
+                return respuesta;
             }
             catch (Exception ex)
             {
@@ -68,13 +95,22 @@ namespace SafetyReport.DAO
             try
             {
                 using SqlConnection cn = new(_dbConfig.ConnectionString);
-                using SqlCommand cmd = new("InformeObservacion_Editar", cn) { CommandType = CommandType.StoredProcedure };
+                using SqlCommand cmd = new("SP_InformeObservacion_Editar", cn) { CommandType = CommandType.StoredProcedure };
                 AgregarParametrosAuditoria(cmd, u);
                 cmd.Parameters.Add("@intIdInformeObservacion", SqlDbType.Int).Value = request.IdInformeObservacion;
                 cmd.Parameters.Add("@vchObservacion", SqlDbType.VarChar, 500).Value = (object?)request.Observacion ?? DBNull.Value;
                 cmd.Parameters.Add("@bitChecked", SqlDbType.Bit).Value = request.Checked;
                 await cn.OpenAsync();
-                return await LeerRespuestaAsync<object>(cmd);
+
+                using var dr = await cmd.ExecuteReaderAsync();
+                var respuesta = await LeerCabeceraAsync(dr, cmd.CommandText);
+
+                var lista = new List<InformeObservacionIdResult>();
+                if (respuesta.IdTipoMensaje == 2 && await dr.NextResultAsync() && await dr.ReadAsync())
+                    lista.Add(new InformeObservacionIdResult { IdInformeObservacion = Convert.ToInt32(dr["IdInformeObservacion"]) });
+
+                respuesta.Result = lista;
+                return respuesta;
             }
             catch (Exception ex)
             {
@@ -89,11 +125,20 @@ namespace SafetyReport.DAO
             try
             {
                 using SqlConnection cn = new(_dbConfig.ConnectionString);
-                using SqlCommand cmd = new("InformeObservacion_Eliminar", cn) { CommandType = CommandType.StoredProcedure };
+                using SqlCommand cmd = new("SP_InformeObservacion_Eliminar", cn) { CommandType = CommandType.StoredProcedure };
                 AgregarParametrosAuditoria(cmd, u);
                 cmd.Parameters.Add("@intIdInformeObservacion", SqlDbType.Int).Value = idInformeObservacion;
                 await cn.OpenAsync();
-                return await LeerRespuestaAsync<object>(cmd);
+
+                using var dr = await cmd.ExecuteReaderAsync();
+                var respuesta = await LeerCabeceraAsync(dr, cmd.CommandText);
+
+                var lista = new List<InformeObservacionIdResult>();
+                if (respuesta.IdTipoMensaje == 2 && await dr.NextResultAsync() && await dr.ReadAsync())
+                    lista.Add(new InformeObservacionIdResult { IdInformeObservacion = Convert.ToInt32(dr["IdInformeObservacion"]) });
+
+                respuesta.Result = lista;
+                return respuesta;
             }
             catch (Exception ex)
             {
@@ -103,29 +148,31 @@ namespace SafetyReport.DAO
             }
         }
 
-        private async Task<Respuesta> LeerRespuestaAsync<T>(SqlCommand cmd)
+        // Lee el result set 1 (siempre presente): IdTipoMensaje, Mensaje. Sin columna Result.
+        private async Task<Respuesta> LeerCabeceraAsync(SqlDataReader dr, string procedimiento)
         {
             var respuesta = new Respuesta();
-            using var dr = await cmd.ExecuteReaderAsync();
+
             if (await dr.ReadAsync())
             {
-                respuesta.IdTipoMensaje = dr["IdTipoMensaje"] != DBNull.Value ? Convert.ToInt32(dr["IdTipoMensaje"]) : 3;
+                respuesta.IdTipoMensaje = dr["IdTipoMensaje"] != DBNull.Value
+                    ? Convert.ToInt32(dr["IdTipoMensaje"])
+                    : 3;
                 respuesta.Mensaje = dr["Mensaje"]?.ToString() ?? string.Empty;
-                var json = dr["Result"]?.ToString();
-                respuesta.Result = !string.IsNullOrWhiteSpace(json)
-                    ? JsonSerializer.Deserialize<List<T>>(json, new JsonSerializerOptions { PropertyNameCaseInsensitive = true }) ?? new List<T>()
-                    : new List<T>();
             }
             else
             {
-                _logger.LogWarning("El procedimiento {Procedimiento} no devolvio ninguna fila.", cmd.CommandText);
+                _logger.LogWarning("El procedimiento {Procedimiento} no devolvio ninguna fila.", procedimiento);
 
                 respuesta.IdTipoMensaje = 3;
                 respuesta.Mensaje = "No se obtuvo respuesta del procedimiento.";
-                respuesta.Result = new List<T>();
             }
+
             return respuesta;
         }
+
+        private static string? GetNullableString(SqlDataReader dr, string columna) =>
+            dr[columna] == DBNull.Value ? null : dr[columna].ToString();
 
         private static void AgregarTvp(SqlCommand cmd, string paramName, DataTable table, string typeName)
         {

@@ -2,7 +2,6 @@ using Microsoft.Data.SqlClient;
 using Microsoft.Extensions.Logging;
 using SafetyReport.Models;
 using System.Data;
-using System.Text.Json;
 
 namespace SafetyReport.DAO
 {
@@ -17,29 +16,86 @@ namespace SafetyReport.DAO
             _logger = logger;
         }
 
-        private async Task<Respuesta> LeerRespuestaAsync<T>(SqlCommand cmd)
+        private static int? GetNullableInt(SqlDataReader dr, string columnName)
+        {
+            var value = dr[columnName];
+            return value == DBNull.Value ? (int?)null : Convert.ToInt32(value);
+        }
+
+        private static string? GetNullableString(SqlDataReader dr, string columnName)
+        {
+            var value = dr[columnName];
+            return value == DBNull.Value ? null : value.ToString();
+        }
+
+        private static DateTime? GetNullableDateTime(SqlDataReader dr, string columnName)
+        {
+            var value = dr[columnName];
+            return value == DBNull.Value ? (DateTime?)null : Convert.ToDateTime(value);
+        }
+
+        private async Task<Respuesta> LeerCabeceraAsync(SqlDataReader dr, string commandText)
         {
             var respuesta = new Respuesta();
-            using var dr = await cmd.ExecuteReaderAsync();
+
             if (await dr.ReadAsync())
             {
                 respuesta.IdTipoMensaje = dr["IdTipoMensaje"] != DBNull.Value
-                    ? Convert.ToInt32(dr["IdTipoMensaje"]) : 3;
+                    ? Convert.ToInt32(dr["IdTipoMensaje"])
+                    : 3;
+
                 respuesta.Mensaje = dr["Mensaje"]?.ToString() ?? string.Empty;
-                var json = dr["Result"]?.ToString();
-                respuesta.Result = respuesta.IdTipoMensaje == 2 && !string.IsNullOrWhiteSpace(json)
-                    ? JsonSerializer.Deserialize<List<T>>(json, new JsonSerializerOptions { PropertyNameCaseInsensitive = true }) ?? new List<T>()
-                    : new List<T>();
             }
             else
             {
-                _logger.LogWarning("El procedimiento {Procedimiento} no devolvio ninguna fila.", cmd.CommandText);
+                _logger.LogWarning("El procedimiento {Procedimiento} no devolvio ninguna fila.", commandText);
 
                 respuesta.IdTipoMensaje = 3;
                 respuesta.Mensaje = "No se obtuvo respuesta del procedimiento.";
-                respuesta.Result = new List<T>();
             }
+
             return respuesta;
+        }
+
+        private static async Task<List<T>> LeerIdsAsync<T>(SqlDataReader dr, string columnName, Func<int?, T> factory)
+        {
+            var lista = new List<T>();
+
+            while (await dr.ReadAsync())
+            {
+                lista.Add(factory(GetNullableInt(dr, columnName)));
+            }
+
+            return lista;
+        }
+
+        private static DirectorioEjecutivoConsulta LeerConsulta(SqlDataReader dr)
+        {
+            return new DirectorioEjecutivoConsulta
+            {
+                IdDirectorioEjecutivo = Convert.ToInt32(dr["IdDirectorioEjecutivo"]),
+                IdTipoPersona = GetNullableInt(dr, "IdTipoPersona"),
+                TipoPersona = GetNullableString(dr, "TipoPersona"),
+                NombreCompleto = GetNullableString(dr, "NombreCompleto"),
+                IdPais = GetNullableInt(dr, "IdPais"),
+                Pais = GetNullableString(dr, "Pais"),
+                Direccion = GetNullableString(dr, "Direccion"),
+                Ubigeo = GetNullableString(dr, "Ubigeo"),
+                CodigoPostal = GetNullableString(dr, "CodigoPostal"),
+                IdTipoDocumento = GetNullableInt(dr, "IdTipoDocumento"),
+                TipoDocumento = GetNullableString(dr, "TipoDocumento"),
+                NumeroDocumento = GetNullableString(dr, "NumeroDocumento"),
+                TaxIdType = GetNullableInt(dr, "TaxIdType"),
+                TaxNum = GetNullableString(dr, "TaxNum"),
+                IdNacionalidad = GetNullableInt(dr, "IdNacionalidad"),
+                Nacionalidad = GetNullableString(dr, "Nacionalidad"),
+                FechaNacimiento = GetNullableDateTime(dr, "FechaNacimiento"),
+                IdEstadoCivil = GetNullableInt(dr, "IdEstadoCivil"),
+                EstadoCivil = GetNullableString(dr, "EstadoCivil"),
+                IdProfesion = GetNullableInt(dr, "IdProfesion"),
+                Profesion = GetNullableString(dr, "Profesion"),
+                Referencias = GetNullableString(dr, "Referencias")
+            };
         }
 
         public async Task<Respuesta> CrearAsync(UsuarioGeneral usuarioLogueado, List<DirectorioEjecutivoCrear> lstDirectorios)
@@ -47,7 +103,7 @@ namespace SafetyReport.DAO
             try
             {
                 using SqlConnection cn = new(_dbConfig.ConnectionString);
-                using SqlCommand cmd = new("DirectorioEjecutivo_Insertar", cn) { CommandType = CommandType.StoredProcedure };
+                using SqlCommand cmd = new("SP_DirectorioEjecutivo_Insertar", cn) { CommandType = CommandType.StoredProcedure };
                 cmd.Parameters.Add("@intIdUsuario", SqlDbType.Int).Value = usuarioLogueado.IdUsuario;
                 cmd.Parameters.Add("@vchUsuario", SqlDbType.VarChar, 32).Value = usuarioLogueado.Usuario;
                 cmd.Parameters.Add("@intIdEmpresa", SqlDbType.Int).Value = usuarioLogueado.IdEmpresa;
@@ -93,7 +149,20 @@ namespace SafetyReport.DAO
                 paramTvp.Value = tvp;
 
                 await cn.OpenAsync();
-                return await LeerRespuestaAsync<DirectorioEjecutivoCreado>(cmd);
+
+                using var dr = await cmd.ExecuteReaderAsync();
+                var respuesta = await LeerCabeceraAsync(dr, cmd.CommandText);
+
+                if (respuesta.IdTipoMensaje == 2 && await dr.NextResultAsync())
+                {
+                    respuesta.Result = await LeerIdsAsync(dr, "IdDirectorioEjecutivo", id => new DirectorioEjecutivoCreado { IdDirectorioEjecutivo = id ?? 0 });
+                }
+                else
+                {
+                    respuesta.Result = new List<DirectorioEjecutivoCreado>();
+                }
+
+                return respuesta;
             }
             catch (Exception ex)
             {
@@ -108,7 +177,7 @@ namespace SafetyReport.DAO
             try
             {
                 using SqlConnection cn = new(_dbConfig.ConnectionString);
-                using SqlCommand cmd = new("DirectorioEjecutivo_Actualizar", cn) { CommandType = CommandType.StoredProcedure };
+                using SqlCommand cmd = new("SP_DirectorioEjecutivo_Actualizar", cn) { CommandType = CommandType.StoredProcedure };
                 cmd.Parameters.Add("@intIdUsuario", SqlDbType.Int).Value = usuarioLogueado.IdUsuario;
                 cmd.Parameters.Add("@vchUsuario", SqlDbType.VarChar, 32).Value = usuarioLogueado.Usuario;
                 cmd.Parameters.Add("@intIdEmpresa", SqlDbType.Int).Value = usuarioLogueado.IdEmpresa;
@@ -129,8 +198,22 @@ namespace SafetyReport.DAO
                 cmd.Parameters.Add("@intIdEstadoCivil", SqlDbType.Int).Value = (object?)request.IdEstadoCivil ?? DBNull.Value;
                 cmd.Parameters.Add("@intIdProfesion", SqlDbType.Int).Value = (object?)request.IdProfesion ?? DBNull.Value;
                 cmd.Parameters.Add("@vchReferencias", SqlDbType.VarChar, 255).Value = (object?)request.Referencias ?? DBNull.Value;
+
                 await cn.OpenAsync();
-                return await LeerRespuestaAsync<DirectorioEjecutivoCreado>(cmd);
+
+                using var dr = await cmd.ExecuteReaderAsync();
+                var respuesta = await LeerCabeceraAsync(dr, cmd.CommandText);
+
+                if (respuesta.IdTipoMensaje == 2 && await dr.NextResultAsync())
+                {
+                    respuesta.Result = await LeerIdsAsync(dr, "IdDirectorioEjecutivo", id => new DirectorioEjecutivoCreado { IdDirectorioEjecutivo = id ?? 0 });
+                }
+                else
+                {
+                    respuesta.Result = new List<DirectorioEjecutivoCreado>();
+                }
+
+                return respuesta;
             }
             catch (Exception ex)
             {
@@ -145,7 +228,7 @@ namespace SafetyReport.DAO
             try
             {
                 using SqlConnection cn = new(_dbConfig.ConnectionString);
-                using SqlCommand cmd = new("DirectorioEjecutivo_Obtener", cn) { CommandType = CommandType.StoredProcedure };
+                using SqlCommand cmd = new("SP_DirectorioEjecutivo_Obtener", cn) { CommandType = CommandType.StoredProcedure };
                 cmd.Parameters.Add("@intIdUsuario", SqlDbType.Int).Value = usuarioLogueado.IdUsuario;
                 cmd.Parameters.Add("@vchUsuario", SqlDbType.VarChar, 32).Value = usuarioLogueado.Usuario;
                 cmd.Parameters.Add("@intIdEmpresa", SqlDbType.Int).Value = usuarioLogueado.IdEmpresa;
@@ -153,8 +236,29 @@ namespace SafetyReport.DAO
                 cmd.Parameters.Add("@intIdDirectorioEjecutivo", SqlDbType.Int).Value = (object?)request.IdDirectorioEjecutivo ?? DBNull.Value;
                 cmd.Parameters.Add("@vchNombreCompleto", SqlDbType.VarChar, 255).Value = (object?)request.NombreCompleto ?? DBNull.Value;
                 cmd.Parameters.Add("@vchNumeroDocumento", SqlDbType.VarChar, 100).Value = (object?)request.NumeroDocumento ?? DBNull.Value;
+
                 await cn.OpenAsync();
-                return await LeerRespuestaAsync<DirectorioEjecutivoConsulta>(cmd);
+
+                using var dr = await cmd.ExecuteReaderAsync();
+                var respuesta = await LeerCabeceraAsync(dr, cmd.CommandText);
+
+                if (respuesta.IdTipoMensaje == 2 && await dr.NextResultAsync())
+                {
+                    var lista = new List<DirectorioEjecutivoConsulta>();
+
+                    while (await dr.ReadAsync())
+                    {
+                        lista.Add(LeerConsulta(dr));
+                    }
+
+                    respuesta.Result = lista;
+                }
+                else
+                {
+                    respuesta.Result = new List<DirectorioEjecutivoConsulta>();
+                }
+
+                return respuesta;
             }
             catch (Exception ex)
             {
@@ -169,34 +273,44 @@ namespace SafetyReport.DAO
             try
             {
                 using SqlConnection cn = new(_dbConfig.ConnectionString);
-                using SqlCommand cmd = new("DirectorioEjecutivo_Listar", cn) { CommandType = CommandType.StoredProcedure };
+                using SqlCommand cmd = new("SP_DirectorioEjecutivo_Listar", cn) { CommandType = CommandType.StoredProcedure };
                 cmd.Parameters.Add("@intIdUsuario", SqlDbType.Int).Value = usuarioLogueado.IdUsuario;
                 cmd.Parameters.Add("@vchUsuario", SqlDbType.VarChar, 32).Value = usuarioLogueado.Usuario;
                 cmd.Parameters.Add("@intIdEmpresa", SqlDbType.Int).Value = usuarioLogueado.IdEmpresa;
                 cmd.Parameters.Add("@intIdRol", SqlDbType.Int).Value = usuarioLogueado.IdRol;
                 cmd.Parameters.Add("@vchBusqueda", SqlDbType.VarChar, 255).Value = (object?)filtro.Busqueda ?? DBNull.Value;
                 cmd.Parameters.Add("@numPag", SqlDbType.Int).Value = filtro.NumPag;
+
                 await cn.OpenAsync();
 
-                var respuesta = new Respuesta();
                 using var dr = await cmd.ExecuteReaderAsync();
-                if (await dr.ReadAsync())
+                var respuesta = await LeerCabeceraAsync(dr, cmd.CommandText);
+
+                if (respuesta.IdTipoMensaje == 2 && await dr.NextResultAsync())
                 {
-                    respuesta.IdTipoMensaje = dr["IdTipoMensaje"] != DBNull.Value ? Convert.ToInt32(dr["IdTipoMensaje"]) : 3;
-                    respuesta.Mensaje = dr["Mensaje"]?.ToString() ?? string.Empty;
-                    var json = dr["Result"]?.ToString();
-                    respuesta.Result = respuesta.IdTipoMensaje == 2 && !string.IsNullOrWhiteSpace(json)
-                        ? JsonSerializer.Deserialize<DirectorioEjecutivoListaResult>(json, new JsonSerializerOptions { PropertyNameCaseInsensitive = true }) ?? new DirectorioEjecutivoListaResult()
-                        : new DirectorioEjecutivoListaResult();
+                    var resultado = new DirectorioEjecutivoListaResult();
+
+                    if (await dr.ReadAsync())
+                    {
+                        resultado.TotalRegistros = Convert.ToInt32(dr["TotalRegistros"]);
+                        resultado.TotalPaginas = Convert.ToInt32(dr["TotalPaginas"]);
+                    }
+
+                    if (await dr.NextResultAsync())
+                    {
+                        while (await dr.ReadAsync())
+                        {
+                            resultado.lstDirectoriosEjecutivos.Add(LeerConsulta(dr));
+                        }
+                    }
+
+                    respuesta.Result = resultado;
                 }
                 else
                 {
-                    _logger.LogWarning("El procedimiento {Procedimiento} no devolvio ninguna fila.", cmd.CommandText);
-
-                    respuesta.IdTipoMensaje = 3;
-                    respuesta.Mensaje = "No se obtuvo respuesta del procedimiento.";
                     respuesta.Result = new DirectorioEjecutivoListaResult();
                 }
+
                 return respuesta;
             }
             catch (Exception ex)
@@ -212,14 +326,28 @@ namespace SafetyReport.DAO
             try
             {
                 using SqlConnection cn = new(_dbConfig.ConnectionString);
-                using SqlCommand cmd = new("DirectorioEjecutivo_Eliminar", cn) { CommandType = CommandType.StoredProcedure };
+                using SqlCommand cmd = new("SP_DirectorioEjecutivo_Eliminar", cn) { CommandType = CommandType.StoredProcedure };
                 cmd.Parameters.Add("@intIdUsuario", SqlDbType.Int).Value = usuarioLogueado.IdUsuario;
                 cmd.Parameters.Add("@vchUsuario", SqlDbType.VarChar, 32).Value = usuarioLogueado.Usuario;
                 cmd.Parameters.Add("@intIdEmpresa", SqlDbType.Int).Value = usuarioLogueado.IdEmpresa;
                 cmd.Parameters.Add("@intIdRol", SqlDbType.Int).Value = usuarioLogueado.IdRol;
                 cmd.Parameters.Add("@intIdDirectorioEjecutivo", SqlDbType.Int).Value = idDirectorioEjecutivo;
+
                 await cn.OpenAsync();
-                return await LeerRespuestaAsync<DirectorioEjecutivoEliminado>(cmd);
+
+                using var dr = await cmd.ExecuteReaderAsync();
+                var respuesta = await LeerCabeceraAsync(dr, cmd.CommandText);
+
+                if (respuesta.IdTipoMensaje == 2 && await dr.NextResultAsync())
+                {
+                    respuesta.Result = await LeerIdsAsync(dr, "IdDirectorioEjecutivo", id => new DirectorioEjecutivoEliminado { IdDirectorioEjecutivo = id ?? 0 });
+                }
+                else
+                {
+                    respuesta.Result = new List<DirectorioEjecutivoEliminado>();
+                }
+
+                return respuesta;
             }
             catch (Exception ex)
             {
