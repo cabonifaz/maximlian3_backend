@@ -54,7 +54,7 @@ namespace SafetyReport.Handlers
             {
                 _logger.LogError(ex, "Error no controlado en la capa de negocio.");
 
-                return new Respuesta { IdTipoMensaje = 3, Mensaje = "Error interno del servidor.", Result = new List<InformeArchivoUrlResult>() };
+                return new Respuesta { IdTipoMensaje = 3, Mensaje = ex.Message, Result = new List<InformeArchivoUrlResult>() };
             }
         }
 
@@ -75,7 +75,7 @@ namespace SafetyReport.Handlers
             {
                 _logger.LogError(ex, "Error no controlado en la capa de negocio.");
 
-                return new Respuesta { IdTipoMensaje = 3, Mensaje = "Error interno del servidor.", Result = new List<InformeArchivoConsulta>() };
+                return new Respuesta { IdTipoMensaje = 3, Mensaje = ex.Message, Result = new List<InformeArchivoConsulta>() };
             }
         }
 
@@ -96,7 +96,7 @@ namespace SafetyReport.Handlers
             {
                 _logger.LogError(ex, "Error no controlado en la capa de negocio.");
 
-                return new Respuesta { IdTipoMensaje = 3, Mensaje = "Error interno del servidor.", Result = new List<object>() };
+                return new Respuesta { IdTipoMensaje = 3, Mensaje = ex.Message, Result = new List<object>() };
             }
         }
 
@@ -110,7 +110,7 @@ namespace SafetyReport.Handlers
             {
                 _logger.LogError(ex, "Error no controlado en la capa de negocio.");
 
-                return new Respuesta { IdTipoMensaje = 3, Mensaje = "Error interno del servidor.", Result = new List<object>() };
+                return new Respuesta { IdTipoMensaje = 3, Mensaje = ex.Message, Result = new List<object>() };
             }
         }
 
@@ -124,7 +124,7 @@ namespace SafetyReport.Handlers
             {
                 _logger.LogError(ex, "Error no controlado en la capa de negocio.");
 
-                return new Respuesta { IdTipoMensaje = 3, Mensaje = "Error interno del servidor.", Result = new List<object>() };
+                return new Respuesta { IdTipoMensaje = 3, Mensaje = ex.Message, Result = new List<object>() };
             }
         }
     }

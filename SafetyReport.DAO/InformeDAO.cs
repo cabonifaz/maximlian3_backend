@@ -883,50 +883,58 @@ namespace SafetyReport.DAO
             return respuesta;
         }
 
-        private async Task<(Respuesta respuesta, List<InformeLocalImagenPendiente> imagenes)> LeerRespuestaConImagenesAsync<T>(SqlCommand cmd)
+        // Lee el result set 1 (siempre presente): IdTipoMensaje, Mensaje. Sin columna Result.
+        private async Task<Respuesta> LeerCabeceraAsync(SqlDataReader dr, string procedimiento)
         {
-            var imagenes = new List<InformeLocalImagenPendiente>();
             var respuesta = new Respuesta();
 
-            using var dr = await cmd.ExecuteReaderAsync();
-            do
+            if (await dr.ReadAsync())
             {
-                var columnas = Enumerable.Range(0, dr.FieldCount).Select(dr.GetName).ToHashSet(StringComparer.OrdinalIgnoreCase);
-
-                if (columnas.Contains("IdTipoMensaje"))
-                {
-                    if (await dr.ReadAsync())
-                    {
-                        respuesta.IdTipoMensaje = Convert.ToInt32(dr["IdTipoMensaje"]);
-                        respuesta.Mensaje = dr["Mensaje"]?.ToString() ?? string.Empty;
-                        var json = dr["Result"]?.ToString();
-                        respuesta.Result = !string.IsNullOrWhiteSpace(json)
-                            ? JsonSerializer.Deserialize<List<T>>(json, new JsonSerializerOptions { PropertyNameCaseInsensitive = true }) ?? new List<T>()
-                            : new List<T>();
-                    }
-                    else
-                    {
-                        _logger.LogWarning("El procedimiento {Procedimiento} no devolvio ninguna fila.", cmd.CommandText);
-
-                        respuesta.IdTipoMensaje = 3;
-                        respuesta.Mensaje = "No se obtuvo respuesta del procedimiento.";
-                        respuesta.Result = new List<T>();
-                    }
-                }
-                else if (columnas.Contains("ImagenURL"))
-                {
-                    while (await dr.ReadAsync())
-                        imagenes.Add(new InformeLocalImagenPendiente
-                        {
-                            IdInformeLocalImagen = Convert.ToInt32(dr["IdInformeLocalImagen"]),
-                            Nombre               = dr["Nombre"]?.ToString() ?? string.Empty,
-                            S3Key                = dr["ImagenURL"]?.ToString() ?? string.Empty
-                        });
-                }
+                respuesta.IdTipoMensaje = dr["IdTipoMensaje"] != DBNull.Value
+                    ? Convert.ToInt32(dr["IdTipoMensaje"])
+                    : 3;
+                respuesta.Mensaje = dr["Mensaje"]?.ToString() ?? string.Empty;
             }
-            while (await dr.NextResultAsync());
+            else
+            {
+                _logger.LogWarning("El procedimiento {Procedimiento} no devolvio ninguna fila.", procedimiento);
 
-            return (respuesta, imagenes);
+                respuesta.IdTipoMensaje = 3;
+                respuesta.Mensaje = "No se obtuvo respuesta del procedimiento.";
+            }
+
+            return respuesta;
+        }
+
+        private static int? GetNullableInt(SqlDataReader dr, string columna) =>
+            dr[columna] == DBNull.Value ? null : Convert.ToInt32(dr[columna]);
+
+        private static decimal? GetNullableDecimal(SqlDataReader dr, string columna) =>
+            dr[columna] == DBNull.Value ? null : Convert.ToDecimal(dr[columna]);
+
+        private static bool? GetNullableBool(SqlDataReader dr, string columna) =>
+            dr[columna] == DBNull.Value ? null : Convert.ToBoolean(dr[columna]);
+
+        private static DateTime? GetNullableDateTime(SqlDataReader dr, string columna) =>
+            dr[columna] == DBNull.Value ? null : Convert.ToDateTime(dr[columna]);
+
+        private static string? GetNullableString(SqlDataReader dr, string columna) =>
+            dr[columna] == DBNull.Value ? null : dr[columna].ToString();
+
+        // Lee el result set de imagenes pendientes (IdInformeLocalImagen, ImagenURL, Nombre)
+        // que Informe_Insertar/Informe_Actualizar emiten como su ultimo result set en exito.
+        private static async Task<List<InformeLocalImagenPendiente>> LeerImagenesPendientesAsync(SqlDataReader dr)
+        {
+            var imagenes = new List<InformeLocalImagenPendiente>();
+            while (await dr.ReadAsync())
+                imagenes.Add(new InformeLocalImagenPendiente
+                {
+                    IdInformeLocalImagen = Convert.ToInt32(dr["IdInformeLocalImagen"]),
+                    Nombre               = dr["Nombre"]?.ToString() ?? string.Empty,
+                    S3Key                = dr["ImagenURL"]?.ToString() ?? string.Empty
+                });
+
+            return imagenes;
         }
 
         // ── Helpers para agregar TVPs ─────────────────────────────────────────────
@@ -985,12 +993,28 @@ namespace SafetyReport.DAO
             try
             {
                 using SqlConnection cn = new(_dbConfig.ConnectionString);
-                using SqlCommand cmd = new("Informe_Insertar", cn) { CommandType = CommandType.StoredProcedure };
+                using SqlCommand cmd = new("SP_Informe_Insertar", cn) { CommandType = CommandType.StoredProcedure };
                 AgregarParametrosAuditoria(cmd, u);
                 AgregarParametrosCampos(cmd, request);
                 AgregarTvpsCampos(cmd, request);
                 await cn.OpenAsync();
-                return await LeerRespuestaConImagenesAsync<InformeCreado>(cmd);
+
+                using var dr = await cmd.ExecuteReaderAsync();
+                var respuesta = await LeerCabeceraAsync(dr, cmd.CommandText);
+
+                var creados = new List<InformeCreado>();
+                var imagenes = new List<InformeLocalImagenPendiente>();
+                if (respuesta.IdTipoMensaje == 2)
+                {
+                    if (await dr.NextResultAsync() && await dr.ReadAsync())
+                        creados.Add(new InformeCreado { IdInforme = Convert.ToInt32(dr["IdInforme"]) });
+
+                    if (await dr.NextResultAsync())
+                        imagenes = await LeerImagenesPendientesAsync(dr);
+                }
+
+                respuesta.Result = creados;
+                return (respuesta, imagenes);
             }
             catch (Exception ex)
             {
@@ -1005,13 +1029,29 @@ namespace SafetyReport.DAO
             try
             {
                 using SqlConnection cn = new(_dbConfig.ConnectionString);
-                using SqlCommand cmd = new("Informe_Actualizar", cn) { CommandType = CommandType.StoredProcedure };
+                using SqlCommand cmd = new("SP_Informe_Actualizar", cn) { CommandType = CommandType.StoredProcedure };
                 AgregarParametrosAuditoria(cmd, u);
                 cmd.Parameters.Add("@intIdInforme", SqlDbType.Int).Value = request.IdInforme;
                 AgregarParametrosCampos(cmd, request);
                 AgregarTvpsCampos(cmd, request);
                 await cn.OpenAsync();
-                return await LeerRespuestaConImagenesAsync<InformeCreado>(cmd);
+
+                using var dr = await cmd.ExecuteReaderAsync();
+                var respuesta = await LeerCabeceraAsync(dr, cmd.CommandText);
+
+                var creados = new List<InformeCreado>();
+                var imagenes = new List<InformeLocalImagenPendiente>();
+                if (respuesta.IdTipoMensaje == 2)
+                {
+                    if (await dr.NextResultAsync() && await dr.ReadAsync())
+                        creados.Add(new InformeCreado { IdInforme = Convert.ToInt32(dr["IdInforme"]) });
+
+                    if (await dr.NextResultAsync())
+                        imagenes = await LeerImagenesPendientesAsync(dr);
+                }
+
+                respuesta.Result = creados;
+                return (respuesta, imagenes);
             }
             catch (Exception ex)
             {
@@ -1022,36 +1062,351 @@ namespace SafetyReport.DAO
         }
 
 
+        // Lee un result set de detalle de balance (una fila por IdInformeBalance) hacia un
+        // diccionario IdInformeBalance -> JsonElement con el resto de columnas, para poblar
+        // InformeBalanceConsulta.CuentaBalance sin depender de JSON_QUERY en el SP.
+        private static async Task<Dictionary<int, JsonElement>> LeerDetalleBalanceAsync(SqlDataReader dr)
+        {
+            var resultado = new Dictionary<int, JsonElement>();
+            var columnas = Enumerable.Range(0, dr.FieldCount)
+                .Select(dr.GetName)
+                .Where(c => !c.Equals("IdInformeBalance", StringComparison.OrdinalIgnoreCase))
+                .ToList();
+
+            while (await dr.ReadAsync())
+            {
+                var idInformeBalance = Convert.ToInt32(dr["IdInformeBalance"]);
+                var fila = new Dictionary<string, object?>();
+                foreach (var col in columnas)
+                    fila[col] = dr[col] == DBNull.Value ? null : dr[col];
+
+                resultado[idInformeBalance] = JsonSerializer.SerializeToElement(fila);
+            }
+
+            return resultado;
+        }
+
         public async Task<Respuesta> ObtenerAsync(UsuarioGeneral u, int idPedido, int idInforme)
         {
             try
             {
                 using SqlConnection cn = new(_dbConfig.ConnectionString);
-                using SqlCommand cmd = new("Informe_Obtener", cn) { CommandType = CommandType.StoredProcedure };
+                using SqlCommand cmd = new("SP_Informe_Obtener", cn) { CommandType = CommandType.StoredProcedure };
                 AgregarParametrosAuditoria(cmd, u);
                 cmd.Parameters.Add("@intIdPedido", SqlDbType.Int).Value = idPedido;
                 cmd.Parameters.Add("@intIdInforme", SqlDbType.Int).Value = idInforme;
                 await cn.OpenAsync();
 
-                var respuesta = new Respuesta();
                 using var dr = await cmd.ExecuteReaderAsync();
-                if (await dr.ReadAsync())
-                {
-                    respuesta.IdTipoMensaje = dr["IdTipoMensaje"] != DBNull.Value ? Convert.ToInt32(dr["IdTipoMensaje"]) : 3;
-                    respuesta.Mensaje = dr["Mensaje"]?.ToString() ?? string.Empty;
-                    var json = dr["Result"]?.ToString();
-                    respuesta.Result = !string.IsNullOrWhiteSpace(json)
-                        ? JsonSerializer.Deserialize<List<InformeConsulta>>(json, new JsonSerializerOptions { PropertyNameCaseInsensitive = true }) ?? new List<InformeConsulta>()
-                        : new List<InformeConsulta>();
-                }
-                else
-                {
-                    _logger.LogWarning("El procedimiento {Procedimiento} no devolvio ninguna fila.", cmd.CommandText);
+                var respuesta = await LeerCabeceraAsync(dr, cmd.CommandText);
 
-                    respuesta.IdTipoMensaje = 3;
-                    respuesta.Mensaje = "No se obtuvo respuesta del procedimiento.";
-                    respuesta.Result = new List<InformeConsulta>();
+                var lista = new List<InformeConsulta>();
+                if (respuesta.IdTipoMensaje == 2)
+                {
+                    InformeConsulta? informe = null;
+
+                    // RS2: cabecera del informe
+                    if (await dr.NextResultAsync() && await dr.ReadAsync())
+                    {
+                        informe = new InformeConsulta
+                        {
+                            IdInforme = Convert.ToInt32(dr["IdInforme"]),
+                            IdPedido = Convert.ToInt32(dr["IdPedido"]),
+                            IdIdioma = GetNullableInt(dr, "IdIdioma"),
+                            IdTipoPersona = GetNullableInt(dr, "IdTipoPersona"),
+                            Nombre = GetNullableString(dr, "Nombre"),
+                            NombreComercial = GetNullableString(dr, "NombreComercial"),
+                            IdPais = GetNullableInt(dr, "IdPais"),
+                            OperacionesTCMoneda = GetNullableInt(dr, "OperacionesTCMoneda"),
+                            TaxIdType = GetNullableInt(dr, "TaxIdType"),
+                            TaxNum = GetNullableString(dr, "TaxNum"),
+                            Direccion = GetNullableString(dr, "Direccion"),
+                            Ubigeo = GetNullableString(dr, "Ubigeo"),
+                            CodigoPostal = GetNullableString(dr, "CodigoPostal"),
+                            Telefono = GetNullableString(dr, "Telefono"),
+                            Fax = GetNullableString(dr, "Fax"),
+                            Email = GetNullableString(dr, "Email"),
+                            PaginaWeb = GetNullableString(dr, "PaginaWeb"),
+                            IdEstadoManual = GetNullableInt(dr, "IdEstadoManual"),
+                            DatosAdicionales = GetNullableString(dr, "DatosAdicionales"),
+                            ObservacionesIdentificacion = GetNullableString(dr, "ObservacionesIdentificacion"),
+                            IdTipoEmpresa = GetNullableInt(dr, "IdTipoEmpresa"),
+                            FechaConstitucion = GetNullableDateTime(dr, "FechaConstitucion"),
+                            IdCiudadRegistro = GetNullableInt(dr, "IdCiudadRegistro"),
+                            IdNotaria = GetNullableString(dr, "IdNotaria"),
+                            IdNotario = GetNullableString(dr, "IdNotario"),
+                            IdRegistro = GetNullableString(dr, "IdRegistro"),
+                            IdPlazo = GetNullableString(dr, "IdPlazo"),
+                            IdOperacionesCambioDivisas = GetNullableInt(dr, "IdOperacionesCambioDivisas"),
+                            CapitalInicial = GetNullableDecimal(dr, "CapitalInicial"),
+                            CapitalPagado = GetNullableDecimal(dr, "CapitalPagado"),
+                            FechaUltimoIncremento = GetNullableDateTime(dr, "FechaUltimoIncremento"),
+                            IdTipoIncremento = GetNullableInt(dr, "IdTipoIncremento"),
+                            PatrimonioNeto = GetNullableDecimal(dr, "PatrimonioNeto"),
+                            TipoAcciones = GetNullableString(dr, "TipoAcciones"),
+                            ValorAcciones = GetNullableDecimal(dr, "ValorAcciones"),
+                            CotizaBolsa = GetNullableBool(dr, "CotizaBolsa"),
+                            TipoCambio = GetNullableDecimal(dr, "TipoCambio"),
+                            IdTipoCambio = GetNullableInt(dr, "IdTipoCambio"),
+                            Antecedentes = GetNullableString(dr, "Antecedentes"),
+                            AspectosLegales = GetNullableString(dr, "AspectosLegales"),
+                            ComentariosAspectoLegal = GetNullableString(dr, "ComentariosAspectoLegal"),
+                            IdSector = GetNullableInt(dr, "IdSector"),
+                            Actividad = GetNullableString(dr, "Actividad"),
+                            IdIsicCategoria = GetNullableInt(dr, "IdIsicCategoria"),
+                            IdIsicClase = GetNullableInt(dr, "IdIsicClase"),
+                            ActividadPrincipal = GetNullableString(dr, "ActividadPrincipal"),
+                            VentasContado = GetNullableDecimal(dr, "VentasContado"),
+                            VentasContadoText = GetNullableString(dr, "VentasContadoText"),
+                            VentasCredito = GetNullableDecimal(dr, "VentasCredito"),
+                            VentasCreditoText = GetNullableString(dr, "VentasCreditoText"),
+                            IdVentasCreditoTiempo = GetNullableInt(dr, "IdVentasCreditoTiempo"),
+                            VentasInternacionales = GetNullableDecimal(dr, "VentasInternacionales"),
+                            VentasInternacionalesText = GetNullableString(dr, "VentasInternacionalesText"),
+                            VentasNacionales = GetNullableDecimal(dr, "VentasNacionales"),
+                            VentasNacionalesText = GetNullableString(dr, "VentasNacionalesText"),
+                            ComprasNacionales = GetNullableDecimal(dr, "ComprasNacionales"),
+                            ComprasNacionalesText = GetNullableString(dr, "ComprasNacionalesText"),
+                            ComprasInternacionales = GetNullableDecimal(dr, "ComprasInternacionales"),
+                            ComprasInternacionalesText = GetNullableString(dr, "ComprasInternacionalesText"),
+                            ComprasContadoNacionales = GetNullableDecimal(dr, "ComprasContadoNacionales"),
+                            ComprasContadoNacionalesText = GetNullableString(dr, "ComprasContadoNacionalesText"),
+                            ComprasCreditoNacionales = GetNullableDecimal(dr, "ComprasCreditoNacionales"),
+                            ComprasCreditoNacionalesText = GetNullableString(dr, "ComprasCreditoNacionalesText"),
+                            IdComprasCreditoNacionalesTiempo = GetNullableInt(dr, "IdComprasCreditoNacionalesTiempo"),
+                            ComprasContadoInternacionales = GetNullableDecimal(dr, "ComprasContadoInternacionales"),
+                            ComprasContadoInternacionalesText = GetNullableString(dr, "ComprasContadoInternacionalesText"),
+                            ComprasCreditoInternacionales = GetNullableDecimal(dr, "ComprasCreditoInternacionales"),
+                            ComprasCreditoInternacionalesText = GetNullableString(dr, "ComprasCreditoInternacionalesText"),
+                            IdComprasCreditoInternacionalesTiempo = GetNullableInt(dr, "IdComprasCreditoInternacionalesTiempo"),
+                            NumeroEmpleados = GetNullableInt(dr, "NumeroEmpleados"),
+                            NumeroEmpleadosText = GetNullableString(dr, "NumeroEmpleadosText"),
+                            ComentariosOperaciones = GetNullableString(dr, "ComentariosOperaciones"),
+                            ContenidoInformacionFinanciera = GetNullableString(dr, "ContenidoInformacionFinanciera"),
+                            ComentarioInformacionFinanciera = GetNullableString(dr, "ComentarioInformacionFinanciera"),
+                            ActivosFijos = GetNullableString(dr, "ActivosFijos"),
+                            Seguros = GetNullableString(dr, "Seguros"),
+                            ComentarioProveedor = GetNullableString(dr, "ComentarioProveedor"),
+                            ReferenciaBanco = GetNullableString(dr, "ReferenciaBanco"),
+                            Litigios = GetNullableString(dr, "Litigios"),
+                            RiesgoPrincipal = GetNullableString(dr, "RiesgoPrincipal"),
+                            Superintendecia = GetNullableString(dr, "Superintendecia"),
+                            InformacionGeneral = GetNullableString(dr, "InformacionGeneral"),
+                            OpinionCredito = GetNullableString(dr, "OpinionCredito"),
+                            FlgTieneInformacion = GetNullableBool(dr, "FlgTieneInformacion"),
+                            IdEstadoInforme = GetNullableInt(dr, "IdEstadoInforme"),
+                            IdFormatoFecha = GetNullableInt(dr, "IdFormatoFecha")
+                        };
+                    }
+
+                    if (informe != null)
+                    {
+                        // RS3: cabecera de balances
+                        var balances = new List<InformeBalanceConsulta>();
+                        if (await dr.NextResultAsync())
+                        {
+                            while (await dr.ReadAsync())
+                            {
+                                balances.Add(new InformeBalanceConsulta
+                                {
+                                    IdInformeBalance = Convert.ToInt32(dr["IdInformeBalance"]),
+                                    FechaBalance = Convert.ToDateTime(dr["FechaBalance"]),
+                                    FechaHasta = GetNullableDateTime(dr, "FechaHasta"),
+                                    FlgActualidad = Convert.ToBoolean(dr["FlgActualidad"]),
+                                    TipoCambio = GetNullableDecimal(dr, "TipoCambio"),
+                                    IdMoneda = Convert.ToInt32(dr["IdMoneda"]),
+                                    IdTipoBalance = Convert.ToInt32(dr["IdTipoBalance"]),
+                                    IdTipoEstadoFinanciero = GetNullableInt(dr, "IdTipoEstadoFinanciero")
+                                });
+                            }
+                        }
+
+                        // RS4-RS8: detalle de balance por tipo (desagregado/totalizado/banco/seguro/turquia)
+                        var detalleDesagregado = await dr.NextResultAsync() ? await LeerDetalleBalanceAsync(dr) : new();
+                        var detalleTotalizado = await dr.NextResultAsync() ? await LeerDetalleBalanceAsync(dr) : new();
+                        var detalleBanco = await dr.NextResultAsync() ? await LeerDetalleBalanceAsync(dr) : new();
+                        var detalleSeguro = await dr.NextResultAsync() ? await LeerDetalleBalanceAsync(dr) : new();
+                        var detalleTurquia = await dr.NextResultAsync() ? await LeerDetalleBalanceAsync(dr) : new();
+
+                        foreach (var balance in balances)
+                        {
+                            var detalle = balance.IdTipoEstadoFinanciero switch
+                            {
+                                1 => detalleDesagregado,
+                                2 => detalleTotalizado,
+                                3 => detalleBanco,
+                                4 => detalleSeguro,
+                                5 => detalleTurquia,
+                                _ => null
+                            };
+                            if (detalle != null && detalle.TryGetValue(balance.IdInformeBalance, out var cuenta))
+                                balance.CuentaBalance = cuenta;
+                        }
+                        informe.Balances = balances;
+
+                        // RS9: bancos
+                        if (await dr.NextResultAsync())
+                        {
+                            while (await dr.ReadAsync())
+                                informe.Bancos.Add(new InformeBancoConsulta
+                                {
+                                    IdIformeBanco = Convert.ToInt32(dr["IdInformeBanco"]),
+                                    IdBanco = Convert.ToInt32(dr["IdBanco"]),
+                                    NumeroCuenta = GetNullableString(dr, "NumeroCuenta"),
+                                    IdSector = GetNullableInt(dr, "IdSector"),
+                                    Sectorista = GetNullableString(dr, "Sectorista"),
+                                    ReferenciaBanco = GetNullableString(dr, "ReferenciaBanco")
+                                });
+                        }
+
+                        // RS10: companias relacionadas
+                        if (await dr.NextResultAsync())
+                        {
+                            while (await dr.ReadAsync())
+                                informe.CompaniasRelacionadas.Add(new InformeCompaniaRelacionadaConsulta
+                                {
+                                    IdInformeCompaniaRelacionada = Convert.ToInt32(dr["IdInformeCompaniaRelacionada"]),
+                                    IdCompania = Convert.ToInt32(dr["IdCompania"])
+                                });
+                        }
+
+                        // RS11: exportaciones / importaciones
+                        if (await dr.NextResultAsync())
+                        {
+                            while (await dr.ReadAsync())
+                                informe.ExportacionesImportaciones.Add(new InformeExportacionImportacionConsulta
+                                {
+                                    IdInformeExportacionImportacion = Convert.ToInt32(dr["IdInformeExportacionImportacion"]),
+                                    Anio = Convert.ToInt32(dr["Anio"]),
+                                    MesInicio = Convert.ToInt32(dr["MesInicio"]),
+                                    MesFin = Convert.ToInt32(dr["MesFin"]),
+                                    IdMoneda = Convert.ToInt32(dr["IdMoneda"]),
+                                    Paises = GetNullableString(dr, "Paises"),
+                                    Monto = GetNullableDecimal(dr, "Monto"),
+                                    Productos = GetNullableString(dr, "Productos"),
+                                    IdTipoOperacion = Convert.ToInt32(dr["IdTipoOperacion"]),
+                                    NumOperaciones = GetNullableInt(dr, "NumOperaciones")
+                                });
+                        }
+
+                        // RS12: proveedores
+                        if (await dr.NextResultAsync())
+                        {
+                            while (await dr.ReadAsync())
+                                informe.Proveedores.Add(new InformeProveedorConsulta
+                                {
+                                    IdInformeProveedor = Convert.ToInt32(dr["IdInformeProveedor"]),
+                                    IdBancoProveedor = GetNullableInt(dr, "IdBancoProveedor"),
+                                    IdTipoPersona = Convert.ToInt32(dr["IdTipoPersona"]),
+                                    Nombre = dr["Nombre"]?.ToString() ?? string.Empty,
+                                    IdPais = GetNullableInt(dr, "IdPais"),
+                                    IdTipoDocumento = GetNullableInt(dr, "IdTipoDocumento"),
+                                    NumeroDocumento = GetNullableString(dr, "NumeroDocumento"),
+                                    IdMoneda = GetNullableInt(dr, "IdMoneda"),
+                                    FechaInicio = GetNullableDateTime(dr, "FechaInicio"),
+                                    IdLimiteCredito = GetNullableInt(dr, "IdLimiteCredito"),
+                                    PromedioMensual = GetNullableDecimal(dr, "PromedioMensual"),
+                                    PlazoCredito = GetNullableString(dr, "PlazoCredito"),
+                                    Productos = GetNullableString(dr, "Productos"),
+                                    IdCalificacion = GetNullableInt(dr, "IdCalificacion"),
+                                    Comentarios = GetNullableString(dr, "Comentarios"),
+                                    NombreContacto = GetNullableString(dr, "NombreContacto"),
+                                    Telefono = GetNullableString(dr, "Telefono"),
+                                    ComienzoNegociaciones = GetNullableString(dr, "ComienzoNegociaciones"),
+                                    IdPlazoCredito = GetNullableInt(dr, "IdPlazoCredito"),
+                                    EsTieneReferenciaComercial = GetNullableBool(dr, "EsTieneReferenciaComercial"),
+                                    TipoCambio = GetNullableDecimal(dr, "TipoCambio")
+                                });
+                        }
+
+                        // RS13: directorio ejecutivo
+                        if (await dr.NextResultAsync())
+                        {
+                            while (await dr.ReadAsync())
+                                informe.DirectoriosEjecutivos.Add(new InformeDirectorioEjecutivoConsulta
+                                {
+                                    IdInformeDirectorioEjecutivo = Convert.ToInt32(dr["IdInformeDirectorioEjecutivo"]),
+                                    IdCargo = GetNullableInt(dr, "IdCargo"),
+                                    VinculadoDesde = GetNullableDateTime(dr, "VinculadoDesde"),
+                                    CompaniaAnterior = GetNullableString(dr, "CompaniaAnterior"),
+                                    Participacion = GetNullableDecimal(dr, "Participacion"),
+                                    Orden = GetNullableInt(dr, "Orden"),
+                                    EsParticipanteDirectiva = GetNullableBool(dr, "EsParticipanteDirectiva"),
+                                    ApareceImpresoLista = GetNullableBool(dr, "ApareceImpresoLista"),
+                                    ImprimeDatosEjecutivos = GetNullableBool(dr, "ImprimeDatosEjecutivos"),
+                                    IdDirectorioEjecutivo = Convert.ToInt32(dr["IdDirectorioEjecutivo"]),
+                                    IdTipoPersona = GetNullableInt(dr, "IdTipoPersona"),
+                                    NombreCompleto = GetNullableString(dr, "NombreCompleto"),
+                                    IdPais = GetNullableInt(dr, "IdPais"),
+                                    Direccion = GetNullableString(dr, "Direccion"),
+                                    Ubigeo = GetNullableString(dr, "Ubigeo"),
+                                    CodigoPostal = GetNullableString(dr, "CodigoPostal"),
+                                    IdTipoDocumento = GetNullableInt(dr, "IdTipoDocumento"),
+                                    NumeroDocumento = GetNullableString(dr, "NumeroDocumento"),
+                                    TaxIdType = GetNullableInt(dr, "TaxIdType"),
+                                    TaxNum = GetNullableString(dr, "TaxNum"),
+                                    IdNacionalidad = GetNullableInt(dr, "IdNacionalidad"),
+                                    FechaNacimiento = GetNullableDateTime(dr, "FechaNacimiento"),
+                                    IdEstadoCivil = GetNullableInt(dr, "IdEstadoCivil"),
+                                    IdProfesion = GetNullableInt(dr, "IdProfesion"),
+                                    Referencias = GetNullableString(dr, "Referencias")
+                                });
+                        }
+
+                        // RS14: archivos adjuntos
+                        if (await dr.NextResultAsync())
+                        {
+                            while (await dr.ReadAsync())
+                                informe.Archivos.Add(new InformeArchivoResumen
+                                {
+                                    IdInformeArchivo = Convert.ToInt32(dr["IdInformeArchivo"]),
+                                    Nombre = dr["Nombre"]?.ToString() ?? string.Empty,
+                                    Extension = dr["Extension"]?.ToString() ?? string.Empty,
+                                    TamanoBytes = Convert.ToInt64(dr["TamanoBytes"]),
+                                    IdTipoArchivo = Convert.ToInt32(dr["IdTipoArchivo"]),
+                                    IdFaseEvidencia = Convert.ToInt32(dr["IdFaseEvidencia"])
+                                });
+                        }
+
+                        // RS15: locales
+                        var localesPorId = new Dictionary<int, InformeLocalConsulta>();
+                        if (await dr.NextResultAsync())
+                        {
+                            while (await dr.ReadAsync())
+                            {
+                                var local = new InformeLocalConsulta
+                                {
+                                    IdInformeLocal = Convert.ToInt32(dr["IdInformeLocal"]),
+                                    IdTipoLocal = GetNullableInt(dr, "IdTipoLocal"),
+                                    Comentario = GetNullableString(dr, "Comentario")
+                                };
+                                localesPorId[local.IdInformeLocal] = local;
+                                informe.Locales.Add(local);
+                            }
+                        }
+
+                        // RS16: imagenes de locales (correlacionadas por IdInformeLocal)
+                        if (await dr.NextResultAsync())
+                        {
+                            while (await dr.ReadAsync())
+                            {
+                                var idInformeLocal = Convert.ToInt32(dr["IdInformeLocal"]);
+                                if (localesPorId.TryGetValue(idInformeLocal, out var local))
+                                    local.Imagenes.Add(new InformeLocalImagenConsulta
+                                    {
+                                        IdInformeLocalImagen = Convert.ToInt32(dr["IdInformeLocalImagen"]),
+                                        ImagenURL = dr["ImagenURL"]?.ToString() ?? string.Empty,
+                                        IdTipoArchivo = Convert.ToInt32(dr["IdTipoArchivo"]),
+                                        Nombre = GetNullableString(dr, "Nombre")
+                                    });
+                            }
+                        }
+
+                        lista.Add(informe);
+                    }
                 }
+
+                respuesta.Result = lista;
                 return respuesta;
             }
             catch (Exception ex)
@@ -1143,12 +1498,27 @@ namespace SafetyReport.DAO
             try
             {
                 using SqlConnection cn = new(_dbConfig.ConnectionString);
-                using SqlCommand cmd = new("Informe_ObtenerDocumento", cn) { CommandType = CommandType.StoredProcedure };
+                using SqlCommand cmd = new("SP_Informe_ObtenerDocumento", cn) { CommandType = CommandType.StoredProcedure };
                 AgregarParametrosAuditoria(cmd, u);
                 cmd.Parameters.Add("@intIdInforme", SqlDbType.Int).Value = idInforme;
                 cmd.Parameters.Add("@intIdPedido", SqlDbType.Int).Value = idPedido;
                 await cn.OpenAsync();
-                return await LeerRespuestaAsync<InformeDocumentoResult>(cmd);
+
+                using var dr = await cmd.ExecuteReaderAsync();
+                var respuesta = await LeerCabeceraAsync(dr, cmd.CommandText);
+
+                var lista = new List<InformeDocumentoResult>();
+                if (respuesta.IdTipoMensaje == 2 && await dr.NextResultAsync() && await dr.ReadAsync())
+                {
+                    lista.Add(new InformeDocumentoResult
+                    {
+                        UrlDocumento = dr["UrlDocumento"]?.ToString() ?? string.Empty,
+                        Nombre = dr["Nombre"]?.ToString() ?? string.Empty
+                    });
+                }
+
+                respuesta.Result = lista;
+                return respuesta;
             }
             catch (Exception ex)
             {
@@ -1183,29 +1553,18 @@ namespace SafetyReport.DAO
             try
             {
                 using SqlConnection cn = new(_dbConfig.ConnectionString);
-                using SqlCommand cmd = new("Informe_ObtenerRutaDocumento", cn) { CommandType = CommandType.StoredProcedure };
+                using SqlCommand cmd = new("SP_Informe_ObtenerRutaDocumento", cn) { CommandType = CommandType.StoredProcedure };
                 AgregarParametrosAuditoria(cmd, u);
                 cmd.Parameters.Add("@intIdInforme", SqlDbType.Int).Value = idInforme;
                 cmd.Parameters.Add("@intIdPedido", SqlDbType.Int).Value = idPedido;
                 await cn.OpenAsync();
 
-                var respuesta = new Respuesta();
                 using var dr = await cmd.ExecuteReaderAsync();
-                if (await dr.ReadAsync())
-                {
-                    respuesta.IdTipoMensaje = dr["IdTipoMensaje"] != DBNull.Value ? Convert.ToInt32(dr["IdTipoMensaje"]) : 3;
-                    respuesta.Mensaje = dr["Mensaje"]?.ToString() ?? string.Empty;
-                    var columnas = Enumerable.Range(0, dr.FieldCount).Select(dr.GetName).ToHashSet(StringComparer.OrdinalIgnoreCase);
-                    if (columnas.Contains("Result"))
-                        respuesta.Result = dr["Result"]?.ToString();
-                }
-                else
-                {
-                    _logger.LogWarning("El procedimiento {Procedimiento} no devolvio ninguna fila.", cmd.CommandText);
+                var respuesta = await LeerCabeceraAsync(dr, cmd.CommandText);
 
-                    respuesta.IdTipoMensaje = 3;
-                    respuesta.Mensaje = "No se obtuvo respuesta del procedimiento.";
-                }
+                if (respuesta.IdTipoMensaje == 2 && await dr.NextResultAsync() && await dr.ReadAsync())
+                    respuesta.Result = dr["UrlDocumento"]?.ToString();
+
                 return respuesta;
             }
             catch (Exception ex)
@@ -1241,7 +1600,7 @@ namespace SafetyReport.DAO
             try
             {
                 using SqlConnection cn = new(_dbConfig.ConnectionString);
-                using SqlCommand cmd = new("Informe_Listar", cn) { CommandType = CommandType.StoredProcedure };
+                using SqlCommand cmd = new("SP_Informe_Listar", cn) { CommandType = CommandType.StoredProcedure };
                 AgregarParametrosAuditoria(cmd, u);
                 cmd.Parameters.Add("@vchBusqueda", SqlDbType.VarChar, 255).Value = (object?)filtro.Busqueda ?? DBNull.Value;
                 cmd.Parameters.Add("@intIdPedido", SqlDbType.Int).Value = (object?)filtro.IdPedido ?? DBNull.Value;
@@ -1251,25 +1610,47 @@ namespace SafetyReport.DAO
                 cmd.Parameters.Add("@numPag", SqlDbType.Int).Value = (object?)filtro.NumPag ?? DBNull.Value;
                 await cn.OpenAsync();
 
-                var respuesta = new Respuesta();
                 using var dr = await cmd.ExecuteReaderAsync();
-                if (await dr.ReadAsync())
-                {
-                    respuesta.IdTipoMensaje = dr["IdTipoMensaje"] != DBNull.Value ? Convert.ToInt32(dr["IdTipoMensaje"]) : 3;
-                    respuesta.Mensaje = dr["Mensaje"]?.ToString() ?? string.Empty;
-                    var json = dr["Result"]?.ToString();
-                    respuesta.Result = !string.IsNullOrWhiteSpace(json)
-                        ? JsonSerializer.Deserialize<InformeListaResult>(json, new JsonSerializerOptions { PropertyNameCaseInsensitive = true }) ?? new InformeListaResult()
-                        : new InformeListaResult();
-                }
-                else
-                {
-                    _logger.LogWarning("El procedimiento {Procedimiento} no devolvio ninguna fila.", cmd.CommandText);
+                var respuesta = await LeerCabeceraAsync(dr, cmd.CommandText);
 
-                    respuesta.IdTipoMensaje = 3;
-                    respuesta.Mensaje = "No se obtuvo respuesta del procedimiento.";
-                    respuesta.Result = new InformeListaResult();
+                var resultado = new InformeListaResult();
+                if (respuesta.IdTipoMensaje == 2 && await dr.NextResultAsync())
+                {
+                    if (await dr.ReadAsync())
+                    {
+                        resultado.TotalRegistros = Convert.ToInt32(dr["TotalRegistros"]);
+                        resultado.TotalPaginas = Convert.ToInt32(dr["TotalPaginas"]);
+                        resultado.Asignado = Convert.ToInt32(dr["Asignado"]);
+                        resultado.Rechazado = Convert.ToInt32(dr["Rechazado"]);
+                        resultado.EnProceso = Convert.ToInt32(dr["EnProceso"]);
+                        resultado.Aprobado = Convert.ToInt32(dr["Aprobado"]);
+                        resultado.PendienteAprobacion = Convert.ToInt32(dr["PendienteAprobacion"]);
+                        resultado.Vigente = Convert.ToInt32(dr["Vigente"]);
+                        resultado.Vencido = Convert.ToInt32(dr["Vencido"]);
+                    }
+
+                    if (await dr.NextResultAsync())
+                    {
+                        while (await dr.ReadAsync())
+                        {
+                            resultado.lstInformes.Add(new InformeListaConsulta
+                            {
+                                IdInforme = Convert.ToInt32(dr["IdInforme"]),
+                                IdPedido = Convert.ToInt32(dr["IdPedido"]),
+                                IdFase = GetNullableInt(dr, "IdFase"),
+                                IdPlantilla = GetNullableInt(dr, "IdPlantilla"),
+                                EstadoInforme = GetNullableString(dr, "EstadoInforme"),
+                                Investigado = GetNullableString(dr, "Investigado"),
+                                Vigencia = GetNullableString(dr, "Vigencia"),
+                                TipoTramite = GetNullableString(dr, "TipoTramite"),
+                                IdInformeOriginal = GetNullableInt(dr, "IdInformeOriginal"),
+                                RequiereTraduccion = GetNullableInt(dr, "RequiereTraduccion")
+                            });
+                        }
+                    }
                 }
+
+                respuesta.Result = resultado;
                 return respuesta;
             }
             catch (Exception ex)
@@ -1522,11 +1903,20 @@ namespace SafetyReport.DAO
             try
             {
                 using SqlConnection cn = new(_dbConfig.ConnectionString);
-                using SqlCommand cmd = new("Informe_ObtenerOCrear", cn) { CommandType = CommandType.StoredProcedure };
+                using SqlCommand cmd = new("SP_Informe_ObtenerOCrear", cn) { CommandType = CommandType.StoredProcedure };
                 AgregarParametrosAuditoria(cmd, u);
                 cmd.Parameters.Add("@intIdPedido", SqlDbType.Int).Value = idPedido;
                 await cn.OpenAsync();
-                return await LeerRespuestaAsync<InformeIdResult>(cmd);
+
+                using var dr = await cmd.ExecuteReaderAsync();
+                var respuesta = await LeerCabeceraAsync(dr, cmd.CommandText);
+
+                var lista = new List<InformeIdResult>();
+                if (respuesta.IdTipoMensaje == 2 && await dr.NextResultAsync() && await dr.ReadAsync())
+                    lista.Add(new InformeIdResult { IdInforme = Convert.ToInt32(dr["IdInforme"]) });
+
+                respuesta.Result = lista;
+                return respuesta;
             }
             catch (Exception ex)
             {
@@ -1541,11 +1931,20 @@ namespace SafetyReport.DAO
             try
             {
                 using SqlConnection cn = new(_dbConfig.ConnectionString);
-                using SqlCommand cmd = new("Informe_Eliminar", cn) { CommandType = CommandType.StoredProcedure };
+                using SqlCommand cmd = new("SP_Informe_Eliminar", cn) { CommandType = CommandType.StoredProcedure };
                 AgregarParametrosAuditoria(cmd, u);
                 cmd.Parameters.Add("@intIdInforme", SqlDbType.Int).Value = idInforme;
                 await cn.OpenAsync();
-                return await LeerRespuestaAsync<InformeEliminado>(cmd);
+
+                using var dr = await cmd.ExecuteReaderAsync();
+                var respuesta = await LeerCabeceraAsync(dr, cmd.CommandText);
+
+                var lista = new List<InformeEliminado>();
+                if (respuesta.IdTipoMensaje == 2 && await dr.NextResultAsync() && await dr.ReadAsync())
+                    lista.Add(new InformeEliminado { IdInforme = Convert.ToInt32(dr["IdInforme"]) });
+
+                respuesta.Result = lista;
+                return respuesta;
             }
             catch (Exception ex)
             {

@@ -62,7 +62,7 @@ namespace SafetyReport.Handlers
             {
                 _logger.LogError(ex, "Error no controlado en la capa de negocio.");
 
-                return new Respuesta { IdTipoMensaje = 3, Mensaje = "Error interno del servidor.", Result = new List<InformeCreado>() };
+                return new Respuesta { IdTipoMensaje = 3, Mensaje = ex.Message, Result = new List<InformeCreado>() };
             }
         }
 
@@ -82,7 +82,7 @@ namespace SafetyReport.Handlers
             {
                 _logger.LogError(ex, "Error no controlado en la capa de negocio.");
 
-                return new Respuesta { IdTipoMensaje = 3, Mensaje = "Error interno del servidor.", Result = new List<InformeCreado>() };
+                return new Respuesta { IdTipoMensaje = 3, Mensaje = ex.Message, Result = new List<InformeCreado>() };
             }
         }
 
@@ -218,7 +218,7 @@ namespace SafetyReport.Handlers
             {
                 _logger.LogError(ex, "Error no controlado en la capa de negocio.");
 
-                return new Respuesta { IdTipoMensaje = 3, Mensaje = "Error interno del servidor.", Result = new List<InformeConsulta>() };
+                return new Respuesta { IdTipoMensaje = 3, Mensaje = ex.Message, Result = new List<InformeConsulta>() };
             }
         }
 
@@ -232,7 +232,7 @@ namespace SafetyReport.Handlers
             {
                 _logger.LogError(ex, "Error no controlado en la capa de negocio.");
 
-                return new Respuesta { IdTipoMensaje = 3, Mensaje = "Error interno del servidor.", Result = new InformeListaResult() };
+                return new Respuesta { IdTipoMensaje = 3, Mensaje = ex.Message, Result = new InformeListaResult() };
             }
         }
 
@@ -246,7 +246,7 @@ namespace SafetyReport.Handlers
             {
                 _logger.LogError(ex, "Error no controlado en la capa de negocio.");
 
-                return new Respuesta { IdTipoMensaje = 3, Mensaje = "Error interno del servidor.", Result = new List<InformeBalanceDesagregadoCalculado>() };
+                return new Respuesta { IdTipoMensaje = 3, Mensaje = ex.Message, Result = new List<InformeBalanceDesagregadoCalculado>() };
             }
         }
 
@@ -260,7 +260,7 @@ namespace SafetyReport.Handlers
             {
                 _logger.LogError(ex, "Error no controlado en la capa de negocio.");
 
-                return new Respuesta { IdTipoMensaje = 3, Mensaje = "Error interno del servidor.", Result = new List<InformeBalanceSeguroCalculado>() };
+                return new Respuesta { IdTipoMensaje = 3, Mensaje = ex.Message, Result = new List<InformeBalanceSeguroCalculado>() };
             }
         }
 
@@ -274,7 +274,7 @@ namespace SafetyReport.Handlers
             {
                 _logger.LogError(ex, "Error no controlado en la capa de negocio.");
 
-                return new Respuesta { IdTipoMensaje = 3, Mensaje = "Error interno del servidor.", Result = new List<InformeBalanceBancoCalculado>() };
+                return new Respuesta { IdTipoMensaje = 3, Mensaje = ex.Message, Result = new List<InformeBalanceBancoCalculado>() };
             }
         }
 
@@ -288,7 +288,7 @@ namespace SafetyReport.Handlers
             {
                 _logger.LogError(ex, "Error no controlado en la capa de negocio.");
 
-                return new Respuesta { IdTipoMensaje = 3, Mensaje = "Error interno del servidor.", Result = new List<InformeBalanceTurquiaCalculado>() };
+                return new Respuesta { IdTipoMensaje = 3, Mensaje = ex.Message, Result = new List<InformeBalanceTurquiaCalculado>() };
             }
         }
 
@@ -302,7 +302,7 @@ namespace SafetyReport.Handlers
             {
                 _logger.LogError(ex, "Error no controlado en la capa de negocio.");
 
-                return new Respuesta { IdTipoMensaje = 3, Mensaje = "Error interno del servidor.", Result = new List<InformeBalanceTotalizadoCalculado>() };
+                return new Respuesta { IdTipoMensaje = 3, Mensaje = ex.Message, Result = new List<InformeBalanceTotalizadoCalculado>() };
             }
         }
 
@@ -316,7 +316,7 @@ namespace SafetyReport.Handlers
             {
                 _logger.LogError(ex, "Error no controlado en la capa de negocio.");
 
-                return new Respuesta { IdTipoMensaje = 3, Mensaje = "Error interno del servidor.", Result = new List<InformeEliminado>() };
+                return new Respuesta { IdTipoMensaje = 3, Mensaje = ex.Message, Result = new List<InformeEliminado>() };
             }
         }
 
@@ -330,7 +330,7 @@ namespace SafetyReport.Handlers
             {
                 _logger.LogError(ex, "Error no controlado en la capa de negocio.");
 
-                return new Respuesta { IdTipoMensaje = 3, Mensaje = "Error interno del servidor.", Result = new List<object>() };
+                return new Respuesta { IdTipoMensaje = 3, Mensaje = ex.Message, Result = new List<object>() };
             }
         }
 
@@ -391,7 +391,7 @@ namespace SafetyReport.Handlers
             {
                 _logger.LogError(ex, "Error no controlado en la capa de negocio.");
 
-                return new Respuesta { IdTipoMensaje = 3, Mensaje = "Error interno del servidor.", Result = null };
+                return new Respuesta { IdTipoMensaje = 3, Mensaje = ex.Message, Result = null };
             }
         }
 
@@ -420,7 +420,7 @@ namespace SafetyReport.Handlers
             {
                 _logger.LogError(ex, "Error no controlado en la capa de negocio.");
 
-                return new Respuesta { IdTipoMensaje = 3, Mensaje = "Error interno del servidor.", Result = null };
+                return new Respuesta { IdTipoMensaje = 3, Mensaje = ex.Message, Result = null };
             }
         }
 
@@ -448,7 +448,7 @@ namespace SafetyReport.Handlers
             {
                 _logger.LogError(ex, "Error no controlado en la capa de negocio.");
 
-                return Task.FromResult(new Respuesta { IdTipoMensaje = 3, Mensaje = "Error interno del servidor.", Result = null });
+                return Task.FromResult(new Respuesta { IdTipoMensaje = 3, Mensaje = ex.Message, Result = null });
             }
         }
 
@@ -481,7 +481,7 @@ namespace SafetyReport.Handlers
             {
                 _logger.LogError(ex, "Error no controlado en la capa de negocio.");
 
-                return new Respuesta { IdTipoMensaje = 3, Mensaje = "Error interno del servidor.", Result = null };
+                return new Respuesta { IdTipoMensaje = 3, Mensaje = ex.Message, Result = null };
             }
         }
 
@@ -523,7 +523,7 @@ namespace SafetyReport.Handlers
             {
                 _logger.LogError(ex, "Error no controlado en la capa de negocio.");
 
-                return new Respuesta { IdTipoMensaje = 3, Mensaje = "Error interno del servidor.", Result = null };
+                return new Respuesta { IdTipoMensaje = 3, Mensaje = ex.Message, Result = null };
             }
         }
 
@@ -556,7 +556,7 @@ namespace SafetyReport.Handlers
             {
                 _logger.LogError(ex, "Error no controlado en la capa de negocio.");
 
-                return new Respuesta { IdTipoMensaje = 3, Mensaje = "Error interno del servidor.", Result = null };
+                return new Respuesta { IdTipoMensaje = 3, Mensaje = ex.Message, Result = null };
             }
         }
 
@@ -597,7 +597,7 @@ namespace SafetyReport.Handlers
             {
                 _logger.LogError(ex, "Error no controlado en la capa de negocio.");
 
-                return new Respuesta { IdTipoMensaje = 3, Mensaje = "Error interno del servidor.", Result = null };
+                return new Respuesta { IdTipoMensaje = 3, Mensaje = ex.Message, Result = null };
             }
         }
 
@@ -638,7 +638,7 @@ namespace SafetyReport.Handlers
             {
                 _logger.LogError(ex, "Error no controlado en la capa de negocio.");
 
-                return new Respuesta { IdTipoMensaje = 3, Mensaje = "Error interno del servidor.", Result = null };
+                return new Respuesta { IdTipoMensaje = 3, Mensaje = ex.Message, Result = null };
             }
         }
 
