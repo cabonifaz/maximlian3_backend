@@ -1422,7 +1422,7 @@ namespace SafetyReport.DAO
             try
             {
                 using SqlConnection cn = new(_dbConfig.ConnectionString);
-                using SqlCommand cmd = new("Pedido_GenerarDocumento", cn) { CommandType = CommandType.StoredProcedure };
+                using SqlCommand cmd = new("SP_Pedido_GenerarDocumento", cn) { CommandType = CommandType.StoredProcedure };
                 AgregarParametrosAuditoria(cmd, u);
                 cmd.Parameters.Add("@intIdInforme", SqlDbType.Int).Value = idInforme;
                 cmd.Parameters.Add("@intIdPedido", SqlDbType.Int).Value = idPedido;
@@ -1460,7 +1460,7 @@ namespace SafetyReport.DAO
             try
             {
                 using SqlConnection cn = new(_dbConfig.ConnectionString);
-                using SqlCommand cmd = new("Pedido_GenerarDocumentoXML", cn) { CommandType = CommandType.StoredProcedure };
+                using SqlCommand cmd = new("SP_Pedido_GenerarDocumentoXml", cn) { CommandType = CommandType.StoredProcedure };
                 AgregarParametrosAuditoria(cmd, u);
                 cmd.Parameters.Add("@intIdInforme", SqlDbType.Int).Value = idInforme;
                 cmd.Parameters.Add("@intIdPedido", SqlDbType.Int).Value = idPedido;

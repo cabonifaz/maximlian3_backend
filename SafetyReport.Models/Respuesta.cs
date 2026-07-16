@@ -10,6 +10,6 @@ namespace SafetyReport.Models
 
         public string Mensaje { get; set; }
 
-        public object Result { get; set; }
+        public object? Result { get; set; }
     }
 }
