@@ -1730,7 +1730,36 @@ namespace SafetyReport.DAO
                 cmd.Parameters.Add("@decIngresoGastoImpuesto",                   SqlDbType.Decimal).Value = D2(r.IngresoGastoImpuesto);
                 cmd.Parameters.Add("@decOperacionesDescontinuadas",              SqlDbType.Decimal).Value = D2(r.OperacionesDescontinuadas);
                 await cn.OpenAsync();
-                return await LeerRespuestaAsync<InformeBalanceDesagregadoCalculado>(cmd);
+
+                using var dr = await cmd.ExecuteReaderAsync();
+                var respuesta = await LeerCabeceraAsync(dr, cmd.CommandText);
+
+                var resultado = new List<InformeBalanceDesagregadoCalculado>();
+                if (respuesta.IdTipoMensaje == 2 && await dr.NextResultAsync() && await dr.ReadAsync())
+                {
+                    resultado.Add(new InformeBalanceDesagregadoCalculado
+                    {
+                        TotalActivoCorriente = Convert.ToDecimal(dr["TotalActivoCorriente"]),
+                        TotalActivoNoCorriente = Convert.ToDecimal(dr["TotalActivoNoCorriente"]),
+                        TotalActivo = Convert.ToDecimal(dr["TotalActivo"]),
+                        TotalPasivoCorriente = Convert.ToDecimal(dr["TotalPasivoCorriente"]),
+                        TotalPasivoNoCorriente = Convert.ToDecimal(dr["TotalPasivoNoCorriente"]),
+                        TotalPasivos = Convert.ToDecimal(dr["TotalPasivos"]),
+                        TotalPatrimonio = Convert.ToDecimal(dr["TotalPatrimonio"]),
+                        TotalPasivoPatrimonio = Convert.ToDecimal(dr["TotalPasivoPatrimonio"]),
+                        GananciaBruta = Convert.ToDecimal(dr["GananciaBruta"]),
+                        GananciaOperativa = Convert.ToDecimal(dr["GananciaOperativa"]),
+                        GananciaAntesImpuestos = Convert.ToDecimal(dr["GananciaAntesImpuestos"]),
+                        GananciaNeta = Convert.ToDecimal(dr["GananciaNeta"]),
+                        IndiceLiquidez = GetNullableDecimal(dr, "IndiceLiquidez"),
+                        CapitalTrabajo = Convert.ToDecimal(dr["CapitalTrabajo"]),
+                        RatioEndeudamiento = GetNullableDecimal(dr, "RatioEndeudamiento"),
+                        RatioRentabilidad = GetNullableDecimal(dr, "RatioRentabilidad")
+                    });
+                }
+
+                respuesta.Result = resultado;
+                return respuesta;
             }
             catch (Exception ex)
             {
@@ -1771,7 +1800,24 @@ namespace SafetyReport.DAO
                 cmd.Parameters.Add("@decResultadosAcumulados",               SqlDbType.Decimal).Value    = D2(r.ResultadosAcumulados);
                 cmd.Parameters.Add("@decPatrimonioRestringido",              SqlDbType.Decimal).Value    = D2(r.PatrimonioRestringido);
                 await cn.OpenAsync();
-                return await LeerRespuestaAsync<InformeBalanceSeguroCalculado>(cmd);
+
+                using var dr = await cmd.ExecuteReaderAsync();
+                var respuesta = await LeerCabeceraAsync(dr, cmd.CommandText);
+
+                var resultado = new List<InformeBalanceSeguroCalculado>();
+                if (respuesta.IdTipoMensaje == 2 && await dr.NextResultAsync() && await dr.ReadAsync())
+                {
+                    resultado.Add(new InformeBalanceSeguroCalculado
+                    {
+                        TotalActivos = Convert.ToDecimal(dr["TotalActivos"]),
+                        TotalPasivo = Convert.ToDecimal(dr["TotalPasivo"]),
+                        TotalPatrimonio = Convert.ToDecimal(dr["TotalPatrimonio"]),
+                        TotalPasivoPatrimonio = Convert.ToDecimal(dr["TotalPasivoPatrimonio"])
+                    });
+                }
+
+                respuesta.Result = resultado;
+                return respuesta;
             }
             catch (Exception ex)
             {
@@ -1813,7 +1859,24 @@ namespace SafetyReport.DAO
                 cmd.Parameters.Add("@decResultadosNoRealizados",         SqlDbType.Decimal).Value    = D2(r.ResultadosNoRealizados);
                 cmd.Parameters.Add("@decResultadoEjercicio",             SqlDbType.Decimal).Value    = D2(r.ResultadoEjercicio);
                 await cn.OpenAsync();
-                return await LeerRespuestaAsync<InformeBalanceBancoCalculado>(cmd);
+
+                using var dr = await cmd.ExecuteReaderAsync();
+                var respuesta = await LeerCabeceraAsync(dr, cmd.CommandText);
+
+                var resultado = new List<InformeBalanceBancoCalculado>();
+                if (respuesta.IdTipoMensaje == 2 && await dr.NextResultAsync() && await dr.ReadAsync())
+                {
+                    resultado.Add(new InformeBalanceBancoCalculado
+                    {
+                        TotalActivos = Convert.ToDecimal(dr["TotalActivos"]),
+                        TotalPasivo = Convert.ToDecimal(dr["TotalPasivo"]),
+                        TotalPatrimonio = Convert.ToDecimal(dr["TotalPatrimonio"]),
+                        TotalPasivoPatrimonio = Convert.ToDecimal(dr["TotalPasivoPatrimonio"])
+                    });
+                }
+
+                respuesta.Result = resultado;
+                return respuesta;
             }
             catch (Exception ex)
             {
@@ -1864,7 +1927,39 @@ namespace SafetyReport.DAO
                 cmd.Parameters.Add("@decEbitda",                   SqlDbType.Decimal).Value     = D2(r.Ebitda);
                 cmd.Parameters.Add("@decGanancia",                 SqlDbType.Decimal).Value     = D2(r.Ganancia);
                 await cn.OpenAsync();
-                return await LeerRespuestaAsync<InformeBalanceTurquiaCalculado>(cmd);
+
+                using var dr = await cmd.ExecuteReaderAsync();
+                var respuesta = await LeerCabeceraAsync(dr, cmd.CommandText);
+
+                var resultado = new List<InformeBalanceTurquiaCalculado>();
+                if (respuesta.IdTipoMensaje == 2 && await dr.NextResultAsync() && await dr.ReadAsync())
+                {
+                    resultado.Add(new InformeBalanceTurquiaCalculado
+                    {
+                        TotalCorriente = GetNullableDecimal(dr, "TotalCorriente"),
+                        ActivoFijoNeto = GetNullableDecimal(dr, "ActivoFijoNeto"),
+                        TotalActivos = GetNullableDecimal(dr, "TotalActivos"),
+                        PasivosCorrientes = GetNullableDecimal(dr, "PasivosCorrientes"),
+                        TotalPasivosNoCorrientes = GetNullableDecimal(dr, "TotalPasivosNoCorrientes"),
+                        TotalPasivos = GetNullableDecimal(dr, "TotalPasivos"),
+                        TotalPatrimonio = GetNullableDecimal(dr, "TotalPatrimonio"),
+                        TotalPasivosPatrimonio = GetNullableDecimal(dr, "TotalPasivosPatrimonio"),
+                        GananciaBruta = GetNullableDecimal(dr, "GananciaBruta"),
+                        PlFinanciero = GetNullableDecimal(dr, "PlFinanciero"),
+                        PlExtraordinario = GetNullableDecimal(dr, "PlExtraordinario"),
+                        GananciaAntesImpuestos = GetNullableDecimal(dr, "GananciaAntesImpuestos"),
+                        GananciaNeta = GetNullableDecimal(dr, "GananciaNeta"),
+                        Ebit = GetNullableDecimal(dr, "Ebit"),
+                        Ebitda = GetNullableDecimal(dr, "Ebitda"),
+                        IndiceLiquidez = GetNullableDecimal(dr, "IndiceLiquidez"),
+                        CapitalTrabajo = GetNullableDecimal(dr, "CapitalTrabajo"),
+                        RatioEndeudamiento = GetNullableDecimal(dr, "RatioEndeudamiento"),
+                        RatioRentabilidad = GetNullableDecimal(dr, "RatioRentabilidad")
+                    });
+                }
+
+                respuesta.Result = resultado;
+                return respuesta;
             }
             catch (Exception ex)
             {
@@ -1892,7 +1987,27 @@ namespace SafetyReport.DAO
                 cmd.Parameters.Add("@decIngresosOrdinarios",     SqlDbType.Decimal).Value    = Math.Round(r.IngresosOrdinarios,     2, MidpointRounding.AwayFromZero);
                 cmd.Parameters.Add("@decGananciaNeta",           SqlDbType.Decimal).Value    = Math.Round(r.GananciaNeta,           2, MidpointRounding.AwayFromZero);
                 await cn.OpenAsync();
-                return await LeerRespuestaAsync<InformeBalanceTotalizadoCalculado>(cmd);
+
+                using var dr = await cmd.ExecuteReaderAsync();
+                var respuesta = await LeerCabeceraAsync(dr, cmd.CommandText);
+
+                var resultado = new List<InformeBalanceTotalizadoCalculado>();
+                if (respuesta.IdTipoMensaje == 2 && await dr.NextResultAsync() && await dr.ReadAsync())
+                {
+                    resultado.Add(new InformeBalanceTotalizadoCalculado
+                    {
+                        TotalActivo = Convert.ToDecimal(dr["TotalActivo"]),
+                        TotalPasivos = Convert.ToDecimal(dr["TotalPasivos"]),
+                        TotalPasivoPatrimonio = Convert.ToDecimal(dr["TotalPasivoPatrimonio"]),
+                        IndiceLiquidez = GetNullableDecimal(dr, "IndiceLiquidez"),
+                        CapitalTrabajo = Convert.ToDecimal(dr["CapitalTrabajo"]),
+                        RatioEndeudamiento = GetNullableDecimal(dr, "RatioEndeudamiento"),
+                        RatioRentabilidad = GetNullableDecimal(dr, "RatioRentabilidad")
+                    });
+                }
+
+                respuesta.Result = resultado;
+                return respuesta;
             }
             catch (Exception ex)
             {
