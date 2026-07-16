@@ -50,6 +50,13 @@ namespace SafetyReport.WebApi.Controllers
             return Ok(respuesta);
         }
 
+        [HttpGet("listarIdPorCompania")]
+        public async Task<IActionResult> ListarIdPorCompania([FromQuery] FiltroInformeIdPorCompania request)
+        {
+            var respuesta = await _informeHandler.ListarIdPorCompaniaAsync(UsuarioLogueado, request);
+            return Ok(respuesta);
+        }
+
 
         [HttpPost("calcularBalanceSeguro")]
         public async Task<IActionResult> CalcularBalanceSeguro([FromBody] InformeBalanceSeguroCalcularRequest request)

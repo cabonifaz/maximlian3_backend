@@ -236,6 +236,20 @@ namespace SafetyReport.Handlers
             }
         }
 
+        public async Task<Respuesta> ListarIdPorCompaniaAsync(UsuarioGeneral usuarioLogueado, FiltroInformeIdPorCompania request)
+        {
+            try
+            {
+                return await _dao.ListarIdPorCompaniaAsync(usuarioLogueado, request);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error no controlado en la capa de negocio.");
+
+                return new Respuesta { IdTipoMensaje = 3, Mensaje = ex.Message, Result = new InformeIdPorCompaniaListaResult() };
+            }
+        }
+
         public async Task<Respuesta> CalcularBalanceDesagregadoAsync(UsuarioGeneral usuarioLogueado, InformeBalanceDesagregadoCalcularRequest request)
         {
             try
