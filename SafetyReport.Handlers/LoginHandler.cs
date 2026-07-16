@@ -42,7 +42,7 @@ namespace SafetyReport.Handlers
                 return new Respuesta
                 {
                     IdTipoMensaje = 3,
-                    Mensaje = $"Error al autenticar: {"Error interno del servidor."}",
+                    Mensaje = ex.Message,
                     Result = new List<UsuarioLoginResponse>()
                 };
             }
