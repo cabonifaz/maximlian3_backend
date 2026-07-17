@@ -211,7 +211,7 @@ namespace SafetyReport.DAO
                     {
                         while (await dr.ReadAsync())
                         {
-                            resultado.lstBancos.Add(new BancoConsulta
+                            resultado.lstBancos.Add(new BancoListaConsulta
                             {
                                 IdBanco = Convert.ToInt32(dr["IdBanco"]),
                                 Pais = GetNullableString(dr, "Pais"),

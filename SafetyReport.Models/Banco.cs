@@ -45,6 +45,14 @@ namespace SafetyReport.Models
         public string? Telefono { get; set; }
     }
 
+    public class BancoListaConsulta
+    {
+        public int IdBanco { get; set; }
+        public string? Pais { get; set; }
+        public string Nombre { get; set; } = string.Empty;
+        public string? Telefono { get; set; }
+    }
+
     public class FiltroBanco
     {
         public string? Busqueda { get; set; }
@@ -53,7 +61,7 @@ namespace SafetyReport.Models
 
     public class BancoListaResult
     {
-        public List<BancoConsulta> lstBancos { get; set; } = new();
+        public List<BancoListaConsulta> lstBancos { get; set; } = new();
         public int TotalRegistros { get; set; }
         public int TotalPaginas { get; set; }
     }
