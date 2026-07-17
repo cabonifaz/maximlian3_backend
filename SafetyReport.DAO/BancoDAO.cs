@@ -214,7 +214,6 @@ namespace SafetyReport.DAO
                             resultado.lstBancos.Add(new BancoConsulta
                             {
                                 IdBanco = Convert.ToInt32(dr["IdBanco"]),
-                                IdPais = Convert.ToInt32(dr["IdPais"]),
                                 Pais = GetNullableString(dr, "Pais"),
                                 Nombre = dr["Nombre"]?.ToString() ?? string.Empty,
                                 Telefono = GetNullableString(dr, "Telefono")
