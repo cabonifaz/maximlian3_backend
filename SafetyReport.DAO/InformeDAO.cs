@@ -859,30 +859,6 @@ namespace SafetyReport.DAO
 
         // ── Reader helper ─────────────────────────────────────────────────────────
 
-        private async Task<Respuesta> LeerRespuestaAsync<T>(SqlCommand cmd)
-        {
-            var respuesta = new Respuesta();
-            using var dr = await cmd.ExecuteReaderAsync();
-            if (await dr.ReadAsync())
-            {
-                respuesta.IdTipoMensaje = dr["IdTipoMensaje"] != DBNull.Value ? Convert.ToInt32(dr["IdTipoMensaje"]) : 3;
-                respuesta.Mensaje = dr["Mensaje"]?.ToString() ?? string.Empty;
-                var json = dr["Result"]?.ToString();
-                respuesta.Result = !string.IsNullOrWhiteSpace(json)
-                    ? JsonSerializer.Deserialize<List<T>>(json, new JsonSerializerOptions { PropertyNameCaseInsensitive = true }) ?? new List<T>()
-                    : new List<T>();
-            }
-            else
-            {
-                _logger.LogWarning("El procedimiento {Procedimiento} no devolvio ninguna fila.", cmd.CommandText);
-
-                respuesta.IdTipoMensaje = 3;
-                respuesta.Mensaje = "No se obtuvo respuesta del procedimiento.";
-                respuesta.Result = new List<T>();
-            }
-            return respuesta;
-        }
-
         // Lee el result set 1 (siempre presente): IdTipoMensaje, Mensaje. Sin columna Result.
         private async Task<Respuesta> LeerCabeceraAsync(SqlDataReader dr, string procedimiento)
         {
@@ -1642,7 +1618,7 @@ namespace SafetyReport.DAO
                                 IdInforme = Convert.ToInt32(dr["IdInforme"]),
                                 IdPedido = Convert.ToInt32(dr["IdPedido"]),
                                 IdFase = GetNullableInt(dr, "IdFase"),
-                                IdPlantilla = GetNullableInt(dr, "IdPlantilla"),
+                                Plantilla = GetNullableString(dr, "Plantilla"),
                                 EstadoInforme = GetNullableString(dr, "EstadoInforme"),
                                 Investigado = GetNullableString(dr, "Investigado"),
                                 Vigencia = GetNullableString(dr, "Vigencia"),
@@ -1673,6 +1649,8 @@ namespace SafetyReport.DAO
                 using SqlCommand cmd = new("SP_Informe_ListarIdPorCompania", cn) { CommandType = CommandType.StoredProcedure };
                 AgregarParametrosAuditoria(cmd, u);
                 cmd.Parameters.Add("@intIdCompania", SqlDbType.Int).Value = filtro.IdCompania;
+                cmd.Parameters.Add("@dtmFchInicio", SqlDbType.Date).Value = (object?)filtro.FchInicio ?? DBNull.Value;
+                cmd.Parameters.Add("@dtmFchFin", SqlDbType.Date).Value = (object?)filtro.FchFin ?? DBNull.Value;
                 cmd.Parameters.Add("@numPag", SqlDbType.Int).Value = (object?)filtro.NumPag ?? DBNull.Value;
                 await cn.OpenAsync();
 
@@ -1697,7 +1675,8 @@ namespace SafetyReport.DAO
                                 IdInforme = Convert.ToInt32(dr["IdInforme"]),
                                 IdPedido = Convert.ToInt32(dr["IdPedido"]),
                                 Idioma = GetNullableString(dr, "Idioma"),
-                                Nombre = GetNullableString(dr, "Nombre")
+                                Nombre = GetNullableString(dr, "Nombre"),
+                                Fecha = GetNullableString(dr, "Fecha")
                             });
                         }
                     }
@@ -2028,13 +2007,13 @@ namespace SafetyReport.DAO
                 cmd.Parameters.Add("@vchUsuario",                SqlDbType.VarChar, 32).Value = u.Usuario;
                 cmd.Parameters.Add("@intIdEmpresa",              SqlDbType.Int).Value        = u.IdEmpresa;
                 cmd.Parameters.Add("@intIdRol",                  SqlDbType.Int).Value        = u.IdRol;
-                cmd.Parameters.Add("@decTotalActivoCorriente",   SqlDbType.Decimal).Value    = Math.Round(r.TotalActivoCorriente,   2, MidpointRounding.AwayFromZero);
-                cmd.Parameters.Add("@decTotalActivoNoCorriente", SqlDbType.Decimal).Value    = Math.Round(r.TotalActivoNoCorriente, 2, MidpointRounding.AwayFromZero);
-                cmd.Parameters.Add("@decTotalPasivoCorriente",   SqlDbType.Decimal).Value    = Math.Round(r.TotalPasivoCorriente,   2, MidpointRounding.AwayFromZero);
-                cmd.Parameters.Add("@decTotalPasivoNoCorriente", SqlDbType.Decimal).Value    = Math.Round(r.TotalPasivoNoCorriente, 2, MidpointRounding.AwayFromZero);
-                cmd.Parameters.Add("@decTotalPatrimonio",        SqlDbType.Decimal).Value    = Math.Round(r.TotalPatrimonio,        2, MidpointRounding.AwayFromZero);
-                cmd.Parameters.Add("@decIngresosOrdinarios",     SqlDbType.Decimal).Value    = Math.Round(r.IngresosOrdinarios,     2, MidpointRounding.AwayFromZero);
-                cmd.Parameters.Add("@decGananciaNeta",           SqlDbType.Decimal).Value    = Math.Round(r.GananciaNeta,           2, MidpointRounding.AwayFromZero);
+                cmd.Parameters.Add("@decTotalActivoCorriente",   SqlDbType.Decimal).Value    = D2(r.TotalActivoCorriente);
+                cmd.Parameters.Add("@decTotalActivoNoCorriente", SqlDbType.Decimal).Value    = D2(r.TotalActivoNoCorriente);
+                cmd.Parameters.Add("@decTotalPasivoCorriente",   SqlDbType.Decimal).Value    = D2(r.TotalPasivoCorriente);
+                cmd.Parameters.Add("@decTotalPasivoNoCorriente", SqlDbType.Decimal).Value    = D2(r.TotalPasivoNoCorriente);
+                cmd.Parameters.Add("@decTotalPatrimonio",        SqlDbType.Decimal).Value    = D2(r.TotalPatrimonio);
+                cmd.Parameters.Add("@decIngresosOrdinarios",     SqlDbType.Decimal).Value    = D2(r.IngresosOrdinarios);
+                cmd.Parameters.Add("@decGananciaNeta",           SqlDbType.Decimal).Value    = D2(r.GananciaNeta);
                 await cn.OpenAsync();
 
                 using var dr = await cmd.ExecuteReaderAsync();

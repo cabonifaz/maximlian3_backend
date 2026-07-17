@@ -355,15 +355,12 @@ namespace SafetyReport.DAO
                             resultado.lstAsignaciones.Add(new AsignacionBandejaItem
                             {
                                 IdPedido = GetNullableInt(dr, "IdPedido"),
-                                CodigoPedido = GetNullableString(dr, "CodigoPedido"),
                                 IdInforme = GetNullableInt(dr, "IdInforme"),
                                 IdInformeOriginal = GetNullableInt(dr, "IdInformeOriginal"),
                                 Investigado = GetNullableString(dr, "Investigado"),
                                 Pais = GetNullableString(dr, "Pais"),
-                                Fecha = dr["Fecha"] == DBNull.Value ? null : Convert.ToDateTime(dr["Fecha"]),
+                                Fecha = GetNullableString(dr, "Fecha"),
                                 TipoTramite = GetNullableString(dr, "TipoTramite"),
-                                EstadoAsignacion = GetNullableString(dr, "EstadoAsignacion"),
-                                IdPlantilla = GetNullableInt(dr, "IdPlantilla"),
                                 IdEstado = GetNullableInt(dr, "IdEstado"),
                                 Estado = GetNullableString(dr, "Estado"),
                                 ColorLetra = GetNullableString(dr, "ColorLetra"),

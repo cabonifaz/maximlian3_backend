@@ -144,10 +144,9 @@ namespace SafetyReport.Models
         public int IdCliente { get; set; }
         public string? Cliente { get; set; }
         public string? Investigado { get; set; }
-        public int IdIdioma { get; set; }
         public string? Idioma { get; set; }
         public int? RequiereTraduccion { get; set; }
-        public bool LogoImprimible { get; set; }
+        public string? LogoImprimible { get; set; }
         public int Estado { get; set; }
         public string? DescripcionEstado { get; set; }
         public string? ColorLetra { get; set; }
