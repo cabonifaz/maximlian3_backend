@@ -92,8 +92,6 @@ namespace SafetyReport.Models
         public string? NombreArchivo { get; set; }
         public string? NombreDocumento { get; set; }
         public string? FormatoArchivo { get; set; }
-        public string? Extension { get; set; }
-        public long? TamanoBytes { get; set; }
         public string? ArchivoUrl { get; set; }
         public string? UploadUrl { get; set; }
     }
@@ -148,8 +146,6 @@ namespace SafetyReport.Models
         public int IdTipoArchivo { get; set; }
         public string? TipoArchivo { get; set; }
         public string? NombreDocumento { get; set; }
-        public string? Extension { get; set; }
-        public long? TamanoBytes { get; set; }
     }
 
     public class CompaniaNoticiaArchivoIdRequest
@@ -164,8 +160,6 @@ namespace SafetyReport.Models
         public int IdTipoArchivo { get; set; }
         public string? ArchivoUrl { get; set; }
         public string? NombreDocumento { get; set; }
-        public string? Extension { get; set; }
-        public long? TamanoBytes { get; set; }
         public string? DownloadUrl { get; set; }
     }
 
