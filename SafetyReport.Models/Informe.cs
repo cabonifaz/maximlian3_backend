@@ -848,7 +848,7 @@ namespace SafetyReport.Models
         public int IdPedido { get; set; }
         public string? Idioma { get; set; }
         public string? Nombre { get; set; }
-        public DateTime? FchCre { get; set; }
+        public string? FchCre { get; set; }
     }
 
     public class InformeIdPorCompaniaListaResult

@@ -1674,7 +1674,7 @@ namespace SafetyReport.DAO
                                 IdPedido = Convert.ToInt32(dr["IdPedido"]),
                                 Idioma = GetNullableString(dr, "Idioma"),
                                 Nombre = GetNullableString(dr, "Nombre"),
-                                FchCre = GetNullableDateTime(dr, "FchCre")
+                                FchCre = GetNullableString(dr, "FchCre")
                             });
                         }
                     }
