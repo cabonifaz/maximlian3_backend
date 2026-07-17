@@ -318,6 +318,9 @@ namespace SafetyReport.Handlers
 
             foreach (var archivo in archivos)
             {
+                if (archivo.IdCompaniaNoticiaArchivo.HasValue)
+                    continue;
+
                 if (string.IsNullOrWhiteSpace(archivo.NombreArchivo) && string.IsNullOrWhiteSpace(archivo.ArchivoUrl))
                     continue;
 
@@ -363,7 +366,7 @@ namespace SafetyReport.Handlers
             if (string.IsNullOrWhiteSpace(nombreLimpio))
                 nombreLimpio = "archivo";
 
-            return $"companias/{idCompania}/noticias/adjuntos/{nombreLimpio}-{Guid.NewGuid():N}{extension}";
+            return $"companias/{idCompania}/noticias/adjuntos/{nombreLimpio}-{DateTime.UtcNow:yyyyMMddHHmmssfff}{extension}";
         }
 
         private static byte[] GenerarExcelNoticiasDetalle(List<CompaniaNoticiaDetalleListaConsulta> items)
