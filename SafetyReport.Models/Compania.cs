@@ -202,6 +202,8 @@ namespace SafetyReport.Models
     {
         public int? IdCompania { get; set; }
         public string? Busqueda { get; set; }
+        public DateTime? FchInicio { get; set; }
+        public DateTime? FchFin { get; set; }
         public int NumPag { get; set; } = 1;
     }
 
@@ -218,6 +220,8 @@ namespace SafetyReport.Models
         public string? Busqueda { get; set; }
         public string? TipoEstadoFinanciero { get; set; }
         public string? Estado { get; set; }
+        public DateTime? FchInicio { get; set; }
+        public DateTime? FchFin { get; set; }
         public int NumPag { get; set; } = 1;
     }
 
