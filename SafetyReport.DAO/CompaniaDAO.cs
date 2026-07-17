@@ -100,6 +100,20 @@ namespace SafetyReport.DAO
             };
         }
 
+        private static CompaniaListaConsulta LeerCompaniaListaConsulta(SqlDataReader dr)
+        {
+            return new CompaniaListaConsulta
+            {
+                IdCompania = Convert.ToInt32(dr["IdCompania"]),
+                TipoDocumento = GetNullableString(dr, "TipoDocumento"),
+                NumeroDocumento = GetNullableString(dr, "NumeroDocumento"),
+                NombreCompleto = GetNullableString(dr, "NombreCompleto"),
+                Pais = GetNullableString(dr, "Pais"),
+                Telefono = GetNullableString(dr, "Telefono"),
+                ExisteInformacion = GetNullableBool(dr, "ExisteInformacion")
+            };
+        }
+
         public async Task<Respuesta> CrearAsync(UsuarioGeneral usuarioLogueado, List<CompaniaCrear> lstCompanias)
         {
             try
@@ -277,7 +291,7 @@ namespace SafetyReport.DAO
                     {
                         while (await dr.ReadAsync())
                         {
-                            resultado.lstCompanias.Add(LeerCompaniaConsulta(dr));
+                            resultado.lstCompanias.Add(LeerCompaniaListaConsulta(dr));
                         }
                     }
 

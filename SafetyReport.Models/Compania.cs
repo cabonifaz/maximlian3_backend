@@ -62,6 +62,17 @@ namespace SafetyReport.Models
         public bool? ExisteInformacion { get; set; }
     }
 
+    public class CompaniaListaConsulta
+    {
+        public int IdCompania { get; set; }
+        public string? TipoDocumento { get; set; }
+        public string? NumeroDocumento { get; set; }
+        public string? NombreCompleto { get; set; }
+        public string? Pais { get; set; }
+        public string? Telefono { get; set; }
+        public bool? ExisteInformacion { get; set; }
+    }
+
     public class FiltroCompania
     {
         public string? Busqueda { get; set; }
@@ -70,7 +81,7 @@ namespace SafetyReport.Models
 
     public class CompaniaListaResult
     {
-        public List<CompaniaConsulta> lstCompanias { get; set; } = new();
+        public List<CompaniaListaConsulta> lstCompanias { get; set; } = new();
         public int TotalRegistros { get; set; }
         public int TotalPaginas { get; set; }
     }
