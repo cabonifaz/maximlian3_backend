@@ -72,6 +72,16 @@ namespace SafetyReport.Models
         public string? Referencias { get; set; }
     }
 
+    public class DirectorioEjecutivoListaConsulta
+    {
+        public int IdDirectorioEjecutivo { get; set; }
+        public string? NombreCompleto { get; set; }
+        public string? TipoDocumento { get; set; }
+        public string? NumeroDocumento { get; set; }
+        public string? Pais { get; set; }
+        public string? TaxNum { get; set; }
+    }
+
     public class FiltroDirectorioEjecutivo
     {
         public string? Busqueda { get; set; }
@@ -80,7 +90,7 @@ namespace SafetyReport.Models
 
     public class DirectorioEjecutivoListaResult
     {
-        public List<DirectorioEjecutivoConsulta> lstDirectoriosEjecutivos { get; set; } = new();
+        public List<DirectorioEjecutivoListaConsulta> lstDirectoriosEjecutivos { get; set; } = new();
         public int TotalRegistros { get; set; }
         public int TotalPaginas { get; set; }
     }
