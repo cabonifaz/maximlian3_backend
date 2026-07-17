@@ -859,30 +859,6 @@ namespace SafetyReport.DAO
 
         // ── Reader helper ─────────────────────────────────────────────────────────
 
-        private async Task<Respuesta> LeerRespuestaAsync<T>(SqlCommand cmd)
-        {
-            var respuesta = new Respuesta();
-            using var dr = await cmd.ExecuteReaderAsync();
-            if (await dr.ReadAsync())
-            {
-                respuesta.IdTipoMensaje = dr["IdTipoMensaje"] != DBNull.Value ? Convert.ToInt32(dr["IdTipoMensaje"]) : 3;
-                respuesta.Mensaje = dr["Mensaje"]?.ToString() ?? string.Empty;
-                var json = dr["Result"]?.ToString();
-                respuesta.Result = !string.IsNullOrWhiteSpace(json)
-                    ? JsonSerializer.Deserialize<List<T>>(json, new JsonSerializerOptions { PropertyNameCaseInsensitive = true }) ?? new List<T>()
-                    : new List<T>();
-            }
-            else
-            {
-                _logger.LogWarning("El procedimiento {Procedimiento} no devolvio ninguna fila.", cmd.CommandText);
-
-                respuesta.IdTipoMensaje = 3;
-                respuesta.Mensaje = "No se obtuvo respuesta del procedimiento.";
-                respuesta.Result = new List<T>();
-            }
-            return respuesta;
-        }
-
         // Lee el result set 1 (siempre presente): IdTipoMensaje, Mensaje. Sin columna Result.
         private async Task<Respuesta> LeerCabeceraAsync(SqlDataReader dr, string procedimiento)
         {
