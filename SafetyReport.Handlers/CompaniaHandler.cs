@@ -318,7 +318,7 @@ namespace SafetyReport.Handlers
 
             foreach (var archivo in archivos)
             {
-                if (archivo.IdCompaniaNoticiaArchivo.HasValue)
+                if ((archivo.IdCompaniaNoticiaArchivo ?? 0) > 0)
                     continue;
 
                 if (string.IsNullOrWhiteSpace(archivo.NombreArchivo) && string.IsNullOrWhiteSpace(archivo.ArchivoUrl))
