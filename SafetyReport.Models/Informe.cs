@@ -466,13 +466,13 @@ namespace SafetyReport.Models
 
     public class InformeBalanceTotalizadoCalcularRequest
     {
-        public decimal TotalActivoCorriente { get; set; }
-        public decimal TotalActivoNoCorriente { get; set; }
-        public decimal TotalPasivoCorriente { get; set; }
-        public decimal TotalPasivoNoCorriente { get; set; }
-        public decimal TotalPatrimonio { get; set; }
-        public decimal IngresosOrdinarios { get; set; }
-        public decimal GananciaNeta { get; set; }
+        public decimal? TotalActivoCorriente { get; set; }
+        public decimal? TotalActivoNoCorriente { get; set; }
+        public decimal? TotalPasivoCorriente { get; set; }
+        public decimal? TotalPasivoNoCorriente { get; set; }
+        public decimal? TotalPatrimonio { get; set; }
+        public decimal? IngresosOrdinarios { get; set; }
+        public decimal? GananciaNeta { get; set; }
     }
 
     public class InformeBalanceTotalizadoCalculado

@@ -2007,13 +2007,13 @@ namespace SafetyReport.DAO
                 cmd.Parameters.Add("@vchUsuario",                SqlDbType.VarChar, 32).Value = u.Usuario;
                 cmd.Parameters.Add("@intIdEmpresa",              SqlDbType.Int).Value        = u.IdEmpresa;
                 cmd.Parameters.Add("@intIdRol",                  SqlDbType.Int).Value        = u.IdRol;
-                cmd.Parameters.Add("@decTotalActivoCorriente",   SqlDbType.Decimal).Value    = Math.Round(r.TotalActivoCorriente,   2, MidpointRounding.AwayFromZero);
-                cmd.Parameters.Add("@decTotalActivoNoCorriente", SqlDbType.Decimal).Value    = Math.Round(r.TotalActivoNoCorriente, 2, MidpointRounding.AwayFromZero);
-                cmd.Parameters.Add("@decTotalPasivoCorriente",   SqlDbType.Decimal).Value    = Math.Round(r.TotalPasivoCorriente,   2, MidpointRounding.AwayFromZero);
-                cmd.Parameters.Add("@decTotalPasivoNoCorriente", SqlDbType.Decimal).Value    = Math.Round(r.TotalPasivoNoCorriente, 2, MidpointRounding.AwayFromZero);
-                cmd.Parameters.Add("@decTotalPatrimonio",        SqlDbType.Decimal).Value    = Math.Round(r.TotalPatrimonio,        2, MidpointRounding.AwayFromZero);
-                cmd.Parameters.Add("@decIngresosOrdinarios",     SqlDbType.Decimal).Value    = Math.Round(r.IngresosOrdinarios,     2, MidpointRounding.AwayFromZero);
-                cmd.Parameters.Add("@decGananciaNeta",           SqlDbType.Decimal).Value    = Math.Round(r.GananciaNeta,           2, MidpointRounding.AwayFromZero);
+                cmd.Parameters.Add("@decTotalActivoCorriente",   SqlDbType.Decimal).Value    = D2(r.TotalActivoCorriente);
+                cmd.Parameters.Add("@decTotalActivoNoCorriente", SqlDbType.Decimal).Value    = D2(r.TotalActivoNoCorriente);
+                cmd.Parameters.Add("@decTotalPasivoCorriente",   SqlDbType.Decimal).Value    = D2(r.TotalPasivoCorriente);
+                cmd.Parameters.Add("@decTotalPasivoNoCorriente", SqlDbType.Decimal).Value    = D2(r.TotalPasivoNoCorriente);
+                cmd.Parameters.Add("@decTotalPatrimonio",        SqlDbType.Decimal).Value    = D2(r.TotalPatrimonio);
+                cmd.Parameters.Add("@decIngresosOrdinarios",     SqlDbType.Decimal).Value    = D2(r.IngresosOrdinarios);
+                cmd.Parameters.Add("@decGananciaNeta",           SqlDbType.Decimal).Value    = D2(r.GananciaNeta);
                 await cn.OpenAsync();
 
                 using var dr = await cmd.ExecuteReaderAsync();
