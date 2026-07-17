@@ -194,7 +194,7 @@ namespace SafetyReport.Models
         public string? NombreCompleto { get; set; }
         public string? Titulo { get; set; }
         public string? Descripcion { get; set; }
-        public DateTime? FechaNoticia { get; set; }
+        public string? FechaNoticia { get; set; }
         public string? Categoria { get; set; }
     }
 

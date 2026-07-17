@@ -705,7 +705,7 @@ namespace SafetyReport.DAO
                                 NombreCompleto = GetNullableString(dr, "NombreCompleto"),
                                 Titulo = GetNullableString(dr, "Titulo"),
                                 Descripcion = GetNullableString(dr, "Descripcion"),
-                                FechaNoticia = GetNullableDateTime(dr, "FechaNoticia"),
+                                FechaNoticia = GetNullableString(dr, "FechaNoticia"),
                                 Categoria = GetNullableString(dr, "Categoria")
                             });
                         }
