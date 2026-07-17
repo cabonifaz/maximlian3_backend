@@ -226,8 +226,8 @@ namespace SafetyReport.Models
         public int IdInformeBalance { get; set; }
         public int IdCompania { get; set; }
         public string? NombreCompleto { get; set; }
-        public DateTime? FechaInicio { get; set; }
-        public DateTime? FechaFin { get; set; }
+        public string? FechaInicio { get; set; }
+        public string? FechaFin { get; set; }
         public string? Pais { get; set; }
         public string? TipoEstadoFinanciero { get; set; }
         public string? Estado { get; set; }

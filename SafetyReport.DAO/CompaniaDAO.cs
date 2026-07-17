@@ -804,8 +804,8 @@ namespace SafetyReport.DAO
                                 IdInformeBalance = Convert.ToInt32(dr["IdInformeBalance"]),
                                 IdCompania = Convert.ToInt32(dr["IdCompania"]),
                                 NombreCompleto = GetNullableString(dr, "NombreCompleto"),
-                                FechaInicio = GetNullableDateTime(dr, "FechaInicio"),
-                                FechaFin = GetNullableDateTime(dr, "FechaFin"),
+                                FechaInicio = GetNullableString(dr, "FechaInicio"),
+                                FechaFin = GetNullableString(dr, "FechaFin"),
                                 Pais = GetNullableString(dr, "Pais"),
                                 TipoEstadoFinanciero = GetNullableString(dr, "TipoEstadoFinanciero"),
                                 Estado = GetNullableString(dr, "Estado")
