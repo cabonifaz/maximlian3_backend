@@ -176,7 +176,7 @@ namespace SafetyReport.Models
         public int IdCompania { get; set; }
         public string? Titulo { get; set; }
         public string? Descripcion { get; set; }
-        public DateTime? FechaNoticia { get; set; }
+        public string? FechaNoticia { get; set; }
         public string? Categoria { get; set; }
         public List<CompaniaNoticiaArchivoConsulta> Archivos { get; set; } = new();
     }

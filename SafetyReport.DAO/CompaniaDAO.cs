@@ -513,7 +513,7 @@ namespace SafetyReport.DAO
                             IdCompania = Convert.ToInt32(dr["IdCompania"]),
                             Titulo = GetNullableString(dr, "Titulo"),
                             Descripcion = GetNullableString(dr, "Descripcion"),
-                            FechaNoticia = GetNullableDateTime(dr, "FechaNoticia"),
+                            FechaNoticia = GetNullableString(dr, "FechaNoticia"),
                             Categoria = GetNullableString(dr, "Categoria")
                         });
                     }
