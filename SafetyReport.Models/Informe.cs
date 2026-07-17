@@ -839,6 +839,8 @@ namespace SafetyReport.Models
     public class FiltroInformeIdPorCompania
     {
         public int IdCompania { get; set; }
+        public DateTime? FchInicio { get; set; }
+        public DateTime? FchFin { get; set; }
         public int? NumPag { get; set; }
     }
 
@@ -848,7 +850,7 @@ namespace SafetyReport.Models
         public int IdPedido { get; set; }
         public string? Idioma { get; set; }
         public string? Nombre { get; set; }
-        public string? FchCre { get; set; }
+        public string? Fecha { get; set; }
     }
 
     public class InformeIdPorCompaniaListaResult

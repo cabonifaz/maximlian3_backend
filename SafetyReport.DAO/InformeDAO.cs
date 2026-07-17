@@ -1649,6 +1649,8 @@ namespace SafetyReport.DAO
                 using SqlCommand cmd = new("SP_Informe_ListarIdPorCompania", cn) { CommandType = CommandType.StoredProcedure };
                 AgregarParametrosAuditoria(cmd, u);
                 cmd.Parameters.Add("@intIdCompania", SqlDbType.Int).Value = filtro.IdCompania;
+                cmd.Parameters.Add("@dtmFchInicio", SqlDbType.Date).Value = (object?)filtro.FchInicio ?? DBNull.Value;
+                cmd.Parameters.Add("@dtmFchFin", SqlDbType.Date).Value = (object?)filtro.FchFin ?? DBNull.Value;
                 cmd.Parameters.Add("@numPag", SqlDbType.Int).Value = (object?)filtro.NumPag ?? DBNull.Value;
                 await cn.OpenAsync();
 
@@ -1674,7 +1676,7 @@ namespace SafetyReport.DAO
                                 IdPedido = Convert.ToInt32(dr["IdPedido"]),
                                 Idioma = GetNullableString(dr, "Idioma"),
                                 Nombre = GetNullableString(dr, "Nombre"),
-                                FchCre = GetNullableString(dr, "FchCre")
+                                Fecha = GetNullableString(dr, "Fecha")
                             });
                         }
                     }
