@@ -11,14 +11,12 @@ namespace SafetyReport.Handlers
     {
         private readonly CompaniaDAO _dao;
         private readonly IS3UploadService _s3UploadService;
-        private readonly FormatoDocumentoResolver _formatoDocumentoResolver;
         private readonly ILogger<CompaniaHandler> _logger;
 
-        public CompaniaHandler(CompaniaDAO dao, IS3UploadService s3UploadService, FormatoDocumentoResolver formatoDocumentoResolver, ILogger<CompaniaHandler> logger)
+        public CompaniaHandler(CompaniaDAO dao, IS3UploadService s3UploadService, ILogger<CompaniaHandler> logger)
         {
             _dao = dao;
             _s3UploadService = s3UploadService;
-            _formatoDocumentoResolver = formatoDocumentoResolver;
             _logger = logger;
         }
 
@@ -320,6 +318,9 @@ namespace SafetyReport.Handlers
 
             foreach (var archivo in archivos)
             {
+                if ((archivo.IdCompaniaNoticiaArchivo ?? 0) > 0)
+                    continue;
+
                 if (string.IsNullOrWhiteSpace(archivo.NombreArchivo) && string.IsNullOrWhiteSpace(archivo.ArchivoUrl))
                     continue;
 
@@ -335,10 +336,6 @@ namespace SafetyReport.Handlers
 
                 archivo.ArchivoUrl = rutaArchivo;
                 archivo.NombreDocumento = nombreDocumento;
-                archivo.Extension = await _formatoDocumentoResolver.ResolverAsync(
-                    usuarioLogueado,
-                    archivo.FormatoArchivo,
-                    nombreDocumento ?? archivo.ArchivoUrl);
                 archivo.UploadUrl = _s3UploadService.GenerarUploadUrl(rutaArchivo, formatoArchivo);
             }
         }
@@ -369,7 +366,7 @@ namespace SafetyReport.Handlers
             if (string.IsNullOrWhiteSpace(nombreLimpio))
                 nombreLimpio = "archivo";
 
-            return $"companias/{idCompania}/noticias/adjuntos/{nombreLimpio}-{Guid.NewGuid():N}{extension}";
+            return $"companias/{idCompania}/noticias/adjuntos/{nombreLimpio}-{DateTime.UtcNow:yyyyMMddHHmmssfff}{extension}";
         }
 
         private static byte[] GenerarExcelNoticiasDetalle(List<CompaniaNoticiaDetalleListaConsulta> items)

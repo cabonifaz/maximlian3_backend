@@ -391,16 +391,12 @@ namespace SafetyReport.DAO
                 tvpArchivos.Columns.Add("IdTipoArchivo", typeof(int));
                 tvpArchivos.Columns.Add("ArchivoUrl", typeof(string));
                 tvpArchivos.Columns.Add("NombreDocumento", typeof(string));
-                tvpArchivos.Columns.Add("Extension", typeof(string));
-                tvpArchivos.Columns.Add("TamanoBytes", typeof(long));
                 foreach (var archivo in request.Archivos)
                     tvpArchivos.Rows.Add(
                         (object?)archivo.IdCompaniaNoticiaArchivo ?? DBNull.Value,
                         archivo.IdTipoArchivo,
                         (object?)archivo.ArchivoUrl ?? DBNull.Value,
-                        (object?)(archivo.NombreDocumento ?? archivo.NombreArchivo) ?? DBNull.Value,
-                        (object?)archivo.Extension ?? DBNull.Value,
-                        (object?)archivo.TamanoBytes ?? DBNull.Value);
+                        (object?)(archivo.NombreDocumento ?? archivo.NombreArchivo) ?? DBNull.Value);
 
                 var paramTvp = cmd.Parameters.Add("@lstArchivos", SqlDbType.Structured);
                 paramTvp.TypeName = "LISTA_COMPANIA_NOTICIA_ARCHIVO";
@@ -452,16 +448,12 @@ namespace SafetyReport.DAO
                 tvpArchivos.Columns.Add("IdTipoArchivo", typeof(int));
                 tvpArchivos.Columns.Add("ArchivoUrl", typeof(string));
                 tvpArchivos.Columns.Add("NombreDocumento", typeof(string));
-                tvpArchivos.Columns.Add("Extension", typeof(string));
-                tvpArchivos.Columns.Add("TamanoBytes", typeof(long));
                 foreach (var archivo in request.Archivos)
                     tvpArchivos.Rows.Add(
                         (object?)archivo.IdCompaniaNoticiaArchivo ?? DBNull.Value,
                         archivo.IdTipoArchivo,
                         (object?)archivo.ArchivoUrl ?? DBNull.Value,
-                        (object?)(archivo.NombreDocumento ?? archivo.NombreArchivo) ?? DBNull.Value,
-                        (object?)archivo.Extension ?? DBNull.Value,
-                        (object?)archivo.TamanoBytes ?? DBNull.Value);
+                        (object?)(archivo.NombreDocumento ?? archivo.NombreArchivo) ?? DBNull.Value);
 
                 var paramTvp = cmd.Parameters.Add("@lstArchivos", SqlDbType.Structured);
                 paramTvp.TypeName = "LISTA_COMPANIA_NOTICIA_ARCHIVO";
@@ -521,7 +513,7 @@ namespace SafetyReport.DAO
                             IdCompania = Convert.ToInt32(dr["IdCompania"]),
                             Titulo = GetNullableString(dr, "Titulo"),
                             Descripcion = GetNullableString(dr, "Descripcion"),
-                            FechaNoticia = GetNullableDateTime(dr, "FechaNoticia"),
+                            FechaNoticia = GetNullableString(dr, "FechaNoticia"),
                             Categoria = GetNullableString(dr, "Categoria")
                         });
                     }
@@ -594,9 +586,7 @@ namespace SafetyReport.DAO
                             IdCompaniaNoticia = Convert.ToInt32(dr["IdCompaniaNoticia"]),
                             IdTipoArchivo = Convert.ToInt32(dr["IdTipoArchivo"]),
                             ArchivoUrl = GetNullableString(dr, "ArchivoUrl"),
-                            NombreDocumento = GetNullableString(dr, "NombreDocumento"),
-                            Extension = GetNullableString(dr, "Extension"),
-                            TamanoBytes = GetNullableLong(dr, "TamanoBytes")
+                            NombreDocumento = GetNullableString(dr, "NombreDocumento")
                         });
                     }
 
@@ -677,6 +667,8 @@ namespace SafetyReport.DAO
                 cmd.Parameters.Add("@intIdRol", SqlDbType.Int).Value = usuarioLogueado.IdRol;
                 cmd.Parameters.Add("@intIdCompania", SqlDbType.Int).Value = (object?)filtro.IdCompania ?? DBNull.Value;
                 cmd.Parameters.Add("@vchBusqueda", SqlDbType.VarChar, 255).Value = (object?)filtro.Busqueda ?? DBNull.Value;
+                cmd.Parameters.Add("@dtmFchInicio", SqlDbType.Date).Value = (object?)filtro.FchInicio ?? DBNull.Value;
+                cmd.Parameters.Add("@dtmFchFin", SqlDbType.Date).Value = (object?)filtro.FchFin ?? DBNull.Value;
                 cmd.Parameters.Add("@numPag", SqlDbType.Int).Value = filtro.NumPag;
 
                 await cn.OpenAsync();
@@ -705,7 +697,7 @@ namespace SafetyReport.DAO
                                 NombreCompleto = GetNullableString(dr, "NombreCompleto"),
                                 Titulo = GetNullableString(dr, "Titulo"),
                                 Descripcion = GetNullableString(dr, "Descripcion"),
-                                FechaNoticia = GetNullableDateTime(dr, "FechaNoticia"),
+                                FechaNoticia = GetNullableString(dr, "FechaNoticia"),
                                 Categoria = GetNullableString(dr, "Categoria")
                             });
                         }
@@ -778,6 +770,8 @@ namespace SafetyReport.DAO
                 cmd.Parameters.Add("@vchBusqueda", SqlDbType.VarChar, 255).Value = (object?)filtro.Busqueda ?? DBNull.Value;
                 cmd.Parameters.Add("@vchTipoEstadoFinanciero", SqlDbType.VarChar, -1).Value = (object?)filtro.TipoEstadoFinanciero ?? DBNull.Value;
                 cmd.Parameters.Add("@vchEstado", SqlDbType.VarChar, -1).Value = (object?)filtro.Estado ?? DBNull.Value;
+                cmd.Parameters.Add("@dtmFchInicio", SqlDbType.Date).Value = (object?)filtro.FchInicio ?? DBNull.Value;
+                cmd.Parameters.Add("@dtmFchFin", SqlDbType.Date).Value = (object?)filtro.FchFin ?? DBNull.Value;
                 cmd.Parameters.Add("@numPag", SqlDbType.Int).Value = filtro.NumPag;
 
                 await cn.OpenAsync();
@@ -804,8 +798,8 @@ namespace SafetyReport.DAO
                                 IdInformeBalance = Convert.ToInt32(dr["IdInformeBalance"]),
                                 IdCompania = Convert.ToInt32(dr["IdCompania"]),
                                 NombreCompleto = GetNullableString(dr, "NombreCompleto"),
-                                FechaInicio = GetNullableDateTime(dr, "FechaInicio"),
-                                FechaFin = GetNullableDateTime(dr, "FechaFin"),
+                                FechaInicio = GetNullableString(dr, "FechaInicio"),
+                                FechaFin = GetNullableString(dr, "FechaFin"),
                                 Pais = GetNullableString(dr, "Pais"),
                                 TipoEstadoFinanciero = GetNullableString(dr, "TipoEstadoFinanciero"),
                                 Estado = GetNullableString(dr, "Estado")
