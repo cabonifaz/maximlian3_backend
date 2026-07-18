@@ -10,6 +10,9 @@ namespace SafetyReport.Models
         public string? NombreCompleto { get; set; }
         public int? IdPais { get; set; }
         public string? Telefono { get; set; }
+        public string? Direccion { get; set; }
+        public string? CiudadProvinciaEstado { get; set; }
+        public string? CodigoPostal { get; set; }
         public bool? ExisteInformacion { get; set; }
     }
 
@@ -22,6 +25,9 @@ namespace SafetyReport.Models
         public string? NombreCompleto { get; set; }
         public int? IdPais { get; set; }
         public string? Telefono { get; set; }
+        public string? Direccion { get; set; }
+        public string? CiudadProvinciaEstado { get; set; }
+        public string? CodigoPostal { get; set; }
         public bool? ExisteInformacion { get; set; }
     }
 
@@ -59,6 +65,9 @@ namespace SafetyReport.Models
         public int? IdPais { get; set; }
         public string? Pais { get; set; }
         public string? Telefono { get; set; }
+        public string? Direccion { get; set; }
+        public string? CiudadProvinciaEstado { get; set; }
+        public string? CodigoPostal { get; set; }
         public bool? ExisteInformacion { get; set; }
     }
 
