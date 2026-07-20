@@ -96,6 +96,23 @@ namespace SafetyReport.DAO
                 IdPais = GetNullableInt(dr, "IdPais"),
                 Pais = GetNullableString(dr, "Pais"),
                 Telefono = GetNullableString(dr, "Telefono"),
+                Direccion = GetNullableString(dr, "Direccion"),
+                CiudadProvinciaEstado = GetNullableString(dr, "CiudadProvinciaEstado"),
+                CodigoPostal = GetNullableString(dr, "CodigoPostal"),
+                ExisteInformacion = GetNullableBool(dr, "ExisteInformacion")
+            };
+        }
+
+        private static CompaniaListaConsulta LeerCompaniaListaConsulta(SqlDataReader dr)
+        {
+            return new CompaniaListaConsulta
+            {
+                IdCompania = Convert.ToInt32(dr["IdCompania"]),
+                TipoDocumento = GetNullableString(dr, "TipoDocumento"),
+                NumeroDocumento = GetNullableString(dr, "NumeroDocumento"),
+                NombreCompleto = GetNullableString(dr, "NombreCompleto"),
+                Pais = GetNullableString(dr, "Pais"),
+                Telefono = GetNullableString(dr, "Telefono"),
                 ExisteInformacion = GetNullableBool(dr, "ExisteInformacion")
             };
         }
@@ -118,16 +135,22 @@ namespace SafetyReport.DAO
                 tvp.Columns.Add("NombreCompleto", typeof(string));
                 tvp.Columns.Add("IdPais", typeof(int));
                 tvp.Columns.Add("Telefono", typeof(string));
+                tvp.Columns.Add("Direccion", typeof(string));
+                tvp.Columns.Add("CiudadProvinciaEstado", typeof(string));
+                tvp.Columns.Add("CodigoPostal", typeof(string));
                 tvp.Columns.Add("ExisteInformacion", typeof(bool));
                 foreach (var item in lstCompanias)
                     tvp.Rows.Add(
-                        (object?)item.IdTipoPersona     ?? DBNull.Value,
-                        (object?)item.IdTipoDocumento   ?? DBNull.Value,
-                        (object?)item.NumeroDocumento   ?? DBNull.Value,
-                        (object?)item.NombreCompleto    ?? DBNull.Value,
-                        (object?)item.IdPais            ?? DBNull.Value,
-                        (object?)item.Telefono          ?? DBNull.Value,
-                        (object?)item.ExisteInformacion ?? DBNull.Value);
+                        (object?)item.IdTipoPersona          ?? DBNull.Value,
+                        (object?)item.IdTipoDocumento        ?? DBNull.Value,
+                        (object?)item.NumeroDocumento        ?? DBNull.Value,
+                        (object?)item.NombreCompleto          ?? DBNull.Value,
+                        (object?)item.IdPais                 ?? DBNull.Value,
+                        (object?)item.Telefono               ?? DBNull.Value,
+                        (object?)item.Direccion              ?? DBNull.Value,
+                        (object?)item.CiudadProvinciaEstado  ?? DBNull.Value,
+                        (object?)item.CodigoPostal           ?? DBNull.Value,
+                        (object?)item.ExisteInformacion      ?? DBNull.Value);
 
                 var paramTvp = cmd.Parameters.Add("@tvpCompanias", SqlDbType.Structured);
                 paramTvp.TypeName = "LISTA_COMPANIA_INSERTAR";
@@ -174,6 +197,9 @@ namespace SafetyReport.DAO
                 cmd.Parameters.Add("@vchNombreCompleto", SqlDbType.VarChar, 255).Value = (object?)request.NombreCompleto ?? DBNull.Value;
                 cmd.Parameters.Add("@intIdPais", SqlDbType.Int).Value = (object?)request.IdPais ?? DBNull.Value;
                 cmd.Parameters.Add("@vchTelefono", SqlDbType.VarChar, 128).Value = (object?)request.Telefono ?? DBNull.Value;
+                cmd.Parameters.Add("@vchDireccion", SqlDbType.VarChar, 255).Value = (object?)request.Direccion ?? DBNull.Value;
+                cmd.Parameters.Add("@vchCiudadProvinciaEstado", SqlDbType.VarChar, 255).Value = (object?)request.CiudadProvinciaEstado ?? DBNull.Value;
+                cmd.Parameters.Add("@vchCodigoPostal", SqlDbType.VarChar, 32).Value = (object?)request.CodigoPostal ?? DBNull.Value;
                 cmd.Parameters.Add("@bitExisteInformacion", SqlDbType.Bit).Value = (object?)request.ExisteInformacion ?? DBNull.Value;
 
                 await cn.OpenAsync();
@@ -277,7 +303,7 @@ namespace SafetyReport.DAO
                     {
                         while (await dr.ReadAsync())
                         {
-                            resultado.lstCompanias.Add(LeerCompaniaConsulta(dr));
+                            resultado.lstCompanias.Add(LeerCompaniaListaConsulta(dr));
                         }
                     }
 

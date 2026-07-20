@@ -98,6 +98,19 @@ namespace SafetyReport.DAO
             };
         }
 
+        private static DirectorioEjecutivoListaConsulta LeerConsultaLista(SqlDataReader dr)
+        {
+            return new DirectorioEjecutivoListaConsulta
+            {
+                IdDirectorioEjecutivo = Convert.ToInt32(dr["IdDirectorioEjecutivo"]),
+                NombreCompleto = GetNullableString(dr, "NombreCompleto"),
+                TipoDocumento = GetNullableString(dr, "TipoDocumento"),
+                NumeroDocumento = GetNullableString(dr, "NumeroDocumento"),
+                Pais = GetNullableString(dr, "Pais"),
+                TaxNum = GetNullableString(dr, "TaxNum")
+            };
+        }
+
         public async Task<Respuesta> CrearAsync(UsuarioGeneral usuarioLogueado, List<DirectorioEjecutivoCrear> lstDirectorios)
         {
             try
@@ -300,7 +313,7 @@ namespace SafetyReport.DAO
                     {
                         while (await dr.ReadAsync())
                         {
-                            resultado.lstDirectoriosEjecutivos.Add(LeerConsulta(dr));
+                            resultado.lstDirectoriosEjecutivos.Add(LeerConsultaLista(dr));
                         }
                     }
 
