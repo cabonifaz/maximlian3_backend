@@ -79,7 +79,7 @@ namespace SafetyReport.Models
         public string? NombreCompleto { get; set; }
         public string? Pais { get; set; }
         public string? Telefono { get; set; }
-        public bool? ExisteInformacion { get; set; }
+        public string? ExisteInformacion { get; set; }
     }
 
     public class FiltroCompania

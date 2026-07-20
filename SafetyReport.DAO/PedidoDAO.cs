@@ -343,9 +343,7 @@ namespace SafetyReport.DAO
                         resultado.TotalRegistros = Convert.ToInt32(dr["TotalRegistros"]);
                         resultado.TotalPaginas = Convert.ToInt32(dr["TotalPaginas"]);
                         resultado.Pendiente = Convert.ToInt32(dr["Pendiente"]);
-                        resultado.EnRevision = Convert.ToInt32(dr["EnRevision"]);
                         resultado.Aprobado = Convert.ToInt32(dr["Aprobado"]);
-                        resultado.Observado = Convert.ToInt32(dr["Observado"]);
                         resultado.Cancelado = Convert.ToInt32(dr["Cancelado"]);
                     }
 

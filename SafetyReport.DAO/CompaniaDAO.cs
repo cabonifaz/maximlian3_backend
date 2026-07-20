@@ -113,7 +113,7 @@ namespace SafetyReport.DAO
                 NombreCompleto = GetNullableString(dr, "NombreCompleto"),
                 Pais = GetNullableString(dr, "Pais"),
                 Telefono = GetNullableString(dr, "Telefono"),
-                ExisteInformacion = GetNullableBool(dr, "ExisteInformacion")
+                ExisteInformacion = GetNullableString(dr, "ExisteInformacion")
             };
         }
 
