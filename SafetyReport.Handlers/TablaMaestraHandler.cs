@@ -17,11 +17,11 @@ namespace SafetyReport.Handlers
             _logger = logger;
         }
 
-        public async Task<Respuesta> ListarAsync(UsuarioGeneral usuarioLogueado, string? idsMaestro)
+        public async Task<Respuesta> ListarAsync(UsuarioGeneral usuarioLogueado, string? idsMaestro, int? numPag)
         {
             try
             {
-                return await _dao.ListarAsync(usuarioLogueado, idsMaestro);
+                return await _dao.ListarAsync(usuarioLogueado, idsMaestro, numPag);
             }
             catch (Exception ex)
             {
@@ -31,7 +31,7 @@ namespace SafetyReport.Handlers
                 {
                     IdTipoMensaje = 3,
                     Mensaje = ex.Message,
-                    Result = new List<TablaMaestraGroup>()
+                    Result = new TablaMaestraListaResult()
                 };
             }
         }

@@ -72,7 +72,7 @@ namespace SafetyReport.DAO
             Date3 = GetNullableDateTime(dr, "Date3")
         };
 
-        public async Task<Respuesta> ListarAsync(UsuarioGeneral usuarioLogueado, string? idsMaestro)
+        public async Task<Respuesta> ListarAsync(UsuarioGeneral usuarioLogueado, string? idsMaestro, int? numPag)
         {
             try
             {
@@ -85,33 +85,43 @@ namespace SafetyReport.DAO
                 cmd.Parameters.Add("@intIdEmpresa", SqlDbType.Int).Value = usuarioLogueado.IdEmpresa;
                 cmd.Parameters.Add("@intIdRol", SqlDbType.Int).Value = usuarioLogueado.IdRol;
                 cmd.Parameters.Add("@vchIdsMaestro", SqlDbType.VarChar, -1).Value = (object?)idsMaestro ?? DBNull.Value;
+                cmd.Parameters.Add("@numPag", SqlDbType.Int).Value = (object?)numPag ?? DBNull.Value;
 
                 await cn.OpenAsync();
 
                 using var dr = await cmd.ExecuteReaderAsync();
                 var respuesta = await LeerCabeceraAsync(dr, cmd.CommandText);
 
-                var gruposPorId = new Dictionary<int, TablaMaestraGroup>();
-                var grupos = new List<TablaMaestraGroup>();
+                var resultado = new TablaMaestraListaResult();
                 if (respuesta.IdTipoMensaje == 2 && await dr.NextResultAsync())
                 {
-                    while (await dr.ReadAsync())
+                    if (await dr.ReadAsync())
                     {
-                        var item = LeerTablaMaestraItem(dr);
-                        var idMaestro = item.IdMaestro ?? 0;
+                        resultado.TotalRegistros = Convert.ToInt32(dr["TotalRegistros"]);
+                        resultado.TotalPaginas = Convert.ToInt32(dr["TotalPaginas"]);
+                    }
 
-                        if (!gruposPorId.TryGetValue(idMaestro, out var grupo))
+                    if (await dr.NextResultAsync())
+                    {
+                        var gruposPorId = new Dictionary<int, TablaMaestraGroup>();
+                        while (await dr.ReadAsync())
                         {
-                            grupo = new TablaMaestraGroup { IdMaestro = idMaestro, Items = new List<TablaMaestraItem>() };
-                            gruposPorId[idMaestro] = grupo;
-                            grupos.Add(grupo);
-                        }
+                            var item = LeerTablaMaestraItem(dr);
+                            var idMaestro = item.IdMaestro ?? 0;
 
-                        grupo.Items!.Add(item);
+                            if (!gruposPorId.TryGetValue(idMaestro, out var grupo))
+                            {
+                                grupo = new TablaMaestraGroup { IdMaestro = idMaestro, Items = new List<TablaMaestraItem>() };
+                                gruposPorId[idMaestro] = grupo;
+                                resultado.lstTablaMaestra.Add(grupo);
+                            }
+
+                            grupo.Items!.Add(item);
+                        }
                     }
                 }
 
-                respuesta.Result = grupos;
+                respuesta.Result = resultado;
                 return respuesta;
             }
             catch (Exception ex)
@@ -122,7 +132,7 @@ namespace SafetyReport.DAO
                 {
                     IdTipoMensaje = 3,
                     Mensaje = ex.Message,
-                    Result = new List<TablaMaestraGroup>()
+                    Result = new TablaMaestraListaResult()
                 };
             }
         }
