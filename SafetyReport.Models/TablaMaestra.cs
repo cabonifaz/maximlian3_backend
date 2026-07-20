@@ -96,6 +96,14 @@
     public class FiltroTablaMaestraRequest
     {
         public string? idsMaestro { get; set; }  // comma-separated, e.g. "2,44,60"; null returns all
+        public int? numPag { get; set; }
+    }
+
+    public class TablaMaestraListaResult
+    {
+        public List<TablaMaestraGroup> lstTablaMaestra { get; set; } = new();
+        public int TotalRegistros { get; set; }
+        public int TotalPaginas { get; set; }
     }
 
     public class ObtenerTablaMaestraRequest
