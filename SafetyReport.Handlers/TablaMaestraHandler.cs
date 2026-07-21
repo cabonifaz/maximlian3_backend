@@ -55,6 +55,25 @@ namespace SafetyReport.Handlers
             }
         }
 
+        public async Task<Respuesta> ListaCortaAsync(UsuarioGeneral usuarioLogueado, int idMaestro)
+        {
+            try
+            {
+                return await _dao.ListaCortaAsync(usuarioLogueado, idMaestro);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error no controlado en la capa de negocio.");
+
+                return new Respuesta
+                {
+                    IdTipoMensaje = 3,
+                    Mensaje = ex.Message,
+                    Result = new List<TablaMaestraCortaItem>()
+                };
+            }
+        }
+
         private static readonly HashSet<int> _maestrosSoloString1 = new() { 14, 44, 45, 47, 48, 49, 52, 56, 57, 58, 59, 60, 61 };
 
         public async Task<Respuesta> CrearAsync(UsuarioGeneral usuarioLogueado, TablaMaestraRequest request)

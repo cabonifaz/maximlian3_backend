@@ -30,6 +30,13 @@ namespace SafetyReport.WebApi.Controllers
             return Ok(respuesta);
         }
 
+        [HttpPost("listaCorta")]
+        public async Task<IActionResult> ListaCorta([FromBody] TablaMaestraListaCortaRequest request)
+        {
+            var respuesta = await _tablaMaestraHandler.ListaCortaAsync(UsuarioLogueado, request.IdMaestro);
+            return Ok(respuesta);
+        }
+
         [HttpPost("crear")]
         public async Task<IActionResult> Crear([FromBody] TablaMaestraRequest request)
         {
