@@ -72,7 +72,7 @@ namespace SafetyReport.DAO
             Date3 = GetNullableDateTime(dr, "Date3")
         };
 
-        public async Task<Respuesta> ListarAsync(UsuarioGeneral usuarioLogueado, string? idsMaestro, int? numPag)
+        public async Task<Respuesta> ListarAsync(UsuarioGeneral usuarioLogueado, string? idsMaestro, string? busqueda, int? numPag)
         {
             try
             {
@@ -85,6 +85,7 @@ namespace SafetyReport.DAO
                 cmd.Parameters.Add("@intIdEmpresa", SqlDbType.Int).Value = usuarioLogueado.IdEmpresa;
                 cmd.Parameters.Add("@intIdRol", SqlDbType.Int).Value = usuarioLogueado.IdRol;
                 cmd.Parameters.Add("@vchIdsMaestro", SqlDbType.VarChar, -1).Value = (object?)idsMaestro ?? DBNull.Value;
+                cmd.Parameters.Add("@vchBusqueda", SqlDbType.VarChar, 255).Value = (object?)busqueda ?? DBNull.Value;
                 cmd.Parameters.Add("@numPag", SqlDbType.Int).Value = (object?)numPag ?? DBNull.Value;
 
                 await cn.OpenAsync();

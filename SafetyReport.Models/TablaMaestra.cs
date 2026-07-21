@@ -96,6 +96,7 @@
     public class FiltroTablaMaestraRequest
     {
         public string? idsMaestro { get; set; }  // comma-separated, e.g. "2,44,60"; null returns all
+        public string? busqueda { get; set; }
         public int? numPag { get; set; }
     }
 
