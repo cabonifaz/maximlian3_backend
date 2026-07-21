@@ -76,6 +76,20 @@ namespace SafetyReport.Handlers
             }
         }
 
+        public async Task<Respuesta> BuscarAsync(UsuarioGeneral usuarioLogueado, FiltroCompaniaBusqueda filtro)
+        {
+            try
+            {
+                return await _dao.BuscarAsync(usuarioLogueado, filtro);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error no controlado en la capa de negocio.");
+
+                return new Respuesta { IdTipoMensaje = 3, Mensaje = ex.Message, Result = new List<CompaniaBusquedaItem>() };
+            }
+        }
+
         public async Task<Respuesta> ListarMatchAsync(UsuarioGeneral usuarioLogueado, List<CompaniaMatchItem> lista)
         {
             try
