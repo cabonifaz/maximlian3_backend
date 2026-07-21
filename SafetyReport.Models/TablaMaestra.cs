@@ -107,6 +107,11 @@
         public int TotalPaginas { get; set; }
     }
 
+    public class TablaMaestraListaCortaRequest
+    {
+        public int IdMaestro { get; set; }
+    }
+
     public class TablaMaestraCortaItem
     {
         public int Num1 { get; set; }
