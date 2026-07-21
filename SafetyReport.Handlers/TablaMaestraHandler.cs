@@ -17,11 +17,11 @@ namespace SafetyReport.Handlers
             _logger = logger;
         }
 
-        public async Task<Respuesta> ListarAsync(UsuarioGeneral usuarioLogueado, string? idsMaestro, int? numPag)
+        public async Task<Respuesta> ListarAsync(UsuarioGeneral usuarioLogueado, string? idsMaestro, string? busqueda, int? numPag)
         {
             try
             {
-                return await _dao.ListarAsync(usuarioLogueado, idsMaestro, numPag);
+                return await _dao.ListarAsync(usuarioLogueado, idsMaestro, busqueda, numPag);
             }
             catch (Exception ex)
             {
