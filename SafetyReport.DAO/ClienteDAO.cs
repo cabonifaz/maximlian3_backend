@@ -186,6 +186,7 @@ namespace SafetyReport.DAO
                 cmd.Parameters.Add("@bitAplicaPenalidad", SqlDbType.Bit).Value = request.AplicaPenalidad;
                 cmd.Parameters.Add("@intIdPlantilla", SqlDbType.Int).Value = request.IdPlantilla;
                 cmd.Parameters.Add("@intIdEstado", SqlDbType.Int).Value = request.IdEstado;
+                cmd.Parameters.Add("@bitEmitirPrefactura", SqlDbType.Bit).Value = request.EmitirPrefactura;
 
                 var tableFormatoDocumento = ConstruirTablaFormatoDocumento(request.LstIdFormatoDocumento);
                 var tvpFormatoDocumento = cmd.Parameters.AddWithValue("@lstIdFormatoDocumento", tableFormatoDocumento);
@@ -267,6 +268,7 @@ namespace SafetyReport.DAO
                 cmd.Parameters.Add("@bitAplicaPenalidad", SqlDbType.Bit).Value = request.AplicaPenalidad;
                 cmd.Parameters.Add("@intIdPlantilla", SqlDbType.Int).Value = request.IdPlantilla;
                 cmd.Parameters.Add("@intIdEstado", SqlDbType.Int).Value = request.IdEstado;
+                cmd.Parameters.Add("@bitEmitirPrefactura", SqlDbType.Bit).Value = request.EmitirPrefactura;
 
                 var tableFormatoDocumento = ConstruirTablaFormatoDocumento(request.LstIdFormatoDocumento);
                 var tvpFormatoDocumento = cmd.Parameters.AddWithValue("@lstIdFormatoDocumento", tableFormatoDocumento);
@@ -350,7 +352,8 @@ namespace SafetyReport.DAO
                             IdIdiomaFacturacion = Convert.ToInt32(dr["IdIdiomaFacturacion"]),
                             AplicaPenalidad = Convert.ToBoolean(dr["AplicaPenalidad"]),
                             IdPlantilla = Convert.ToInt32(dr["IdPlantilla"]),
-                            IdEstado = Convert.ToInt32(dr["IdEstado"])
+                            IdEstado = Convert.ToInt32(dr["IdEstado"]),
+                            EmitirPrefactura = Convert.ToBoolean(dr["EmitirPrefactura"])
                         });
                     }
 
