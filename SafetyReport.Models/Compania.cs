@@ -88,6 +88,18 @@ namespace SafetyReport.Models
         public int NumPag { get; set; } = 1;
     }
 
+    public class FiltroCompaniaBusqueda
+    {
+        public string? Busqueda { get; set; }
+    }
+
+    public class CompaniaBusquedaItem
+    {
+        public int IdCompania { get; set; }
+        public string? NumeroDocumento { get; set; }
+        public string? NombreCompleto { get; set; }
+    }
+
     public class CompaniaListaResult
     {
         public List<CompaniaListaConsulta> lstCompanias { get; set; } = new();

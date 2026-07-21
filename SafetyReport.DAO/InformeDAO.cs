@@ -1340,7 +1340,7 @@ namespace SafetyReport.DAO
                                     Extension = dr["Extension"]?.ToString() ?? string.Empty,
                                     TamanoBytes = Convert.ToInt64(dr["TamanoBytes"]),
                                     IdTipoArchivo = Convert.ToInt32(dr["IdTipoArchivo"]),
-                                    IdFaseEvidencia = Convert.ToInt32(dr["IdFaseEvidencia"])
+                                    IdFaseEvidencia = GetNullableInt(dr, "IdFaseEvidencia")
                                 });
                         }
 

@@ -36,6 +36,7 @@
         public bool AplicaPenalidad { get; set; }
         public int IdPlantilla { get; set; }
         public int IdEstado { get; set; }
+        public bool EmitirPrefactura { get; set; }
         public List<ClienteContactoRequest> Contactos { get; set; } = new();
         public List<ClienteTarifarioRequest> Tarifario { get; set; } = new();
     }
@@ -65,6 +66,7 @@
         public bool AplicaPenalidad { get; set; }
         public int IdPlantilla { get; set; }
         public int IdEstado { get; set; }
+        public bool EmitirPrefactura { get; set; }
     }
 
     public class ClienteCreado
@@ -104,6 +106,7 @@
         public bool AplicaPenalidad { get; set; }
         public int IdPlantilla { get; set; }
         public int IdEstado { get; set; }
+        public bool EmitirPrefactura { get; set; }
     }
 
     public class ClienteListaResult

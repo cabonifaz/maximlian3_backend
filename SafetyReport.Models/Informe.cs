@@ -760,7 +760,7 @@ namespace SafetyReport.Models
         public string Extension { get; set; } = string.Empty;
         public long TamanoBytes { get; set; }
         public int IdTipoArchivo { get; set; }
-        public int IdFaseEvidencia { get; set; }
+        public int? IdFaseEvidencia { get; set; }
     }
 
     public class InformeArchivoUrlRequest
