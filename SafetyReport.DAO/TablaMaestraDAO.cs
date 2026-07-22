@@ -220,7 +220,9 @@ namespace SafetyReport.DAO
                         lista.Add(new TablaMaestraCortaItem
                         {
                             Num1 = Convert.ToInt32(dr["Num1"]),
-                            String1 = GetNullableString(dr, "String1")
+                            String1 = GetNullableString(dr, "String1"),
+                            String2 = GetNullableString(dr, "String2"),
+                            String3 = GetNullableString(dr, "String3")
                         });
                 }
 
