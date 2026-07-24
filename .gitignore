@@ -486,3 +486,6 @@ SafetyReport.WebApi/appsettings.json
 SafetyReport.WebApi/Properties/launchSettings.json
 
 CLAUDE.md
+
+# Cache de token OAuth de la cuenta de envio de correos (contiene refresh token)
+SafetyReport.WebApi/App_Data/
