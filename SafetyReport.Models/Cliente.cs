@@ -153,4 +153,28 @@
     {
         public List<ClienteListaCortaItem> lstCliente { get; set; } = new();
     }
+
+    public class FiltroClienteFacturacion
+    {
+        public int? numPag { get; set; }
+        public string? busqueda { get; set; }
+    }
+
+    public class ClienteListaFacturacionResult
+    {
+        public List<ClienteListaFacturacionConsulta> lstClientes { get; set; } = new();
+        public int TotalRegistros { get; set; }
+        public int TotalPaginas { get; set; }
+    }
+
+    public class ClienteListaFacturacionConsulta
+    {
+        public int IdCliente { get; set; }
+        public string Nombre { get; set; } = string.Empty;
+        public string? EmitirPrefactura { get; set; }
+        public int TotalPedidos { get; set; }
+        public int PedidosFacturados { get; set; }
+        public string? IdIdiomaFacturacion { get; set; }
+        public string? EstadoFacturacion { get; set; }
+    }
 }

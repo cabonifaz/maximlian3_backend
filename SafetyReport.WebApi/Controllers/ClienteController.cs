@@ -58,5 +58,12 @@ namespace SafetyReport.WebApi.Controllers
             var respuesta = await _clienteHandler.ListarClienteShortAsync(UsuarioLogueado, correoBusqueda);
             return Ok(respuesta);
         }
+
+        [HttpGet("listarFacturacion")]
+        public async Task<IActionResult> ListarFacturacion([FromQuery] FiltroClienteFacturacion request)
+        {
+            var respuesta = await _clienteHandler.ListarClientesFacturacionAsync(UsuarioLogueado, request?.busqueda, request?.numPag);
+            return Ok(respuesta);
+        }
     }
 }

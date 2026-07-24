@@ -562,5 +562,74 @@ namespace SafetyReport.DAO
                 };
             }
         }
+
+        public async Task<Respuesta> ListarClientesFacturacionAsync(UsuarioGeneral usuarioLogueado, string? busqueda, int? numPag)
+        {
+            try
+            {
+                using SqlConnection cn = new(_dbConfig.ConnectionString);
+                using SqlCommand cmd = new("SP_Cliente_ListarFacturacion", cn);
+
+                cmd.CommandType = CommandType.StoredProcedure;
+                cmd.Parameters.Add("@intIdUsuario", SqlDbType.Int).Value = usuarioLogueado.IdUsuario;
+                cmd.Parameters.Add("@vchUsuario", SqlDbType.VarChar, 32).Value = usuarioLogueado.Usuario;
+                cmd.Parameters.Add("@intIdEmpresa", SqlDbType.Int).Value = usuarioLogueado.IdEmpresa;
+                cmd.Parameters.Add("@intIdRol", SqlDbType.Int).Value = usuarioLogueado.IdRol;
+                cmd.Parameters.Add("@vchBusqueda", SqlDbType.VarChar, 255).Value = (object?)busqueda ?? DBNull.Value;
+                cmd.Parameters.Add("@numPag", SqlDbType.Int).Value = (object?)numPag ?? DBNull.Value;
+
+                await cn.OpenAsync();
+
+                using var dr = await cmd.ExecuteReaderAsync();
+                var respuesta = await LeerCabeceraAsync(dr, cmd.CommandText);
+
+                if (respuesta.IdTipoMensaje == 2 && await dr.NextResultAsync())
+                {
+                    var resultado = new ClienteListaFacturacionResult();
+
+                    if (await dr.ReadAsync())
+                    {
+                        resultado.TotalRegistros = Convert.ToInt32(dr["TotalRegistros"]);
+                        resultado.TotalPaginas = Convert.ToInt32(dr["TotalPaginas"]);
+                    }
+
+                    if (await dr.NextResultAsync())
+                    {
+                        while (await dr.ReadAsync())
+                        {
+                            resultado.lstClientes.Add(new ClienteListaFacturacionConsulta
+                            {
+                                IdCliente = Convert.ToInt32(dr["IdCliente"]),
+                                Nombre = dr["Nombre"]?.ToString() ?? string.Empty,
+                                EmitirPrefactura = GetNullableString(dr, "EmitirPrefactura"),
+                                TotalPedidos = Convert.ToInt32(dr["TotalPedidos"]),
+                                PedidosFacturados = Convert.ToInt32(dr["PedidosFacturados"]),
+                                IdIdiomaFacturacion = GetNullableString(dr, "IdIdiomaFacturacion"),
+                                EstadoFacturacion = GetNullableString(dr, "EstadoFacturacion")
+                            });
+                        }
+                    }
+
+                    respuesta.Result = resultado;
+                }
+                else
+                {
+                    respuesta.Result = new ClienteListaFacturacionResult();
+                }
+
+                return respuesta;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error no controlado en la capa de datos.");
+
+                return new Respuesta
+                {
+                    IdTipoMensaje = 3,
+                    Mensaje = ex.Message,
+                    Result = new ClienteListaFacturacionResult()
+                };
+            }
+        }
     }
 }
