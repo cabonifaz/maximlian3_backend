@@ -563,7 +563,7 @@ namespace SafetyReport.DAO
             }
         }
 
-        public async Task<Respuesta> ListarClientesFacturacionAsync(UsuarioGeneral usuarioLogueado, string? busqueda, int? numPag)
+        public async Task<Respuesta> ListarClientesFacturacionAsync(UsuarioGeneral usuarioLogueado, string? busqueda, int? numPag, int? emitirPrefactura, int? idIdiomaFacturacion, int? estadoFacturacion)
         {
             try
             {
@@ -577,6 +577,9 @@ namespace SafetyReport.DAO
                 cmd.Parameters.Add("@intIdRol", SqlDbType.Int).Value = usuarioLogueado.IdRol;
                 cmd.Parameters.Add("@vchBusqueda", SqlDbType.VarChar, 255).Value = (object?)busqueda ?? DBNull.Value;
                 cmd.Parameters.Add("@numPag", SqlDbType.Int).Value = (object?)numPag ?? DBNull.Value;
+                cmd.Parameters.Add("@intEmitirPrefactura", SqlDbType.Int).Value = (object?)emitirPrefactura ?? DBNull.Value;
+                cmd.Parameters.Add("@intIdIdiomaFacturacion", SqlDbType.Int).Value = (object?)idIdiomaFacturacion ?? DBNull.Value;
+                cmd.Parameters.Add("@intEstadoFacturacion", SqlDbType.Int).Value = (object?)estadoFacturacion ?? DBNull.Value;
 
                 await cn.OpenAsync();
 

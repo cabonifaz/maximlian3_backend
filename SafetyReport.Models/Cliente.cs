@@ -158,6 +158,9 @@
     {
         public int? numPag { get; set; }
         public string? busqueda { get; set; }
+        public int? emitirPrefactura { get; set; }
+        public int? idIdiomaFacturacion { get; set; }
+        public int? estadoFacturacion { get; set; }
     }
 
     public class ClienteListaFacturacionResult
