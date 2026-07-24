@@ -1526,6 +1526,52 @@ namespace SafetyReport.DAO
             }
         }
 
+        public async Task<Respuesta> ObtenerDatosPrefacturaAsync(UsuarioGeneral u, int idInforme, int idEstadoInforme)
+        {
+            try
+            {
+                using SqlConnection cn = new(_dbConfig.ConnectionString);
+                using SqlCommand cmd = new("SP_Informe_ObtenerDatosPrefactura", cn) { CommandType = CommandType.StoredProcedure };
+                AgregarParametrosAuditoria(cmd, u);
+                cmd.Parameters.Add("@intIdInforme", SqlDbType.Int).Value = idInforme;
+                cmd.Parameters.Add("@intIdEstadoInforme", SqlDbType.Int).Value = idEstadoInforme;
+                await cn.OpenAsync();
+
+                using var dr = await cmd.ExecuteReaderAsync();
+                var respuesta = await LeerCabeceraAsync(dr, cmd.CommandText);
+
+                var lista = new List<PrefacturaDatosConsulta>();
+                if (respuesta.IdTipoMensaje == 2 && await dr.NextResultAsync())
+                {
+                    while (await dr.ReadAsync())
+                    {
+                        lista.Add(new PrefacturaDatosConsulta
+                        {
+                            Correo = GetNullableString(dr, "Correo"),
+                            CodigoPedido = dr["CodigoPedido"]?.ToString() ?? string.Empty,
+                            NombreInvestigado = GetNullableString(dr, "NombreInvestigado"),
+                            Pais = GetNullableString(dr, "Pais"),
+                            Moneda = GetNullableString(dr, "Moneda"),
+                            TipoTramite = GetNullableString(dr, "TipoTramite"),
+                            DiasMinMax = GetNullableString(dr, "DiasMinMax"),
+                            Precio = GetNullableDecimal(dr, "Precio") ?? 0,
+                            Penalidad = GetNullableDecimal(dr, "Penalidad") ?? 0,
+                            EsIngles = Convert.ToBoolean(dr["EsIngles"])
+                        });
+                    }
+                }
+
+                respuesta.Result = lista;
+                return respuesta;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error no controlado en la capa de datos.");
+
+                return new Respuesta { IdTipoMensaje = 3, Mensaje = ex.Message, Result = new List<PrefacturaDatosConsulta>() };
+            }
+        }
+
         public async Task<Respuesta> ObtenerRutaDocumentoAsync(UsuarioGeneral u, int idInforme, int idPedido)
         {
             try

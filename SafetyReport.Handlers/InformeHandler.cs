@@ -13,9 +13,6 @@ namespace SafetyReport.Handlers
         private readonly InformeDAO _dao;
         private readonly InformeLocalImagenDAO _localImagenDAO;
         private readonly PedidoDAO _pedidoDAO;
-        private readonly ClienteDAO _clienteDAO;
-        private readonly TarifarioDAO _tarifarioDAO;
-        private readonly TablaMaestraDAO _tablaMaestraDAO;
         private readonly PlantillaDocumentoDAO _plantillaDAO;
         private readonly IS3UploadService _s3;
         private readonly N8nService _n8n;
@@ -26,19 +23,11 @@ namespace SafetyReport.Handlers
         private readonly int _s3ExpirationMinutes;
         private readonly ILogger<InformeHandler> _logger;
 
-        // Catalogo TablaMaestra (IdMaestro=53 -> Estado Informe). Num1=4 identifica "Aprobado", estable entre ambientes
-        // a diferencia del IdTablaMaestra (PK autonumerica que puede variar segun el sembrado de cada base).
-        private const int IdMaestroEstadoInforme = 53;
-        private const int Num1EstadoAprobado = 4;
-
-        public InformeHandler(InformeDAO dao, InformeLocalImagenDAO localImagenDAO, PedidoDAO pedidoDAO, ClienteDAO clienteDAO, TarifarioDAO tarifarioDAO, TablaMaestraDAO tablaMaestraDAO, PlantillaDocumentoDAO plantillaDAO, IS3UploadService s3, N8nService n8n, N8nConfig n8nConfig, DocxGeneratorService docxGenerator, PdfGeneratorService pdfGenerator, IEmailService emailService, IConfiguration configuration, ILogger<InformeHandler> logger)
+        public InformeHandler(InformeDAO dao, InformeLocalImagenDAO localImagenDAO, PedidoDAO pedidoDAO, PlantillaDocumentoDAO plantillaDAO, IS3UploadService s3, N8nService n8n, N8nConfig n8nConfig, DocxGeneratorService docxGenerator, PdfGeneratorService pdfGenerator, IEmailService emailService, IConfiguration configuration, ILogger<InformeHandler> logger)
         {
             _dao = dao;
             _localImagenDAO = localImagenDAO;
             _pedidoDAO = pedidoDAO;
-            _clienteDAO = clienteDAO;
-            _tarifarioDAO = tarifarioDAO;
-            _tablaMaestraDAO = tablaMaestraDAO;
             _plantillaDAO = plantillaDAO;
             _s3 = s3;
             _n8n = n8n;
@@ -353,9 +342,9 @@ namespace SafetyReport.Handlers
             {
                 var respuesta = await _dao.ActualizarEstadoAsync(usuarioLogueado, request.IdInforme, request.IdEstadoInforme);
 
-                if (respuesta.IdTipoMensaje == 2 && await EsEstadoAprobadoAsync(usuarioLogueado, request.IdEstadoInforme))
+                if (respuesta.IdTipoMensaje == 2)
                 {
-                    await EnviarPrefacturaSiCorrespondeAsync(usuarioLogueado, request.IdPedido);
+                    await EnviarPrefacturaSiCorrespondeAsync(usuarioLogueado, request.IdInforme, request.IdEstadoInforme);
                 }
 
                 return respuesta;
@@ -368,40 +357,30 @@ namespace SafetyReport.Handlers
             }
         }
 
-        private async Task<bool> EsEstadoAprobadoAsync(UsuarioGeneral usuarioLogueado, int idEstadoInforme)
-        {
-            var respuesta = await _tablaMaestraDAO.ObtenerAsync(usuarioLogueado, new ObtenerTablaMaestraRequest { idMaestro = IdMaestroEstadoInforme });
-            var estados = respuesta.Result as List<TablaMaestraItem> ?? new List<TablaMaestraItem>();
-            var estadoAprobado = estados.FirstOrDefault(e => e.Num1 == Num1EstadoAprobado);
-
-            return estadoAprobado?.IdTablaMaestra == idEstadoInforme;
-        }
-
-        private async Task EnviarPrefacturaSiCorrespondeAsync(UsuarioGeneral usuarioLogueado, int idPedido)
+        private async Task EnviarPrefacturaSiCorrespondeAsync(UsuarioGeneral usuarioLogueado, int idInforme, int idEstadoInforme)
         {
             try
             {
-                var pedidoResp = await _pedidoDAO.ObtenerAsync(usuarioLogueado, new FiltroPedidoObtener { idPedido = idPedido });
-                var pedido = (pedidoResp.Result as List<PedidoConsulta>)?.FirstOrDefault();
-                if (pedido == null) return;
+                var respuesta = await _dao.ObtenerDatosPrefacturaAsync(usuarioLogueado, idInforme, idEstadoInforme);
+                var datos = (respuesta.Result as List<PrefacturaDatosConsulta>)?.FirstOrDefault();
+                if (datos == null || string.IsNullOrWhiteSpace(datos.Correo)) return;
 
-                var clienteResp = await _clienteDAO.ObtenerClienteAsync(usuarioLogueado, pedido.IdCliente);
-                var cliente = (clienteResp.Result as List<ClienteConsulta>)?.FirstOrDefault();
-                if (cliente == null || !cliente.EmitirPrefactura || string.IsNullOrWhiteSpace(cliente.Correo)) return;
-
-                var tarifarioResp = await _tarifarioDAO.ObtenerAsync(usuarioLogueado, new TarifarioIdRequest { idTarifario = pedido.IdTarifario, idCliente = pedido.IdCliente });
-                var tarifario = (tarifarioResp.Result as List<TarifarioConsulta>)?.FirstOrDefault();
-
-                await _emailService.EnviarPrefacturaAsync(cliente.Correo, new PrefacturaEmailDetalle
+                await _emailService.EnviarPrefacturaAsync(datos.Correo, new PrefacturaEmailDetalle
                 {
-                    CodigoPedido = pedido.Codigo,
-                    NombreInvestigado = pedido.InvestigarRazonSocialNombres,
-                    Costo = tarifario?.Precio ?? 0
+                    EsIngles = datos.EsIngles,
+                    CodigoPedido = datos.CodigoPedido,
+                    NombreInvestigado = datos.NombreInvestigado,
+                    Pais = datos.Pais,
+                    Moneda = datos.Moneda,
+                    Tramite = datos.TipoTramite,
+                    DiasMinMax = datos.DiasMinMax,
+                    Costo = datos.Precio,
+                    Penalidad = datos.Penalidad
                 });
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "No se pudo enviar el correo de prefactura para el pedido {IdPedido}.", idPedido);
+                _logger.LogError(ex, "No se pudo enviar el correo de prefactura para el informe {IdInforme}.", idInforme);
             }
         }
 

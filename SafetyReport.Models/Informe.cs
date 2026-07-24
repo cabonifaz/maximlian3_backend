@@ -462,7 +462,20 @@ namespace SafetyReport.Models
     {
         public int IdInforme { get; set; }
         public int IdEstadoInforme { get; set; }
-        public int IdPedido { get; set; }
+    }
+
+    public class PrefacturaDatosConsulta
+    {
+        public string? Correo { get; set; }
+        public string CodigoPedido { get; set; } = string.Empty;
+        public string? NombreInvestigado { get; set; }
+        public string? Pais { get; set; }
+        public string? Moneda { get; set; }
+        public string? TipoTramite { get; set; }
+        public string? DiasMinMax { get; set; }
+        public decimal Precio { get; set; }
+        public decimal Penalidad { get; set; }
+        public bool EsIngles { get; set; }
     }
 
     public class InformeBalanceTotalizadoCalcularRequest

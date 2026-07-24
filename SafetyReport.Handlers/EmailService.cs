@@ -56,11 +56,13 @@ namespace SafetyReport.Handlers
 
             var mensaje = new Message
             {
-                Subject = $"Prefactura del Pedido {detalle.CodigoPedido} - Pendiente de aprobación",
+                Subject = detalle.EsIngles
+                    ? $"Pro Forma Invoice for Order {detalle.CodigoPedido} - Pending Approval"
+                    : $"Prefactura del Pedido {detalle.CodigoPedido} - Pendiente de aprobación",
                 Body = new ItemBody
                 {
                     ContentType = BodyType.Html,
-                    Content = ArmarCuerpoHtml(detalle)
+                    Content = detalle.EsIngles ? ArmarCuerpoHtmlIngles(detalle) : ArmarCuerpoHtmlEspanol(detalle)
                 },
                 ToRecipients =
                 [
@@ -77,7 +79,7 @@ namespace SafetyReport.Handlers
             _logger.LogInformation("Correo de prefactura enviado para el pedido {CodigoPedido} a {Correo}.", detalle.CodigoPedido, correoDestino);
         }
 
-        private static string ArmarCuerpoHtml(PrefacturaEmailDetalle detalle) =>
+        private static string ArmarCuerpoHtmlEspanol(PrefacturaEmailDetalle detalle) =>
             $"""
             <p>Estimado(a) cliente,</p>
             <p>Le hacemos llegar la prefactura correspondiente al pedido <strong>{detalle.CodigoPedido}</strong> para su revisión y aprobación.</p>
@@ -91,13 +93,76 @@ namespace SafetyReport.Handlers
                     <td style="border: 1px solid #ccc;">{detalle.NombreInvestigado}</td>
                 </tr>
                 <tr>
-                    <td style="border: 1px solid #ccc; font-weight: bold;">Costo</td>
+                    <td style="border: 1px solid #ccc; font-weight: bold;">País</td>
+                    <td style="border: 1px solid #ccc;">{detalle.Pais}</td>
+                </tr>
+                <tr>
+                    <td style="border: 1px solid #ccc; font-weight: bold;">Moneda</td>
+                    <td style="border: 1px solid #ccc;">{detalle.Moneda}</td>
+                </tr>
+                <tr>
+                    <td style="border: 1px solid #ccc; font-weight: bold;">Trámite</td>
+                    <td style="border: 1px solid #ccc;">{detalle.Tramite}</td>
+                </tr>
+                <tr>
+                    <td style="border: 1px solid #ccc; font-weight: bold;">Días (mín - máx)</td>
+                    <td style="border: 1px solid #ccc;">{detalle.DiasMinMax}</td>
+                </tr>
+                <tr>
+                    <td style="border: 1px solid #ccc; font-weight: bold;">Precio</td>
                     <td style="border: 1px solid #ccc;">{detalle.Costo:N2}</td>
+                </tr>
+                <tr>
+                    <td style="border: 1px solid #ccc; font-weight: bold;">Penalidad</td>
+                    <td style="border: 1px solid #ccc;">{detalle.Penalidad:N2}</td>
                 </tr>
             </table>
             <p>Por favor, confírmenos su <strong>aprobación respondiendo este correo</strong> a la brevedad para continuar con el proceso de facturación.</p>
             <p>Quedamos atentos ante cualquier consulta.</p>
             <p>Saludos cordiales.</p>
+            """;
+
+        private static string ArmarCuerpoHtmlIngles(PrefacturaEmailDetalle detalle) =>
+            $"""
+            <p>Dear Customer,</p>
+            <p>Please find below the pro forma invoice for order <strong>{detalle.CodigoPedido}</strong> for your review and approval.</p>
+            <table cellpadding="6" cellspacing="0" style="border-collapse: collapse; margin: 12px 0;">
+                <tr>
+                    <td style="border: 1px solid #ccc; font-weight: bold;">Order</td>
+                    <td style="border: 1px solid #ccc;">{detalle.CodigoPedido}</td>
+                </tr>
+                <tr>
+                    <td style="border: 1px solid #ccc; font-weight: bold;">Subject</td>
+                    <td style="border: 1px solid #ccc;">{detalle.NombreInvestigado}</td>
+                </tr>
+                <tr>
+                    <td style="border: 1px solid #ccc; font-weight: bold;">Country</td>
+                    <td style="border: 1px solid #ccc;">{detalle.Pais}</td>
+                </tr>
+                <tr>
+                    <td style="border: 1px solid #ccc; font-weight: bold;">Currency</td>
+                    <td style="border: 1px solid #ccc;">{detalle.Moneda}</td>
+                </tr>
+                <tr>
+                    <td style="border: 1px solid #ccc; font-weight: bold;">Service Type</td>
+                    <td style="border: 1px solid #ccc;">{detalle.Tramite}</td>
+                </tr>
+                <tr>
+                    <td style="border: 1px solid #ccc; font-weight: bold;">Days (min - max)</td>
+                    <td style="border: 1px solid #ccc;">{detalle.DiasMinMax}</td>
+                </tr>
+                <tr>
+                    <td style="border: 1px solid #ccc; font-weight: bold;">Price</td>
+                    <td style="border: 1px solid #ccc;">{detalle.Costo:N2}</td>
+                </tr>
+                <tr>
+                    <td style="border: 1px solid #ccc; font-weight: bold;">Penalty</td>
+                    <td style="border: 1px solid #ccc;">{detalle.Penalidad:N2}</td>
+                </tr>
+            </table>
+            <p>Please confirm your <strong>approval by replying to this email</strong> as soon as possible so we can proceed with the invoicing process.</p>
+            <p>Please let us know if you have any questions.</p>
+            <p>Best regards.</p>
             """;
     }
 
