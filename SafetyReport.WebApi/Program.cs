@@ -250,6 +250,11 @@ builder.Services.AddHttpClient<N8nService>(client =>
     client.Timeout = TimeSpan.FromSeconds(300);
 });
 
+var emailConfig = builder.Configuration.GetSection("Email").Get<EmailConfig>()
+    ?? throw new Exception("Falta configuración Email");
+builder.Services.AddSingleton(emailConfig);
+builder.Services.AddSingleton<IEmailService, EmailService>();
+
 var app = builder.Build();
 
 S3FallbackTarget.UploadService = app.Services.GetRequiredService<IS3UploadService>();
