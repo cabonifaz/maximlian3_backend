@@ -19,10 +19,11 @@ namespace SafetyReport.Handlers
         private readonly N8nConfig _n8nConfig;
         private readonly DocxGeneratorService _docxGenerator;
         private readonly PdfGeneratorService _pdfGenerator;
+        private readonly IEmailService _emailService;
         private readonly int _s3ExpirationMinutes;
         private readonly ILogger<InformeHandler> _logger;
 
-        public InformeHandler(InformeDAO dao, InformeLocalImagenDAO localImagenDAO, PedidoDAO pedidoDAO, PlantillaDocumentoDAO plantillaDAO, IS3UploadService s3, N8nService n8n, N8nConfig n8nConfig, DocxGeneratorService docxGenerator, PdfGeneratorService pdfGenerator, IConfiguration configuration, ILogger<InformeHandler> logger)
+        public InformeHandler(InformeDAO dao, InformeLocalImagenDAO localImagenDAO, PedidoDAO pedidoDAO, PlantillaDocumentoDAO plantillaDAO, IS3UploadService s3, N8nService n8n, N8nConfig n8nConfig, DocxGeneratorService docxGenerator, PdfGeneratorService pdfGenerator, IEmailService emailService, IConfiguration configuration, ILogger<InformeHandler> logger)
         {
             _dao = dao;
             _localImagenDAO = localImagenDAO;
@@ -33,6 +34,7 @@ namespace SafetyReport.Handlers
             _n8nConfig = n8nConfig;
             _docxGenerator = docxGenerator;
             _pdfGenerator = pdfGenerator;
+            _emailService = emailService;
             _s3ExpirationMinutes = int.TryParse(configuration["AWS:S3ExpirationTime"], out var exp) ? exp : 15;
             _logger = logger;
         }
@@ -338,13 +340,41 @@ namespace SafetyReport.Handlers
         {
             try
             {
-                return await _dao.ActualizarEstadoAsync(usuarioLogueado, request.IdInforme, request.IdEstadoInforme);
+                var respuesta = await _dao.ActualizarEstadoAsync(usuarioLogueado, request.IdInforme, request.IdEstadoInforme);
+
+                if (respuesta.IdTipoMensaje == 2)
+                {
+                    await EnviarPrefacturaSiCorrespondeAsync(usuarioLogueado, request.IdInforme, request.IdEstadoInforme);
+                }
+
+                return respuesta;
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error no controlado en la capa de negocio.");
 
                 return new Respuesta { IdTipoMensaje = 3, Mensaje = ex.Message, Result = new List<object>() };
+            }
+        }
+
+        private async Task EnviarPrefacturaSiCorrespondeAsync(UsuarioGeneral usuarioLogueado, int idInforme, int idEstadoInforme)
+        {
+            try
+            {
+                var respuesta = await _dao.ObtenerDatosPrefacturaAsync(usuarioLogueado, idInforme, idEstadoInforme);
+                var datos = (respuesta.Result as List<PrefacturaDatosConsulta>)?.FirstOrDefault();
+                if (datos == null || string.IsNullOrWhiteSpace(datos.Correo)) return;
+
+                await _emailService.EnviarPrefacturaAsync(datos.Correo, new PrefacturaEmailDetalle
+                {
+                    CodigoPedido = datos.CodigoPedido,
+                    Asunto = datos.Asunto,
+                    CuerpoHtml = datos.CuerpoHtml
+                });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "No se pudo enviar el correo de prefactura para el informe {IdInforme}.", idInforme);
             }
         }
 
