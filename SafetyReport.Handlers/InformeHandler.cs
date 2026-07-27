@@ -367,15 +367,9 @@ namespace SafetyReport.Handlers
 
                 await _emailService.EnviarPrefacturaAsync(datos.Correo, new PrefacturaEmailDetalle
                 {
-                    EsIngles = datos.EsIngles,
                     CodigoPedido = datos.CodigoPedido,
-                    NombreInvestigado = datos.NombreInvestigado,
-                    Pais = datos.Pais,
-                    Moneda = datos.Moneda,
-                    Tramite = datos.TipoTramite,
-                    DiasMinMax = datos.DiasMinMax,
-                    Costo = datos.Precio,
-                    Penalidad = datos.Penalidad
+                    Asunto = datos.Asunto,
+                    CuerpoHtml = datos.CuerpoHtml
                 });
             }
             catch (Exception ex)

@@ -1549,14 +1549,8 @@ namespace SafetyReport.DAO
                         {
                             Correo = GetNullableString(dr, "Correo"),
                             CodigoPedido = dr["CodigoPedido"]?.ToString() ?? string.Empty,
-                            NombreInvestigado = GetNullableString(dr, "NombreInvestigado"),
-                            Pais = GetNullableString(dr, "Pais"),
-                            Moneda = GetNullableString(dr, "Moneda"),
-                            TipoTramite = GetNullableString(dr, "TipoTramite"),
-                            DiasMinMax = GetNullableString(dr, "DiasMinMax"),
-                            Precio = GetNullableDecimal(dr, "Precio") ?? 0,
-                            Penalidad = GetNullableDecimal(dr, "Penalidad") ?? 0,
-                            EsIngles = Convert.ToBoolean(dr["EsIngles"])
+                            Asunto = dr["Asunto"]?.ToString() ?? string.Empty,
+                            CuerpoHtml = dr["CuerpoHtml"]?.ToString() ?? string.Empty
                         });
                     }
                 }
