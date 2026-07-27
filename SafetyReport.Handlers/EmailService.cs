@@ -73,8 +73,6 @@ namespace SafetyReport.Handlers
                 Message = mensaje,
                 SaveToSentItems = true
             });
-
-            _logger.LogInformation("Correo de prefactura enviado para el pedido {CodigoPedido} a {Correo}.", detalle.CodigoPedido, correoDestino);
         }
 
     }
