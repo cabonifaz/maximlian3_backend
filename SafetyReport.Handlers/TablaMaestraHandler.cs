@@ -1,4 +1,5 @@
-﻿using SafetyReport.DAO;
+﻿using Microsoft.Extensions.Logging;
+using SafetyReport.DAO;
 using SafetyReport.Models;
 
 namespace SafetyReport.Handlers
@@ -7,26 +8,30 @@ namespace SafetyReport.Handlers
     {
         private readonly TablaMaestraDAO _dao;
         private readonly BedrockTranslationService _translator;
+        private readonly ILogger<TablaMaestraHandler> _logger;
 
-        public TablaMaestraHandler(TablaMaestraDAO dao, BedrockTranslationService translator)
+        public TablaMaestraHandler(TablaMaestraDAO dao, BedrockTranslationService translator, ILogger<TablaMaestraHandler> logger)
         {
             _dao = dao;
             _translator = translator;
+            _logger = logger;
         }
 
-        public async Task<Respuesta> ListarAsync(UsuarioGeneral usuarioLogueado, string? idsMaestro)
+        public async Task<Respuesta> ListarAsync(UsuarioGeneral usuarioLogueado, string? idsMaestro, string? busqueda, int? numPag)
         {
             try
             {
-                return await _dao.ListarAsync(usuarioLogueado, idsMaestro);
+                return await _dao.ListarAsync(usuarioLogueado, idsMaestro, busqueda, numPag);
             }
             catch (Exception ex)
             {
+                _logger.LogError(ex, "Error no controlado en la capa de negocio.");
+
                 return new Respuesta
                 {
                     IdTipoMensaje = 3,
-                    Mensaje = "Error interno del servidor.",
-                    Result = new List<TablaMaestraGroup>()
+                    Mensaje = ex.Message,
+                    Result = new TablaMaestraListaResult()
                 };
             }
         }
@@ -39,11 +44,32 @@ namespace SafetyReport.Handlers
             }
             catch (Exception ex)
             {
+                _logger.LogError(ex, "Error no controlado en la capa de negocio.");
+
                 return new Respuesta
                 {
                     IdTipoMensaje = 3,
-                    Mensaje = "Error interno del servidor.",
+                    Mensaje = ex.Message,
                     Result = new List<InventarioMaestroItem>()
+                };
+            }
+        }
+
+        public async Task<Respuesta> ListaCortaAsync(UsuarioGeneral usuarioLogueado, int idMaestro)
+        {
+            try
+            {
+                return await _dao.ListaCortaAsync(usuarioLogueado, idMaestro);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error no controlado en la capa de negocio.");
+
+                return new Respuesta
+                {
+                    IdTipoMensaje = 3,
+                    Mensaje = ex.Message,
+                    Result = new List<TablaMaestraCortaItem>()
                 };
             }
         }
@@ -106,12 +132,14 @@ namespace SafetyReport.Handlers
 
                 return await _dao.CrearAsync(usuarioLogueado, request);
             }
-            catch (Exception)
+            catch (Exception ex)
             {
+                _logger.LogError(ex, "Error no controlado en la capa de negocio.");
+
                 return new Respuesta
                 {
                     IdTipoMensaje = 3,
-                    Mensaje = "Error interno del servidor.",
+                    Mensaje = ex.Message,
                     Result = new List<TablaMaestraResultado>()
                 };
             }
@@ -125,10 +153,12 @@ namespace SafetyReport.Handlers
             }
             catch (Exception ex)
             {
+                _logger.LogError(ex, "Error no controlado en la capa de negocio.");
+
                 return new Respuesta
                 {
                     IdTipoMensaje = 3,
-                    Mensaje = "Error interno del servidor.",
+                    Mensaje = ex.Message,
                     Result = new List<TablaMaestraResultado>()
                 };
             }
@@ -142,10 +172,12 @@ namespace SafetyReport.Handlers
             }
             catch (Exception ex)
             {
+                _logger.LogError(ex, "Error no controlado en la capa de negocio.");
+
                 return new Respuesta
                 {
                     IdTipoMensaje = 3,
-                    Mensaje = "Error interno del servidor.",
+                    Mensaje = ex.Message,
                     Result = new List<TablaMaestraItem>()
                 };
             }
@@ -159,10 +191,12 @@ namespace SafetyReport.Handlers
             }
             catch (Exception ex)
             {
+                _logger.LogError(ex, "Error no controlado en la capa de negocio.");
+
                 return new Respuesta
                 {
                     IdTipoMensaje = 3,
-                    Mensaje = "Error interno del servidor.",
+                    Mensaje = ex.Message,
                     Result = new List<TablaMaestraResultado>()
                 };
             }

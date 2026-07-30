@@ -1,3 +1,4 @@
+using Microsoft.Extensions.Logging;
 using SafetyReport.DAO;
 using SafetyReport.Models;
 
@@ -7,11 +8,13 @@ namespace SafetyReport.Handlers
     {
         private readonly InformeLocalImagenDAO _dao;
         private readonly IS3UploadService _s3;
+        private readonly ILogger<InformeLocalImagenHandler> _logger;
 
-        public InformeLocalImagenHandler(InformeLocalImagenDAO dao, IS3UploadService s3)
+        public InformeLocalImagenHandler(InformeLocalImagenDAO dao, IS3UploadService s3, ILogger<InformeLocalImagenHandler> logger)
         {
             _dao = dao;
             _s3 = s3;
+            _logger = logger;
         }
 
         public async Task<Respuesta> ObtenerUrlsImagenesAsync(UsuarioGeneral usuarioLogueado, InformeLocalImagenEstadoCargaRequest request)
@@ -32,9 +35,11 @@ namespace SafetyReport.Handlers
 
                 return respuesta;
             }
-            catch (Exception)
+            catch (Exception ex)
             {
-                return new Respuesta { IdTipoMensaje = 3, Mensaje = "Error interno del servidor.", Result = new List<InformeLocalImagenUrl>() };
+                _logger.LogError(ex, "Error no controlado en la capa de negocio.");
+
+                return new Respuesta { IdTipoMensaje = 3, Mensaje = ex.Message, Result = new List<InformeLocalImagenUrl>() };
             }
         }
 
@@ -44,9 +49,11 @@ namespace SafetyReport.Handlers
             {
                 return await _dao.ActualizarEstadoCargaAsync(usuarioLogueado, request.Ids);
             }
-            catch (Exception)
+            catch (Exception ex)
             {
-                return new Respuesta { IdTipoMensaje = 3, Mensaje = "Error interno del servidor.", Result = new List<object>() };
+                _logger.LogError(ex, "Error no controlado en la capa de negocio.");
+
+                return new Respuesta { IdTipoMensaje = 3, Mensaje = ex.Message, Result = new List<object>() };
             }
         }
     }

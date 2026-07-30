@@ -1,3 +1,4 @@
+using Microsoft.Extensions.Logging;
 using SafetyReport.DAO;
 using SafetyReport.Models;
 
@@ -6,10 +7,12 @@ namespace SafetyReport.Handlers
     public class AsignacionHandler
     {
         private readonly AsignacionDAO _dao;
+        private readonly ILogger<AsignacionHandler> _logger;
 
-        public AsignacionHandler(AsignacionDAO dao)
+        public AsignacionHandler(AsignacionDAO dao, ILogger<AsignacionHandler> logger)
         {
             _dao = dao;
+            _logger = logger;
         }
 
         public async Task<Respuesta> InsertarAsync(UsuarioGeneral usuarioLogueado, AsignacionCrear request)
@@ -20,10 +23,12 @@ namespace SafetyReport.Handlers
             }
             catch (Exception ex)
             {
+                _logger.LogError(ex, "Error no controlado en la capa de negocio.");
+
                 return new Respuesta
                 {
                     IdTipoMensaje = 3,
-                    Mensaje = "Error interno del servidor.",
+                    Mensaje = ex.Message,
                     Result = new List<AsignacionCreada>()
                 };
             }
@@ -37,10 +42,12 @@ namespace SafetyReport.Handlers
             }
             catch (Exception ex)
             {
+                _logger.LogError(ex, "Error no controlado en la capa de negocio.");
+
                 return new Respuesta
                 {
                     IdTipoMensaje = 3,
-                    Mensaje = "Error interno del servidor.",
+                    Mensaje = ex.Message,
                     Result = new List<AsignacionCreada>()
                 };
             }
@@ -54,10 +61,12 @@ namespace SafetyReport.Handlers
             }
             catch (Exception ex)
             {
+                _logger.LogError(ex, "Error no controlado en la capa de negocio.");
+
                 return new Respuesta
                 {
                     IdTipoMensaje = 3,
-                    Mensaje = "Error interno del servidor.",
+                    Mensaje = ex.Message,
                     Result = new AsignacionListaResult()
                 };
             }
@@ -71,10 +80,12 @@ namespace SafetyReport.Handlers
             }
             catch (Exception ex)
             {
+                _logger.LogError(ex, "Error no controlado en la capa de negocio.");
+
                 return new Respuesta
                 {
                     IdTipoMensaje = 3,
-                    Mensaje = "Error interno del servidor.",
+                    Mensaje = ex.Message,
                     Result = new List<AsignacionConsulta>()
                 };
             }
@@ -88,10 +99,12 @@ namespace SafetyReport.Handlers
             }
             catch (Exception ex)
             {
+                _logger.LogError(ex, "Error no controlado en la capa de negocio.");
+
                 return new Respuesta
                 {
                     IdTipoMensaje = 3,
-                    Mensaje = "Error interno del servidor.",
+                    Mensaje = ex.Message,
                     Result = new AsignacionBandejaResult()
                 };
             }
@@ -105,10 +118,12 @@ namespace SafetyReport.Handlers
             }
             catch (Exception ex)
             {
+                _logger.LogError(ex, "Error no controlado en la capa de negocio.");
+
                 return new Respuesta
                 {
                     IdTipoMensaje = 3,
-                    Mensaje = "Error interno del servidor.",
+                    Mensaje = ex.Message,
                     Result = new List<EliminarAsignacionResult>()
                 };
             }

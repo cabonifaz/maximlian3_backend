@@ -44,10 +44,7 @@ namespace SafetyReport.Models
         public int IdCliente { get; set; }
         public string? NumeroDocumento { get; set; }
         public string? NombreCliente { get; set; }
-        public int IdTipoPersona { get; set; }
         public int IdCompania { get; set; }
-        public string? NumeroDocumentoInvestigado { get; set; }
-        public string InvestigarRazonSocialNombres { get; set; } = string.Empty;
         public int IdTarifario { get; set; }
         public int IdPlantilla { get; set; }
         public int IdIdioma { get; set; }
@@ -144,10 +141,9 @@ namespace SafetyReport.Models
         public int IdCliente { get; set; }
         public string? Cliente { get; set; }
         public string? Investigado { get; set; }
-        public int IdIdioma { get; set; }
         public string? Idioma { get; set; }
         public int? RequiereTraduccion { get; set; }
-        public bool LogoImprimible { get; set; }
+        public string? LogoImprimible { get; set; }
         public int Estado { get; set; }
         public string? DescripcionEstado { get; set; }
         public string? ColorLetra { get; set; }
@@ -162,9 +158,7 @@ namespace SafetyReport.Models
         public int TotalRegistros { get; set; }
         public int TotalPaginas { get; set; }
         public int Pendiente { get; set; }
-        public int EnRevision { get; set; }
         public int Aprobado { get; set; }
-        public int Observado { get; set; }
         public int Cancelado { get; set; }
     }
 

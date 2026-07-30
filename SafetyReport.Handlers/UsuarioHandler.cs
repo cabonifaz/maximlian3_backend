@@ -3,6 +3,7 @@ using Amazon.CognitoIdentityProvider;
 using Amazon.CognitoIdentityProvider.Model;
 using Amazon.Runtime;
 using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Logging;
 using SafetyReport.DAO;
 using SafetyReport.Models;
 
@@ -12,11 +13,13 @@ namespace SafetyReport.Handlers
     {
         private readonly UsuarioDAO _dao;
         private readonly IConfiguration _config;
+        private readonly ILogger<UsuarioHandler> _logger;
 
-        public UsuarioHandler(UsuarioDAO dao, IConfiguration config)
+        public UsuarioHandler(UsuarioDAO dao, IConfiguration config, ILogger<UsuarioHandler> logger)
         {
             _dao = dao;
             _config = config;
+            _logger = logger;
         }
 
         public async Task<Respuesta> CrearUsuarioAsync(UsuarioGeneral usuarioLogueado, UsuarioCrear request)
@@ -76,10 +79,12 @@ namespace SafetyReport.Handlers
             }
             catch (Exception ex)
             {
+                _logger.LogError(ex, "Error no controlado en la capa de negocio.");
+
                 return new Respuesta
                 {
                     IdTipoMensaje = 3,
-                    Mensaje = "Error interno del servidor.",
+                    Mensaje = ex.Message,
                     Result = new List<UsuarioCreado>()
                 };
             }
@@ -93,10 +98,12 @@ namespace SafetyReport.Handlers
             }
             catch (Exception ex)
             {
+                _logger.LogError(ex, "Error no controlado en la capa de negocio.");
+
                 return new Respuesta
                 {
                     IdTipoMensaje = 3,
-                    Mensaje = "Error interno del servidor.",
+                    Mensaje = ex.Message,
                     Result = new List<UsuarioCreado>()
                 };
             }
@@ -137,10 +144,12 @@ namespace SafetyReport.Handlers
             }
             catch (Exception ex)
             {
+                _logger.LogError(ex, "Error no controlado en la capa de negocio.");
+
                 return new Respuesta
                 {
                     IdTipoMensaje = 3,
-                    Mensaje = "Error interno del servidor.",
+                    Mensaje = ex.Message,
                     Result = new List<EliminarUsuario>()
                 };
             }
@@ -154,10 +163,12 @@ namespace SafetyReport.Handlers
             }
             catch (Exception ex)
             {
+                _logger.LogError(ex, "Error no controlado en la capa de negocio.");
+
                 return new Respuesta
                 {
                     IdTipoMensaje = 3,
-                    Mensaje = "Error interno del servidor.",
+                    Mensaje = ex.Message,
                     Result = new List<UsuarioListaResult>()
                 };
             }
@@ -171,10 +182,12 @@ namespace SafetyReport.Handlers
             }
             catch (Exception ex)
             {
+                _logger.LogError(ex, "Error no controlado en la capa de negocio.");
+
                 return new Respuesta
                 {
                     IdTipoMensaje = 3,
-                    Mensaje = "Error interno del servidor.",
+                    Mensaje = ex.Message,
                     Result = new List<UsuarioConsulta>()
                 };
             }
@@ -188,10 +201,12 @@ namespace SafetyReport.Handlers
             }
             catch (Exception ex)
             {
+                _logger.LogError(ex, "Error no controlado en la capa de negocio.");
+
                 return new Respuesta
                 {
                     IdTipoMensaje = 3,
-                    Mensaje = "Error interno del servidor.",
+                    Mensaje = ex.Message,
                     Result = new List<UsuarioListaCortaItem>()
                 };
             }
@@ -205,10 +220,12 @@ namespace SafetyReport.Handlers
             }
             catch (Exception ex)
             {
+                _logger.LogError(ex, "Error no controlado en la capa de negocio.");
+
                 return new Respuesta
                 {
                     IdTipoMensaje = 3,
-                    Mensaje = "Error interno del servidor.",
+                    Mensaje = ex.Message,
                     Result = new List<UsuarioAsignacionListaCortaItem>()
                 };
             }

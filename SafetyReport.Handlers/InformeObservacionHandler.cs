@@ -1,3 +1,4 @@
+using Microsoft.Extensions.Logging;
 using SafetyReport.DAO;
 using SafetyReport.Models;
 
@@ -6,10 +7,12 @@ namespace SafetyReport.Handlers
     public class InformeObservacionHandler
     {
         private readonly InformeObservacionDAO _dao;
+        private readonly ILogger<InformeObservacionHandler> _logger;
 
-        public InformeObservacionHandler(InformeObservacionDAO dao)
+        public InformeObservacionHandler(InformeObservacionDAO dao, ILogger<InformeObservacionHandler> logger)
         {
             _dao = dao;
+            _logger = logger;
         }
 
         public async Task<Respuesta> ListarObservacionesAsync(UsuarioGeneral usuarioLogueado, InformeObservacionListarRequest request)
@@ -18,9 +21,11 @@ namespace SafetyReport.Handlers
             {
                 return await _dao.ListarObservacionesAsync(usuarioLogueado, request.IdPedido);
             }
-            catch (Exception)
+            catch (Exception ex)
             {
-                return new Respuesta { IdTipoMensaje = 3, Mensaje = "Error interno del servidor.", Result = new List<InformeObservacionConsulta>() };
+                _logger.LogError(ex, "Error no controlado en la capa de negocio.");
+
+                return new Respuesta { IdTipoMensaje = 3, Mensaje = ex.Message, Result = new List<InformeObservacionConsulta>() };
             }
         }
 
@@ -30,9 +35,11 @@ namespace SafetyReport.Handlers
             {
                 return await _dao.InsertarObservacionesLoteAsync(usuarioLogueado, request.IdInforme, request.IdPedido, request.Observaciones);
             }
-            catch (Exception)
+            catch (Exception ex)
             {
-                return new Respuesta { IdTipoMensaje = 3, Mensaje = "Error interno del servidor.", Result = new List<object>() };
+                _logger.LogError(ex, "Error no controlado en la capa de negocio.");
+
+                return new Respuesta { IdTipoMensaje = 3, Mensaje = ex.Message, Result = new List<object>() };
             }
         }
 
@@ -42,9 +49,11 @@ namespace SafetyReport.Handlers
             {
                 return await _dao.EditarObservacionAsync(usuarioLogueado, request);
             }
-            catch (Exception)
+            catch (Exception ex)
             {
-                return new Respuesta { IdTipoMensaje = 3, Mensaje = "Error interno del servidor.", Result = new List<object>() };
+                _logger.LogError(ex, "Error no controlado en la capa de negocio.");
+
+                return new Respuesta { IdTipoMensaje = 3, Mensaje = ex.Message, Result = new List<object>() };
             }
         }
 
@@ -54,9 +63,11 @@ namespace SafetyReport.Handlers
             {
                 return await _dao.EliminarObservacionAsync(usuarioLogueado, request.IdInformeObservacion);
             }
-            catch (Exception)
+            catch (Exception ex)
             {
-                return new Respuesta { IdTipoMensaje = 3, Mensaje = "Error interno del servidor.", Result = new List<object>() };
+                _logger.LogError(ex, "Error no controlado en la capa de negocio.");
+
+                return new Respuesta { IdTipoMensaje = 3, Mensaje = ex.Message, Result = new List<object>() };
             }
         }
     }

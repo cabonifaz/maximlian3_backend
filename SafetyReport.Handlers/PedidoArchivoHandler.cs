@@ -1,5 +1,6 @@
 ﻿using System.IO;
 using System.Linq;
+using Microsoft.Extensions.Logging;
 using SafetyReport.DAO;
 using SafetyReport.Models;
 
@@ -10,12 +11,14 @@ namespace SafetyReport.Handlers
         private readonly PedidoArchivoDAO _dao;
         private readonly IS3UploadService _s3UploadService;
         private readonly FormatoDocumentoResolver _formatoDocumentoResolver;
+        private readonly ILogger<PedidoArchivoHandler> _logger;
 
-        public PedidoArchivoHandler(PedidoArchivoDAO dao, IS3UploadService s3UploadService, FormatoDocumentoResolver formatoDocumentoResolver)
+        public PedidoArchivoHandler(PedidoArchivoDAO dao, IS3UploadService s3UploadService, FormatoDocumentoResolver formatoDocumentoResolver, ILogger<PedidoArchivoHandler> logger)
         {
             _dao = dao;
             _s3UploadService = s3UploadService;
             _formatoDocumentoResolver = formatoDocumentoResolver;
+            _logger = logger;
         }
 
         public async Task<Respuesta> CrearAsync(UsuarioGeneral usuarioLogueado, PedidoArchivoCrearBatch request)
@@ -73,12 +76,14 @@ namespace SafetyReport.Handlers
                     Result = archivosPresignados
                 };
             }
-            catch (Exception)
+            catch (Exception ex)
             {
+                _logger.LogError(ex, "Error no controlado en la capa de negocio.");
+
                 return new Respuesta
                 {
                     IdTipoMensaje = 3,
-                    Mensaje = "Error interno del servidor.",
+                    Mensaje = ex.Message,
                     Result = new List<PedidoArchivoPresignado>()
                 };
             }
@@ -128,12 +133,14 @@ namespace SafetyReport.Handlers
 
                 return daoRespuesta;
             }
-            catch (Exception)
+            catch (Exception ex)
             {
+                _logger.LogError(ex, "Error no controlado en la capa de negocio.");
+
                 return new Respuesta
                 {
                     IdTipoMensaje = 3,
-                    Mensaje = "Error interno del servidor.",
+                    Mensaje = ex.Message,
                     Result = new List<PedidoArchivoCreado>()
                 };
             }
@@ -156,12 +163,14 @@ namespace SafetyReport.Handlers
 
                 return daoRespuesta;
             }
-            catch (Exception)
+            catch (Exception ex)
             {
+                _logger.LogError(ex, "Error no controlado en la capa de negocio.");
+
                 return new Respuesta
                 {
                     IdTipoMensaje = 3,
-                    Mensaje = "Error interno del servidor.",
+                    Mensaje = ex.Message,
                     Result = new List<PedidoArchivoConsulta>()
                 };
             }
@@ -173,12 +182,14 @@ namespace SafetyReport.Handlers
             {
                 return await _dao.ListarAsync(usuarioLogueado, request);
             }
-            catch (Exception)
+            catch (Exception ex)
             {
+                _logger.LogError(ex, "Error no controlado en la capa de negocio.");
+
                 return new Respuesta
                 {
                     IdTipoMensaje = 3,
-                    Mensaje = "Error interno del servidor.",
+                    Mensaje = ex.Message,
                     Result = new PedidoArchivoListaResult()
                 };
             }
@@ -211,12 +222,14 @@ namespace SafetyReport.Handlers
 
                 return daoRespuesta;
             }
-            catch (Exception)
+            catch (Exception ex)
             {
+                _logger.LogError(ex, "Error no controlado en la capa de negocio.");
+
                 return new Respuesta
                 {
                     IdTipoMensaje = 3,
-                    Mensaje = "Error interno del servidor.",
+                    Mensaje = ex.Message,
                     Result = new List<PedidoArchivoEliminado>()
                 };
             }

@@ -1,18 +1,23 @@
 ﻿using Microsoft.Data.SqlClient;
+using Microsoft.Extensions.Logging;
 using SafetyReport.Models;
 using System.Data;
-using System.Text.Json;
 
 namespace SafetyReport.DAO
 {
     public class LoginDAO
     {
         private readonly DbConfig _dbConfig;
+        private readonly ILogger<LoginDAO> _logger;
 
-        public LoginDAO(DbConfig dbConfig)
+        public LoginDAO(DbConfig dbConfig, ILogger<LoginDAO> logger)
         {
             _dbConfig = dbConfig;
+            _logger = logger;
         }
+
+        private static string? GetNullableString(SqlDataReader dr, string columna) =>
+            dr[columna] == DBNull.Value ? null : dr[columna].ToString();
 
         public async Task<Respuesta> AutenticarAsync(UsuarioGeneral usuarioActual)
         {
@@ -21,7 +26,7 @@ namespace SafetyReport.DAO
             try
             {
                 using SqlConnection cn = new SqlConnection(_dbConfig.ConnectionString);
-                using SqlCommand cmd = new SqlCommand("Usuario_AUTH", cn);
+                using SqlCommand cmd = new SqlCommand("SP_Usuario_Auth", cn);
 
                 cmd.CommandType = CommandType.StoredProcedure;
 
@@ -36,27 +41,56 @@ namespace SafetyReport.DAO
                 {
                     respuesta.IdTipoMensaje = dr["IdTipoMensaje"] != DBNull.Value
                         ? Convert.ToInt32(dr["IdTipoMensaje"])
-                        : 0;
+                        : 3;
 
                     respuesta.Mensaje = dr["Mensaje"]?.ToString();
 
-                    var resultJson = dr["Result"]?.ToString();
+                    var lista = new List<UsuarioLoginResponse>();
 
-                    respuesta.Result = !string.IsNullOrWhiteSpace(resultJson)
-                        ? JsonSerializer.Deserialize<List<UsuarioLoginResponse>>(resultJson) ?? new List<UsuarioLoginResponse>()
-                        : new List<UsuarioLoginResponse>();
+                    if (respuesta.IdTipoMensaje == 2 && await dr.NextResultAsync() && await dr.ReadAsync())
+                    {
+                        var usuarioLogin = new UsuarioLoginResponse
+                        {
+                            IdUsuario = Convert.ToInt32(dr["IdUsuario"]),
+                            IdEmpresa = Convert.ToInt32(dr["IdEmpresa"]),
+                            Nombres = dr["Nombres"]?.ToString() ?? string.Empty,
+                            Correo = dr["Correo"]?.ToString() ?? string.Empty,
+                            Usuario = dr["Usuario"]?.ToString() ?? string.Empty
+                        };
+
+                        if (await dr.NextResultAsync())
+                        {
+                            while (await dr.ReadAsync())
+                            {
+                                usuarioLogin.Roles.Add(new Roles
+                                {
+                                    IdRol = Convert.ToInt32(dr["IdRol"]),
+                                    Rol = GetNullableString(dr, "Rol"),
+                                    Descripcion = GetNullableString(dr, "Descripcion")
+                                });
+                            }
+                        }
+
+                        lista.Add(usuarioLogin);
+                    }
+
+                    respuesta.Result = lista;
                 }
                 else
                 {
-                    respuesta.IdTipoMensaje = 1;
+                    _logger.LogWarning("SP_Usuario_Auth no devolvio ninguna fila para {Usuario}.", usuarioActual.Usuario);
+
+                    respuesta.IdTipoMensaje = 3;
                     respuesta.Mensaje = "No se obtuvo respuesta del procedimiento.";
                     respuesta.Result = new List<UsuarioLoginResponse>();
                 }
             }
             catch (Exception ex)
             {
+                _logger.LogError(ex, "Error no controlado autenticando al usuario {Usuario}.", usuarioActual.Usuario);
+
                 respuesta.IdTipoMensaje = 3;
-                respuesta.Mensaje = $"Error al autenticar: {ex.Message}";
+                respuesta.Mensaje = ex.Message;
                 respuesta.Result = new List<UsuarioLoginResponse>();
             }
 

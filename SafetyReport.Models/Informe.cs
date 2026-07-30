@@ -464,15 +464,23 @@ namespace SafetyReport.Models
         public int IdEstadoInforme { get; set; }
     }
 
+    public class PrefacturaDatosConsulta
+    {
+        public string? Correo { get; set; }
+        public string CodigoPedido { get; set; } = string.Empty;
+        public string Asunto { get; set; } = string.Empty;
+        public string CuerpoHtml { get; set; } = string.Empty;
+    }
+
     public class InformeBalanceTotalizadoCalcularRequest
     {
-        public decimal TotalActivoCorriente { get; set; }
-        public decimal TotalActivoNoCorriente { get; set; }
-        public decimal TotalPasivoCorriente { get; set; }
-        public decimal TotalPasivoNoCorriente { get; set; }
-        public decimal TotalPatrimonio { get; set; }
-        public decimal IngresosOrdinarios { get; set; }
-        public decimal GananciaNeta { get; set; }
+        public decimal? TotalActivoCorriente { get; set; }
+        public decimal? TotalActivoNoCorriente { get; set; }
+        public decimal? TotalPasivoCorriente { get; set; }
+        public decimal? TotalPasivoNoCorriente { get; set; }
+        public decimal? TotalPatrimonio { get; set; }
+        public decimal? IngresosOrdinarios { get; set; }
+        public decimal? GananciaNeta { get; set; }
     }
 
     public class InformeBalanceTotalizadoCalculado
@@ -760,7 +768,7 @@ namespace SafetyReport.Models
         public string Extension { get; set; } = string.Empty;
         public long TamanoBytes { get; set; }
         public int IdTipoArchivo { get; set; }
-        public int IdFaseEvidencia { get; set; }
+        public int? IdFaseEvidencia { get; set; }
     }
 
     public class InformeArchivoUrlRequest
@@ -813,7 +821,7 @@ namespace SafetyReport.Models
         public int IdInforme { get; set; }
         public int IdPedido { get; set; }
         public int? IdFase { get; set; }
-        public int? IdPlantilla { get; set; }
+        public string? Plantilla { get; set; }
         public string? EstadoInforme { get; set; }
         public string? Investigado { get; set; }
         public string? Vigencia { get; set; }
@@ -834,6 +842,30 @@ namespace SafetyReport.Models
         public int PendienteAprobacion { get; set; }
         public int Vigente { get; set; }
         public int Vencido { get; set; }
+    }
+
+    public class FiltroInformeIdPorCompania
+    {
+        public int IdCompania { get; set; }
+        public DateTime? FchInicio { get; set; }
+        public DateTime? FchFin { get; set; }
+        public int? NumPag { get; set; }
+    }
+
+    public class InformeIdPorCompaniaConsulta
+    {
+        public int IdInforme { get; set; }
+        public int IdPedido { get; set; }
+        public string? Idioma { get; set; }
+        public string? Nombre { get; set; }
+        public string? Fecha { get; set; }
+    }
+
+    public class InformeIdPorCompaniaListaResult
+    {
+        public List<InformeIdPorCompaniaConsulta> lstInformes { get; set; } = new();
+        public int TotalRegistros { get; set; }
+        public int TotalPaginas { get; set; }
     }
 
     // ── Detail (Obtener) ─────────────────────────────────────────────────────────
@@ -1109,6 +1141,11 @@ namespace SafetyReport.Models
     }
 
     public class InformeObservacionIdRequest
+    {
+        public int IdInformeObservacion { get; set; }
+    }
+
+    public class InformeObservacionIdResult
     {
         public int IdInformeObservacion { get; set; }
     }

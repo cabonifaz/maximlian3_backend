@@ -36,6 +36,7 @@
         public bool AplicaPenalidad { get; set; }
         public int IdPlantilla { get; set; }
         public int IdEstado { get; set; }
+        public bool EmitirPrefactura { get; set; }
         public List<ClienteContactoRequest> Contactos { get; set; } = new();
         public List<ClienteTarifarioRequest> Tarifario { get; set; } = new();
     }
@@ -65,6 +66,7 @@
         public bool AplicaPenalidad { get; set; }
         public int IdPlantilla { get; set; }
         public int IdEstado { get; set; }
+        public bool EmitirPrefactura { get; set; }
     }
 
     public class ClienteCreado
@@ -104,6 +106,7 @@
         public bool AplicaPenalidad { get; set; }
         public int IdPlantilla { get; set; }
         public int IdEstado { get; set; }
+        public bool EmitirPrefactura { get; set; }
     }
 
     public class ClienteListaResult
@@ -149,5 +152,32 @@
     public class ClienteListaCorta
     {
         public List<ClienteListaCortaItem> lstCliente { get; set; } = new();
+    }
+
+    public class FiltroClienteFacturacion
+    {
+        public int? numPag { get; set; }
+        public string? busqueda { get; set; }
+        public int? emitirPrefactura { get; set; }
+        public int? idIdiomaFacturacion { get; set; }
+        public int? estadoFacturacion { get; set; }
+    }
+
+    public class ClienteListaFacturacionResult
+    {
+        public List<ClienteListaFacturacionConsulta> lstClientes { get; set; } = new();
+        public int TotalRegistros { get; set; }
+        public int TotalPaginas { get; set; }
+    }
+
+    public class ClienteListaFacturacionConsulta
+    {
+        public int IdCliente { get; set; }
+        public string Nombre { get; set; } = string.Empty;
+        public string? EmitirPrefactura { get; set; }
+        public int TotalPedidos { get; set; }
+        public int PedidosFacturados { get; set; }
+        public string? IdIdiomaFacturacion { get; set; }
+        public string? EstadoFacturacion { get; set; }
     }
 }

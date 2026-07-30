@@ -10,6 +10,9 @@ namespace SafetyReport.Models
         public string? NombreCompleto { get; set; }
         public int? IdPais { get; set; }
         public string? Telefono { get; set; }
+        public string? Direccion { get; set; }
+        public string? CiudadProvinciaEstado { get; set; }
+        public string? CodigoPostal { get; set; }
         public bool? ExisteInformacion { get; set; }
     }
 
@@ -22,6 +25,9 @@ namespace SafetyReport.Models
         public string? NombreCompleto { get; set; }
         public int? IdPais { get; set; }
         public string? Telefono { get; set; }
+        public string? Direccion { get; set; }
+        public string? CiudadProvinciaEstado { get; set; }
+        public string? CodigoPostal { get; set; }
         public bool? ExisteInformacion { get; set; }
     }
 
@@ -59,7 +65,21 @@ namespace SafetyReport.Models
         public int? IdPais { get; set; }
         public string? Pais { get; set; }
         public string? Telefono { get; set; }
+        public string? Direccion { get; set; }
+        public string? CiudadProvinciaEstado { get; set; }
+        public string? CodigoPostal { get; set; }
         public bool? ExisteInformacion { get; set; }
+    }
+
+    public class CompaniaListaConsulta
+    {
+        public int IdCompania { get; set; }
+        public string? TipoDocumento { get; set; }
+        public string? NumeroDocumento { get; set; }
+        public string? NombreCompleto { get; set; }
+        public string? Pais { get; set; }
+        public string? Telefono { get; set; }
+        public string? ExisteInformacion { get; set; }
     }
 
     public class FiltroCompania
@@ -68,9 +88,21 @@ namespace SafetyReport.Models
         public int NumPag { get; set; } = 1;
     }
 
+    public class FiltroCompaniaBusqueda
+    {
+        public string? Busqueda { get; set; }
+    }
+
+    public class CompaniaBusquedaItem
+    {
+        public int IdCompania { get; set; }
+        public string? NumeroDocumento { get; set; }
+        public string? NombreCompleto { get; set; }
+    }
+
     public class CompaniaListaResult
     {
-        public List<CompaniaConsulta> lstCompanias { get; set; } = new();
+        public List<CompaniaListaConsulta> lstCompanias { get; set; } = new();
         public int TotalRegistros { get; set; }
         public int TotalPaginas { get; set; }
     }
@@ -92,8 +124,6 @@ namespace SafetyReport.Models
         public string? NombreArchivo { get; set; }
         public string? NombreDocumento { get; set; }
         public string? FormatoArchivo { get; set; }
-        public string? Extension { get; set; }
-        public long? TamanoBytes { get; set; }
         public string? ArchivoUrl { get; set; }
         public string? UploadUrl { get; set; }
     }
@@ -148,8 +178,6 @@ namespace SafetyReport.Models
         public int IdTipoArchivo { get; set; }
         public string? TipoArchivo { get; set; }
         public string? NombreDocumento { get; set; }
-        public string? Extension { get; set; }
-        public long? TamanoBytes { get; set; }
     }
 
     public class CompaniaNoticiaArchivoIdRequest
@@ -164,8 +192,6 @@ namespace SafetyReport.Models
         public int IdTipoArchivo { get; set; }
         public string? ArchivoUrl { get; set; }
         public string? NombreDocumento { get; set; }
-        public string? Extension { get; set; }
-        public long? TamanoBytes { get; set; }
         public string? DownloadUrl { get; set; }
     }
 
@@ -182,7 +208,7 @@ namespace SafetyReport.Models
         public int IdCompania { get; set; }
         public string? Titulo { get; set; }
         public string? Descripcion { get; set; }
-        public DateTime? FechaNoticia { get; set; }
+        public string? FechaNoticia { get; set; }
         public string? Categoria { get; set; }
         public List<CompaniaNoticiaArchivoConsulta> Archivos { get; set; } = new();
     }
@@ -194,7 +220,7 @@ namespace SafetyReport.Models
         public string? NombreCompleto { get; set; }
         public string? Titulo { get; set; }
         public string? Descripcion { get; set; }
-        public DateTime? FechaNoticia { get; set; }
+        public string? FechaNoticia { get; set; }
         public string? Categoria { get; set; }
     }
 
@@ -202,6 +228,8 @@ namespace SafetyReport.Models
     {
         public int? IdCompania { get; set; }
         public string? Busqueda { get; set; }
+        public DateTime? FchInicio { get; set; }
+        public DateTime? FchFin { get; set; }
         public int NumPag { get; set; } = 1;
     }
 
@@ -218,6 +246,8 @@ namespace SafetyReport.Models
         public string? Busqueda { get; set; }
         public string? TipoEstadoFinanciero { get; set; }
         public string? Estado { get; set; }
+        public DateTime? FchInicio { get; set; }
+        public DateTime? FchFin { get; set; }
         public int NumPag { get; set; } = 1;
     }
 
@@ -226,8 +256,8 @@ namespace SafetyReport.Models
         public int IdInformeBalance { get; set; }
         public int IdCompania { get; set; }
         public string? NombreCompleto { get; set; }
-        public DateTime? FechaInicio { get; set; }
-        public DateTime? FechaFin { get; set; }
+        public string? FechaInicio { get; set; }
+        public string? FechaFin { get; set; }
         public string? Pais { get; set; }
         public string? TipoEstadoFinanciero { get; set; }
         public string? Estado { get; set; }
@@ -278,7 +308,6 @@ namespace SafetyReport.Models
         public string? Direccion { get; set; }
         public string? Telefono { get; set; }
         public string? ActividadComercial { get; set; }
-        public int? NumeroEmpleados { get; set; }
     }
 
     public class CompaniaNoticiaDetalleListaResult

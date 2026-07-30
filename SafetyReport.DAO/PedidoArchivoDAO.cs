@@ -1,58 +1,53 @@
 ﻿using Microsoft.Data.SqlClient;
+using Microsoft.Extensions.Logging;
 using SafetyReport.Models;
 using System.Data;
-using System.Text.Json;
 
 namespace SafetyReport.DAO
 {
     public class PedidoArchivoDAO
     {
         private readonly DbConfig _dbConfig;
+        private readonly ILogger<PedidoArchivoDAO> _logger;
 
-        public PedidoArchivoDAO(DbConfig dbConfig)
+        public PedidoArchivoDAO(DbConfig dbConfig, ILogger<PedidoArchivoDAO> logger)
         {
             _dbConfig = dbConfig;
+            _logger = logger;
         }
 
-        private static async Task<Respuesta> LeerRespuestaAsync<T>(SqlCommand cmd)
+        // Lee el result set 1 (siempre presente): IdTipoMensaje, Mensaje. Sin columna Result.
+        private async Task<Respuesta> LeerCabeceraAsync(SqlDataReader dr, string procedimiento)
         {
             var respuesta = new Respuesta();
-
-            using var dr = await cmd.ExecuteReaderAsync();
 
             if (await dr.ReadAsync())
             {
                 respuesta.IdTipoMensaje = dr["IdTipoMensaje"] != DBNull.Value
                     ? Convert.ToInt32(dr["IdTipoMensaje"])
-                    : 0;
-
+                    : 3;
                 respuesta.Mensaje = dr["Mensaje"]?.ToString() ?? string.Empty;
-
-                var json = dr["Result"]?.ToString();
-
-                respuesta.Result = !string.IsNullOrWhiteSpace(json)
-                    ? JsonSerializer.Deserialize<List<T>>(json, new JsonSerializerOptions
-                    {
-                        PropertyNameCaseInsensitive = true
-                    }) ?? new List<T>()
-                    : new List<T>();
             }
             else
             {
-                respuesta.IdTipoMensaje = 1;
+                _logger.LogWarning("El procedimiento {Procedimiento} no devolvio ninguna fila.", procedimiento);
+
+                respuesta.IdTipoMensaje = 3;
                 respuesta.Mensaje = "No se obtuvo respuesta del procedimiento.";
-                respuesta.Result = new List<T>();
             }
 
             return respuesta;
         }
+
+        private static string? GetNullableString(SqlDataReader dr, string columna) =>
+            dr[columna] == DBNull.Value ? null : dr[columna].ToString();
 
         public async Task<Respuesta> CrearAsync(UsuarioGeneral usuarioLogueado, PedidoArchivoCrear request)
         {
             try
             {
                 using SqlConnection cn = new(_dbConfig.ConnectionString);
-                using SqlCommand cmd = new("PedidoArchivo_Insertar", cn);
+                using SqlCommand cmd = new("SP_PedidoArchivo_Insertar", cn);
 
                 cmd.CommandType = CommandType.StoredProcedure;
                 cmd.Parameters.Add("@intIdUsuario", SqlDbType.Int).Value = usuarioLogueado.IdUsuario;
@@ -67,10 +62,21 @@ namespace SafetyReport.DAO
                 cmd.Parameters.Add("@intIdTipoArchivo", SqlDbType.Int).Value = request.IdTipoArchivo;
 
                 await cn.OpenAsync();
-                return await LeerRespuestaAsync<PedidoArchivoCreado>(cmd);
+
+                using var dr = await cmd.ExecuteReaderAsync();
+                var respuesta = await LeerCabeceraAsync(dr, cmd.CommandText);
+
+                var lista = new List<PedidoArchivoCreado>();
+                if (respuesta.IdTipoMensaje == 2 && await dr.NextResultAsync() && await dr.ReadAsync())
+                    lista.Add(new PedidoArchivoCreado { DocumentoURL = GetNullableString(dr, "DocumentoURL") ?? string.Empty });
+
+                respuesta.Result = lista;
+                return respuesta;
             }
             catch (Exception ex)
             {
+                _logger.LogError(ex, "Error no controlado en la capa de datos.");
+
                 return new Respuesta
                 {
                     IdTipoMensaje = 3,
@@ -85,7 +91,7 @@ namespace SafetyReport.DAO
             try
             {
                 using SqlConnection cn = new(_dbConfig.ConnectionString);
-                using SqlCommand cmd = new("PedidoArchivo_Actualizar", cn);
+                using SqlCommand cmd = new("SP_PedidoArchivo_Actualizar", cn);
 
                 cmd.CommandType = CommandType.StoredProcedure;
                 cmd.Parameters.Add("@intIdUsuario", SqlDbType.Int).Value = usuarioLogueado.IdUsuario;
@@ -101,10 +107,21 @@ namespace SafetyReport.DAO
                 cmd.Parameters.Add("@intIdEstado", SqlDbType.Int).Value = request.IdEstado;
 
                 await cn.OpenAsync();
-                return await LeerRespuestaAsync<PedidoArchivoCreado>(cmd);
+
+                using var dr = await cmd.ExecuteReaderAsync();
+                var respuesta = await LeerCabeceraAsync(dr, cmd.CommandText);
+
+                var lista = new List<PedidoArchivoCreado>();
+                if (respuesta.IdTipoMensaje == 2 && await dr.NextResultAsync() && await dr.ReadAsync())
+                    lista.Add(new PedidoArchivoCreado { DocumentoURL = GetNullableString(dr, "DocumentoURL") ?? string.Empty });
+
+                respuesta.Result = lista;
+                return respuesta;
             }
             catch (Exception ex)
             {
+                _logger.LogError(ex, "Error no controlado en la capa de datos.");
+
                 return new Respuesta
                 {
                     IdTipoMensaje = 3,
@@ -119,7 +136,7 @@ namespace SafetyReport.DAO
             try
             {
                 using SqlConnection cn = new(_dbConfig.ConnectionString);
-                using SqlCommand cmd = new("PedidoArchivo_Obtener", cn);
+                using SqlCommand cmd = new("SP_PedidoArchivo_Obtener", cn);
 
                 cmd.CommandType = CommandType.StoredProcedure;
                 cmd.Parameters.Add("@intIdUsuario", SqlDbType.Int).Value = usuarioLogueado.IdUsuario;
@@ -130,10 +147,34 @@ namespace SafetyReport.DAO
                 cmd.Parameters.Add("@intIdPedido", SqlDbType.Int).Value = request.IdPedido;
 
                 await cn.OpenAsync();
-                return await LeerRespuestaAsync<PedidoArchivoConsulta>(cmd);
+
+                using var dr = await cmd.ExecuteReaderAsync();
+                var respuesta = await LeerCabeceraAsync(dr, cmd.CommandText);
+
+                var lista = new List<PedidoArchivoConsulta>();
+                if (respuesta.IdTipoMensaje == 2 && await dr.NextResultAsync())
+                {
+                    while (await dr.ReadAsync())
+                        lista.Add(new PedidoArchivoConsulta
+                        {
+                            IdPedidoArchivo = Convert.ToInt32(dr["IdPedidoArchivo"]),
+                            IdPedido = Convert.ToInt32(dr["IdPedido"]),
+                            DocumentoURL = GetNullableString(dr, "DocumentoURL") ?? string.Empty,
+                            NombreDocumento = GetNullableString(dr, "NombreDocumento") ?? string.Empty,
+                            IdFormato = Convert.ToInt32(dr["IdFormato"]),
+                            IdEstado = Convert.ToInt32(dr["IdEstado"]),
+                            TamanoArchivo = Convert.ToInt64(dr["TamanoArchivo"]),
+                            IdTipoArchivo = Convert.ToInt32(dr["IdTipoArchivo"])
+                        });
+                }
+
+                respuesta.Result = lista;
+                return respuesta;
             }
             catch (Exception ex)
             {
+                _logger.LogError(ex, "Error no controlado en la capa de datos.");
+
                 return new Respuesta
                 {
                     IdTipoMensaje = 3,
@@ -148,7 +189,7 @@ namespace SafetyReport.DAO
             try
             {
                 using SqlConnection cn = new(_dbConfig.ConnectionString);
-                using SqlCommand cmd = new("PedidoArchivo_Listar", cn);
+                using SqlCommand cmd = new("SP_PedidoArchivo_Listar", cn);
 
                 cmd.CommandType = CommandType.StoredProcedure;
                 cmd.Parameters.Add("@intIdUsuario", SqlDbType.Int).Value = usuarioLogueado.IdUsuario;
@@ -162,35 +203,46 @@ namespace SafetyReport.DAO
 
                 await cn.OpenAsync();
 
-                var respuesta = new Respuesta();
                 using var dr = await cmd.ExecuteReaderAsync();
+                var respuesta = await LeerCabeceraAsync(dr, cmd.CommandText);
 
-                if (await dr.ReadAsync())
+                var resultado = new PedidoArchivoListaResult();
+                if (respuesta.IdTipoMensaje == 2 && await dr.NextResultAsync())
                 {
-                    respuesta.IdTipoMensaje = dr["IdTipoMensaje"] != DBNull.Value
-                        ? Convert.ToInt32(dr["IdTipoMensaje"])
-                        : 0;
-                    respuesta.Mensaje = dr["Mensaje"]?.ToString() ?? string.Empty;
+                    if (await dr.ReadAsync())
+                    {
+                        resultado.TotalRegistros = Convert.ToInt32(dr["TotalRegistros"]);
+                        resultado.TotalPaginas = Convert.ToInt32(dr["TotalPaginas"]);
+                    }
 
-                    var json = dr["Result"]?.ToString();
-                    respuesta.Result = !string.IsNullOrWhiteSpace(json)
-                        ? JsonSerializer.Deserialize<PedidoArchivoListaResult>(json, new JsonSerializerOptions
+                    if (await dr.NextResultAsync())
+                    {
+                        while (await dr.ReadAsync())
                         {
-                            PropertyNameCaseInsensitive = true
-                        }) ?? new PedidoArchivoListaResult()
-                        : new PedidoArchivoListaResult();
-                }
-                else
-                {
-                    respuesta.IdTipoMensaje = 1;
-                    respuesta.Mensaje = "No se obtuvo respuesta del procedimiento.";
-                    respuesta.Result = new PedidoArchivoListaResult();
+                            resultado.lstPedidoArchivo.Add(new PedidoArchivoListaConsulta
+                            {
+                                IdPedidoArchivo = Convert.ToInt32(dr["IdPedidoArchivo"]),
+                                IdPedido = Convert.ToInt32(dr["IdPedido"]),
+                                DocumentoURL = GetNullableString(dr, "DocumentoURL") ?? string.Empty,
+                                NombreDocumento = GetNullableString(dr, "NombreDocumento") ?? string.Empty,
+                                TamanoArchivo = Convert.ToInt64(dr["TamanoArchivo"]),
+                                IdFormato = Convert.ToInt32(dr["IdFormato"]),
+                                TipoFormato = GetNullableString(dr, "TipoFormato") ?? string.Empty,
+                                IdTipoArchivo = Convert.ToInt32(dr["IdTipoArchivo"]),
+                                IdEstado = Convert.ToInt32(dr["IdEstado"]),
+                                FechaCarga = GetNullableString(dr, "FechaCarga") ?? string.Empty
+                            });
+                        }
+                    }
                 }
 
+                respuesta.Result = resultado;
                 return respuesta;
             }
             catch (Exception ex)
             {
+                _logger.LogError(ex, "Error no controlado en la capa de datos.");
+
                 return new Respuesta
                 {
                     IdTipoMensaje = 3,
@@ -205,7 +257,7 @@ namespace SafetyReport.DAO
             try
             {
                 using SqlConnection cn = new(_dbConfig.ConnectionString);
-                using SqlCommand cmd = new("PedidoArchivo_Eliminar", cn);
+                using SqlCommand cmd = new("SP_PedidoArchivo_Eliminar", cn);
 
                 cmd.CommandType = CommandType.StoredProcedure;
                 cmd.Parameters.Add("@intIdUsuario", SqlDbType.Int).Value = usuarioLogueado.IdUsuario;
@@ -216,10 +268,21 @@ namespace SafetyReport.DAO
                 cmd.Parameters.Add("@intIdPedido", SqlDbType.Int).Value = request.IdPedido;
 
                 await cn.OpenAsync();
-                return await LeerRespuestaAsync<PedidoArchivoEliminado>(cmd);
+
+                using var dr = await cmd.ExecuteReaderAsync();
+                var respuesta = await LeerCabeceraAsync(dr, cmd.CommandText);
+
+                var lista = new List<PedidoArchivoEliminado>();
+                if (respuesta.IdTipoMensaje == 2 && await dr.NextResultAsync() && await dr.ReadAsync())
+                    lista.Add(new PedidoArchivoEliminado { IdPedidoArchivo = Convert.ToInt32(dr["IdPedidoArchivo"]) });
+
+                respuesta.Result = lista;
+                return respuesta;
             }
             catch (Exception ex)
             {
+                _logger.LogError(ex, "Error no controlado en la capa de datos.");
+
                 return new Respuesta
                 {
                     IdTipoMensaje = 3,

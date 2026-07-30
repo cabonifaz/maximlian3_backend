@@ -45,6 +45,13 @@ namespace SafetyReport.WebApi.Controllers
             return Ok(respuesta);
         }
 
+        [HttpGet("buscar")]
+        public async Task<IActionResult> Buscar([FromQuery] FiltroCompaniaBusqueda filtro)
+        {
+            var respuesta = await _companiaHandler.BuscarAsync(UsuarioLogueado, filtro);
+            return Ok(respuesta);
+        }
+
         [HttpPost("obtenerCoincidencias")]
         public async Task<IActionResult> ObtenerCoincidencias([FromBody] List<CompaniaMatchItem> request)
         {

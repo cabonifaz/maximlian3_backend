@@ -96,6 +96,28 @@
     public class FiltroTablaMaestraRequest
     {
         public string? idsMaestro { get; set; }  // comma-separated, e.g. "2,44,60"; null returns all
+        public string? busqueda { get; set; }
+        public int? numPag { get; set; }
+    }
+
+    public class TablaMaestraListaResult
+    {
+        public List<TablaMaestraGroup> lstTablaMaestra { get; set; } = new();
+        public int TotalRegistros { get; set; }
+        public int TotalPaginas { get; set; }
+    }
+
+    public class TablaMaestraListaCortaRequest
+    {
+        public int IdMaestro { get; set; }
+    }
+
+    public class TablaMaestraCortaItem
+    {
+        public int Num1 { get; set; }
+        public string? String1 { get; set; }
+        public string? String2 { get; set; }
+        public string? String3 { get; set; }
     }
 
     public class ObtenerTablaMaestraRequest

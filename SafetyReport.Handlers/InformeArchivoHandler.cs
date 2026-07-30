@@ -1,3 +1,4 @@
+using Microsoft.Extensions.Logging;
 using SafetyReport.DAO;
 using SafetyReport.Models;
 
@@ -8,12 +9,14 @@ namespace SafetyReport.Handlers
         private readonly InformeArchivoDAO _dao;
         private readonly InformeDAO _informeDAO;
         private readonly IS3UploadService _s3;
+        private readonly ILogger<InformeArchivoHandler> _logger;
 
-        public InformeArchivoHandler(InformeArchivoDAO dao, InformeDAO informeDAO, IS3UploadService s3)
+        public InformeArchivoHandler(InformeArchivoDAO dao, InformeDAO informeDAO, IS3UploadService s3, ILogger<InformeArchivoHandler> logger)
         {
             _dao = dao;
             _informeDAO = informeDAO;
             _s3 = s3;
+            _logger = logger;
         }
 
         public async Task<Respuesta> GenerarUrlsArchivoAsync(UsuarioGeneral usuarioLogueado, InformeArchivoUrlRequest request)
@@ -47,9 +50,11 @@ namespace SafetyReport.Handlers
                 var result = new InformeArchivoUrlResult { IdInforme = idInforme, Archivos = pendientes };
                 return new Respuesta { IdTipoMensaje = 2, Mensaje = "URLs generadas correctamente.", Result = result };
             }
-            catch (Exception)
+            catch (Exception ex)
             {
-                return new Respuesta { IdTipoMensaje = 3, Mensaje = "Error interno del servidor.", Result = new List<InformeArchivoUrlResult>() };
+                _logger.LogError(ex, "Error no controlado en la capa de negocio.");
+
+                return new Respuesta { IdTipoMensaje = 3, Mensaje = ex.Message, Result = new List<InformeArchivoUrlResult>() };
             }
         }
 
@@ -66,9 +71,11 @@ namespace SafetyReport.Handlers
                 }
                 return respuesta;
             }
-            catch (Exception)
+            catch (Exception ex)
             {
-                return new Respuesta { IdTipoMensaje = 3, Mensaje = "Error interno del servidor.", Result = new List<InformeArchivoConsulta>() };
+                _logger.LogError(ex, "Error no controlado en la capa de negocio.");
+
+                return new Respuesta { IdTipoMensaje = 3, Mensaje = ex.Message, Result = new List<InformeArchivoConsulta>() };
             }
         }
 
@@ -85,9 +92,11 @@ namespace SafetyReport.Handlers
 
                 return await _dao.EliminarArchivoAsync(usuarioLogueado, request.IdInformeArchivo);
             }
-            catch (Exception)
+            catch (Exception ex)
             {
-                return new Respuesta { IdTipoMensaje = 3, Mensaje = "Error interno del servidor.", Result = new List<object>() };
+                _logger.LogError(ex, "Error no controlado en la capa de negocio.");
+
+                return new Respuesta { IdTipoMensaje = 3, Mensaje = ex.Message, Result = new List<object>() };
             }
         }
 
@@ -97,9 +106,11 @@ namespace SafetyReport.Handlers
             {
                 return await _dao.ActualizarArchivoAsync(usuarioLogueado, request);
             }
-            catch (Exception)
+            catch (Exception ex)
             {
-                return new Respuesta { IdTipoMensaje = 3, Mensaje = "Error interno del servidor.", Result = new List<object>() };
+                _logger.LogError(ex, "Error no controlado en la capa de negocio.");
+
+                return new Respuesta { IdTipoMensaje = 3, Mensaje = ex.Message, Result = new List<object>() };
             }
         }
 
@@ -109,9 +120,11 @@ namespace SafetyReport.Handlers
             {
                 return await _dao.InsertarArchivoLoteAsync(usuarioLogueado, request.IdInforme, request.IdPedido, request.Archivos);
             }
-            catch (Exception)
+            catch (Exception ex)
             {
-                return new Respuesta { IdTipoMensaje = 3, Mensaje = "Error interno del servidor.", Result = new List<object>() };
+                _logger.LogError(ex, "Error no controlado en la capa de negocio.");
+
+                return new Respuesta { IdTipoMensaje = 3, Mensaje = ex.Message, Result = new List<object>() };
             }
         }
     }
