@@ -148,11 +148,11 @@ namespace SafetyReport.Handlers
             }
         }
 
-        public async Task<Respuesta> ListarPedidosFacturacionClienteAsync(UsuarioGeneral usuarioLogueado, int idCliente, int? numPag)
+        public async Task<Respuesta> ListarPedidosFacturacionClienteAsync(UsuarioGeneral usuarioLogueado, int idCliente, string? busqueda, int? numPag)
         {
             try
             {
-                return await _dao.ListarPedidosFacturacionClienteAsync(usuarioLogueado, idCliente, numPag);
+                return await _dao.ListarPedidosFacturacionClienteAsync(usuarioLogueado, idCliente, busqueda, numPag);
             }
             catch (Exception ex)
             {

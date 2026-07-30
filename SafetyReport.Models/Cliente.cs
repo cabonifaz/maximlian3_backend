@@ -184,6 +184,7 @@
     public class FiltroClientePedidosFacturacion
     {
         public int idCliente { get; set; }
+        public string? busqueda { get; set; }
         public int? numPag { get; set; }
     }
 
