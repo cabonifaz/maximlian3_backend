@@ -1,4 +1,5 @@
 using Microsoft.Data.SqlClient;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using SafetyReport.Models;
 using System.Data;
@@ -9,11 +10,60 @@ namespace SafetyReport.DAO
     {
         private readonly DbConfig _dbConfig;
         private readonly ILogger<ClienteDAO> _logger;
+        private readonly IConfiguration _configuration;
 
-        public ClienteDAO(DbConfig dbConfig, ILogger<ClienteDAO> logger)
+        public ClienteDAO(DbConfig dbConfig, ILogger<ClienteDAO> logger, IConfiguration configuration)
         {
             _dbConfig = dbConfig;
             _logger = logger;
+            _configuration = configuration;
+        }
+
+        // Segunda conexión, a la base de ms-facturacion (maximilian_facturacion_staging) — usada solo para
+        // sincronizar el Cliente vía SP_Cliente_UpsertDesdeBackend.
+        private string MsFacturacionConnectionString =>
+            _configuration.GetConnectionString("MsFacturacionConnection")
+                ?? throw new InvalidOperationException("No se configuró la cadena de conexión 'MsFacturacionConnection'.");
+
+        // Best-effort: ms-facturacion es un sistema secundario (facturación electrónica), no hay transacción
+        // distribuida entre las dos bases — si esta sincronización falla, se loguea pero NO se revierte ni se
+        // reporta como error el alta/edición del Cliente en maximlian3_staging, que ya se confirmó exitosa.
+        // IdInquilino (ms-facturacion) = IdEmpresa (backend): 1 Empresa del backend = 1 Inquilino allá.
+        private async Task SincronizarClienteFacturacionAsync(
+            UsuarioGeneral usuarioLogueado, int idRegistroTributario, string? numRegistroTributario,
+            string nombre, string? correo, string? direccion, int idPais)
+        {
+            try
+            {
+                using SqlConnection cn = new(MsFacturacionConnectionString);
+                using SqlCommand cmd = new("SP_Cliente_UpsertDesdeBackend", cn);
+
+                cmd.CommandType = CommandType.StoredProcedure;
+
+                cmd.Parameters.Add("@vchUsuarioEjecutor", SqlDbType.VarChar, 32).Value = usuarioLogueado.Usuario;
+                cmd.Parameters.Add("@intIdInquilino", SqlDbType.Int).Value = usuarioLogueado.IdEmpresa;
+                cmd.Parameters.Add("@intIdRegistroTributario", SqlDbType.Int).Value = idRegistroTributario;
+                cmd.Parameters.Add("@vchNumeroDocumento", SqlDbType.VarChar, 15).Value = (object?)numRegistroTributario ?? DBNull.Value;
+                cmd.Parameters.Add("@vchNombre", SqlDbType.VarChar, 255).Value = nombre;
+                cmd.Parameters.Add("@vchCorreo", SqlDbType.VarChar, 255).Value = (object?)correo ?? DBNull.Value;
+                cmd.Parameters.Add("@vchDireccion", SqlDbType.VarChar, 255).Value = (object?)direccion ?? DBNull.Value;
+                cmd.Parameters.Add("@intPaisCodigo", SqlDbType.Int).Value = idPais;
+
+                await cn.OpenAsync();
+
+                using var dr = await cmd.ExecuteReaderAsync();
+                var respuesta = await LeerCabeceraAsync(dr, cmd.CommandText);
+
+                if (respuesta.IdTipoMensaje != 2)
+                {
+                    _logger.LogWarning(
+                        "No se pudo sincronizar el Cliente con ms-facturacion: {Mensaje}", respuesta.Mensaje);
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error no controlado al sincronizar el Cliente con ms-facturacion.");
+            }
         }
 
         private static DataTable ConstruirTablaContactos(List<ClienteContactoRequest>? contactos)
@@ -217,6 +267,13 @@ namespace SafetyReport.DAO
                     respuesta.Result = new List<ClienteCreado>();
                 }
 
+                if (respuesta.IdTipoMensaje == 2)
+                {
+                    await SincronizarClienteFacturacionAsync(
+                        usuarioLogueado, request.IdRegistroTributario, request.NumRegistroTributario,
+                        request.Nombre, request.Correo, request.Direccion, request.IdPais);
+                }
+
                 return respuesta;
             }
             catch (Exception ex)
@@ -287,6 +344,13 @@ namespace SafetyReport.DAO
                 else
                 {
                     respuesta.Result = new List<ClienteCreado>();
+                }
+
+                if (respuesta.IdTipoMensaje == 2)
+                {
+                    await SincronizarClienteFacturacionAsync(
+                        usuarioLogueado, request.IdRegistroTributario, request.NumRegistroTributario,
+                        request.Nombre, request.Correo, request.Direccion, request.IdPais);
                 }
 
                 return respuesta;
