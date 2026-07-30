@@ -170,6 +170,8 @@ builder.Services.AddScoped<ClienteContactoHandler>();
 builder.Services.AddScoped<ClienteContactoDAO>();
 builder.Services.AddScoped<PedidoHandler>();
 builder.Services.AddScoped<PedidoDAO>();
+builder.Services.AddScoped<PedidoFacturaHandler>();
+builder.Services.AddScoped<PedidoFacturaDAO>();
 builder.Services.AddScoped<AsignacionHandler>();
 builder.Services.AddScoped<AsignacionDAO>();
 builder.Services.AddScoped<DocxGeneratorService>();
@@ -254,6 +256,11 @@ var emailConfig = builder.Configuration.GetSection("Email").Get<EmailConfig>()
     ?? throw new Exception("Falta configuración Email");
 builder.Services.AddSingleton(emailConfig);
 builder.Services.AddSingleton<IEmailService, EmailService>();
+
+var facturacionElectronicaConfig = builder.Configuration.GetSection("FacturacionElectronica").Get<FacturacionElectronicaConfig>()
+    ?? throw new Exception("Falta configuración FacturacionElectronica");
+builder.Services.AddSingleton(facturacionElectronicaConfig);
+builder.Services.AddHttpClient<FacturacionElectronicaService>();
 
 var app = builder.Build();
 
