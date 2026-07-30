@@ -10,20 +10,16 @@ namespace SafetyReport.WebApi.Controllers
     public class PedidoFacturaController : BaseController
     {
         private readonly PedidoFacturaHandler _pedidoFacturaHandler;
-        private readonly IHostEnvironment _entorno;
 
-        public PedidoFacturaController(PedidoFacturaHandler pedidoFacturaHandler, IHostEnvironment entorno)
+        public PedidoFacturaController(PedidoFacturaHandler pedidoFacturaHandler)
         {
             _pedidoFacturaHandler = pedidoFacturaHandler;
-            _entorno = entorno;
         }
 
-        [HttpPost("enviarSunat")]
-        public async Task<IActionResult> EnviarSunat([FromQuery] int idPedido)
+        [HttpPost("guardarBorrador")]
+        public async Task<IActionResult> GuardarBorrador([FromQuery] int idPedido)
         {
-            // Mismo criterio que ms-facturación (Beta en dev/staging, Producción en cualquier otro entorno).
-            var ambienteCodigo = _entorno.IsDevelopment() || _entorno.IsStaging() ? "Beta" : "Produccion";
-            var respuesta = await _pedidoFacturaHandler.EnviarPedidoASunatAsync(UsuarioLogueado, idPedido, ambienteCodigo);
+            var respuesta = await _pedidoFacturaHandler.GuardarBorradorFacturaAsync(UsuarioLogueado, idPedido);
             return Ok(respuesta);
         }
     }

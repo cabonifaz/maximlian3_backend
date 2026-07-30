@@ -17,7 +17,7 @@ namespace SafetyReport.DAO
         }
 
         public async Task<Respuesta> RegistrarEnvioAsync(
-            UsuarioGeneral usuarioLogueado, int idPedido, int idDocumentoElectronico, int idEstadoFacturacion)
+            UsuarioGeneral usuarioLogueado, int idPedido, int idDocumentoElectronico, int? idEstadoFacturacion)
         {
             try
             {
@@ -31,7 +31,7 @@ namespace SafetyReport.DAO
                 cmd.Parameters.Add("@intIdRol", SqlDbType.Int).Value = usuarioLogueado.IdRol;
                 cmd.Parameters.Add("@intIdPedido", SqlDbType.Int).Value = idPedido;
                 cmd.Parameters.Add("@intIdDocumentoElectronico", SqlDbType.Int).Value = idDocumentoElectronico;
-                cmd.Parameters.Add("@intIdEstadoFacturacion", SqlDbType.Int).Value = idEstadoFacturacion;
+                cmd.Parameters.Add("@intIdEstadoFacturacion", SqlDbType.Int).Value = (object?)idEstadoFacturacion ?? DBNull.Value;
 
                 await cn.OpenAsync();
                 using var dr = await cmd.ExecuteReaderAsync();

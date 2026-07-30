@@ -28,7 +28,8 @@ namespace SafetyReport.Handlers
             _logger = logger;
         }
 
-        public async Task<Respuesta> EnviarPedidoASunatAsync(UsuarioGeneral usuarioLogueado, int idPedido, string ambienteCodigo)
+        // Solo Guardar: crea el borrador en ms-facturación (PendienteEnvio), no lo envía a SUNAT.
+        public async Task<Respuesta> GuardarBorradorFacturaAsync(UsuarioGeneral usuarioLogueado, int idPedido)
         {
             try
             {
@@ -94,19 +95,8 @@ namespace SafetyReport.Handlers
                     return new Respuesta { IdTipoMensaje = 3, Mensaje = insertado?.Mensaje ?? "No se pudo crear el documento electrónico en facturación." };
                 }
 
-                var enviado = await _facturacionService.EnviarASunatAsync(
-                    usuarioLogueado.IdEmpresa, insertado.Datos.IdDocumentoElectronico, ambienteCodigo, CancellationToken.None);
-                if (enviado?.Datos is null)
-                {
-                    return new Respuesta { IdTipoMensaje = 3, Mensaje = enviado?.Mensaje ?? "No se pudo enviar el documento electrónico a SUNAT." };
-                }
-
-                // EstadoMaestroCodigo (ms-facturación): 3=Aceptado, 4=AceptadoConObservaciones -> Aprobado (5);
-                // cualquier otro (5=Rechazado, 8=Error) -> Rechazado (6).
-                var idEstadoFacturacion = enviado.Datos.EstadoCodigo is 3 or 4 ? 5 : 6;
-
                 return await _pedidoFacturaDao.RegistrarEnvioAsync(
-                    usuarioLogueado, idPedido, insertado.Datos.IdDocumentoElectronico, idEstadoFacturacion);
+                    usuarioLogueado, idPedido, insertado.Datos.IdDocumentoElectronico, idEstadoFacturacion: null);
             }
             catch (Exception ex)
             {
