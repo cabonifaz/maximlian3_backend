@@ -95,8 +95,9 @@ namespace SafetyReport.Handlers
                     return new Respuesta { IdTipoMensaje = 3, Mensaje = insertado?.Mensaje ?? "No se pudo crear el documento electrónico en facturación." };
                 }
 
+                // 10 = Borrador (documento creado en ms-facturación, todavía sin confirmar con SUNAT).
                 return await _pedidoFacturaDao.RegistrarEnvioAsync(
-                    usuarioLogueado, idPedido, insertado.Datos.IdDocumentoElectronico, idEstadoFacturacion: null);
+                    usuarioLogueado, idPedido, insertado.Datos.IdDocumentoElectronico, idEstadoFacturacion: 10);
             }
             catch (Exception ex)
             {
