@@ -6,98 +6,106 @@ namespace SafetyReport.Handlers
 {
     public class PedidoFacturaHandler
     {
-        private readonly PedidoDAO _pedidoDao;
-        private readonly ClienteDAO _clienteDao;
         private readonly PedidoFacturaDAO _pedidoFacturaDao;
         private readonly FacturacionElectronicaService _facturacionService;
         private readonly ILogger<PedidoFacturaHandler> _logger;
 
-        // TODO: reemplazar por el IdEmpresa/IdSerieDocumento reales de ms-facturación una vez definido
-        // cómo este backend relaciona su tenant con la Empresa/Serie correspondiente allá.
-        private const int IdEmpresaFacturacionPlaceholder = 1;
-        private const int IdSerieDocumentoPlaceholder = 1;
-
         public PedidoFacturaHandler(
-            PedidoDAO pedidoDao, ClienteDAO clienteDao, PedidoFacturaDAO pedidoFacturaDao,
-            FacturacionElectronicaService facturacionService, ILogger<PedidoFacturaHandler> logger)
+            PedidoFacturaDAO pedidoFacturaDao, FacturacionElectronicaService facturacionService,
+            ILogger<PedidoFacturaHandler> logger)
         {
-            _pedidoDao = pedidoDao;
-            _clienteDao = clienteDao;
             _pedidoFacturaDao = pedidoFacturaDao;
             _facturacionService = facturacionService;
             _logger = logger;
         }
 
         // Solo Guardar: crea el borrador en ms-facturación (PendienteEnvio), no lo envía a SUNAT.
-        public async Task<Respuesta> GuardarBorradorFacturaAsync(UsuarioGeneral usuarioLogueado, int idPedido)
+        // Todos los datos de la factura (líneas/cuotas/cliente/tipo de documento) vienen del front —
+        // este backend solo agrega IdInquilino (=IdEmpresa del usuario) y SistemaOrigen.
+        public async Task<Respuesta> GuardarBorradorFacturaAsync(UsuarioGeneral usuarioLogueado, GuardarBorradorFacturaRequest request)
         {
             try
             {
-                var respuestaPedido = await _pedidoDao.ObtenerAsync(usuarioLogueado, new FiltroPedidoObtener { idPedido = idPedido });
-                var pedido = (respuestaPedido.Result as List<PedidoConsulta>)?.FirstOrDefault();
-                if (respuestaPedido.IdTipoMensaje != 2 || pedido is null)
+                if (request.lineas.Count == 0)
                 {
-                    return new Respuesta { IdTipoMensaje = 1, Mensaje = "No se encontró el pedido indicado." };
+                    return new Respuesta { IdTipoMensaje = 1, Mensaje = "La factura debe tener al menos una línea." };
                 }
 
-                var respuestaCliente = await _clienteDao.ObtenerClienteAsync(usuarioLogueado, pedido.IdCliente);
-                var cliente = (respuestaCliente.Result as List<ClienteConsulta>)?.FirstOrDefault();
-                if (respuestaCliente.IdTipoMensaje != 2 || cliente is null)
-                {
-                    return new Respuesta { IdTipoMensaje = 1, Mensaje = "No se encontró el cliente del pedido." };
-                }
-
-                var ahora = DateTime.Now;
-
-                // TODO: TipoDocumentoCodigo/TipoOperacionCodigo/FormaPago y el Item (producto/precio) son
-                // placeholders — pendiente de definir la regla real de facturación por pedido (Tarifario).
-                var request = new FacturacionInsertarDocumentoRequest
+                var facturacionRequest = new FacturacionInsertarDocumentoRequest
                 {
                     IdInquilino = usuarioLogueado.IdEmpresa,
-                    IdEmpresa = IdEmpresaFacturacionPlaceholder,
-                    IdExterno = pedido.Codigo,
-                    TipoDocumentoCodigo = "01",
-                    IdSerieDocumento = IdSerieDocumentoPlaceholder,
-                    FechaEmision = DateOnly.FromDateTime(ahora),
-                    HoraEmision = TimeOnly.FromDateTime(ahora),
-                    MonedaCodigo = "PEN",
-                    TipoOperacionCodigo = "0101",
-                    FormaPago = new FacturacionFormaPago { Codigo = "Contado" },
+                    IdEmpresa = request.idEmpresa,
+                    IdExterno = string.Join(",", request.lineas.Select(l => l.idPedido)),
+                    TipoDocumentoCodigo = request.tipoDocumentoCodigo,
+                    IdSerieDocumento = request.idSerieDocumento,
+                    FechaEmision = request.fechaEmision,
+                    HoraEmision = request.horaEmision,
+                    MonedaCodigo = request.monedaCodigo,
+                    TipoOperacionCodigo = request.tipoOperacionCodigo,
+                    FormaPago = new FacturacionFormaPago
+                    {
+                        Codigo = request.formaPagoCodigo,
+                        Cuotas = request.cuotas?.Select(c => new FacturacionCuota
+                        {
+                            NumeroCuota = c.numeroCuota,
+                            FechaVencimiento = c.fechaVencimiento,
+                            Monto = c.monto
+                        }).ToList()
+                    },
                     Cliente = new FacturacionCliente
                     {
-                        TipoDocumentoCodigo = "6",
-                        NumeroDocumento = cliente.NumRegistroTributario ?? string.Empty,
-                        Nombre = cliente.Nombre,
-                        Correo = cliente.Correo,
-                        Direccion = cliente.Direccion
+                        TipoDocumentoCodigo = request.cliente.tipoDocumentoCodigo,
+                        NumeroDocumento = request.cliente.numeroDocumento,
+                        Nombre = request.cliente.nombre,
+                        Correo = request.cliente.correo,
+                        Direccion = request.cliente.direccion
                     },
-                    Items =
-                    [
-                        new FacturacionItem
-                        {
-                            NumeroLinea = 1,
-                            ProductoCodigo = "SERVICIO",
-                            Descripcion = pedido.Codigo,
-                            UnidadMedidaCodigo = "ZZ",
-                            Cantidad = 1,
-                            ValorUnitario = 0,
-                            PrecioUnitario = 0,
-                            MontoDescuento = 0,
-                            AfectacionIgvCodigo = "10",
-                            PorcentajeIgv = 18
-                        }
-                    ]
+                    DocumentoAfectado = request.documentoAfectado is null ? null : new FacturacionDocumentoAfectado
+                    {
+                        IdDocumentoElectronicoRelacionado = request.documentoAfectado.idDocumentoElectronicoRelacionado,
+                        TipoReferenciaCodigo = request.documentoAfectado.tipoReferenciaCodigo,
+                        MotivoCodigo = request.documentoAfectado.motivoCodigo,
+                        MotivoDescripcion = request.documentoAfectado.motivoDescripcion
+                    },
+                    Items = request.lineas.Select((l, i) => new FacturacionItem
+                    {
+                        NumeroLinea = i + 1,
+                        ProductoCodigo = l.productoCodigo,
+                        ProductoSunatCodigo = l.productoSunatCodigo,
+                        Descripcion = l.descripcion,
+                        UnidadMedidaCodigo = l.unidadMedidaCodigo,
+                        Cantidad = l.cantidad,
+                        ValorUnitario = l.valorUnitario,
+                        PrecioUnitario = l.precioUnitario,
+                        MontoDescuento = l.montoDescuento,
+                        AfectacionIgvCodigo = l.afectacionIgvCodigo,
+                        PorcentajeIgv = l.porcentajeIgv
+                    }).ToList()
                 };
 
-                var insertado = await _facturacionService.InsertarDocumentoAsync(request, CancellationToken.None);
+                var insertado = await _facturacionService.InsertarDocumentoAsync(facturacionRequest, CancellationToken.None);
                 if (insertado?.Datos is null)
                 {
                     return new Respuesta { IdTipoMensaje = 3, Mensaje = insertado?.Mensaje ?? "No se pudo crear el documento electrónico en facturación." };
                 }
 
-                // 10 = Borrador (documento creado en ms-facturación, todavía sin confirmar con SUNAT).
-                return await _pedidoFacturaDao.RegistrarEnvioAsync(
-                    usuarioLogueado, idPedido, insertado.Datos.IdDocumentoElectronico, idEstadoFacturacion: 10);
+                // Un borrador puede cubrir varios pedidos: se registra el mismo IdDocumentoElectronico
+                // en PEDIDO_FACTURA para cada pedido referenciado por una línea.
+                var idPedidos = request.lineas.Select(l => l.idPedido).Distinct();
+                foreach (var idPedido in idPedidos)
+                {
+                    var resultado = await _pedidoFacturaDao.RegistrarEnvioAsync(
+                        usuarioLogueado, idPedido, insertado.Datos.IdDocumentoElectronico, idEstadoFacturacion: 10);
+
+                    if (resultado.IdTipoMensaje != 2)
+                    {
+                        _logger.LogWarning(
+                            "No se pudo registrar el borrador de facturación para el pedido {IdPedido}: {Mensaje}",
+                            idPedido, resultado.Mensaje);
+                    }
+                }
+
+                return ResultadoOperacionExito(insertado.Datos.IdDocumentoElectronico);
             }
             catch (Exception ex)
             {
@@ -105,5 +113,12 @@ namespace SafetyReport.Handlers
                 return new Respuesta { IdTipoMensaje = 3, Mensaje = ex.Message };
             }
         }
+
+        private static Respuesta ResultadoOperacionExito(int idDocumentoElectronico) => new()
+        {
+            IdTipoMensaje = 2,
+            Mensaje = "Borrador de factura guardado correctamente.",
+            Result = new { IdDocumentoElectronico = idDocumentoElectronico }
+        };
     }
 }

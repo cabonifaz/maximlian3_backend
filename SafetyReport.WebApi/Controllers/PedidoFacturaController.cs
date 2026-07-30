@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using SafetyReport.Handlers;
+using SafetyReport.Models;
 
 namespace SafetyReport.WebApi.Controllers
 {
@@ -17,9 +18,9 @@ namespace SafetyReport.WebApi.Controllers
         }
 
         [HttpPost("guardarBorrador")]
-        public async Task<IActionResult> GuardarBorrador([FromQuery] int idPedido)
+        public async Task<IActionResult> GuardarBorrador([FromBody] GuardarBorradorFacturaRequest request)
         {
-            var respuesta = await _pedidoFacturaHandler.GuardarBorradorFacturaAsync(UsuarioLogueado, idPedido);
+            var respuesta = await _pedidoFacturaHandler.GuardarBorradorFacturaAsync(UsuarioLogueado, request);
             return Ok(respuesta);
         }
     }
