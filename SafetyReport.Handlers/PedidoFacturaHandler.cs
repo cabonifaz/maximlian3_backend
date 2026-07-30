@@ -34,7 +34,7 @@ namespace SafetyReport.Handlers
                 var facturacionRequest = new FacturacionInsertarDocumentoRequest
                 {
                     IdInquilino = usuarioLogueado.IdEmpresa,
-                    IdEmpresa = request.idEmpresa,
+                    IdEmpresa = usuarioLogueado.IdEmpresa,
                     IdExterno = string.Join(",", request.lineas.Select(l => l.idPedido)),
                     TipoDocumentoCodigo = request.tipoDocumentoCodigo,
                     IdSerieDocumento = request.idSerieDocumento,

@@ -129,7 +129,6 @@ namespace SafetyReport.Models
 
     public class GuardarBorradorFacturaRequest
     {
-        public int idEmpresa { get; set; }
         public string tipoDocumentoCodigo { get; set; } = string.Empty;
         public int idSerieDocumento { get; set; }
         public DateOnly fechaEmision { get; set; }
