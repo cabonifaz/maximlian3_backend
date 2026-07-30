@@ -180,4 +180,26 @@
         public string? IdIdiomaFacturacion { get; set; }
         public string? EstadoFacturacion { get; set; }
     }
+
+    public class FiltroClientePedidosFacturacion
+    {
+        public int idCliente { get; set; }
+        public int? numPag { get; set; }
+    }
+
+    public class ClientePedidosFacturacionResult
+    {
+        public List<ClientePedidoFacturacionConsulta> lstPedidos { get; set; } = new();
+        public int TotalRegistros { get; set; }
+        public int TotalPaginas { get; set; }
+    }
+
+    public class ClientePedidoFacturacionConsulta
+    {
+        public int IdPedido { get; set; }
+        public string Codigo { get; set; } = string.Empty;
+        public string? Investigado { get; set; }
+        public string? AplicaPenalidad { get; set; }
+        public string EstadoFacturacion { get; set; } = string.Empty;
+    }
 }
