@@ -164,6 +164,8 @@ builder.Services.AddScoped<TablaMaestraHandler>();
 builder.Services.AddScoped<FormatoDocumentoResolver>();
 builder.Services.AddScoped<ClienteDAO>();
 builder.Services.AddScoped<ClienteHandler>();
+builder.Services.AddScoped<DashboardDAO>();
+builder.Services.AddScoped<DashboardHandler>();
 builder.Services.AddScoped<TarifarioDAO>();
 builder.Services.AddScoped<TarifarioHandler>();
 builder.Services.AddScoped<ClienteContactoHandler>();
