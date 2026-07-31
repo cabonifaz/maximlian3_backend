@@ -148,7 +148,6 @@
         public int IdUsuario { get; set; }
         public string NombreCompleto { get; set; } = string.Empty;
         public string? Iniciales { get; set; }
-        public int IdRolAsignado { get; set; }
         public string? DescripcionRol { get; set; }
         public int Ordenes { get; set; }
         public int ATiempo { get; set; }
@@ -164,5 +163,7 @@
         public List<UsuarioCumplimientoItem> lstUsuarios { get; set; } = new();
         public int TotalRegistros { get; set; }
         public int TotalPaginas { get; set; }
+        public decimal? PorcentajeEntregados { get; set; }
+        public decimal? PorcentajeAtrasados { get; set; }
     }
 }

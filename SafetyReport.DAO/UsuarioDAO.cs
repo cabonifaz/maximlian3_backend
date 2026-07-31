@@ -510,7 +510,7 @@ namespace SafetyReport.DAO
             try
             {
                 using SqlConnection cn = new(_dbConfig.ConnectionString);
-                using SqlCommand cmd = new("SP_Asignacion_Cumplimiento", cn);
+                using SqlCommand cmd = new("SP_Usuario_Resumen", cn);
 
                 cmd.CommandType = CommandType.StoredProcedure;
                 cmd.Parameters.Add("@intIdUsuario", SqlDbType.Int).Value = usuarioLogueado.IdUsuario;
@@ -536,6 +536,8 @@ namespace SafetyReport.DAO
                     {
                         resultado.TotalRegistros = Convert.ToInt32(dr["TotalRegistros"]);
                         resultado.TotalPaginas = Convert.ToInt32(dr["TotalPaginas"]);
+                        resultado.PorcentajeEntregados = GetNullableDecimal(dr, "PorcentajeEntregados");
+                        resultado.PorcentajeAtrasados = GetNullableDecimal(dr, "PorcentajeAtrasados");
                     }
 
                     if (await dr.NextResultAsync())
@@ -547,7 +549,6 @@ namespace SafetyReport.DAO
                                 IdUsuario = Convert.ToInt32(dr["IdUsuario"]),
                                 NombreCompleto = dr["NombreCompleto"]?.ToString() ?? string.Empty,
                                 Iniciales = GetNullableString(dr, "Iniciales"),
-                                IdRolAsignado = Convert.ToInt32(dr["IdRolAsignado"]),
                                 DescripcionRol = GetNullableString(dr, "DescripcionRol"),
                                 Ordenes = Convert.ToInt32(dr["Ordenes"]),
                                 ATiempo = Convert.ToInt32(dr["ATiempo"]),
