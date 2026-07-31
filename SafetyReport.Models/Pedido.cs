@@ -127,6 +127,51 @@ namespace SafetyReport.Models
         public List<int>? idEstado { get; set; }
     }
 
+    public class GuardarBorradorFacturaRequest
+    {
+        public int idTipoDocumentoMaestro { get; set; }
+        public int idSerieDocumento { get; set; }
+        public DateOnly fechaEmision { get; set; }
+        public TimeOnly horaEmision { get; set; }
+        public string monedaCodigo { get; set; } = string.Empty;
+        public string tipoOperacionCodigo { get; set; } = string.Empty;
+        public string formaPagoCodigo { get; set; } = string.Empty;
+        public List<GuardarBorradorFacturaCuota>? cuotas { get; set; }
+        public int idCliente { get; set; }
+        public GuardarBorradorFacturaDocumentoAfectado? documentoAfectado { get; set; }
+        public List<GuardarBorradorFacturaLinea> lineas { get; set; } = new();
+    }
+
+    public class GuardarBorradorFacturaCuota
+    {
+        public int numeroCuota { get; set; }
+        public DateOnly fechaVencimiento { get; set; }
+        public decimal monto { get; set; }
+    }
+
+    public class GuardarBorradorFacturaDocumentoAfectado
+    {
+        public int idDocumentoElectronicoRelacionado { get; set; }
+        public string tipoReferenciaCodigo { get; set; } = string.Empty;
+        public string motivoCodigo { get; set; } = string.Empty;
+        public string motivoDescripcion { get; set; } = string.Empty;
+    }
+
+    public class GuardarBorradorFacturaLinea
+    {
+        public int idPedido { get; set; }
+        public string productoCodigo { get; set; } = string.Empty;
+        public string? productoSunatCodigo { get; set; }
+        public string descripcion { get; set; } = string.Empty;
+        public string unidadMedidaCodigo { get; set; } = string.Empty;
+        public decimal cantidad { get; set; }
+        public decimal valorUnitario { get; set; }
+        public decimal precioUnitario { get; set; }
+        public decimal montoDescuento { get; set; }
+        public string afectacionIgvCodigo { get; set; } = string.Empty;
+        public decimal porcentajeIgv { get; set; }
+    }
+
     public class PedidoAsignacionResumen
     {
         public int IdEstadoAsignacion { get; set; }
@@ -202,5 +247,14 @@ namespace SafetyReport.Models
     {
         public int IdPedido { get; set; }
         public List<PedidoArchivoPresignado> Archivos { get; set; } = new();
+    }
+
+    public class PedidoEstadoResumenItem
+    {
+        public int IdEstado { get; set; }
+        public string? DescripcionEstado { get; set; }
+        public string? ColorLetra { get; set; }
+        public string? ColorFondo { get; set; }
+        public int Cantidad { get; set; }
     }
 }
