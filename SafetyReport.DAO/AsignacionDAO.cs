@@ -355,6 +355,7 @@ namespace SafetyReport.DAO
                             resultado.lstAsignaciones.Add(new AsignacionBandejaItem
                             {
                                 IdPedido = GetNullableInt(dr, "IdPedido"),
+                                CodigoPedido = GetNullableString(dr, "CodigoPedido"),
                                 IdInforme = GetNullableInt(dr, "IdInforme"),
                                 IdInformeOriginal = GetNullableInt(dr, "IdInformeOriginal"),
                                 Investigado = GetNullableString(dr, "Investigado"),
