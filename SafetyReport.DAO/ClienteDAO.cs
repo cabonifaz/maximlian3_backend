@@ -392,6 +392,49 @@ namespace SafetyReport.DAO
             }
         }
 
+        public async Task<Respuesta> ObtenerClienteParaFacturacionAsync(UsuarioGeneral usuarioLogueado, int idCliente)
+        {
+            try
+            {
+                using SqlConnection cn = new(_dbConfig.ConnectionString);
+                using SqlCommand cmd = new("SP_Cliente_ObtenerParaFacturacion", cn);
+
+                cmd.CommandType = CommandType.StoredProcedure;
+                cmd.Parameters.Add("@intIdUsuario", SqlDbType.Int).Value = usuarioLogueado.IdUsuario;
+                cmd.Parameters.Add("@vchUsuario", SqlDbType.VarChar, 32).Value = usuarioLogueado.Usuario;
+                cmd.Parameters.Add("@intIdEmpresa", SqlDbType.Int).Value = usuarioLogueado.IdEmpresa;
+                cmd.Parameters.Add("@intIdRol", SqlDbType.Int).Value = usuarioLogueado.IdRol;
+                cmd.Parameters.Add("@intIdCliente", SqlDbType.Int).Value = idCliente;
+
+                await cn.OpenAsync();
+
+                using var dr = await cmd.ExecuteReaderAsync();
+                var respuesta = await LeerCabeceraAsync(dr, cmd.CommandText);
+
+                if (respuesta.IdTipoMensaje == 2 && await dr.NextResultAsync() && await dr.ReadAsync())
+                {
+                    respuesta.Result = new ClienteParaFacturacionConsulta
+                    {
+                        IdCliente = Convert.ToInt32(dr["IdCliente"]),
+                        IdTipoDocumentoSunat = Convert.ToInt32(dr["IdTipoDocumentoSunat"]),
+                        NumeroDocumento = dr["NumeroDocumento"]?.ToString() ?? string.Empty,
+                        Nombre = GetNullableString(dr, "Nombre"),
+                        Correo = GetNullableString(dr, "Correo"),
+                        Direccion = GetNullableString(dr, "Direccion"),
+                        IdPais = Convert.ToInt32(dr["IdPais"])
+                    };
+                }
+
+                return respuesta;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error no controlado en la capa de datos.");
+
+                return new Respuesta { IdTipoMensaje = 3, Mensaje = ex.Message };
+            }
+        }
+
         public async Task<Respuesta> ListarClientesAsync(UsuarioGeneral usuarioLogueado, string? busqueda, int? numPag, int? idPais, int? idEstado)
         {
             try

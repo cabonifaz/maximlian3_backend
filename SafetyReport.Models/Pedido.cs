@@ -129,7 +129,7 @@ namespace SafetyReport.Models
 
     public class GuardarBorradorFacturaRequest
     {
-        public string tipoDocumentoCodigo { get; set; } = string.Empty;
+        public int idTipoDocumentoMaestro { get; set; }
         public int idSerieDocumento { get; set; }
         public DateOnly fechaEmision { get; set; }
         public TimeOnly horaEmision { get; set; }
@@ -137,7 +137,7 @@ namespace SafetyReport.Models
         public string tipoOperacionCodigo { get; set; } = string.Empty;
         public string formaPagoCodigo { get; set; } = string.Empty;
         public List<GuardarBorradorFacturaCuota>? cuotas { get; set; }
-        public GuardarBorradorFacturaCliente cliente { get; set; } = new();
+        public int idCliente { get; set; }
         public GuardarBorradorFacturaDocumentoAfectado? documentoAfectado { get; set; }
         public List<GuardarBorradorFacturaLinea> lineas { get; set; } = new();
     }
@@ -147,15 +147,6 @@ namespace SafetyReport.Models
         public int numeroCuota { get; set; }
         public DateOnly fechaVencimiento { get; set; }
         public decimal monto { get; set; }
-    }
-
-    public class GuardarBorradorFacturaCliente
-    {
-        public string tipoDocumentoCodigo { get; set; } = string.Empty;
-        public string numeroDocumento { get; set; } = string.Empty;
-        public string? nombre { get; set; }
-        public string? correo { get; set; }
-        public string? direccion { get; set; }
     }
 
     public class GuardarBorradorFacturaDocumentoAfectado

@@ -7,21 +7,25 @@ namespace SafetyReport.Handlers
     public class PedidoFacturaHandler
     {
         private readonly PedidoFacturaDAO _pedidoFacturaDao;
+        private readonly ClienteDAO _clienteDao;
         private readonly FacturacionElectronicaService _facturacionService;
         private readonly ILogger<PedidoFacturaHandler> _logger;
 
         public PedidoFacturaHandler(
-            PedidoFacturaDAO pedidoFacturaDao, FacturacionElectronicaService facturacionService,
+            PedidoFacturaDAO pedidoFacturaDao, ClienteDAO clienteDao, FacturacionElectronicaService facturacionService,
             ILogger<PedidoFacturaHandler> logger)
         {
             _pedidoFacturaDao = pedidoFacturaDao;
+            _clienteDao = clienteDao;
             _facturacionService = facturacionService;
             _logger = logger;
         }
 
         // Solo Guardar: crea el borrador en ms-facturación (PendienteEnvio), no lo envía a SUNAT.
-        // Todos los datos de la factura (líneas/cuotas/cliente/tipo de documento) vienen del front —
-        // este backend solo agrega IdInquilino (=IdEmpresa del usuario) y SistemaOrigen.
+        // Líneas/cuotas/tipo de documento vienen del front (son propios de esta factura, no de un maestro).
+        // El cliente NO viene del front: solo manda idCliente, este Handler resuelve los datos vigentes en
+        // CLIENTE (via SP_Cliente_ObtenerParaFacturacion) para no duplicar/desincronizar lo que ya está
+        // guardado ahí. Este backend además agrega IdInquilino (=IdEmpresa del usuario).
         public async Task<Respuesta> GuardarBorradorFacturaAsync(UsuarioGeneral usuarioLogueado, GuardarBorradorFacturaRequest request)
         {
             try
@@ -31,12 +35,18 @@ namespace SafetyReport.Handlers
                     return new Respuesta { IdTipoMensaje = 1, Mensaje = "La factura debe tener al menos una línea." };
                 }
 
+                var cliente = await _clienteDao.ObtenerClienteParaFacturacionAsync(usuarioLogueado, request.idCliente);
+                if (cliente.IdTipoMensaje != 2 || cliente.Result is not ClienteParaFacturacionConsulta clienteDatos)
+                {
+                    return new Respuesta { IdTipoMensaje = cliente.IdTipoMensaje, Mensaje = cliente.Mensaje };
+                }
+
                 var facturacionRequest = new FacturacionInsertarDocumentoRequest
                 {
                     IdInquilino = usuarioLogueado.IdEmpresa,
-                    IdEmpresa = usuarioLogueado.IdEmpresa,
+                    IdEmpresa = 1, // TODO: resolver desde EMPRESAS de ms-facturación (GET /api/v1/empresas?idInquilino=) en vez de fijo.
                     IdExterno = string.Join(",", request.lineas.Select(l => l.idPedido)),
-                    TipoDocumentoCodigo = request.tipoDocumentoCodigo,
+                    IdTipoDocumentoMaestro = request.idTipoDocumentoMaestro,
                     IdSerieDocumento = request.idSerieDocumento,
                     FechaEmision = request.fechaEmision,
                     HoraEmision = request.horaEmision,
@@ -54,11 +64,12 @@ namespace SafetyReport.Handlers
                     },
                     Cliente = new FacturacionCliente
                     {
-                        TipoDocumentoCodigo = request.cliente.tipoDocumentoCodigo,
-                        NumeroDocumento = request.cliente.numeroDocumento,
-                        Nombre = request.cliente.nombre,
-                        Correo = request.cliente.correo,
-                        Direccion = request.cliente.direccion
+                        IdTipoDocumentoSunat = clienteDatos.IdTipoDocumentoSunat,
+                        NumeroDocumento = clienteDatos.NumeroDocumento,
+                        Nombre = clienteDatos.Nombre,
+                        Correo = clienteDatos.Correo,
+                        Direccion = clienteDatos.Direccion,
+                        PaisCodigo = clienteDatos.IdPais
                     },
                     DocumentoAfectado = request.documentoAfectado is null ? null : new FacturacionDocumentoAfectado
                     {

@@ -4,9 +4,8 @@ namespace SafetyReport.Models
     {
         public int IdInquilino { get; set; }
         public int IdEmpresa { get; set; }
-        public string SistemaOrigen { get; set; } = "maximlian3_backend";
         public string IdExterno { get; set; } = string.Empty;
-        public string TipoDocumentoCodigo { get; set; } = string.Empty;
+        public int IdTipoDocumentoMaestro { get; set; }
         public int IdSerieDocumento { get; set; }
         public DateOnly FechaEmision { get; set; }
         public TimeOnly HoraEmision { get; set; }
@@ -33,11 +32,12 @@ namespace SafetyReport.Models
 
     public class FacturacionCliente
     {
-        public string TipoDocumentoCodigo { get; set; } = string.Empty;
+        public int IdTipoDocumentoSunat { get; set; }
         public string NumeroDocumento { get; set; } = string.Empty;
         public string? Nombre { get; set; }
         public string? Correo { get; set; }
         public string? Direccion { get; set; }
+        public int PaisCodigo { get; set; }
     }
 
     public class FacturacionDocumentoAfectado
