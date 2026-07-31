@@ -17,7 +17,7 @@ namespace SafetyReport.WebApi.Controllers
             _clienteHandler = clienteHandler;
         }
 
-        [HttpGet("/api/Clientes/resumen")]
+        [HttpGet("/resumen")]
         public async Task<IActionResult> Resumen()
         {
             var respuesta = await _clienteHandler.ObtenerResumenClientesAsync(UsuarioLogueado);
