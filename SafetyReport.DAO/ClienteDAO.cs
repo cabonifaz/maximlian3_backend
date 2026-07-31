@@ -116,6 +116,12 @@ namespace SafetyReport.DAO
             return value == DBNull.Value ? null : value.ToString();
         }
 
+        private static decimal? GetNullableDecimal(SqlDataReader dr, string columnName)
+        {
+            var value = dr[columnName];
+            return value == DBNull.Value ? null : Convert.ToDecimal(value);
+        }
+
         private async Task<Respuesta> LeerCabeceraAsync(SqlDataReader dr, string procedimiento)
         {
             var respuesta = new Respuesta();
@@ -631,6 +637,54 @@ namespace SafetyReport.DAO
                     IdTipoMensaje = 3,
                     Mensaje = ex.Message,
                     Result = new ClienteListaFacturacionResult()
+                };
+            }
+        }
+
+        public async Task<Respuesta> ObtenerResumenClientesAsync(UsuarioGeneral usuarioLogueado)
+        {
+            try
+            {
+                using SqlConnection cn = new(_dbConfig.ConnectionString);
+                using SqlCommand cmd = new("SP_Cliente_Resumen", cn);
+
+                cmd.CommandType = CommandType.StoredProcedure;
+                cmd.Parameters.Add("@intIdUsuario", SqlDbType.Int).Value = usuarioLogueado.IdUsuario;
+                cmd.Parameters.Add("@vchUsuario", SqlDbType.VarChar, 32).Value = usuarioLogueado.Usuario;
+                cmd.Parameters.Add("@intIdEmpresa", SqlDbType.Int).Value = usuarioLogueado.IdEmpresa;
+                cmd.Parameters.Add("@intIdRol", SqlDbType.Int).Value = usuarioLogueado.IdRol;
+
+                await cn.OpenAsync();
+
+                using var dr = await cmd.ExecuteReaderAsync();
+                var respuesta = await LeerCabeceraAsync(dr, cmd.CommandText);
+
+                var resultado = new ClienteResumen();
+                if (respuesta.IdTipoMensaje == 2 && await dr.NextResultAsync())
+                {
+                    if (await dr.ReadAsync())
+                    {
+                        resultado.TotalClientes = Convert.ToInt32(dr["TotalClientes"]);
+                        resultado.TotalActivos = Convert.ToInt32(dr["TotalActivos"]);
+                        resultado.TotalInactivos = Convert.ToInt32(dr["TotalInactivos"]);
+                        resultado.PorcentajeActivos = GetNullableDecimal(dr, "PorcentajeActivos");
+                        resultado.PorcentajeCrecimiento = GetNullableDecimal(dr, "PorcentajeCrecimiento");
+                        resultado.FechaActualizacion = Convert.ToDateTime(dr["FechaActualizacion"]);
+                    }
+                }
+
+                respuesta.Result = resultado;
+                return respuesta;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error no controlado en la capa de datos.");
+
+                return new Respuesta
+                {
+                    IdTipoMensaje = 3,
+                    Mensaje = ex.Message,
+                    Result = new ClienteResumen()
                 };
             }
         }
