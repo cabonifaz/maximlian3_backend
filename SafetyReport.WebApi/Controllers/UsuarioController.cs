@@ -85,5 +85,12 @@ namespace SafetyReport.WebApi.Controllers
 
             return Ok(respuesta);
         }
+
+        [HttpGet("resumen")]
+        public async Task<IActionResult> Resumen([FromQuery] FiltroUsuarioResumen request)
+        {
+            var respuesta = await _usuarioHandler.ObtenerResumenAsync(UsuarioLogueado, request);
+            return Ok(respuesta);
+        }
     }
 }
