@@ -203,4 +203,13 @@ namespace SafetyReport.Models
         public int IdPedido { get; set; }
         public List<PedidoArchivoPresignado> Archivos { get; set; } = new();
     }
+
+    public class PedidoEstadoResumenItem
+    {
+        public int IdEstado { get; set; }
+        public string? DescripcionEstado { get; set; }
+        public string? ColorLetra { get; set; }
+        public string? ColorFondo { get; set; }
+        public int Cantidad { get; set; }
+    }
 }
