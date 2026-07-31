@@ -566,5 +566,55 @@ namespace SafetyReport.DAO
             }
         }
 
+        public async Task<Respuesta> ObtenerResumenAsync(UsuarioGeneral usuarioLogueado)
+        {
+            try
+            {
+                using SqlConnection cn = new(_dbConfig.ConnectionString);
+                using SqlCommand cmd = new("SP_Pedido_Resumen", cn);
+
+                cmd.CommandType = CommandType.StoredProcedure;
+                cmd.Parameters.Add("@intIdUsuario", SqlDbType.Int).Value = usuarioLogueado.IdUsuario;
+                cmd.Parameters.Add("@vchUsuario", SqlDbType.VarChar, 32).Value = usuarioLogueado.Usuario;
+                cmd.Parameters.Add("@intIdEmpresa", SqlDbType.Int).Value = usuarioLogueado.IdEmpresa;
+                cmd.Parameters.Add("@intIdRol", SqlDbType.Int).Value = usuarioLogueado.IdRol;
+
+                await cn.OpenAsync();
+
+                using var dr = await cmd.ExecuteReaderAsync();
+                var respuesta = await LeerCabeceraAsync(dr, cmd.CommandText);
+
+                var lista = new List<PedidoEstadoResumenItem>();
+                if (respuesta.IdTipoMensaje == 2 && await dr.NextResultAsync())
+                {
+                    while (await dr.ReadAsync())
+                    {
+                        lista.Add(new PedidoEstadoResumenItem
+                        {
+                            IdEstado = Convert.ToInt32(dr["IdEstado"]),
+                            DescripcionEstado = GetNullableString(dr, "DescripcionEstado"),
+                            ColorLetra = GetNullableString(dr, "ColorLetra"),
+                            ColorFondo = GetNullableString(dr, "ColorFondo"),
+                            Cantidad = Convert.ToInt32(dr["Cantidad"])
+                        });
+                    }
+                }
+
+                respuesta.Result = lista;
+                return respuesta;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error no controlado en la capa de datos.");
+
+                return new Respuesta
+                {
+                    IdTipoMensaje = 3,
+                    Mensaje = ex.Message,
+                    Result = new List<PedidoEstadoResumenItem>()
+                };
+            }
+        }
+
     }
 }

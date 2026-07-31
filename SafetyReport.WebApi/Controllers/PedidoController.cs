@@ -65,5 +65,12 @@ namespace SafetyReport.WebApi.Controllers
             var respuesta = await _pedidoHandler.EliminarAsync(UsuarioLogueado, request);
             return Ok(respuesta);
         }
+
+        [HttpGet("resumen")]
+        public async Task<IActionResult> Resumen()
+        {
+            var respuesta = await _pedidoHandler.ObtenerResumenAsync(UsuarioLogueado);
+            return Ok(respuesta);
+        }
     }
 }
