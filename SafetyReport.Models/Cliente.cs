@@ -90,6 +90,7 @@
         public int IdPais { get; set; }
         public int IdRegistroTributario { get; set; }
         public string? NumRegistroTributario { get; set; }
+        public int? IdTipoDocumentoSunat { get; set; }
         public string? Correo { get; set; }
         public string? WebSite { get; set; }
         public string? Telefono { get; set; }

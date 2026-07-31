@@ -459,6 +459,7 @@ namespace SafetyReport.DAO
                             IdPais = Convert.ToInt32(dr["IdPais"]),
                             IdRegistroTributario = Convert.ToInt32(dr["IdRegistroTributario"]),
                             NumRegistroTributario = GetNullableString(dr, "NumRegistroTributario"),
+                            IdTipoDocumentoSunat = dr["IdTipoDocumentoSunat"] is DBNull ? null : Convert.ToInt32(dr["IdTipoDocumentoSunat"]),
                             Correo = GetNullableString(dr, "Correo"),
                             WebSite = GetNullableString(dr, "WebSite"),
                             Telefono = GetNullableString(dr, "Telefono"),
