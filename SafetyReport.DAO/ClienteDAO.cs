@@ -344,6 +344,7 @@ namespace SafetyReport.DAO
                             IdPais = Convert.ToInt32(dr["IdPais"]),
                             IdRegistroTributario = Convert.ToInt32(dr["IdRegistroTributario"]),
                             NumRegistroTributario = GetNullableString(dr, "NumRegistroTributario"),
+                            IdTipoDocumentoSunat = dr["IdTipoDocumentoSunat"] is DBNull ? null : Convert.ToInt32(dr["IdTipoDocumentoSunat"]),
                             Correo = GetNullableString(dr, "Correo"),
                             WebSite = GetNullableString(dr, "WebSite"),
                             Telefono = GetNullableString(dr, "Telefono"),
@@ -394,6 +395,49 @@ namespace SafetyReport.DAO
                     Mensaje = ex.Message,
                     Result = new List<ClienteConsulta>()
                 };
+            }
+        }
+
+        public async Task<Respuesta> ObtenerClienteParaFacturacionAsync(UsuarioGeneral usuarioLogueado, int idCliente)
+        {
+            try
+            {
+                using SqlConnection cn = new(_dbConfig.ConnectionString);
+                using SqlCommand cmd = new("SP_Cliente_ObtenerParaFacturacion", cn);
+
+                cmd.CommandType = CommandType.StoredProcedure;
+                cmd.Parameters.Add("@intIdUsuario", SqlDbType.Int).Value = usuarioLogueado.IdUsuario;
+                cmd.Parameters.Add("@vchUsuario", SqlDbType.VarChar, 32).Value = usuarioLogueado.Usuario;
+                cmd.Parameters.Add("@intIdEmpresa", SqlDbType.Int).Value = usuarioLogueado.IdEmpresa;
+                cmd.Parameters.Add("@intIdRol", SqlDbType.Int).Value = usuarioLogueado.IdRol;
+                cmd.Parameters.Add("@intIdCliente", SqlDbType.Int).Value = idCliente;
+
+                await cn.OpenAsync();
+
+                using var dr = await cmd.ExecuteReaderAsync();
+                var respuesta = await LeerCabeceraAsync(dr, cmd.CommandText);
+
+                if (respuesta.IdTipoMensaje == 2 && await dr.NextResultAsync() && await dr.ReadAsync())
+                {
+                    respuesta.Result = new ClienteParaFacturacionConsulta
+                    {
+                        IdCliente = Convert.ToInt32(dr["IdCliente"]),
+                        IdTipoDocumentoSunat = Convert.ToInt32(dr["IdTipoDocumentoSunat"]),
+                        NumeroDocumento = dr["NumeroDocumento"]?.ToString() ?? string.Empty,
+                        Nombre = GetNullableString(dr, "Nombre"),
+                        Correo = GetNullableString(dr, "Correo"),
+                        Direccion = GetNullableString(dr, "Direccion"),
+                        IdPais = Convert.ToInt32(dr["IdPais"])
+                    };
+                }
+
+                return respuesta;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error no controlado en la capa de datos.");
+
+                return new Respuesta { IdTipoMensaje = 3, Mensaje = ex.Message };
             }
         }
 
@@ -637,6 +681,74 @@ namespace SafetyReport.DAO
                     IdTipoMensaje = 3,
                     Mensaje = ex.Message,
                     Result = new ClienteListaFacturacionResult()
+                };
+            }
+        }
+
+        public async Task<Respuesta> ListarPedidosFacturacionClienteAsync(UsuarioGeneral usuarioLogueado, int idCliente, string? busqueda, int? numPag)
+        {
+            try
+            {
+                using SqlConnection cn = new(_dbConfig.ConnectionString);
+                using SqlCommand cmd = new("SP_Cliente_ListarPedidosFacturacion", cn);
+
+                cmd.CommandType = CommandType.StoredProcedure;
+                cmd.Parameters.Add("@intIdUsuario", SqlDbType.Int).Value = usuarioLogueado.IdUsuario;
+                cmd.Parameters.Add("@vchUsuario", SqlDbType.VarChar, 32).Value = usuarioLogueado.Usuario;
+                cmd.Parameters.Add("@intIdEmpresa", SqlDbType.Int).Value = usuarioLogueado.IdEmpresa;
+                cmd.Parameters.Add("@intIdRol", SqlDbType.Int).Value = usuarioLogueado.IdRol;
+                cmd.Parameters.Add("@intIdCliente", SqlDbType.Int).Value = idCliente;
+                cmd.Parameters.Add("@vchBusqueda", SqlDbType.VarChar, 255).Value = (object?)busqueda ?? DBNull.Value;
+                cmd.Parameters.Add("@numPag", SqlDbType.Int).Value = (object?)numPag ?? DBNull.Value;
+
+                await cn.OpenAsync();
+
+                using var dr = await cmd.ExecuteReaderAsync();
+                var respuesta = await LeerCabeceraAsync(dr, cmd.CommandText);
+
+                if (respuesta.IdTipoMensaje == 2 && await dr.NextResultAsync())
+                {
+                    var resultado = new ClientePedidosFacturacionResult();
+
+                    if (await dr.ReadAsync())
+                    {
+                        resultado.TotalRegistros = Convert.ToInt32(dr["TotalRegistros"]);
+                        resultado.TotalPaginas = Convert.ToInt32(dr["TotalPaginas"]);
+                    }
+
+                    if (await dr.NextResultAsync())
+                    {
+                        while (await dr.ReadAsync())
+                        {
+                            resultado.lstPedidos.Add(new ClientePedidoFacturacionConsulta
+                            {
+                                IdPedido = Convert.ToInt32(dr["IdPedido"]),
+                                Codigo = dr["Codigo"]?.ToString() ?? string.Empty,
+                                Investigado = GetNullableString(dr, "Investigado"),
+                                AplicaPenalidad = GetNullableString(dr, "AplicaPenalidad"),
+                                EstadoFacturacion = dr["EstadoFacturacion"]?.ToString() ?? string.Empty
+                            });
+                        }
+                    }
+
+                    respuesta.Result = resultado;
+                }
+                else
+                {
+                    respuesta.Result = new ClientePedidosFacturacionResult();
+                }
+
+                return respuesta;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error no controlado en la capa de datos.");
+
+                return new Respuesta
+                {
+                    IdTipoMensaje = 3,
+                    Mensaje = ex.Message,
+                    Result = new ClientePedidosFacturacionResult()
                 };
             }
         }
