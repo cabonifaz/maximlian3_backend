@@ -180,4 +180,14 @@
         public string? IdIdiomaFacturacion { get; set; }
         public string? EstadoFacturacion { get; set; }
     }
+
+    public class ClienteResumen
+    {
+        public int TotalClientes { get; set; }
+        public int TotalActivos { get; set; }
+        public int TotalInactivos { get; set; }
+        public decimal? PorcentajeActivos { get; set; }
+        public decimal? PorcentajeCrecimiento { get; set; }
+        public DateTime FechaActualizacion { get; set; }
+    }
 }
