@@ -166,5 +166,24 @@ namespace SafetyReport.Handlers
                 };
             }
         }
+
+        public async Task<Respuesta> ObtenerResumenClientesAsync(UsuarioGeneral usuarioLogueado)
+        {
+            try
+            {
+                return await _dao.ObtenerResumenClientesAsync(usuarioLogueado);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error no controlado en la capa de negocio.");
+
+                return new Respuesta
+                {
+                    IdTipoMensaje = 3,
+                    Mensaje = ex.Message,
+                    Result = new ClienteResumen()
+                };
+            }
+        }
     }
 }
