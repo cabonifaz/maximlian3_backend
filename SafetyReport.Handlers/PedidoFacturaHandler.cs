@@ -127,6 +127,73 @@ namespace SafetyReport.Handlers
             }
         }
 
+        // Edita un documento existente en PendienteEnvio (lineas/cuotas/formaPago/numeroReferencia). El
+        // cliente no se toca acá — ms-facturación no lo permite (solo se fija una vez, al Insertar).
+        public async Task<Respuesta> GuardarCambiosFacturaAsync(
+            UsuarioGeneral usuarioLogueado, int idDocumentoElectronico, GuardarCambiosFacturaRequest request)
+        {
+            try
+            {
+                if (request.lineas.Count == 0)
+                {
+                    return new Respuesta { IdTipoMensaje = 1, Mensaje = "La factura debe tener al menos una línea." };
+                }
+
+                var idPedidos = request.lineas.Select(l => l.idPedido).Distinct().ToList();
+
+                var datosBorrador = await _pedidoFacturaDao.ObtenerDatosBorradorAsync(usuarioLogueado, null, idPedidos);
+                if (datosBorrador.IdTipoMensaje != 2 || datosBorrador.Result is not DatosBorradorFacturaConsulta datos)
+                {
+                    return new Respuesta { IdTipoMensaje = datosBorrador.IdTipoMensaje, Mensaje = datosBorrador.Mensaje };
+                }
+
+                var pedidosPorId = datos.Pedidos.ToDictionary(p => p.IdPedido);
+
+                var facturacionRequest = new FacturacionGuardarCambiosRequest
+                {
+                    IdFormaPago = request.idFormaPago,
+                    NumeroReferencia = request.numeroReferencia,
+                    Lineas = request.lineas.Select((l, i) => new FacturacionLineaEdicion
+                    {
+                        NumeroLinea = i + 1,
+                        ProductoCodigo = pedidosPorId[l.idPedido].Codigo,
+                        ProductoSunatCodigo = l.productoSunatCodigo,
+                        Descripcion = pedidosPorId[l.idPedido].NombreCliente ?? string.Empty,
+                        UnidadMedidaCodigo = l.unidadMedidaCodigo,
+                        Cantidad = l.cantidad,
+                        ValorUnitario = l.valorUnitario,
+                        PrecioUnitario = l.precioUnitario,
+                        MontoDescuento = l.montoDescuento,
+                        IdAfectacionIgvMaestro = l.idAfectacionIgvMaestro,
+                        PorcentajeIgv = l.porcentajeIgv,
+                        IdLineaDocumentoElectronico = l.idLineaDocumentoElectronico
+                    }).ToList(),
+                    Cuotas = request.cuotas.Select(c => new FacturacionCuotaEdicion
+                    {
+                        NumeroCuota = c.numeroCuota,
+                        FechaVencimiento = c.fechaVencimiento,
+                        Monto = c.monto,
+                        IdCuotaDocumentoElectronico = c.idCuotaDocumentoElectronico
+                    }).ToList()
+                };
+
+                var resultado = await _facturacionService.GuardarCambiosAsync(
+                    usuarioLogueado.IdEmpresa, idDocumentoElectronico, facturacionRequest, CancellationToken.None);
+
+                if (resultado?.Datos is null)
+                {
+                    return new Respuesta { IdTipoMensaje = 3, Mensaje = resultado?.Mensaje ?? "No se pudieron guardar los cambios en facturación." };
+                }
+
+                return new Respuesta { IdTipoMensaje = 2, Mensaje = "Cambios guardados correctamente." };
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error no controlado en la capa de negocio.");
+                return new Respuesta { IdTipoMensaje = 3, Mensaje = ex.Message };
+            }
+        }
+
         private static Respuesta ResultadoOperacionExito(int idDocumentoElectronico) => new()
         {
             IdTipoMensaje = 2,

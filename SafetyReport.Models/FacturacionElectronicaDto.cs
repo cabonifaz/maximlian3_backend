@@ -61,6 +61,39 @@ namespace SafetyReport.Models
         public decimal PorcentajeIgv { get; set; }
     }
 
+    // Payload de PUT api/v1/documentos-electronicos/{id}/guardar-cambios.
+    public class FacturacionGuardarCambiosRequest
+    {
+        public int IdFormaPago { get; set; }
+        public string? NumeroReferencia { get; set; }
+        public List<FacturacionLineaEdicion> Lineas { get; set; } = new();
+        public List<FacturacionCuotaEdicion> Cuotas { get; set; } = new();
+    }
+
+    public class FacturacionLineaEdicion
+    {
+        public string ProductoCodigo { get; set; } = string.Empty;
+        public string? ProductoSunatCodigo { get; set; }
+        public string Descripcion { get; set; } = string.Empty;
+        public string UnidadMedidaCodigo { get; set; } = string.Empty;
+        public decimal Cantidad { get; set; }
+        public decimal ValorUnitario { get; set; }
+        public decimal PrecioUnitario { get; set; }
+        public decimal MontoDescuento { get; set; }
+        public int IdAfectacionIgvMaestro { get; set; }
+        public decimal PorcentajeIgv { get; set; }
+        public int NumeroLinea { get; set; }
+        public int IdLineaDocumentoElectronico { get; set; }
+    }
+
+    public class FacturacionCuotaEdicion
+    {
+        public int NumeroCuota { get; set; }
+        public DateOnly FechaVencimiento { get; set; }
+        public decimal Monto { get; set; }
+        public int IdCuotaDocumentoElectronico { get; set; }
+    }
+
     public class FacturacionEnvelope<T>
     {
         public string? Mensaje { get; set; }
