@@ -220,7 +220,7 @@ namespace SafetyReport.Handlers
                 // desvincula los que se quitaron. Ninguna de las dos falla la operación si algo sale mal
                 // acá — el documento en ms-facturación ya se guardó, solo queda desincronizado el vínculo.
                 var enlace = await _pedidoFacturaDao.RegistrarEnvioAsync(
-                    usuarioLogueado, idPedidos, idDocumentoElectronico, idEstadoFacturacion: null);
+                    usuarioLogueado, idPedidos, idDocumentoElectronico, idEstadoFacturacion: 10);
                 if (enlace.IdTipoMensaje != 2)
                 {
                     _logger.LogWarning(
