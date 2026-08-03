@@ -616,5 +616,71 @@ namespace SafetyReport.DAO
             }
         }
 
+        public async Task<Respuesta> ListarParaFacturacionAsync(UsuarioGeneral usuarioLogueado, ListarPedidosFacturacionRequest request)
+        {
+            try
+            {
+                using SqlConnection cn = new(_dbConfig.ConnectionString);
+                using SqlCommand cmd = new("SP_Pedido_ListarParaFacturacion", cn);
+
+                cmd.CommandType = CommandType.StoredProcedure;
+                cmd.Parameters.Add("@intIdUsuario", SqlDbType.Int).Value = usuarioLogueado.IdUsuario;
+                cmd.Parameters.Add("@vchUsuario", SqlDbType.VarChar, 32).Value = usuarioLogueado.Usuario;
+                cmd.Parameters.Add("@intIdEmpresa", SqlDbType.Int).Value = usuarioLogueado.IdEmpresa;
+                cmd.Parameters.Add("@intIdRol", SqlDbType.Int).Value = usuarioLogueado.IdRol;
+                cmd.Parameters.Add("@intIdCliente", SqlDbType.Int).Value = request.idCliente;
+                cmd.Parameters.Add("@intIdTipoTramite", SqlDbType.Int).Value = (object?)request.idTipoTramite ?? DBNull.Value;
+                cmd.Parameters.Add("@dtFechaInicio", SqlDbType.Date).Value = (object?)request.fechaInicio?.ToDateTime(TimeOnly.MinValue) ?? DBNull.Value;
+                cmd.Parameters.Add("@dtFechaFin", SqlDbType.Date).Value = (object?)request.fechaFin?.ToDateTime(TimeOnly.MinValue) ?? DBNull.Value;
+                cmd.Parameters.Add("@numPag", SqlDbType.Int).Value = request.numPag;
+
+                await cn.OpenAsync();
+
+                using var dr = await cmd.ExecuteReaderAsync();
+                var respuesta = await LeerCabeceraAsync(dr, cmd.CommandText);
+
+                var resultado = new PedidoListaFacturacionResult();
+                if (respuesta.IdTipoMensaje == 2 && await dr.NextResultAsync())
+                {
+                    if (await dr.ReadAsync())
+                    {
+                        resultado.TotalRegistros = Convert.ToInt32(dr["TotalRegistros"]);
+                        resultado.TotalPaginas = Convert.ToInt32(dr["TotalPaginas"]);
+                    }
+
+                    if (await dr.NextResultAsync())
+                    {
+                        while (await dr.ReadAsync())
+                            resultado.Pedidos.Add(new PedidoListaFacturacionConsulta
+                            {
+                                IdPedido = Convert.ToInt32(dr["IdPedido"]),
+                                Codigo = dr["Codigo"]?.ToString() ?? string.Empty,
+                                Investigado = GetNullableString(dr, "Investigado"),
+                                AplicaPenalidad = GetNullableString(dr, "AplicaPenalidad"),
+                                TipoTramite = GetNullableString(dr, "TipoTramite"),
+                                Fecha = Convert.ToDateTime(dr["Fecha"]),
+                                Penalidad = GetNullableDecimal(dr, "Penalidad"),
+                                Precio = GetNullableDecimal(dr, "Precio"),
+                                DescuentoPorcentaje = GetNullableDecimal(dr, "DescuentoPorcentaje")
+                            });
+                    }
+                }
+
+                respuesta.Result = resultado;
+                return respuesta;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error no controlado en la capa de datos.");
+
+                return new Respuesta
+                {
+                    IdTipoMensaje = 3,
+                    Mensaje = ex.Message,
+                    Result = new PedidoListaFacturacionResult()
+                };
+            }
+        }
+
     }
 }

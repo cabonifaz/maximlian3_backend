@@ -205,7 +205,7 @@
         public string EstadoFacturacion { get; set; } = string.Empty;
     }
 
-    // Resultado de SP_Cliente_ObtenerParaFacturacion — exactamente los campos que necesita el payload
+    // Resultado de SP_Facturacion_ObtenerDatosBorrador — exactamente los campos que necesita el payload
     // "cliente" de facturación (PedidoFacturaHandler.GuardarBorradorFacturaAsync).
     public class ClienteParaFacturacionConsulta
     {

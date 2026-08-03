@@ -5,12 +5,10 @@ namespace SafetyReport.Models
         public int IdInquilino { get; set; }
         public int IdEmpresa { get; set; }
         public string IdExterno { get; set; } = string.Empty;
+        public string? NumeroReferencia { get; set; }
         public int IdTipoDocumentoMaestro { get; set; }
-        public int IdSerieDocumento { get; set; }
-        public DateOnly FechaEmision { get; set; }
-        public TimeOnly HoraEmision { get; set; }
-        public string MonedaCodigo { get; set; } = "PEN";
-        public string TipoOperacionCodigo { get; set; } = string.Empty;
+        public int IdMonedaMaestro { get; set; }
+        public int IdTipoOperacionMaestro { get; set; }
         public FacturacionFormaPago FormaPago { get; set; } = new();
         public FacturacionCliente Cliente { get; set; } = new();
         public FacturacionDocumentoAfectado? DocumentoAfectado { get; set; }
@@ -19,7 +17,7 @@ namespace SafetyReport.Models
 
     public class FacturacionFormaPago
     {
-        public string Codigo { get; set; } = "Contado";
+        public int IdFormaPago { get; set; } = 1; // Num1 de TABLA_MAESTRA IdMaestro=9 (1=Contado, 2=Credito)
         public List<FacturacionCuota>? Cuotas { get; set; }
     }
 
@@ -57,14 +55,48 @@ namespace SafetyReport.Models
         public string UnidadMedidaCodigo { get; set; } = string.Empty;
         public decimal Cantidad { get; set; }
         public decimal ValorUnitario { get; set; }
-        public decimal PrecioUnitario { get; set; }
         public decimal MontoDescuento { get; set; }
-        public string AfectacionIgvCodigo { get; set; } = string.Empty;
+        public int IdAfectacionIgvMaestro { get; set; }
         public decimal PorcentajeIgv { get; set; }
+    }
+
+    // Payload de PUT api/v1/documentos-electronicos/{id}/guardar-cambios.
+    public class FacturacionGuardarCambiosRequest
+    {
+        public int IdFormaPago { get; set; }
+        public string? NumeroReferencia { get; set; }
+        public int IdMonedaMaestro { get; set; }
+        public int IdTipoOperacionMaestro { get; set; }
+        public List<FacturacionLineaEdicion> Lineas { get; set; } = new();
+        public List<FacturacionCuotaEdicion> Cuotas { get; set; } = new();
+    }
+
+    public class FacturacionLineaEdicion
+    {
+        public string ProductoCodigo { get; set; } = string.Empty;
+        public string? ProductoSunatCodigo { get; set; }
+        public string Descripcion { get; set; } = string.Empty;
+        public string UnidadMedidaCodigo { get; set; } = string.Empty;
+        public decimal Cantidad { get; set; }
+        public decimal ValorUnitario { get; set; }
+        public decimal MontoDescuento { get; set; }
+        public int IdAfectacionIgvMaestro { get; set; }
+        public decimal PorcentajeIgv { get; set; }
+        public int NumeroLinea { get; set; }
+        public int IdLineaDocumentoElectronico { get; set; }
+    }
+
+    public class FacturacionCuotaEdicion
+    {
+        public int NumeroCuota { get; set; }
+        public DateOnly FechaVencimiento { get; set; }
+        public decimal Monto { get; set; }
+        public int IdCuotaDocumentoElectronico { get; set; }
     }
 
     public class FacturacionEnvelope<T>
     {
+        public int IdTipoMensaje { get; set; }
         public string? Mensaje { get; set; }
         public T? Datos { get; set; }
     }
