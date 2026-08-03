@@ -7,16 +7,50 @@ namespace SafetyReport.Handlers
     public class PedidoFacturaHandler
     {
         private readonly PedidoFacturaDAO _pedidoFacturaDao;
+        private readonly PedidoDAO _pedidoDao;
         private readonly FacturacionElectronicaService _facturacionService;
         private readonly ILogger<PedidoFacturaHandler> _logger;
 
         public PedidoFacturaHandler(
-            PedidoFacturaDAO pedidoFacturaDao, FacturacionElectronicaService facturacionService,
+            PedidoFacturaDAO pedidoFacturaDao, PedidoDAO pedidoDao, FacturacionElectronicaService facturacionService,
             ILogger<PedidoFacturaHandler> logger)
         {
             _pedidoFacturaDao = pedidoFacturaDao;
+            _pedidoDao = pedidoDao;
             _facturacionService = facturacionService;
             _logger = logger;
+        }
+
+        public Task<Respuesta> ListarPedidosParaFacturacionAsync(UsuarioGeneral usuarioLogueado, ListarPedidosFacturacionRequest request) =>
+            _pedidoDao.ListarParaFacturacionAsync(usuarioLogueado, request);
+
+        // Dado un pedido, resuelve su IdDocumentoElectronico (PEDIDO_FACTURA) y trae la factura ya
+        // guardada en ms-facturación, para que el front la use como base de edición (guardarCambios).
+        public async Task<Respuesta> ObtenerFacturaPorPedidoAsync(UsuarioGeneral usuarioLogueado, int idPedido)
+        {
+            try
+            {
+                var idDocumento = await _pedidoFacturaDao.ObtenerIdDocumentoElectronicoAsync(usuarioLogueado, idPedido);
+                if (idDocumento.IdTipoMensaje != 2 || idDocumento.Result is not PedidoFacturaIdDocumentoConsulta datos)
+                {
+                    return new Respuesta { IdTipoMensaje = idDocumento.IdTipoMensaje, Mensaje = idDocumento.Mensaje };
+                }
+
+                var documento = await _facturacionService.ObtenerDocumentoAsync(
+                    usuarioLogueado.IdEmpresa, datos.IdDocumentoElectronico, CancellationToken.None);
+
+                if (documento?.Datos is null)
+                {
+                    return new Respuesta { IdTipoMensaje = 3, Mensaje = documento?.Mensaje ?? "No se pudo obtener el documento electrónico." };
+                }
+
+                return new Respuesta { IdTipoMensaje = 2, Mensaje = "Consulta exitosa.", Result = documento.Datos };
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error no controlado en la capa de negocio.");
+                return new Respuesta { IdTipoMensaje = 3, Mensaje = ex.Message };
+            }
         }
 
         // Solo Guardar: crea el borrador en ms-facturación (PendienteEnvio), no lo envía a SUNAT.
@@ -49,9 +83,8 @@ namespace SafetyReport.Handlers
                     IdInquilino = usuarioLogueado.IdEmpresa,
                     IdEmpresa = 1, // TODO: resolver desde EMPRESAS de ms-facturación (GET /api/v1/empresas?idInquilino=) en vez de fijo.
                     IdExterno = string.Join(",", request.lineas.Select(l => l.idPedido)),
+                    NumeroReferencia = request.numeroReferencia,
                     IdTipoDocumentoMaestro = request.idTipoDocumentoMaestro,
-                    FechaEmision = request.fechaEmision,
-                    HoraEmision = request.horaEmision,
                     IdMonedaMaestro = request.idMonedaMaestro,
                     IdTipoOperacionMaestro = request.idTipoOperacionMaestro,
                     FormaPago = new FacturacionFormaPago
@@ -91,7 +124,7 @@ namespace SafetyReport.Handlers
                         ValorUnitario = l.valorUnitario,
                         PrecioUnitario = l.precioUnitario,
                         MontoDescuento = l.montoDescuento,
-                        AfectacionIgvCodigo = l.afectacionIgvCodigo,
+                        IdAfectacionIgvMaestro = l.idAfectacionIgvMaestro,
                         PorcentajeIgv = l.porcentajeIgv
                     }).ToList()
                 };
@@ -115,6 +148,73 @@ namespace SafetyReport.Handlers
                 }
 
                 return ResultadoOperacionExito(insertado.Datos.IdDocumentoElectronico);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error no controlado en la capa de negocio.");
+                return new Respuesta { IdTipoMensaje = 3, Mensaje = ex.Message };
+            }
+        }
+
+        // Edita un documento existente en PendienteEnvio (lineas/cuotas/formaPago/numeroReferencia). El
+        // cliente no se toca acá — ms-facturación no lo permite (solo se fija una vez, al Insertar).
+        public async Task<Respuesta> GuardarCambiosFacturaAsync(
+            UsuarioGeneral usuarioLogueado, int idDocumentoElectronico, GuardarCambiosFacturaRequest request)
+        {
+            try
+            {
+                if (request.lineas.Count == 0)
+                {
+                    return new Respuesta { IdTipoMensaje = 1, Mensaje = "La factura debe tener al menos una línea." };
+                }
+
+                var idPedidos = request.lineas.Select(l => l.idPedido).Distinct().ToList();
+
+                var datosBorrador = await _pedidoFacturaDao.ObtenerDatosBorradorAsync(usuarioLogueado, null, idPedidos);
+                if (datosBorrador.IdTipoMensaje != 2 || datosBorrador.Result is not DatosBorradorFacturaConsulta datos)
+                {
+                    return new Respuesta { IdTipoMensaje = datosBorrador.IdTipoMensaje, Mensaje = datosBorrador.Mensaje };
+                }
+
+                var pedidosPorId = datos.Pedidos.ToDictionary(p => p.IdPedido);
+
+                var facturacionRequest = new FacturacionGuardarCambiosRequest
+                {
+                    IdFormaPago = request.idFormaPago,
+                    NumeroReferencia = request.numeroReferencia,
+                    Lineas = request.lineas.Select((l, i) => new FacturacionLineaEdicion
+                    {
+                        NumeroLinea = i + 1,
+                        ProductoCodigo = pedidosPorId[l.idPedido].Codigo,
+                        ProductoSunatCodigo = l.productoSunatCodigo,
+                        Descripcion = pedidosPorId[l.idPedido].NombreCliente ?? string.Empty,
+                        UnidadMedidaCodigo = l.unidadMedidaCodigo,
+                        Cantidad = l.cantidad,
+                        ValorUnitario = l.valorUnitario,
+                        PrecioUnitario = l.precioUnitario,
+                        MontoDescuento = l.montoDescuento,
+                        IdAfectacionIgvMaestro = l.idAfectacionIgvMaestro,
+                        PorcentajeIgv = l.porcentajeIgv,
+                        IdLineaDocumentoElectronico = l.idLineaDocumentoElectronico
+                    }).ToList(),
+                    Cuotas = request.cuotas.Select(c => new FacturacionCuotaEdicion
+                    {
+                        NumeroCuota = c.numeroCuota,
+                        FechaVencimiento = c.fechaVencimiento,
+                        Monto = c.monto,
+                        IdCuotaDocumentoElectronico = c.idCuotaDocumentoElectronico
+                    }).ToList()
+                };
+
+                var resultado = await _facturacionService.GuardarCambiosAsync(
+                    usuarioLogueado.IdEmpresa, idDocumentoElectronico, facturacionRequest, CancellationToken.None);
+
+                if (resultado?.Datos is null)
+                {
+                    return new Respuesta { IdTipoMensaje = 3, Mensaje = resultado?.Mensaje ?? "No se pudieron guardar los cambios en facturación." };
+                }
+
+                return new Respuesta { IdTipoMensaje = 2, Mensaje = "Cambios guardados correctamente." };
             }
             catch (Exception ex)
             {

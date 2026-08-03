@@ -55,7 +55,8 @@ namespace SafetyReport.DAO
             dr[columna] == DBNull.Value ? null : dr[columna].ToString();
 
         // Une SP_Cliente_ObtenerParaFacturacion + SP_Pedido_ObtenerParaFacturacion en un solo viaje.
-        public async Task<Respuesta> ObtenerDatosBorradorAsync(UsuarioGeneral usuarioLogueado, int idCliente, List<int> idPedidos)
+        // idCliente es NULL cuando el llamador solo necesita resolver pedidos (GuardarCambiosFacturaAsync).
+        public async Task<Respuesta> ObtenerDatosBorradorAsync(UsuarioGeneral usuarioLogueado, int? idCliente, List<int> idPedidos)
         {
             try
             {
@@ -67,7 +68,7 @@ namespace SafetyReport.DAO
                 cmd.Parameters.Add("@vchUsuario", SqlDbType.VarChar, 32).Value = usuarioLogueado.Usuario;
                 cmd.Parameters.Add("@intIdEmpresa", SqlDbType.Int).Value = usuarioLogueado.IdEmpresa;
                 cmd.Parameters.Add("@intIdRol", SqlDbType.Int).Value = usuarioLogueado.IdRol;
-                cmd.Parameters.Add("@intIdCliente", SqlDbType.Int).Value = idCliente;
+                cmd.Parameters.Add("@intIdCliente", SqlDbType.Int).Value = (object?)idCliente ?? DBNull.Value;
 
                 var tvpIdPedido = cmd.Parameters.AddWithValue("@lstIdPedido", ConstruirTablaListaGeneralNum(idPedidos));
                 tvpIdPedido.SqlDbType = SqlDbType.Structured;
@@ -78,18 +79,22 @@ namespace SafetyReport.DAO
                 using var dr = await cmd.ExecuteReaderAsync();
                 var respuesta = await LeerCabeceraAsync(dr, cmd.CommandText);
 
-                if (respuesta.IdTipoMensaje == 2 && await dr.NextResultAsync() && await dr.ReadAsync())
+                if (respuesta.IdTipoMensaje == 2 && await dr.NextResultAsync())
                 {
-                    var cliente = new ClienteParaFacturacionConsulta
+                    ClienteParaFacturacionConsulta? cliente = null;
+                    if (await dr.ReadAsync())
                     {
-                        IdCliente = Convert.ToInt32(dr["IdCliente"]),
-                        IdTipoDocumentoSunat = Convert.ToInt32(dr["IdTipoDocumentoSunat"]),
-                        NumeroDocumento = dr["NumeroDocumento"]?.ToString() ?? string.Empty,
-                        Nombre = GetNullableString(dr, "Nombre"),
-                        Correo = GetNullableString(dr, "Correo"),
-                        Direccion = GetNullableString(dr, "Direccion"),
-                        IdPais = Convert.ToInt32(dr["IdPais"])
-                    };
+                        cliente = new ClienteParaFacturacionConsulta
+                        {
+                            IdCliente = Convert.ToInt32(dr["IdCliente"]),
+                            IdTipoDocumentoSunat = Convert.ToInt32(dr["IdTipoDocumentoSunat"]),
+                            NumeroDocumento = dr["NumeroDocumento"]?.ToString() ?? string.Empty,
+                            Nombre = GetNullableString(dr, "Nombre"),
+                            Correo = GetNullableString(dr, "Correo"),
+                            Direccion = GetNullableString(dr, "Direccion"),
+                            IdPais = Convert.ToInt32(dr["IdPais"])
+                        };
+                    }
 
                     var pedidos = new List<PedidoParaFacturacionConsulta>();
                     if (await dr.NextResultAsync())
@@ -99,11 +104,50 @@ namespace SafetyReport.DAO
                             {
                                 IdPedido = Convert.ToInt32(dr["IdPedido"]),
                                 Codigo = dr["Codigo"]?.ToString() ?? string.Empty,
-                                NombreCliente = GetNullableString(dr, "NombreCliente")
+                                NombreCliente = GetNullableString(dr, "NombreCliente"),
+                                NumReferencia = GetNullableString(dr, "NumReferencia")
                             });
                     }
 
-                    respuesta.Result = new DatosBorradorFacturaConsulta { Cliente = cliente, Pedidos = pedidos };
+                    respuesta.Result = new DatosBorradorFacturaConsulta { Cliente = cliente ?? new(), Pedidos = pedidos };
+                }
+
+                return respuesta;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error no controlado en la capa de datos.");
+                return new Respuesta { IdTipoMensaje = 3, Mensaje = ex.Message };
+            }
+        }
+
+        public async Task<Respuesta> ObtenerIdDocumentoElectronicoAsync(UsuarioGeneral usuarioLogueado, int idPedido)
+        {
+            try
+            {
+                using SqlConnection cn = new(_dbConfig.ConnectionString);
+                using SqlCommand cmd = new("SP_PedidoFactura_ObtenerIdDocumentoElectronico", cn);
+
+                cmd.CommandType = CommandType.StoredProcedure;
+                cmd.Parameters.Add("@intIdUsuario", SqlDbType.Int).Value = usuarioLogueado.IdUsuario;
+                cmd.Parameters.Add("@vchUsuario", SqlDbType.VarChar, 32).Value = usuarioLogueado.Usuario;
+                cmd.Parameters.Add("@intIdEmpresa", SqlDbType.Int).Value = usuarioLogueado.IdEmpresa;
+                cmd.Parameters.Add("@intIdRol", SqlDbType.Int).Value = usuarioLogueado.IdRol;
+                cmd.Parameters.Add("@intIdPedido", SqlDbType.Int).Value = idPedido;
+
+                await cn.OpenAsync();
+
+                using var dr = await cmd.ExecuteReaderAsync();
+                var respuesta = await LeerCabeceraAsync(dr, cmd.CommandText);
+
+                if (respuesta.IdTipoMensaje == 2 && await dr.NextResultAsync() && await dr.ReadAsync())
+                {
+                    respuesta.Result = new PedidoFacturaIdDocumentoConsulta
+                    {
+                        IdPedido = Convert.ToInt32(dr["IdPedido"]),
+                        IdDocumentoElectronico = Convert.ToInt32(dr["IdDocumentoElectronico"]),
+                        IdEstadoFacturacion = Convert.ToInt32(dr["IdEstadoFacturacion"])
+                    };
                 }
 
                 return respuesta;
