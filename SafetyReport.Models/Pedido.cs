@@ -192,6 +192,7 @@ namespace SafetyReport.Models
         public int? idTipoTramite { get; set; }
         public DateOnly? fechaInicio { get; set; }
         public DateOnly? fechaFin { get; set; }
+        public int numPag { get; set; } = 1;
     }
 
     // Resultado de SP_Pedido_ListarParaFacturacion.
@@ -205,6 +206,13 @@ namespace SafetyReport.Models
         public DateTime Fecha { get; set; }
         public decimal? Penalidad { get; set; }
         public decimal? Precio { get; set; }
+    }
+
+    public class PedidoListaFacturacionResult
+    {
+        public int TotalRegistros { get; set; }
+        public int TotalPaginas { get; set; }
+        public List<PedidoListaFacturacionConsulta> Pedidos { get; set; } = new();
     }
 
     public class PedidoAsignacionResumen

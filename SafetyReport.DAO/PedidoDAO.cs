@@ -632,30 +632,40 @@ namespace SafetyReport.DAO
                 cmd.Parameters.Add("@intIdTipoTramite", SqlDbType.Int).Value = (object?)request.idTipoTramite ?? DBNull.Value;
                 cmd.Parameters.Add("@dtFechaInicio", SqlDbType.Date).Value = (object?)request.fechaInicio?.ToDateTime(TimeOnly.MinValue) ?? DBNull.Value;
                 cmd.Parameters.Add("@dtFechaFin", SqlDbType.Date).Value = (object?)request.fechaFin?.ToDateTime(TimeOnly.MinValue) ?? DBNull.Value;
+                cmd.Parameters.Add("@numPag", SqlDbType.Int).Value = request.numPag;
 
                 await cn.OpenAsync();
 
                 using var dr = await cmd.ExecuteReaderAsync();
                 var respuesta = await LeerCabeceraAsync(dr, cmd.CommandText);
 
-                var lista = new List<PedidoListaFacturacionConsulta>();
+                var resultado = new PedidoListaFacturacionResult();
                 if (respuesta.IdTipoMensaje == 2 && await dr.NextResultAsync())
                 {
-                    while (await dr.ReadAsync())
-                        lista.Add(new PedidoListaFacturacionConsulta
-                        {
-                            IdPedido = Convert.ToInt32(dr["IdPedido"]),
-                            Codigo = dr["Codigo"]?.ToString() ?? string.Empty,
-                            Investigado = GetNullableString(dr, "Investigado"),
-                            AplicaPenalidad = GetNullableString(dr, "AplicaPenalidad"),
-                            TipoTramite = GetNullableString(dr, "TipoTramite"),
-                            Fecha = Convert.ToDateTime(dr["Fecha"]),
-                            Penalidad = GetNullableDecimal(dr, "Penalidad"),
-                            Precio = GetNullableDecimal(dr, "Precio")
-                        });
+                    if (await dr.ReadAsync())
+                    {
+                        resultado.TotalRegistros = Convert.ToInt32(dr["TotalRegistros"]);
+                        resultado.TotalPaginas = Convert.ToInt32(dr["TotalPaginas"]);
+                    }
+
+                    if (await dr.NextResultAsync())
+                    {
+                        while (await dr.ReadAsync())
+                            resultado.Pedidos.Add(new PedidoListaFacturacionConsulta
+                            {
+                                IdPedido = Convert.ToInt32(dr["IdPedido"]),
+                                Codigo = dr["Codigo"]?.ToString() ?? string.Empty,
+                                Investigado = GetNullableString(dr, "Investigado"),
+                                AplicaPenalidad = GetNullableString(dr, "AplicaPenalidad"),
+                                TipoTramite = GetNullableString(dr, "TipoTramite"),
+                                Fecha = Convert.ToDateTime(dr["Fecha"]),
+                                Penalidad = GetNullableDecimal(dr, "Penalidad"),
+                                Precio = GetNullableDecimal(dr, "Precio")
+                            });
+                    }
                 }
 
-                respuesta.Result = lista;
+                respuesta.Result = resultado;
                 return respuesta;
             }
             catch (Exception ex)
@@ -666,7 +676,7 @@ namespace SafetyReport.DAO
                 {
                     IdTipoMensaje = 3,
                     Mensaje = ex.Message,
-                    Result = new List<PedidoListaFacturacionConsulta>()
+                    Result = new PedidoListaFacturacionResult()
                 };
             }
         }
