@@ -99,7 +99,8 @@ namespace SafetyReport.DAO
                             {
                                 IdPedido = Convert.ToInt32(dr["IdPedido"]),
                                 Codigo = dr["Codigo"]?.ToString() ?? string.Empty,
-                                NombreCliente = GetNullableString(dr, "NombreCliente")
+                                NombreCliente = GetNullableString(dr, "NombreCliente"),
+                                NumReferencia = GetNullableString(dr, "NumReferencia")
                             });
                     }
 

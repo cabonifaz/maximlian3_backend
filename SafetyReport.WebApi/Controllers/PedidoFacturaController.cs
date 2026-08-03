@@ -23,5 +23,12 @@ namespace SafetyReport.WebApi.Controllers
             var respuesta = await _pedidoFacturaHandler.GuardarBorradorFacturaAsync(UsuarioLogueado, request);
             return Ok(respuesta);
         }
+
+        [HttpGet("listarPedidos")]
+        public async Task<IActionResult> ListarPedidos([FromQuery] ListarPedidosFacturacionRequest request)
+        {
+            var respuesta = await _pedidoFacturaHandler.ListarPedidosParaFacturacionAsync(UsuarioLogueado, request);
+            return Ok(respuesta);
+        }
     }
 }

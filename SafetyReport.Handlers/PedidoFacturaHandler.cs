@@ -7,17 +7,22 @@ namespace SafetyReport.Handlers
     public class PedidoFacturaHandler
     {
         private readonly PedidoFacturaDAO _pedidoFacturaDao;
+        private readonly PedidoDAO _pedidoDao;
         private readonly FacturacionElectronicaService _facturacionService;
         private readonly ILogger<PedidoFacturaHandler> _logger;
 
         public PedidoFacturaHandler(
-            PedidoFacturaDAO pedidoFacturaDao, FacturacionElectronicaService facturacionService,
+            PedidoFacturaDAO pedidoFacturaDao, PedidoDAO pedidoDao, FacturacionElectronicaService facturacionService,
             ILogger<PedidoFacturaHandler> logger)
         {
             _pedidoFacturaDao = pedidoFacturaDao;
+            _pedidoDao = pedidoDao;
             _facturacionService = facturacionService;
             _logger = logger;
         }
+
+        public Task<Respuesta> ListarPedidosParaFacturacionAsync(UsuarioGeneral usuarioLogueado, ListarPedidosFacturacionRequest request) =>
+            _pedidoDao.ListarParaFacturacionAsync(usuarioLogueado, request);
 
         // Solo Guardar: crea el borrador en ms-facturación (PendienteEnvio), no lo envía a SUNAT.
         // Líneas/cuotas/tipo de documento vienen del front (son propios de esta factura, no de un maestro).
@@ -49,6 +54,7 @@ namespace SafetyReport.Handlers
                     IdInquilino = usuarioLogueado.IdEmpresa,
                     IdEmpresa = 1, // TODO: resolver desde EMPRESAS de ms-facturación (GET /api/v1/empresas?idInquilino=) en vez de fijo.
                     IdExterno = string.Join(",", request.lineas.Select(l => l.idPedido)),
+                    NumeroReferencia = request.numeroReferencia,
                     IdTipoDocumentoMaestro = request.idTipoDocumentoMaestro,
                     IdMonedaMaestro = request.idMonedaMaestro,
                     IdTipoOperacionMaestro = request.idTipoOperacionMaestro,

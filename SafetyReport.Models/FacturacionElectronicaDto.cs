@@ -5,6 +5,7 @@ namespace SafetyReport.Models
         public int IdInquilino { get; set; }
         public int IdEmpresa { get; set; }
         public string IdExterno { get; set; } = string.Empty;
+        public string? NumeroReferencia { get; set; }
         public int IdTipoDocumentoMaestro { get; set; }
         public int IdMonedaMaestro { get; set; }
         public int IdTipoOperacionMaestro { get; set; }

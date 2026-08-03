@@ -130,6 +130,7 @@ namespace SafetyReport.Models
     public class GuardarBorradorFacturaRequest
     {
         public int idTipoDocumentoMaestro { get; set; }
+        public string? numeroReferencia { get; set; }
         public int idMonedaMaestro { get; set; }
         public int idTipoOperacionMaestro { get; set; }
         public int idFormaPago { get; set; }
@@ -174,6 +175,7 @@ namespace SafetyReport.Models
         public int IdPedido { get; set; }
         public string Codigo { get; set; } = string.Empty;
         public string? NombreCliente { get; set; }
+        public string? NumReferencia { get; set; }
     }
 
     // Resultado de SP_Facturacion_ObtenerDatosBorrador (PedidoFacturaDAO.ObtenerDatosBorradorAsync).
@@ -181,6 +183,28 @@ namespace SafetyReport.Models
     {
         public ClienteParaFacturacionConsulta Cliente { get; set; } = new();
         public List<PedidoParaFacturacionConsulta> Pedidos { get; set; } = new();
+    }
+
+    // Query params de SP_Pedido_ListarParaFacturacion.
+    public class ListarPedidosFacturacionRequest
+    {
+        public int idCliente { get; set; }
+        public int? idTipoTramite { get; set; }
+        public DateOnly? fechaInicio { get; set; }
+        public DateOnly? fechaFin { get; set; }
+    }
+
+    // Resultado de SP_Pedido_ListarParaFacturacion.
+    public class PedidoListaFacturacionConsulta
+    {
+        public int IdPedido { get; set; }
+        public string Codigo { get; set; } = string.Empty;
+        public string? Investigado { get; set; }
+        public string? AplicaPenalidad { get; set; }
+        public string? TipoTramite { get; set; }
+        public DateTime Fecha { get; set; }
+        public decimal? Penalidad { get; set; }
+        public decimal? Precio { get; set; }
     }
 
     public class PedidoAsignacionResumen
