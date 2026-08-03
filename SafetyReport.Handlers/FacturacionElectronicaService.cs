@@ -24,9 +24,9 @@ namespace SafetyReport.Handlers
         }
 
         public async Task<FacturacionEnvelope<FacturacionResultadoEnvioSunat>?> EnviarASunatAsync(
-            int idInquilino, int idDocumentoElectronico, string ambienteCodigo, CancellationToken cancellationToken)
+            int idInquilino, int idDocumentoElectronico, CancellationToken cancellationToken)
         {
-            var url = $"api/v1/documentos-electronicos/{idDocumentoElectronico}/enviar-sunat?idInquilino={idInquilino}&ambienteCodigo={ambienteCodigo}";
+            var url = $"api/v1/documentos-electronicos/{idDocumentoElectronico}/enviar-sunat?idInquilino={idInquilino}";
             var respuesta = await _httpClient.PostAsync(url, null, cancellationToken);
             return await respuesta.Content.ReadFromJsonAsync<FacturacionEnvelope<FacturacionResultadoEnvioSunat>>(JsonOptions, cancellationToken);
         }
