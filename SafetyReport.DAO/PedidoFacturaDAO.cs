@@ -16,8 +16,107 @@ namespace SafetyReport.DAO
             _logger = logger;
         }
 
+        private static DataTable ConstruirTablaListaGeneralNum(List<int> valores)
+        {
+            var table = new DataTable();
+            table.Columns.Add("ID", typeof(int));
+            table.Columns.Add("NUM1", typeof(int));
+
+            int i = 1;
+            foreach (var valor in valores)
+                table.Rows.Add(i++, valor);
+
+            return table;
+        }
+
+        private async Task<Respuesta> LeerCabeceraAsync(SqlDataReader dr, string procedimiento)
+        {
+            var respuesta = new Respuesta();
+
+            if (await dr.ReadAsync())
+            {
+                respuesta.IdTipoMensaje = dr["IdTipoMensaje"] != DBNull.Value
+                    ? Convert.ToInt32(dr["IdTipoMensaje"])
+                    : 3;
+                respuesta.Mensaje = dr["Mensaje"]?.ToString() ?? string.Empty;
+            }
+            else
+            {
+                _logger.LogWarning("El procedimiento {Procedimiento} no devolvio ninguna fila.", procedimiento);
+
+                respuesta.IdTipoMensaje = 3;
+                respuesta.Mensaje = "No se obtuvo respuesta del procedimiento.";
+            }
+
+            return respuesta;
+        }
+
+        private static string? GetNullableString(SqlDataReader dr, string columna) =>
+            dr[columna] == DBNull.Value ? null : dr[columna].ToString();
+
+        // Une SP_Cliente_ObtenerParaFacturacion + SP_Pedido_ObtenerParaFacturacion en un solo viaje.
+        public async Task<Respuesta> ObtenerDatosBorradorAsync(UsuarioGeneral usuarioLogueado, int idCliente, List<int> idPedidos)
+        {
+            try
+            {
+                using SqlConnection cn = new(_dbConfig.ConnectionString);
+                using SqlCommand cmd = new("SP_Facturacion_ObtenerDatosBorrador", cn);
+
+                cmd.CommandType = CommandType.StoredProcedure;
+                cmd.Parameters.Add("@intIdUsuario", SqlDbType.Int).Value = usuarioLogueado.IdUsuario;
+                cmd.Parameters.Add("@vchUsuario", SqlDbType.VarChar, 32).Value = usuarioLogueado.Usuario;
+                cmd.Parameters.Add("@intIdEmpresa", SqlDbType.Int).Value = usuarioLogueado.IdEmpresa;
+                cmd.Parameters.Add("@intIdRol", SqlDbType.Int).Value = usuarioLogueado.IdRol;
+                cmd.Parameters.Add("@intIdCliente", SqlDbType.Int).Value = idCliente;
+
+                var tvpIdPedido = cmd.Parameters.AddWithValue("@lstIdPedido", ConstruirTablaListaGeneralNum(idPedidos));
+                tvpIdPedido.SqlDbType = SqlDbType.Structured;
+                tvpIdPedido.TypeName = "LISTA_GENERAL_NUM";
+
+                await cn.OpenAsync();
+
+                using var dr = await cmd.ExecuteReaderAsync();
+                var respuesta = await LeerCabeceraAsync(dr, cmd.CommandText);
+
+                if (respuesta.IdTipoMensaje == 2 && await dr.NextResultAsync() && await dr.ReadAsync())
+                {
+                    var cliente = new ClienteParaFacturacionConsulta
+                    {
+                        IdCliente = Convert.ToInt32(dr["IdCliente"]),
+                        IdTipoDocumentoSunat = Convert.ToInt32(dr["IdTipoDocumentoSunat"]),
+                        NumeroDocumento = dr["NumeroDocumento"]?.ToString() ?? string.Empty,
+                        Nombre = GetNullableString(dr, "Nombre"),
+                        Correo = GetNullableString(dr, "Correo"),
+                        Direccion = GetNullableString(dr, "Direccion"),
+                        IdPais = Convert.ToInt32(dr["IdPais"])
+                    };
+
+                    var pedidos = new List<PedidoParaFacturacionConsulta>();
+                    if (await dr.NextResultAsync())
+                    {
+                        while (await dr.ReadAsync())
+                            pedidos.Add(new PedidoParaFacturacionConsulta
+                            {
+                                IdPedido = Convert.ToInt32(dr["IdPedido"]),
+                                Codigo = dr["Codigo"]?.ToString() ?? string.Empty,
+                                NombreCliente = GetNullableString(dr, "NombreCliente")
+                            });
+                    }
+
+                    respuesta.Result = new DatosBorradorFacturaConsulta { Cliente = cliente, Pedidos = pedidos };
+                }
+
+                return respuesta;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error no controlado en la capa de datos.");
+                return new Respuesta { IdTipoMensaje = 3, Mensaje = ex.Message };
+            }
+        }
+
         public async Task<Respuesta> RegistrarEnvioAsync(
-            UsuarioGeneral usuarioLogueado, int idPedido, int idDocumentoElectronico, int? idEstadoFacturacion)
+            UsuarioGeneral usuarioLogueado, List<int> idPedidos, int idDocumentoElectronico, int? idEstadoFacturacion)
         {
             try
             {
@@ -29,7 +128,11 @@ namespace SafetyReport.DAO
                 cmd.Parameters.Add("@vchUsuario", SqlDbType.VarChar, 32).Value = usuarioLogueado.Usuario;
                 cmd.Parameters.Add("@intIdEmpresa", SqlDbType.Int).Value = usuarioLogueado.IdEmpresa;
                 cmd.Parameters.Add("@intIdRol", SqlDbType.Int).Value = usuarioLogueado.IdRol;
-                cmd.Parameters.Add("@intIdPedido", SqlDbType.Int).Value = idPedido;
+
+                var tvpIdPedido = cmd.Parameters.AddWithValue("@lstIdPedido", ConstruirTablaListaGeneralNum(idPedidos));
+                tvpIdPedido.SqlDbType = SqlDbType.Structured;
+                tvpIdPedido.TypeName = "LISTA_GENERAL_NUM";
+
                 cmd.Parameters.Add("@intIdDocumentoElectronico", SqlDbType.Int).Value = idDocumentoElectronico;
                 cmd.Parameters.Add("@intIdEstadoFacturacion", SqlDbType.Int).Value = (object?)idEstadoFacturacion ?? DBNull.Value;
 

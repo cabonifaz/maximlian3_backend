@@ -310,56 +310,6 @@ namespace SafetyReport.DAO
             }
         }
 
-        public async Task<Respuesta> ObtenerParaFacturacionAsync(UsuarioGeneral usuarioLogueado, List<int> idPedidos)
-        {
-            try
-            {
-                using SqlConnection cn = new(_dbConfig.ConnectionString);
-                using SqlCommand cmd = new("SP_Pedido_ObtenerParaFacturacion", cn);
-
-                cmd.CommandType = CommandType.StoredProcedure;
-                cmd.Parameters.Add("@intIdUsuario", SqlDbType.Int).Value = usuarioLogueado.IdUsuario;
-                cmd.Parameters.Add("@vchUsuario", SqlDbType.VarChar, 32).Value = usuarioLogueado.Usuario;
-                cmd.Parameters.Add("@intIdEmpresa", SqlDbType.Int).Value = usuarioLogueado.IdEmpresa;
-                cmd.Parameters.Add("@intIdRol", SqlDbType.Int).Value = usuarioLogueado.IdRol;
-
-                var tvpIdPedido = cmd.Parameters.AddWithValue("@lstIdPedido", ConstruirTablaListaGeneralNum(idPedidos));
-                tvpIdPedido.SqlDbType = SqlDbType.Structured;
-                tvpIdPedido.TypeName = "LISTA_GENERAL_NUM";
-
-                await cn.OpenAsync();
-
-                using var dr = await cmd.ExecuteReaderAsync();
-                var respuesta = await LeerCabeceraAsync(dr, cmd.CommandText);
-
-                var lista = new List<PedidoParaFacturacionConsulta>();
-                if (respuesta.IdTipoMensaje == 2 && await dr.NextResultAsync())
-                {
-                    while (await dr.ReadAsync())
-                        lista.Add(new PedidoParaFacturacionConsulta
-                        {
-                            IdPedido = Convert.ToInt32(dr["IdPedido"]),
-                            Codigo = dr["Codigo"]?.ToString() ?? string.Empty,
-                            NombreCliente = GetNullableString(dr, "NombreCliente")
-                        });
-                }
-
-                respuesta.Result = lista;
-                return respuesta;
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Error no controlado en la capa de datos.");
-
-                return new Respuesta
-                {
-                    IdTipoMensaje = 3,
-                    Mensaje = ex.Message,
-                    Result = new List<PedidoParaFacturacionConsulta>()
-                };
-            }
-        }
-
         public async Task<Respuesta> ListarAsync(UsuarioGeneral usuarioLogueado, FiltroPedido request)
         {
             try

@@ -170,12 +170,19 @@ namespace SafetyReport.Models
         public decimal porcentajeIgv { get; set; }
     }
 
-    // Resultado de SP_Pedido_ObtenerParaFacturacion — exactamente los campos que necesita el payload de facturación.
+    // Resultado de SP_Facturacion_ObtenerDatosBorrador — exactamente los campos que necesita el payload de facturación.
     public class PedidoParaFacturacionConsulta
     {
         public int IdPedido { get; set; }
         public string Codigo { get; set; } = string.Empty;
         public string? NombreCliente { get; set; }
+    }
+
+    // Resultado de SP_Facturacion_ObtenerDatosBorrador (PedidoFacturaDAO.ObtenerDatosBorradorAsync).
+    public class DatosBorradorFacturaConsulta
+    {
+        public ClienteParaFacturacionConsulta Cliente { get; set; } = new();
+        public List<PedidoParaFacturacionConsulta> Pedidos { get; set; } = new();
     }
 
     public class PedidoAsignacionResumen

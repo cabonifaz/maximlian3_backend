@@ -7,18 +7,14 @@ namespace SafetyReport.Handlers
     public class PedidoFacturaHandler
     {
         private readonly PedidoFacturaDAO _pedidoFacturaDao;
-        private readonly PedidoDAO _pedidoDao;
-        private readonly ClienteDAO _clienteDao;
         private readonly FacturacionElectronicaService _facturacionService;
         private readonly ILogger<PedidoFacturaHandler> _logger;
 
         public PedidoFacturaHandler(
-            PedidoFacturaDAO pedidoFacturaDao, PedidoDAO pedidoDao, ClienteDAO clienteDao, FacturacionElectronicaService facturacionService,
+            PedidoFacturaDAO pedidoFacturaDao, FacturacionElectronicaService facturacionService,
             ILogger<PedidoFacturaHandler> logger)
         {
             _pedidoFacturaDao = pedidoFacturaDao;
-            _pedidoDao = pedidoDao;
-            _clienteDao = clienteDao;
             _facturacionService = facturacionService;
             _logger = logger;
         }
@@ -37,21 +33,16 @@ namespace SafetyReport.Handlers
                     return new Respuesta { IdTipoMensaje = 1, Mensaje = "La factura debe tener al menos una línea." };
                 }
 
-                var cliente = await _clienteDao.ObtenerClienteParaFacturacionAsync(usuarioLogueado, request.idCliente);
-                if (cliente.IdTipoMensaje != 2 || cliente.Result is not ClienteParaFacturacionConsulta clienteDatos)
-                {
-                    return new Respuesta { IdTipoMensaje = cliente.IdTipoMensaje, Mensaje = cliente.Mensaje };
-                }
-
                 var idPedidos = request.lineas.Select(l => l.idPedido).Distinct().ToList();
 
-                var pedidos = await _pedidoDao.ObtenerParaFacturacionAsync(usuarioLogueado, idPedidos);
-                if (pedidos.IdTipoMensaje != 2 || pedidos.Result is not List<PedidoParaFacturacionConsulta> pedidosDatos)
+                var datosBorrador = await _pedidoFacturaDao.ObtenerDatosBorradorAsync(usuarioLogueado, request.idCliente, idPedidos);
+                if (datosBorrador.IdTipoMensaje != 2 || datosBorrador.Result is not DatosBorradorFacturaConsulta datos)
                 {
-                    return new Respuesta { IdTipoMensaje = pedidos.IdTipoMensaje, Mensaje = pedidos.Mensaje };
+                    return new Respuesta { IdTipoMensaje = datosBorrador.IdTipoMensaje, Mensaje = datosBorrador.Mensaje };
                 }
 
-                var pedidosPorId = pedidosDatos.ToDictionary(p => p.IdPedido);
+                var clienteDatos = datos.Cliente;
+                var pedidosPorId = datos.Pedidos.ToDictionary(p => p.IdPedido);
 
                 var facturacionRequest = new FacturacionInsertarDocumentoRequest
                 {
@@ -112,18 +103,15 @@ namespace SafetyReport.Handlers
                 }
 
                 // Un borrador puede cubrir varios pedidos: se registra el mismo IdDocumentoElectronico
-                // en PEDIDO_FACTURA para cada pedido referenciado por una línea.
-                foreach (var idPedido in idPedidos)
-                {
-                    var resultado = await _pedidoFacturaDao.RegistrarEnvioAsync(
-                        usuarioLogueado, idPedido, insertado.Datos.IdDocumentoElectronico, idEstadoFacturacion: 10);
+                // en PEDIDO_FACTURA para todos los pedidos referenciados por las líneas en un solo UPDATE.
+                var registro = await _pedidoFacturaDao.RegistrarEnvioAsync(
+                    usuarioLogueado, idPedidos, insertado.Datos.IdDocumentoElectronico, idEstadoFacturacion: 10);
 
-                    if (resultado.IdTipoMensaje != 2)
-                    {
-                        _logger.LogWarning(
-                            "No se pudo registrar el borrador de facturación para el pedido {IdPedido}: {Mensaje}",
-                            idPedido, resultado.Mensaje);
-                    }
+                if (registro.IdTipoMensaje != 2)
+                {
+                    _logger.LogWarning(
+                        "No se pudo registrar el borrador de facturación para los pedidos {IdPedidos}: {Mensaje}",
+                        string.Join(",", idPedidos), registro.Mensaje);
                 }
 
                 return ResultadoOperacionExito(insertado.Datos.IdDocumentoElectronico);
