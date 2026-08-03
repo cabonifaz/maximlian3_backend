@@ -51,5 +51,19 @@ namespace SafetyReport.WebApi.Controllers
             var respuesta = await _pedidoFacturaHandler.GuardarCambiosFacturaAsync(UsuarioLogueado, idDocumentoElectronico, request);
             return Ok(respuesta);
         }
+
+        [HttpPost("emitir/{idDocumentoElectronico:int}")]
+        public async Task<IActionResult> Emitir(int idDocumentoElectronico)
+        {
+            var respuesta = await _pedidoFacturaHandler.EmitirFacturaAsync(UsuarioLogueado, idDocumentoElectronico);
+            return Ok(respuesta);
+        }
+
+        [HttpPut("estado/{idPedido:int}")]
+        public async Task<IActionResult> ActualizarEstadoFacturacion(int idPedido, [FromQuery] int idEstadoFacturacion)
+        {
+            var respuesta = await _pedidoFacturaHandler.ActualizarEstadoFacturacionAsync(UsuarioLogueado, idPedido, idEstadoFacturacion);
+            return Ok(respuesta);
+        }
     }
 }

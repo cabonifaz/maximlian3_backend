@@ -661,7 +661,7 @@ namespace SafetyReport.DAO
                                 Fecha = Convert.ToDateTime(dr["Fecha"]),
                                 Penalidad = GetNullableDecimal(dr, "Penalidad"),
                                 Precio = GetNullableDecimal(dr, "Precio"),
-                                DescuentoPorcentaje = GetNullableString(dr, "DescuentoPorcentaje")
+                                DescuentoPorcentaje = GetNullableDecimal(dr, "DescuentoPorcentaje")
                             });
                     }
                 }

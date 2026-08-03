@@ -54,6 +54,9 @@ namespace SafetyReport.DAO
         private static string? GetNullableString(SqlDataReader dr, string columna) =>
             dr[columna] == DBNull.Value ? null : dr[columna].ToString();
 
+        private static decimal? GetNullableDecimal(SqlDataReader dr, string columna) =>
+            dr[columna] == DBNull.Value ? null : Convert.ToDecimal(dr[columna]);
+
         // Une SP_Cliente_ObtenerParaFacturacion + SP_Pedido_ObtenerParaFacturacion en un solo viaje.
         // idCliente es NULL cuando el llamador solo necesita resolver pedidos (GuardarCambiosFacturaAsync).
         public async Task<Respuesta> ObtenerDatosBorradorAsync(UsuarioGeneral usuarioLogueado, int? idCliente, List<int> idPedidos)
@@ -105,7 +108,8 @@ namespace SafetyReport.DAO
                                 IdPedido = Convert.ToInt32(dr["IdPedido"]),
                                 Codigo = dr["Codigo"]?.ToString() ?? string.Empty,
                                 NombreCliente = GetNullableString(dr, "NombreCliente"),
-                                NumReferencia = GetNullableString(dr, "NumReferencia")
+                                NumReferencia = GetNullableString(dr, "NumReferencia"),
+                                Precio = GetNullableDecimal(dr, "Precio")
                             });
                     }
 
@@ -179,6 +183,84 @@ namespace SafetyReport.DAO
 
                 cmd.Parameters.Add("@intIdDocumentoElectronico", SqlDbType.Int).Value = idDocumentoElectronico;
                 cmd.Parameters.Add("@intIdEstadoFacturacion", SqlDbType.Int).Value = (object?)idEstadoFacturacion ?? DBNull.Value;
+
+                await cn.OpenAsync();
+                using var dr = await cmd.ExecuteReaderAsync();
+
+                if (!await dr.ReadAsync())
+                {
+                    return new Respuesta { IdTipoMensaje = 3, Mensaje = "El procedimiento almacenado no devolvió el resultado esperado." };
+                }
+
+                return new Respuesta
+                {
+                    IdTipoMensaje = Convert.ToInt32(dr["IdTipoMensaje"]),
+                    Mensaje = dr["Mensaje"]?.ToString() ?? string.Empty
+                };
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error no controlado en la capa de datos.");
+                return new Respuesta { IdTipoMensaje = 3, Mensaje = ex.Message };
+            }
+        }
+
+        // Desvincula (IdDocumentoElectronico = NULL) los pedidos que ya no vienen en las líneas del
+        // documento (línea eliminada en un GuardarCambios).
+        public async Task<Respuesta> DesvincularAsync(
+            UsuarioGeneral usuarioLogueado, int idDocumentoElectronico, List<int> idPedidosVigentes)
+        {
+            try
+            {
+                using SqlConnection cn = new(_dbConfig.ConnectionString);
+                using SqlCommand cmd = new("SP_PedidoFactura_Desvincular", cn);
+
+                cmd.CommandType = CommandType.StoredProcedure;
+                cmd.Parameters.Add("@intIdUsuario", SqlDbType.Int).Value = usuarioLogueado.IdUsuario;
+                cmd.Parameters.Add("@vchUsuario", SqlDbType.VarChar, 32).Value = usuarioLogueado.Usuario;
+                cmd.Parameters.Add("@intIdEmpresa", SqlDbType.Int).Value = usuarioLogueado.IdEmpresa;
+                cmd.Parameters.Add("@intIdRol", SqlDbType.Int).Value = usuarioLogueado.IdRol;
+                cmd.Parameters.Add("@intIdDocumentoElectronico", SqlDbType.Int).Value = idDocumentoElectronico;
+
+                var tvpIdPedido = cmd.Parameters.AddWithValue("@lstIdPedido", ConstruirTablaListaGeneralNum(idPedidosVigentes));
+                tvpIdPedido.SqlDbType = SqlDbType.Structured;
+                tvpIdPedido.TypeName = "LISTA_GENERAL_NUM";
+
+                await cn.OpenAsync();
+                using var dr = await cmd.ExecuteReaderAsync();
+
+                if (!await dr.ReadAsync())
+                {
+                    return new Respuesta { IdTipoMensaje = 3, Mensaje = "El procedimiento almacenado no devolvió el resultado esperado." };
+                }
+
+                return new Respuesta
+                {
+                    IdTipoMensaje = Convert.ToInt32(dr["IdTipoMensaje"]),
+                    Mensaje = dr["Mensaje"]?.ToString() ?? string.Empty
+                };
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error no controlado en la capa de datos.");
+                return new Respuesta { IdTipoMensaje = 3, Mensaje = ex.Message };
+            }
+        }
+
+        public async Task<Respuesta> ActualizarEstadoAsync(UsuarioGeneral usuarioLogueado, int idPedido, int idEstadoFacturacion)
+        {
+            try
+            {
+                using SqlConnection cn = new(_dbConfig.ConnectionString);
+                using SqlCommand cmd = new("SP_PedidoFactura_ActualizarEstado", cn);
+
+                cmd.CommandType = CommandType.StoredProcedure;
+                cmd.Parameters.Add("@intIdUsuario", SqlDbType.Int).Value = usuarioLogueado.IdUsuario;
+                cmd.Parameters.Add("@vchUsuario", SqlDbType.VarChar, 32).Value = usuarioLogueado.Usuario;
+                cmd.Parameters.Add("@intIdEmpresa", SqlDbType.Int).Value = usuarioLogueado.IdEmpresa;
+                cmd.Parameters.Add("@intIdRol", SqlDbType.Int).Value = usuarioLogueado.IdRol;
+                cmd.Parameters.Add("@intIdPedido", SqlDbType.Int).Value = idPedido;
+                cmd.Parameters.Add("@intIdEstadoFacturacion", SqlDbType.Int).Value = idEstadoFacturacion;
 
                 await cn.OpenAsync();
                 using var dr = await cmd.ExecuteReaderAsync();

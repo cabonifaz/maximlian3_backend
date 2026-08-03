@@ -78,6 +78,11 @@ namespace SafetyReport.Handlers
                 var clienteDatos = datos.Cliente;
                 var pedidosPorId = datos.Pedidos.ToDictionary(p => p.IdPedido);
 
+                if (pedidosPorId.Values.Any(p => p.Precio is null))
+                {
+                    return new Respuesta { IdTipoMensaje = 1, Mensaje = "Uno o más pedidos no tienen un tarifario con precio configurado." };
+                }
+
                 var facturacionRequest = new FacturacionInsertarDocumentoRequest
                 {
                     IdInquilino = usuarioLogueado.IdEmpresa,
@@ -121,8 +126,7 @@ namespace SafetyReport.Handlers
                         Descripcion = pedidosPorId[l.idPedido].NombreCliente ?? string.Empty,
                         UnidadMedidaCodigo = l.unidadMedidaCodigo,
                         Cantidad = l.cantidad,
-                        ValorUnitario = l.valorUnitario,
-                        PrecioUnitario = l.precioUnitario,
+                        ValorUnitario = pedidosPorId[l.idPedido].Precio.Value,
                         MontoDescuento = l.montoDescuento,
                         IdAfectacionIgvMaestro = l.idAfectacionIgvMaestro,
                         PorcentajeIgv = l.porcentajeIgv
@@ -178,10 +182,17 @@ namespace SafetyReport.Handlers
 
                 var pedidosPorId = datos.Pedidos.ToDictionary(p => p.IdPedido);
 
+                if (pedidosPorId.Values.Any(p => p.Precio is null))
+                {
+                    return new Respuesta { IdTipoMensaje = 1, Mensaje = "Uno o más pedidos no tienen un tarifario con precio configurado." };
+                }
+
                 var facturacionRequest = new FacturacionGuardarCambiosRequest
                 {
                     IdFormaPago = request.idFormaPago,
                     NumeroReferencia = request.numeroReferencia,
+                    IdMonedaMaestro = request.idMonedaMaestro,
+                    IdTipoOperacionMaestro = request.idTipoOperacionMaestro,
                     Lineas = request.lineas.Select((l, i) => new FacturacionLineaEdicion
                     {
                         NumeroLinea = i + 1,
@@ -190,8 +201,7 @@ namespace SafetyReport.Handlers
                         Descripcion = pedidosPorId[l.idPedido].NombreCliente ?? string.Empty,
                         UnidadMedidaCodigo = l.unidadMedidaCodigo,
                         Cantidad = l.cantidad,
-                        ValorUnitario = l.valorUnitario,
-                        PrecioUnitario = l.precioUnitario,
+                        ValorUnitario = pedidosPorId[l.idPedido].Precio.Value,
                         MontoDescuento = l.montoDescuento,
                         IdAfectacionIgvMaestro = l.idAfectacionIgvMaestro,
                         PorcentajeIgv = l.porcentajeIgv,
@@ -214,7 +224,54 @@ namespace SafetyReport.Handlers
                     return new Respuesta { IdTipoMensaje = 3, Mensaje = resultado?.Mensaje ?? "No se pudieron guardar los cambios en facturación." };
                 }
 
+                // Reconcilia PEDIDO_FACTURA con el nuevo set de pedidos: enlaza los que se agregaron,
+                // desvincula los que se quitaron. Ninguna de las dos falla la operación si algo sale mal
+                // acá — el documento en ms-facturación ya se guardó, solo queda desincronizado el vínculo.
+                var enlace = await _pedidoFacturaDao.RegistrarEnvioAsync(
+                    usuarioLogueado, idPedidos, idDocumentoElectronico, idEstadoFacturacion: 10);
+                if (enlace.IdTipoMensaje != 2)
+                {
+                    _logger.LogWarning(
+                        "No se pudo enlazar los pedidos {IdPedidos} al documento {IdDocumentoElectronico}: {Mensaje}",
+                        string.Join(",", idPedidos), idDocumentoElectronico, enlace.Mensaje);
+                }
+
+                var desvinculacion = await _pedidoFacturaDao.DesvincularAsync(usuarioLogueado, idDocumentoElectronico, idPedidos);
+                if (desvinculacion.IdTipoMensaje != 2)
+                {
+                    _logger.LogWarning(
+                        "No se pudo desvincular los pedidos removidos del documento {IdDocumentoElectronico}: {Mensaje}",
+                        idDocumentoElectronico, desvinculacion.Mensaje);
+                }
+
                 return new Respuesta { IdTipoMensaje = 2, Mensaje = "Cambios guardados correctamente." };
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error no controlado en la capa de negocio.");
+                return new Respuesta { IdTipoMensaje = 3, Mensaje = ex.Message };
+            }
+        }
+
+        public Task<Respuesta> ActualizarEstadoFacturacionAsync(UsuarioGeneral usuarioLogueado, int idPedido, int idEstadoFacturacion) =>
+            _pedidoFacturaDao.ActualizarEstadoAsync(usuarioLogueado, idPedido, idEstadoFacturacion);
+
+        // Confirma con SUNAT el documento ya guardado. ms-facturación recalcula FechaEmision/HoraEmision
+        // a su propio reloj justo antes de enviar (ver EnviarDocumentoElectronicoASunatCasoDeUso) — no hace
+        // falta que este Handler actualice nada antes de llamarlo.
+        public async Task<Respuesta> EmitirFacturaAsync(UsuarioGeneral usuarioLogueado, int idDocumentoElectronico)
+        {
+            try
+            {
+                var resultado = await _facturacionService.EnviarASunatAsync(
+                    usuarioLogueado.IdEmpresa, idDocumentoElectronico, CancellationToken.None);
+
+                if (resultado?.Datos is null)
+                {
+                    return new Respuesta { IdTipoMensaje = 3, Mensaje = resultado?.Mensaje ?? "No se pudo emitir la factura." };
+                }
+
+                return new Respuesta { IdTipoMensaje = 2, Mensaje = "Factura emitida correctamente.", Result = resultado.Datos };
             }
             catch (Exception ex)
             {

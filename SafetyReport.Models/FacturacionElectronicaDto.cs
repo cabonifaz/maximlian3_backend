@@ -55,7 +55,6 @@ namespace SafetyReport.Models
         public string UnidadMedidaCodigo { get; set; } = string.Empty;
         public decimal Cantidad { get; set; }
         public decimal ValorUnitario { get; set; }
-        public decimal PrecioUnitario { get; set; }
         public decimal MontoDescuento { get; set; }
         public int IdAfectacionIgvMaestro { get; set; }
         public decimal PorcentajeIgv { get; set; }
@@ -66,6 +65,8 @@ namespace SafetyReport.Models
     {
         public int IdFormaPago { get; set; }
         public string? NumeroReferencia { get; set; }
+        public int IdMonedaMaestro { get; set; }
+        public int IdTipoOperacionMaestro { get; set; }
         public List<FacturacionLineaEdicion> Lineas { get; set; } = new();
         public List<FacturacionCuotaEdicion> Cuotas { get; set; } = new();
     }
@@ -78,7 +79,6 @@ namespace SafetyReport.Models
         public string UnidadMedidaCodigo { get; set; } = string.Empty;
         public decimal Cantidad { get; set; }
         public decimal ValorUnitario { get; set; }
-        public decimal PrecioUnitario { get; set; }
         public decimal MontoDescuento { get; set; }
         public int IdAfectacionIgvMaestro { get; set; }
         public decimal PorcentajeIgv { get; set; }
