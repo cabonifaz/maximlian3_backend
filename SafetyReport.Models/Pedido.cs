@@ -130,12 +130,11 @@ namespace SafetyReport.Models
     public class GuardarBorradorFacturaRequest
     {
         public int idTipoDocumentoMaestro { get; set; }
-        public int idSerieDocumento { get; set; }
         public DateOnly fechaEmision { get; set; }
         public TimeOnly horaEmision { get; set; }
-        public string monedaCodigo { get; set; } = string.Empty;
-        public string tipoOperacionCodigo { get; set; } = string.Empty;
-        public string formaPagoCodigo { get; set; } = string.Empty;
+        public int idMonedaMaestro { get; set; }
+        public int idTipoOperacionMaestro { get; set; }
+        public int idFormaPago { get; set; }
         public List<GuardarBorradorFacturaCuota>? cuotas { get; set; }
         public int idCliente { get; set; }
         public GuardarBorradorFacturaDocumentoAfectado? documentoAfectado { get; set; }
@@ -157,12 +156,11 @@ namespace SafetyReport.Models
         public string motivoDescripcion { get; set; } = string.Empty;
     }
 
+    // productoCodigo/descripcion no vienen del front: se resuelven desde el propio Pedido (Codigo/NombreCliente), mismo criterio que idCliente.
     public class GuardarBorradorFacturaLinea
     {
         public int idPedido { get; set; }
-        public string productoCodigo { get; set; } = string.Empty;
         public string? productoSunatCodigo { get; set; }
-        public string descripcion { get; set; } = string.Empty;
         public string unidadMedidaCodigo { get; set; } = string.Empty;
         public decimal cantidad { get; set; }
         public decimal valorUnitario { get; set; }
@@ -170,6 +168,21 @@ namespace SafetyReport.Models
         public decimal montoDescuento { get; set; }
         public string afectacionIgvCodigo { get; set; } = string.Empty;
         public decimal porcentajeIgv { get; set; }
+    }
+
+    // Resultado de SP_Facturacion_ObtenerDatosBorrador — exactamente los campos que necesita el payload de facturación.
+    public class PedidoParaFacturacionConsulta
+    {
+        public int IdPedido { get; set; }
+        public string Codigo { get; set; } = string.Empty;
+        public string? NombreCliente { get; set; }
+    }
+
+    // Resultado de SP_Facturacion_ObtenerDatosBorrador (PedidoFacturaDAO.ObtenerDatosBorradorAsync).
+    public class DatosBorradorFacturaConsulta
+    {
+        public ClienteParaFacturacionConsulta Cliente { get; set; } = new();
+        public List<PedidoParaFacturacionConsulta> Pedidos { get; set; } = new();
     }
 
     public class PedidoAsignacionResumen

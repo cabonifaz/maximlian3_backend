@@ -7,16 +7,14 @@ namespace SafetyReport.Handlers
     public class PedidoFacturaHandler
     {
         private readonly PedidoFacturaDAO _pedidoFacturaDao;
-        private readonly ClienteDAO _clienteDao;
         private readonly FacturacionElectronicaService _facturacionService;
         private readonly ILogger<PedidoFacturaHandler> _logger;
 
         public PedidoFacturaHandler(
-            PedidoFacturaDAO pedidoFacturaDao, ClienteDAO clienteDao, FacturacionElectronicaService facturacionService,
+            PedidoFacturaDAO pedidoFacturaDao, FacturacionElectronicaService facturacionService,
             ILogger<PedidoFacturaHandler> logger)
         {
             _pedidoFacturaDao = pedidoFacturaDao;
-            _clienteDao = clienteDao;
             _facturacionService = facturacionService;
             _logger = logger;
         }
@@ -35,11 +33,16 @@ namespace SafetyReport.Handlers
                     return new Respuesta { IdTipoMensaje = 1, Mensaje = "La factura debe tener al menos una línea." };
                 }
 
-                var cliente = await _clienteDao.ObtenerClienteParaFacturacionAsync(usuarioLogueado, request.idCliente);
-                if (cliente.IdTipoMensaje != 2 || cliente.Result is not ClienteParaFacturacionConsulta clienteDatos)
+                var idPedidos = request.lineas.Select(l => l.idPedido).Distinct().ToList();
+
+                var datosBorrador = await _pedidoFacturaDao.ObtenerDatosBorradorAsync(usuarioLogueado, request.idCliente, idPedidos);
+                if (datosBorrador.IdTipoMensaje != 2 || datosBorrador.Result is not DatosBorradorFacturaConsulta datos)
                 {
-                    return new Respuesta { IdTipoMensaje = cliente.IdTipoMensaje, Mensaje = cliente.Mensaje };
+                    return new Respuesta { IdTipoMensaje = datosBorrador.IdTipoMensaje, Mensaje = datosBorrador.Mensaje };
                 }
+
+                var clienteDatos = datos.Cliente;
+                var pedidosPorId = datos.Pedidos.ToDictionary(p => p.IdPedido);
 
                 var facturacionRequest = new FacturacionInsertarDocumentoRequest
                 {
@@ -47,14 +50,13 @@ namespace SafetyReport.Handlers
                     IdEmpresa = 1, // TODO: resolver desde EMPRESAS de ms-facturación (GET /api/v1/empresas?idInquilino=) en vez de fijo.
                     IdExterno = string.Join(",", request.lineas.Select(l => l.idPedido)),
                     IdTipoDocumentoMaestro = request.idTipoDocumentoMaestro,
-                    IdSerieDocumento = request.idSerieDocumento,
                     FechaEmision = request.fechaEmision,
                     HoraEmision = request.horaEmision,
-                    MonedaCodigo = request.monedaCodigo,
-                    TipoOperacionCodigo = request.tipoOperacionCodigo,
+                    IdMonedaMaestro = request.idMonedaMaestro,
+                    IdTipoOperacionMaestro = request.idTipoOperacionMaestro,
                     FormaPago = new FacturacionFormaPago
                     {
-                        Codigo = request.formaPagoCodigo,
+                        IdFormaPago = request.idFormaPago,
                         Cuotas = request.cuotas?.Select(c => new FacturacionCuota
                         {
                             NumeroCuota = c.numeroCuota,
@@ -81,9 +83,9 @@ namespace SafetyReport.Handlers
                     Items = request.lineas.Select((l, i) => new FacturacionItem
                     {
                         NumeroLinea = i + 1,
-                        ProductoCodigo = l.productoCodigo,
+                        ProductoCodigo = pedidosPorId[l.idPedido].Codigo,
                         ProductoSunatCodigo = l.productoSunatCodigo,
-                        Descripcion = l.descripcion,
+                        Descripcion = pedidosPorId[l.idPedido].NombreCliente ?? string.Empty,
                         UnidadMedidaCodigo = l.unidadMedidaCodigo,
                         Cantidad = l.cantidad,
                         ValorUnitario = l.valorUnitario,
@@ -101,19 +103,15 @@ namespace SafetyReport.Handlers
                 }
 
                 // Un borrador puede cubrir varios pedidos: se registra el mismo IdDocumentoElectronico
-                // en PEDIDO_FACTURA para cada pedido referenciado por una línea.
-                var idPedidos = request.lineas.Select(l => l.idPedido).Distinct();
-                foreach (var idPedido in idPedidos)
-                {
-                    var resultado = await _pedidoFacturaDao.RegistrarEnvioAsync(
-                        usuarioLogueado, idPedido, insertado.Datos.IdDocumentoElectronico, idEstadoFacturacion: 10);
+                // en PEDIDO_FACTURA para todos los pedidos referenciados por las líneas en un solo UPDATE.
+                var registro = await _pedidoFacturaDao.RegistrarEnvioAsync(
+                    usuarioLogueado, idPedidos, insertado.Datos.IdDocumentoElectronico, idEstadoFacturacion: 10);
 
-                    if (resultado.IdTipoMensaje != 2)
-                    {
-                        _logger.LogWarning(
-                            "No se pudo registrar el borrador de facturación para el pedido {IdPedido}: {Mensaje}",
-                            idPedido, resultado.Mensaje);
-                    }
+                if (registro.IdTipoMensaje != 2)
+                {
+                    _logger.LogWarning(
+                        "No se pudo registrar el borrador de facturación para los pedidos {IdPedidos}: {Mensaje}",
+                        string.Join(",", idPedidos), registro.Mensaje);
                 }
 
                 return ResultadoOperacionExito(insertado.Datos.IdDocumentoElectronico);

@@ -12,6 +12,7 @@ namespace SafetyReport.Handlers
         public FacturacionElectronicaService(FacturacionElectronicaConfig config, HttpClient httpClient)
         {
             httpClient.BaseAddress = new Uri(config.BaseUrl);
+            httpClient.DefaultRequestHeaders.Add("X-Api-Key", config.ApiKey);
             _httpClient = httpClient;
         }
 
