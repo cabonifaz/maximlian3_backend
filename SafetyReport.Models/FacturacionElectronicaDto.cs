@@ -6,11 +6,10 @@ namespace SafetyReport.Models
         public int IdEmpresa { get; set; }
         public string IdExterno { get; set; } = string.Empty;
         public int IdTipoDocumentoMaestro { get; set; }
-        public int IdSerieDocumento { get; set; }
         public DateOnly FechaEmision { get; set; }
         public TimeOnly HoraEmision { get; set; }
-        public string MonedaCodigo { get; set; } = "PEN";
-        public string TipoOperacionCodigo { get; set; } = string.Empty;
+        public int IdMonedaMaestro { get; set; }
+        public int IdTipoOperacionMaestro { get; set; }
         public FacturacionFormaPago FormaPago { get; set; } = new();
         public FacturacionCliente Cliente { get; set; } = new();
         public FacturacionDocumentoAfectado? DocumentoAfectado { get; set; }
@@ -19,7 +18,7 @@ namespace SafetyReport.Models
 
     public class FacturacionFormaPago
     {
-        public string Codigo { get; set; } = "Contado";
+        public int IdFormaPago { get; set; } = 1; // Num1 de TABLA_MAESTRA IdMaestro=9 (1=Contado, 2=Credito)
         public List<FacturacionCuota>? Cuotas { get; set; }
     }
 

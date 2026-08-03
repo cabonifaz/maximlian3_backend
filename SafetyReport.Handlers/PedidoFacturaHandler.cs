@@ -7,15 +7,17 @@ namespace SafetyReport.Handlers
     public class PedidoFacturaHandler
     {
         private readonly PedidoFacturaDAO _pedidoFacturaDao;
+        private readonly PedidoDAO _pedidoDao;
         private readonly ClienteDAO _clienteDao;
         private readonly FacturacionElectronicaService _facturacionService;
         private readonly ILogger<PedidoFacturaHandler> _logger;
 
         public PedidoFacturaHandler(
-            PedidoFacturaDAO pedidoFacturaDao, ClienteDAO clienteDao, FacturacionElectronicaService facturacionService,
+            PedidoFacturaDAO pedidoFacturaDao, PedidoDAO pedidoDao, ClienteDAO clienteDao, FacturacionElectronicaService facturacionService,
             ILogger<PedidoFacturaHandler> logger)
         {
             _pedidoFacturaDao = pedidoFacturaDao;
+            _pedidoDao = pedidoDao;
             _clienteDao = clienteDao;
             _facturacionService = facturacionService;
             _logger = logger;
@@ -41,20 +43,29 @@ namespace SafetyReport.Handlers
                     return new Respuesta { IdTipoMensaje = cliente.IdTipoMensaje, Mensaje = cliente.Mensaje };
                 }
 
+                var idPedidos = request.lineas.Select(l => l.idPedido).Distinct().ToList();
+
+                var pedidos = await _pedidoDao.ObtenerParaFacturacionAsync(usuarioLogueado, idPedidos);
+                if (pedidos.IdTipoMensaje != 2 || pedidos.Result is not List<PedidoParaFacturacionConsulta> pedidosDatos)
+                {
+                    return new Respuesta { IdTipoMensaje = pedidos.IdTipoMensaje, Mensaje = pedidos.Mensaje };
+                }
+
+                var pedidosPorId = pedidosDatos.ToDictionary(p => p.IdPedido);
+
                 var facturacionRequest = new FacturacionInsertarDocumentoRequest
                 {
                     IdInquilino = usuarioLogueado.IdEmpresa,
                     IdEmpresa = 1, // TODO: resolver desde EMPRESAS de ms-facturación (GET /api/v1/empresas?idInquilino=) en vez de fijo.
                     IdExterno = string.Join(",", request.lineas.Select(l => l.idPedido)),
                     IdTipoDocumentoMaestro = request.idTipoDocumentoMaestro,
-                    IdSerieDocumento = request.idSerieDocumento,
                     FechaEmision = request.fechaEmision,
                     HoraEmision = request.horaEmision,
-                    MonedaCodigo = request.monedaCodigo,
-                    TipoOperacionCodigo = request.tipoOperacionCodigo,
+                    IdMonedaMaestro = request.idMonedaMaestro,
+                    IdTipoOperacionMaestro = request.idTipoOperacionMaestro,
                     FormaPago = new FacturacionFormaPago
                     {
-                        Codigo = request.formaPagoCodigo,
+                        IdFormaPago = request.idFormaPago,
                         Cuotas = request.cuotas?.Select(c => new FacturacionCuota
                         {
                             NumeroCuota = c.numeroCuota,
@@ -81,9 +92,9 @@ namespace SafetyReport.Handlers
                     Items = request.lineas.Select((l, i) => new FacturacionItem
                     {
                         NumeroLinea = i + 1,
-                        ProductoCodigo = l.productoCodigo,
+                        ProductoCodigo = pedidosPorId[l.idPedido].Codigo,
                         ProductoSunatCodigo = l.productoSunatCodigo,
-                        Descripcion = l.descripcion,
+                        Descripcion = pedidosPorId[l.idPedido].NombreCliente ?? string.Empty,
                         UnidadMedidaCodigo = l.unidadMedidaCodigo,
                         Cantidad = l.cantidad,
                         ValorUnitario = l.valorUnitario,
@@ -102,7 +113,6 @@ namespace SafetyReport.Handlers
 
                 // Un borrador puede cubrir varios pedidos: se registra el mismo IdDocumentoElectronico
                 // en PEDIDO_FACTURA para cada pedido referenciado por una línea.
-                var idPedidos = request.lineas.Select(l => l.idPedido).Distinct();
                 foreach (var idPedido in idPedidos)
                 {
                     var resultado = await _pedidoFacturaDao.RegistrarEnvioAsync(
