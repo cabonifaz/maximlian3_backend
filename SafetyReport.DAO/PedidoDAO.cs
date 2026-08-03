@@ -660,7 +660,8 @@ namespace SafetyReport.DAO
                                 TipoTramite = GetNullableString(dr, "TipoTramite"),
                                 Fecha = Convert.ToDateTime(dr["Fecha"]),
                                 Penalidad = GetNullableDecimal(dr, "Penalidad"),
-                                Precio = GetNullableDecimal(dr, "Precio")
+                                Precio = GetNullableDecimal(dr, "Precio"),
+                                DescuentoPorcentaje = GetNullableString(dr, "DescuentoPorcentaje")
                             });
                     }
                 }
