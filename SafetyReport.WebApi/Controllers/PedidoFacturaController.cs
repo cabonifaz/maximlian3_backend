@@ -24,6 +24,13 @@ namespace SafetyReport.WebApi.Controllers
             return Ok(respuesta);
         }
 
+        [HttpGet("resumen")]
+        public async Task<IActionResult> ObtenerResumen([FromQuery] DateOnly? fechaDesde, [FromQuery] DateOnly? fechaHasta)
+        {
+            var respuesta = await _pedidoFacturaHandler.ObtenerResumenDashboardAsync(UsuarioLogueado, fechaDesde, fechaHasta);
+            return Ok(respuesta);
+        }
+
         [HttpGet("listarPedidos")]
         public async Task<IActionResult> ListarPedidos([FromQuery] ListarPedidosFacturacionRequest request)
         {

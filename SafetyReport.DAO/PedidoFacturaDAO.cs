@@ -278,5 +278,45 @@ namespace SafetyReport.DAO
                 return new Respuesta { IdTipoMensaje = 3, Mensaje = ex.Message };
             }
         }
+
+        public async Task<Respuesta> ObtenerResumenAsync(UsuarioGeneral usuarioLogueado, DateOnly? fechaDesde, DateOnly? fechaHasta)
+        {
+            try
+            {
+                using SqlConnection cn = new(_dbConfig.ConnectionString);
+                using SqlCommand cmd = new("SP_PedidoFactura_Resumen", cn);
+
+                cmd.CommandType = CommandType.StoredProcedure;
+                cmd.Parameters.Add("@intIdUsuario", SqlDbType.Int).Value = usuarioLogueado.IdUsuario;
+                cmd.Parameters.Add("@vchUsuario", SqlDbType.VarChar, 32).Value = usuarioLogueado.Usuario;
+                cmd.Parameters.Add("@intIdEmpresa", SqlDbType.Int).Value = usuarioLogueado.IdEmpresa;
+                cmd.Parameters.Add("@intIdRol", SqlDbType.Int).Value = usuarioLogueado.IdRol;
+                cmd.Parameters.Add("@dtFechaDesde", SqlDbType.Date).Value = (object?)fechaDesde?.ToDateTime(TimeOnly.MinValue) ?? DBNull.Value;
+                cmd.Parameters.Add("@dtFechaHasta", SqlDbType.Date).Value = (object?)fechaHasta?.ToDateTime(TimeOnly.MinValue) ?? DBNull.Value;
+
+                await cn.OpenAsync();
+                using var dr = await cmd.ExecuteReaderAsync();
+
+                var respuesta = await LeerCabeceraAsync(dr, cmd.CommandText);
+                if (respuesta.IdTipoMensaje == 2 && await dr.NextResultAsync() && await dr.ReadAsync())
+                {
+                    respuesta.Result = new ResumenPedidoFacturaConsulta
+                    {
+                        FechaDesde = DateOnly.FromDateTime(Convert.ToDateTime(dr["FechaDesde"])),
+                        FechaHasta = DateOnly.FromDateTime(Convert.ToDateTime(dr["FechaHasta"])),
+                        MontoTotalMensual = Convert.ToDecimal(dr["MontoTotalMensual"]),
+                        CantidadFacturasEmitidas = Convert.ToInt32(dr["CantidadFacturasEmitidas"]),
+                        PromedioIngresoMensual = dr["PromedioIngresoMensual"] == DBNull.Value ? null : Convert.ToDecimal(dr["PromedioIngresoMensual"])
+                    };
+                }
+
+                return respuesta;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error no controlado en la capa de datos.");
+                return new Respuesta { IdTipoMensaje = 3, Mensaje = ex.Message };
+            }
+        }
     }
 }
