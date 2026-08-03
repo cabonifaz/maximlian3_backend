@@ -39,9 +39,9 @@ namespace SafetyReport.Handlers
                 var documento = await _facturacionService.ObtenerDocumentoAsync(
                     usuarioLogueado.IdEmpresa, datos.IdDocumentoElectronico, CancellationToken.None);
 
-                if (documento?.Datos is null)
+                if (documento is null || documento.IdTipoMensaje != 2)
                 {
-                    return new Respuesta { IdTipoMensaje = 3, Mensaje = documento?.Mensaje ?? "No se pudo obtener el documento electrónico." };
+                    return new Respuesta { IdTipoMensaje = documento?.IdTipoMensaje ?? 3, Mensaje = documento?.Mensaje ?? "No se pudo obtener el documento electrónico." };
                 }
 
                 return new Respuesta { IdTipoMensaje = 2, Mensaje = "Consulta exitosa.", Result = documento.Datos };
@@ -134,9 +134,9 @@ namespace SafetyReport.Handlers
                 };
 
                 var insertado = await _facturacionService.InsertarDocumentoAsync(facturacionRequest, CancellationToken.None);
-                if (insertado?.Datos is null)
+                if (insertado is null || insertado.IdTipoMensaje != 2 || insertado.Datos is null)
                 {
-                    return new Respuesta { IdTipoMensaje = 3, Mensaje = insertado?.Mensaje ?? "No se pudo crear el documento electrónico en facturación." };
+                    return new Respuesta { IdTipoMensaje = insertado?.IdTipoMensaje ?? 3, Mensaje = insertado?.Mensaje ?? "No se pudo crear el documento electrónico en facturación." };
                 }
 
                 // Un borrador puede cubrir varios pedidos: se registra el mismo IdDocumentoElectronico
@@ -219,9 +219,9 @@ namespace SafetyReport.Handlers
                 var resultado = await _facturacionService.GuardarCambiosAsync(
                     usuarioLogueado.IdEmpresa, idDocumentoElectronico, facturacionRequest, CancellationToken.None);
 
-                if (resultado?.Datos is null)
+                if (resultado is null || resultado.IdTipoMensaje != 2)
                 {
-                    return new Respuesta { IdTipoMensaje = 3, Mensaje = resultado?.Mensaje ?? "No se pudieron guardar los cambios en facturación." };
+                    return new Respuesta { IdTipoMensaje = resultado?.IdTipoMensaje ?? 3, Mensaje = resultado?.Mensaje ?? "No se pudieron guardar los cambios en facturación." };
                 }
 
                 // Reconcilia PEDIDO_FACTURA con el nuevo set de pedidos: enlaza los que se agregaron,
@@ -266,9 +266,9 @@ namespace SafetyReport.Handlers
                 var resultado = await _facturacionService.EnviarASunatAsync(
                     usuarioLogueado.IdEmpresa, idDocumentoElectronico, CancellationToken.None);
 
-                if (resultado?.Datos is null)
+                if (resultado is null || resultado.IdTipoMensaje != 2 || resultado.Datos is null)
                 {
-                    return new Respuesta { IdTipoMensaje = 3, Mensaje = resultado?.Mensaje ?? "No se pudo emitir la factura." };
+                    return new Respuesta { IdTipoMensaje = resultado?.IdTipoMensaje ?? 3, Mensaje = resultado?.Mensaje ?? "No se pudo emitir la factura." };
                 }
 
                 return new Respuesta { IdTipoMensaje = 2, Mensaje = "Factura emitida correctamente.", Result = resultado.Datos };
