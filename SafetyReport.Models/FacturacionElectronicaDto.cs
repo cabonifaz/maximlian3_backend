@@ -57,7 +57,7 @@ namespace SafetyReport.Models
         public decimal ValorUnitario { get; set; }
         public decimal PrecioUnitario { get; set; }
         public decimal MontoDescuento { get; set; }
-        public string AfectacionIgvCodigo { get; set; } = string.Empty;
+        public int IdAfectacionIgvMaestro { get; set; }
         public decimal PorcentajeIgv { get; set; }
     }
 

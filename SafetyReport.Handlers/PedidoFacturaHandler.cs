@@ -95,7 +95,7 @@ namespace SafetyReport.Handlers
                         ValorUnitario = l.valorUnitario,
                         PrecioUnitario = l.precioUnitario,
                         MontoDescuento = l.montoDescuento,
-                        AfectacionIgvCodigo = l.afectacionIgvCodigo,
+                        IdAfectacionIgvMaestro = l.idAfectacionIgvMaestro,
                         PorcentajeIgv = l.porcentajeIgv
                     }).ToList()
                 };
