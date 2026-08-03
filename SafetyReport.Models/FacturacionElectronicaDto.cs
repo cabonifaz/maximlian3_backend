@@ -96,6 +96,7 @@ namespace SafetyReport.Models
 
     public class FacturacionEnvelope<T>
     {
+        public int IdTipoMensaje { get; set; }
         public string? Mensaje { get; set; }
         public T? Datos { get; set; }
     }
