@@ -204,6 +204,14 @@ namespace SafetyReport.Models
         public int idCuotaDocumentoElectronico { get; set; }
     }
 
+    // Resultado de SP_PedidoFactura_ObtenerIdDocumentoElectronico.
+    public class PedidoFacturaIdDocumentoConsulta
+    {
+        public int IdPedido { get; set; }
+        public int IdDocumentoElectronico { get; set; }
+        public int IdEstadoFacturacion { get; set; }
+    }
+
     // Resultado de SP_Facturacion_ObtenerDatosBorrador — exactamente los campos que necesita el payload de facturación.
     public class PedidoParaFacturacionConsulta
     {

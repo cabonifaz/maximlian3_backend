@@ -31,6 +31,13 @@ namespace SafetyReport.WebApi.Controllers
             return Ok(respuesta);
         }
 
+        [HttpGet("factura/{idPedido:int}")]
+        public async Task<IActionResult> ObtenerFacturaPorPedido(int idPedido)
+        {
+            var respuesta = await _pedidoFacturaHandler.ObtenerFacturaPorPedidoAsync(UsuarioLogueado, idPedido);
+            return Ok(respuesta);
+        }
+
         [HttpPut("guardarCambios/{idDocumentoElectronico:int}")]
         public async Task<IActionResult> GuardarCambios(int idDocumentoElectronico, [FromBody] GuardarCambiosFacturaRequest request)
         {

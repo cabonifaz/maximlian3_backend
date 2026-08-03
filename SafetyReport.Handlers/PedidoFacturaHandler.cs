@@ -24,6 +24,35 @@ namespace SafetyReport.Handlers
         public Task<Respuesta> ListarPedidosParaFacturacionAsync(UsuarioGeneral usuarioLogueado, ListarPedidosFacturacionRequest request) =>
             _pedidoDao.ListarParaFacturacionAsync(usuarioLogueado, request);
 
+        // Dado un pedido, resuelve su IdDocumentoElectronico (PEDIDO_FACTURA) y trae la factura ya
+        // guardada en ms-facturación, para que el front la use como base de edición (guardarCambios).
+        public async Task<Respuesta> ObtenerFacturaPorPedidoAsync(UsuarioGeneral usuarioLogueado, int idPedido)
+        {
+            try
+            {
+                var idDocumento = await _pedidoFacturaDao.ObtenerIdDocumentoElectronicoAsync(usuarioLogueado, idPedido);
+                if (idDocumento.IdTipoMensaje != 2 || idDocumento.Result is not PedidoFacturaIdDocumentoConsulta datos)
+                {
+                    return new Respuesta { IdTipoMensaje = idDocumento.IdTipoMensaje, Mensaje = idDocumento.Mensaje };
+                }
+
+                var documento = await _facturacionService.ObtenerDocumentoAsync(
+                    usuarioLogueado.IdEmpresa, datos.IdDocumentoElectronico, CancellationToken.None);
+
+                if (documento?.Datos is null)
+                {
+                    return new Respuesta { IdTipoMensaje = 3, Mensaje = documento?.Mensaje ?? "No se pudo obtener el documento electrónico." };
+                }
+
+                return new Respuesta { IdTipoMensaje = 2, Mensaje = "Consulta exitosa.", Result = documento.Datos };
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error no controlado en la capa de negocio.");
+                return new Respuesta { IdTipoMensaje = 3, Mensaje = ex.Message };
+            }
+        }
+
         // Solo Guardar: crea el borrador en ms-facturación (PendienteEnvio), no lo envía a SUNAT.
         // Líneas/cuotas/tipo de documento vienen del front (son propios de esta factura, no de un maestro).
         // El cliente NO viene del front: solo manda idCliente, este Handler resuelve los datos vigentes en
