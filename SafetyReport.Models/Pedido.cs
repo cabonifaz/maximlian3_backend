@@ -252,7 +252,7 @@ namespace SafetyReport.Models
         public DateTime Fecha { get; set; }
         public decimal? Penalidad { get; set; }
         public decimal? Precio { get; set; }
-        public string? DescuentoPorcentaje { get; set; }
+        public decimal? DescuentoPorcentaje { get; set; }
     }
 
     public class PedidoListaFacturacionResult
