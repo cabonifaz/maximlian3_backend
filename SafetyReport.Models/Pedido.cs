@@ -163,7 +163,6 @@ namespace SafetyReport.Models
         public string unidadMedidaCodigo { get; set; } = string.Empty;
         public decimal cantidad { get; set; }
         public decimal valorUnitario { get; set; }
-        public decimal precioUnitario { get; set; }
         public decimal montoDescuento { get; set; }
         public int idAfectacionIgvMaestro { get; set; }
         public decimal porcentajeIgv { get; set; }
@@ -191,7 +190,6 @@ namespace SafetyReport.Models
         public string unidadMedidaCodigo { get; set; } = string.Empty;
         public decimal cantidad { get; set; }
         public decimal valorUnitario { get; set; }
-        public decimal precioUnitario { get; set; }
         public decimal montoDescuento { get; set; }
         public int idAfectacionIgvMaestro { get; set; }
         public decimal porcentajeIgv { get; set; }

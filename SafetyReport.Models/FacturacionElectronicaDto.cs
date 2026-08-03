@@ -55,7 +55,6 @@ namespace SafetyReport.Models
         public string UnidadMedidaCodigo { get; set; } = string.Empty;
         public decimal Cantidad { get; set; }
         public decimal ValorUnitario { get; set; }
-        public decimal PrecioUnitario { get; set; }
         public decimal MontoDescuento { get; set; }
         public int IdAfectacionIgvMaestro { get; set; }
         public decimal PorcentajeIgv { get; set; }
@@ -80,7 +79,6 @@ namespace SafetyReport.Models
         public string UnidadMedidaCodigo { get; set; } = string.Empty;
         public decimal Cantidad { get; set; }
         public decimal ValorUnitario { get; set; }
-        public decimal PrecioUnitario { get; set; }
         public decimal MontoDescuento { get; set; }
         public int IdAfectacionIgvMaestro { get; set; }
         public decimal PorcentajeIgv { get; set; }

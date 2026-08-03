@@ -122,7 +122,6 @@ namespace SafetyReport.Handlers
                         UnidadMedidaCodigo = l.unidadMedidaCodigo,
                         Cantidad = l.cantidad,
                         ValorUnitario = l.valorUnitario,
-                        PrecioUnitario = l.precioUnitario,
                         MontoDescuento = l.montoDescuento,
                         IdAfectacionIgvMaestro = l.idAfectacionIgvMaestro,
                         PorcentajeIgv = l.porcentajeIgv
@@ -193,7 +192,6 @@ namespace SafetyReport.Handlers
                         UnidadMedidaCodigo = l.unidadMedidaCodigo,
                         Cantidad = l.cantidad,
                         ValorUnitario = l.valorUnitario,
-                        PrecioUnitario = l.precioUnitario,
                         MontoDescuento = l.montoDescuento,
                         IdAfectacionIgvMaestro = l.idAfectacionIgvMaestro,
                         PorcentajeIgv = l.porcentajeIgv,
