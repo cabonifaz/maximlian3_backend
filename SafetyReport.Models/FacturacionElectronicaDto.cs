@@ -6,8 +6,6 @@ namespace SafetyReport.Models
         public int IdEmpresa { get; set; }
         public string IdExterno { get; set; } = string.Empty;
         public int IdTipoDocumentoMaestro { get; set; }
-        public DateOnly FechaEmision { get; set; }
-        public TimeOnly HoraEmision { get; set; }
         public int IdMonedaMaestro { get; set; }
         public int IdTipoOperacionMaestro { get; set; }
         public FacturacionFormaPago FormaPago { get; set; } = new();

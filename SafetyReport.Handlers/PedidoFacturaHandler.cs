@@ -50,8 +50,6 @@ namespace SafetyReport.Handlers
                     IdEmpresa = 1, // TODO: resolver desde EMPRESAS de ms-facturación (GET /api/v1/empresas?idInquilino=) en vez de fijo.
                     IdExterno = string.Join(",", request.lineas.Select(l => l.idPedido)),
                     IdTipoDocumentoMaestro = request.idTipoDocumentoMaestro,
-                    FechaEmision = request.fechaEmision,
-                    HoraEmision = request.horaEmision,
                     IdMonedaMaestro = request.idMonedaMaestro,
                     IdTipoOperacionMaestro = request.idTipoOperacionMaestro,
                     FormaPago = new FacturacionFormaPago

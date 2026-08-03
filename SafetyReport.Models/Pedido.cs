@@ -130,8 +130,6 @@ namespace SafetyReport.Models
     public class GuardarBorradorFacturaRequest
     {
         public int idTipoDocumentoMaestro { get; set; }
-        public DateOnly fechaEmision { get; set; }
-        public TimeOnly horaEmision { get; set; }
         public int idMonedaMaestro { get; set; }
         public int idTipoOperacionMaestro { get; set; }
         public int idFormaPago { get; set; }
