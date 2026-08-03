@@ -129,5 +129,8 @@ namespace SafetyReport.Handlers
             Mensaje = "Borrador de factura guardado correctamente.",
             Result = new { IdDocumentoElectronico = idDocumentoElectronico }
         };
+
+        public Task<Respuesta> ObtenerResumenDashboardAsync(UsuarioGeneral usuarioLogueado, DateOnly? fechaDesde, DateOnly? fechaHasta) =>
+            _pedidoFacturaDao.ObtenerResumenAsync(usuarioLogueado, fechaDesde, fechaHasta);
     }
 }

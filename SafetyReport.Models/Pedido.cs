@@ -270,4 +270,13 @@ namespace SafetyReport.Models
         public string? ColorFondo { get; set; }
         public int Cantidad { get; set; }
     }
+
+    public class ResumenPedidoFacturaConsulta
+    {
+        public DateOnly FechaDesde { get; set; }
+        public DateOnly FechaHasta { get; set; }
+        public decimal MontoTotalMensual { get; set; }
+        public int CantidadFacturasEmitidas { get; set; }
+        public decimal? PromedioIngresoMensual { get; set; }
+    }
 }
