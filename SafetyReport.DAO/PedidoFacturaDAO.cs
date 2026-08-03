@@ -54,6 +54,9 @@ namespace SafetyReport.DAO
         private static string? GetNullableString(SqlDataReader dr, string columna) =>
             dr[columna] == DBNull.Value ? null : dr[columna].ToString();
 
+        private static decimal? GetNullableDecimal(SqlDataReader dr, string columna) =>
+            dr[columna] == DBNull.Value ? null : Convert.ToDecimal(dr[columna]);
+
         // Une SP_Cliente_ObtenerParaFacturacion + SP_Pedido_ObtenerParaFacturacion en un solo viaje.
         // idCliente es NULL cuando el llamador solo necesita resolver pedidos (GuardarCambiosFacturaAsync).
         public async Task<Respuesta> ObtenerDatosBorradorAsync(UsuarioGeneral usuarioLogueado, int? idCliente, List<int> idPedidos)
@@ -105,7 +108,8 @@ namespace SafetyReport.DAO
                                 IdPedido = Convert.ToInt32(dr["IdPedido"]),
                                 Codigo = dr["Codigo"]?.ToString() ?? string.Empty,
                                 NombreCliente = GetNullableString(dr, "NombreCliente"),
-                                NumReferencia = GetNullableString(dr, "NumReferencia")
+                                NumReferencia = GetNullableString(dr, "NumReferencia"),
+                                Precio = GetNullableDecimal(dr, "Precio")
                             });
                     }
 

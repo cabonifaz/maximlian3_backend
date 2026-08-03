@@ -155,14 +155,14 @@ namespace SafetyReport.Models
         public string motivoDescripcion { get; set; } = string.Empty;
     }
 
-    // productoCodigo/descripcion no vienen del front: se resuelven desde el propio Pedido (Codigo/NombreCliente), mismo criterio que idCliente.
+    // productoCodigo/descripcion/valorUnitario no vienen del front: se resuelven desde el propio Pedido
+    // (Codigo/NombreCliente/TARIFARIO.Precio), mismo criterio que idCliente.
     public class GuardarBorradorFacturaLinea
     {
         public int idPedido { get; set; }
         public string? productoSunatCodigo { get; set; }
         public string unidadMedidaCodigo { get; set; } = string.Empty;
         public decimal cantidad { get; set; }
-        public decimal valorUnitario { get; set; }
         public decimal montoDescuento { get; set; }
         public int idAfectacionIgvMaestro { get; set; }
         public decimal porcentajeIgv { get; set; }
@@ -189,7 +189,6 @@ namespace SafetyReport.Models
         public string? productoSunatCodigo { get; set; }
         public string unidadMedidaCodigo { get; set; } = string.Empty;
         public decimal cantidad { get; set; }
-        public decimal valorUnitario { get; set; }
         public decimal montoDescuento { get; set; }
         public int idAfectacionIgvMaestro { get; set; }
         public decimal porcentajeIgv { get; set; }
@@ -220,6 +219,7 @@ namespace SafetyReport.Models
         public string Codigo { get; set; } = string.Empty;
         public string? NombreCliente { get; set; }
         public string? NumReferencia { get; set; }
+        public decimal? Precio { get; set; }
     }
 
     // Resultado de SP_Facturacion_ObtenerDatosBorrador (PedidoFacturaDAO.ObtenerDatosBorradorAsync).

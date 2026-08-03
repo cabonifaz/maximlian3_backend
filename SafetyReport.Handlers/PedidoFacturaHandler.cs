@@ -78,6 +78,11 @@ namespace SafetyReport.Handlers
                 var clienteDatos = datos.Cliente;
                 var pedidosPorId = datos.Pedidos.ToDictionary(p => p.IdPedido);
 
+                if (pedidosPorId.Values.Any(p => p.Precio is null))
+                {
+                    return new Respuesta { IdTipoMensaje = 1, Mensaje = "Uno o más pedidos no tienen un tarifario con precio configurado." };
+                }
+
                 var facturacionRequest = new FacturacionInsertarDocumentoRequest
                 {
                     IdInquilino = usuarioLogueado.IdEmpresa,
@@ -121,7 +126,7 @@ namespace SafetyReport.Handlers
                         Descripcion = pedidosPorId[l.idPedido].NombreCliente ?? string.Empty,
                         UnidadMedidaCodigo = l.unidadMedidaCodigo,
                         Cantidad = l.cantidad,
-                        ValorUnitario = l.valorUnitario,
+                        ValorUnitario = pedidosPorId[l.idPedido].Precio.Value,
                         MontoDescuento = l.montoDescuento,
                         IdAfectacionIgvMaestro = l.idAfectacionIgvMaestro,
                         PorcentajeIgv = l.porcentajeIgv
@@ -177,6 +182,11 @@ namespace SafetyReport.Handlers
 
                 var pedidosPorId = datos.Pedidos.ToDictionary(p => p.IdPedido);
 
+                if (pedidosPorId.Values.Any(p => p.Precio is null))
+                {
+                    return new Respuesta { IdTipoMensaje = 1, Mensaje = "Uno o más pedidos no tienen un tarifario con precio configurado." };
+                }
+
                 var facturacionRequest = new FacturacionGuardarCambiosRequest
                 {
                     IdFormaPago = request.idFormaPago,
@@ -191,7 +201,7 @@ namespace SafetyReport.Handlers
                         Descripcion = pedidosPorId[l.idPedido].NombreCliente ?? string.Empty,
                         UnidadMedidaCodigo = l.unidadMedidaCodigo,
                         Cantidad = l.cantidad,
-                        ValorUnitario = l.valorUnitario,
+                        ValorUnitario = pedidosPorId[l.idPedido].Precio.Value,
                         MontoDescuento = l.montoDescuento,
                         IdAfectacionIgvMaestro = l.idAfectacionIgvMaestro,
                         PorcentajeIgv = l.porcentajeIgv,
