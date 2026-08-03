@@ -182,6 +182,8 @@ namespace SafetyReport.Handlers
                 {
                     IdFormaPago = request.idFormaPago,
                     NumeroReferencia = request.numeroReferencia,
+                    IdMonedaMaestro = request.idMonedaMaestro,
+                    IdTipoOperacionMaestro = request.idTipoOperacionMaestro,
                     Lineas = request.lineas.Select((l, i) => new FacturacionLineaEdicion
                     {
                         NumeroLinea = i + 1,

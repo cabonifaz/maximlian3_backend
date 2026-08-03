@@ -170,11 +170,14 @@ namespace SafetyReport.Models
     }
 
     // Editar un documento existente (PendienteEnvio) — mismo criterio que GuardarBorradorFacturaRequest:
-    // el cliente no se edita acá (ms-facturación no lo permite), solo lineas/cuotas/formaPago/numeroReferencia.
+    // el cliente no se edita acá (ms-facturación no lo permite); idTipoDocumentoMaestro tampoco (ya
+    // consumió serie/correlativo en el Insertar). Todo lo demás del payload de guardarBorrador sí.
     public class GuardarCambiosFacturaRequest
     {
         public int idFormaPago { get; set; }
         public string? numeroReferencia { get; set; }
+        public int idMonedaMaestro { get; set; }
+        public int idTipoOperacionMaestro { get; set; }
         public List<GuardarCambiosFacturaLinea> lineas { get; set; } = new();
         public List<GuardarCambiosFacturaCuota> cuotas { get; set; } = new();
     }
