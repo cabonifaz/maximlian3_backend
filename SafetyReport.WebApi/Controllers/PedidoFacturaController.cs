@@ -23,5 +23,33 @@ namespace SafetyReport.WebApi.Controllers
             var respuesta = await _pedidoFacturaHandler.GuardarBorradorFacturaAsync(UsuarioLogueado, request);
             return Ok(respuesta);
         }
+
+        [HttpGet("resumen")]
+        public async Task<IActionResult> ObtenerResumen([FromQuery] DateOnly? fechaDesde, [FromQuery] DateOnly? fechaHasta)
+        {
+            var respuesta = await _pedidoFacturaHandler.ObtenerResumenDashboardAsync(UsuarioLogueado, fechaDesde, fechaHasta);
+            return Ok(respuesta);
+        }
+
+        [HttpGet("listarPedidos")]
+        public async Task<IActionResult> ListarPedidos([FromQuery] ListarPedidosFacturacionRequest request)
+        {
+            var respuesta = await _pedidoFacturaHandler.ListarPedidosParaFacturacionAsync(UsuarioLogueado, request);
+            return Ok(respuesta);
+        }
+
+        [HttpGet("factura/{idPedido:int}")]
+        public async Task<IActionResult> ObtenerFacturaPorPedido(int idPedido)
+        {
+            var respuesta = await _pedidoFacturaHandler.ObtenerFacturaPorPedidoAsync(UsuarioLogueado, idPedido);
+            return Ok(respuesta);
+        }
+
+        [HttpPut("guardarCambios/{idDocumentoElectronico:int}")]
+        public async Task<IActionResult> GuardarCambios(int idDocumentoElectronico, [FromBody] GuardarCambiosFacturaRequest request)
+        {
+            var respuesta = await _pedidoFacturaHandler.GuardarCambiosFacturaAsync(UsuarioLogueado, idDocumentoElectronico, request);
+            return Ok(respuesta);
+        }
     }
 }

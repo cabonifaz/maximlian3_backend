@@ -30,5 +30,21 @@ namespace SafetyReport.Handlers
             var respuesta = await _httpClient.PostAsync(url, null, cancellationToken);
             return await respuesta.Content.ReadFromJsonAsync<FacturacionEnvelope<FacturacionResultadoEnvioSunat>>(JsonOptions, cancellationToken);
         }
+
+        public async Task<FacturacionEnvelope<object>?> ObtenerDocumentoAsync(
+            int idInquilino, int idDocumentoElectronico, CancellationToken cancellationToken)
+        {
+            var url = $"api/v1/documentos-electronicos/{idDocumentoElectronico}?idInquilino={idInquilino}";
+            var respuesta = await _httpClient.GetAsync(url, cancellationToken);
+            return await respuesta.Content.ReadFromJsonAsync<FacturacionEnvelope<object>>(JsonOptions, cancellationToken);
+        }
+
+        public async Task<FacturacionEnvelope<object>?> GuardarCambiosAsync(
+            int idInquilino, int idDocumentoElectronico, FacturacionGuardarCambiosRequest request, CancellationToken cancellationToken)
+        {
+            var url = $"api/v1/documentos-electronicos/{idDocumentoElectronico}/guardar-cambios?idInquilino={idInquilino}";
+            var respuesta = await _httpClient.PutAsJsonAsync(url, request, JsonOptions, cancellationToken);
+            return await respuesta.Content.ReadFromJsonAsync<FacturacionEnvelope<object>>(JsonOptions, cancellationToken);
+        }
     }
 }

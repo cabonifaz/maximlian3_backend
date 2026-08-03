@@ -130,8 +130,7 @@ namespace SafetyReport.Models
     public class GuardarBorradorFacturaRequest
     {
         public int idTipoDocumentoMaestro { get; set; }
-        public DateOnly fechaEmision { get; set; }
-        public TimeOnly horaEmision { get; set; }
+        public string? numeroReferencia { get; set; }
         public int idMonedaMaestro { get; set; }
         public int idTipoOperacionMaestro { get; set; }
         public int idFormaPago { get; set; }
@@ -166,8 +165,51 @@ namespace SafetyReport.Models
         public decimal valorUnitario { get; set; }
         public decimal precioUnitario { get; set; }
         public decimal montoDescuento { get; set; }
-        public string afectacionIgvCodigo { get; set; } = string.Empty;
+        public int idAfectacionIgvMaestro { get; set; }
         public decimal porcentajeIgv { get; set; }
+    }
+
+    // Editar un documento existente (PendienteEnvio) — mismo criterio que GuardarBorradorFacturaRequest:
+    // el cliente no se edita acá (ms-facturación no lo permite), solo lineas/cuotas/formaPago/numeroReferencia.
+    public class GuardarCambiosFacturaRequest
+    {
+        public int idFormaPago { get; set; }
+        public string? numeroReferencia { get; set; }
+        public List<GuardarCambiosFacturaLinea> lineas { get; set; } = new();
+        public List<GuardarCambiosFacturaCuota> cuotas { get; set; } = new();
+    }
+
+    // productoCodigo/descripcion no vienen del front, mismo criterio que GuardarBorradorFacturaLinea.
+    // idLineaDocumentoElectronico: 0 (u omitido) = línea nueva, >0 = actualizar una ya guardada.
+    public class GuardarCambiosFacturaLinea
+    {
+        public int idPedido { get; set; }
+        public string? productoSunatCodigo { get; set; }
+        public string unidadMedidaCodigo { get; set; } = string.Empty;
+        public decimal cantidad { get; set; }
+        public decimal valorUnitario { get; set; }
+        public decimal precioUnitario { get; set; }
+        public decimal montoDescuento { get; set; }
+        public int idAfectacionIgvMaestro { get; set; }
+        public decimal porcentajeIgv { get; set; }
+        public int numeroLinea { get; set; }
+        public int idLineaDocumentoElectronico { get; set; }
+    }
+
+    public class GuardarCambiosFacturaCuota
+    {
+        public int numeroCuota { get; set; }
+        public DateOnly fechaVencimiento { get; set; }
+        public decimal monto { get; set; }
+        public int idCuotaDocumentoElectronico { get; set; }
+    }
+
+    // Resultado de SP_PedidoFactura_ObtenerIdDocumentoElectronico.
+    public class PedidoFacturaIdDocumentoConsulta
+    {
+        public int IdPedido { get; set; }
+        public int IdDocumentoElectronico { get; set; }
+        public int IdEstadoFacturacion { get; set; }
     }
 
     // Resultado de SP_Facturacion_ObtenerDatosBorrador — exactamente los campos que necesita el payload de facturación.
@@ -176,6 +218,7 @@ namespace SafetyReport.Models
         public int IdPedido { get; set; }
         public string Codigo { get; set; } = string.Empty;
         public string? NombreCliente { get; set; }
+        public string? NumReferencia { get; set; }
     }
 
     // Resultado de SP_Facturacion_ObtenerDatosBorrador (PedidoFacturaDAO.ObtenerDatosBorradorAsync).
@@ -183,6 +226,37 @@ namespace SafetyReport.Models
     {
         public ClienteParaFacturacionConsulta Cliente { get; set; } = new();
         public List<PedidoParaFacturacionConsulta> Pedidos { get; set; } = new();
+    }
+
+    // Query params de SP_Pedido_ListarParaFacturacion.
+    public class ListarPedidosFacturacionRequest
+    {
+        public int idCliente { get; set; }
+        public int? idTipoTramite { get; set; }
+        public DateOnly? fechaInicio { get; set; }
+        public DateOnly? fechaFin { get; set; }
+        public int numPag { get; set; } = 1;
+    }
+
+    // Resultado de SP_Pedido_ListarParaFacturacion.
+    public class PedidoListaFacturacionConsulta
+    {
+        public int IdPedido { get; set; }
+        public string Codigo { get; set; } = string.Empty;
+        public string? Investigado { get; set; }
+        public string? AplicaPenalidad { get; set; }
+        public string? TipoTramite { get; set; }
+        public DateTime Fecha { get; set; }
+        public decimal? Penalidad { get; set; }
+        public decimal? Precio { get; set; }
+        public string? DescuentoPorcentaje { get; set; }
+    }
+
+    public class PedidoListaFacturacionResult
+    {
+        public int TotalRegistros { get; set; }
+        public int TotalPaginas { get; set; }
+        public List<PedidoListaFacturacionConsulta> Pedidos { get; set; } = new();
     }
 
     public class PedidoAsignacionResumen
@@ -269,5 +343,14 @@ namespace SafetyReport.Models
         public string? ColorLetra { get; set; }
         public string? ColorFondo { get; set; }
         public int Cantidad { get; set; }
+    }
+
+    public class ResumenPedidoFacturaConsulta
+    {
+        public DateOnly FechaDesde { get; set; }
+        public DateOnly FechaHasta { get; set; }
+        public decimal MontoTotalMensual { get; set; }
+        public int CantidadFacturasEmitidas { get; set; }
+        public decimal? PromedioIngresoMensual { get; set; }
     }
 }
