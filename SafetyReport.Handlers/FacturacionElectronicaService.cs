@@ -46,5 +46,23 @@ namespace SafetyReport.Handlers
             var respuesta = await _httpClient.PutAsJsonAsync(url, request, JsonOptions, cancellationToken);
             return await respuesta.Content.ReadFromJsonAsync<FacturacionEnvelope<object>>(JsonOptions, cancellationToken);
         }
+
+        // Usado por el worker de sincronización — sondea EVENTOS_DOCUMENTO desde el checkpoint de la empresa.
+        public async Task<FacturacionEnvelope<List<FacturacionEventoDocumento>>?> ListarEventosRecientesAsync(
+            int idInquilino, int ultimoIdEvento, CancellationToken cancellationToken)
+        {
+            var url = $"api/v1/documentos-electronicos/eventos-recientes?idInquilino={idInquilino}&ultimoIdEvento={ultimoIdEvento}";
+            var respuesta = await _httpClient.GetAsync(url, cancellationToken);
+            return await respuesta.Content.ReadFromJsonAsync<FacturacionEnvelope<List<FacturacionEventoDocumento>>>(JsonOptions, cancellationToken);
+        }
+
+        // Crea el lote de Comunicación de Baja y lo envía a SUNAT en el mismo paso (sendSummary). Devuelve
+        // un ticket, no un veredicto — el resultado real llega después vía SincronizacionFacturacionWorker.
+        public async Task<FacturacionEnvelope<FacturacionLoteDocumentoCreado>?> EnviarComunicacionBajaAsync(
+            FacturacionComunicacionBajaRequest request, CancellationToken cancellationToken)
+        {
+            var respuesta = await _httpClient.PostAsJsonAsync("api/v1/lotes-documento/comunicacion-baja", request, JsonOptions, cancellationToken);
+            return await respuesta.Content.ReadFromJsonAsync<FacturacionEnvelope<FacturacionLoteDocumentoCreado>>(JsonOptions, cancellationToken);
+        }
     }
 }
