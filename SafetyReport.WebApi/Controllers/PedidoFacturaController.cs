@@ -65,5 +65,12 @@ namespace SafetyReport.WebApi.Controllers
             var respuesta = await _pedidoFacturaHandler.ActualizarEstadoFacturacionAsync(UsuarioLogueado, idPedido, idEstadoFacturacion);
             return Ok(respuesta);
         }
+
+        [HttpPost("anular")]
+        public async Task<IActionResult> Anular([FromBody] AnularFacturasRequest request)
+        {
+            var respuesta = await _pedidoFacturaHandler.AnularFacturasAsync(UsuarioLogueado, request);
+            return Ok(respuesta);
+        }
     }
 }

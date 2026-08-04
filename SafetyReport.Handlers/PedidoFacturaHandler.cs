@@ -259,6 +259,16 @@ namespace SafetyReport.Handlers
         // Confirma con SUNAT el documento ya guardado. ms-facturación recalcula FechaEmision/HoraEmision
         // a su propio reloj justo antes de enviar (ver EnviarDocumentoElectronicoASunatCasoDeUso) — no hace
         // falta que este Handler actualice nada antes de llamarlo.
+        // EstadoMaestroCodigo (ms-facturación) → PEDIDO_FACTURA.IdEstadoFacturacion (TABLA_MAESTRA IdMaestro=68).
+        // Error (8) no mapea: es una falla de transmisión, no una decisión de SUNAT — el pedido se queda en
+        // Borrador Factura (10) para poder reintentar el envío.
+        private static int? MapearEstadoFacturacion(int estadoCodigoSunat) => estadoCodigoSunat switch
+        {
+            3 or 4 => 5, // Aceptado / AceptadoConObservaciones → Aprobado
+            5 => 6,      // Rechazado → Rechazado
+            _ => null
+        };
+
         public async Task<Respuesta> EmitirFacturaAsync(UsuarioGeneral usuarioLogueado, int idDocumentoElectronico)
         {
             try
@@ -271,7 +281,72 @@ namespace SafetyReport.Handlers
                     return new Respuesta { IdTipoMensaje = resultado?.IdTipoMensaje ?? 3, Mensaje = resultado?.Mensaje ?? "No se pudo emitir la factura." };
                 }
 
+                var idEstadoFacturacion = MapearEstadoFacturacion(resultado.Datos.EstadoCodigo);
+                if (idEstadoFacturacion.HasValue)
+                {
+                    var actualizacion = await _pedidoFacturaDao.ActualizarEstadoPorDocumentoAsync(
+                        usuarioLogueado.IdEmpresa, [(idDocumentoElectronico, idEstadoFacturacion.Value)]);
+
+                    if (actualizacion.IdTipoMensaje != 2)
+                    {
+                        _logger.LogWarning(
+                            "No se pudo actualizar el estado de facturación del documento {IdDocumentoElectronico} tras el envío a SUNAT: {Mensaje}",
+                            idDocumentoElectronico, actualizacion.Mensaje);
+                    }
+                }
+
                 return new Respuesta { IdTipoMensaje = 2, Mensaje = "Factura emitida correctamente.", Result = resultado.Datos };
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error no controlado en la capa de negocio.");
+                return new Respuesta { IdTipoMensaje = 3, Mensaje = ex.Message };
+            }
+        }
+
+        // Dispara la Comunicación de Baja (sendSummary) para los documentos indicados. sendSummary nunca
+        // resuelve en la misma llamada — éxito acá es "el ticket se generó", no "SUNAT aceptó la anulación".
+        // El veredicto real llega después vía SincronizacionFacturacionWorker, que lleva los pedidos a
+        // Anulación Aprobada (8) o Anulación Rechazada (9). Acá solo se los marca Pendiente Anulación (7).
+        public async Task<Respuesta> AnularFacturasAsync(UsuarioGeneral usuarioLogueado, AnularFacturasRequest request)
+        {
+            try
+            {
+                if (request.Items.Count == 0)
+                {
+                    return new Respuesta { IdTipoMensaje = 1, Mensaje = "Debe indicar al menos un documento a anular." };
+                }
+
+                var facturacionRequest = new FacturacionComunicacionBajaRequest
+                {
+                    IdInquilino = usuarioLogueado.IdEmpresa,
+                    IdEmpresa = 1, // TODO: resolver desde EMPRESAS de ms-facturación (GET /api/v1/empresas?idInquilino=) en vez de fijo.
+                    FechaReferencia = request.FechaReferencia,
+                    Items = request.Items
+                        .Select(item => new FacturacionItemBaja { IdDocumentoElectronico = item.IdDocumentoElectronico, MotivoDescripcion = item.MotivoDescripcion })
+                        .ToList()
+                };
+
+                var resultado = await _facturacionService.EnviarComunicacionBajaAsync(facturacionRequest, CancellationToken.None);
+
+                if (resultado is null || resultado.IdTipoMensaje != 2 || resultado.Datos is null)
+                {
+                    return new Respuesta { IdTipoMensaje = resultado?.IdTipoMensaje ?? 3, Mensaje = resultado?.Mensaje ?? "No se pudo enviar la comunicación de baja." };
+                }
+
+                var documentosConEstado = request.Items
+                    .Select(item => (item.IdDocumentoElectronico, IdEstadoFacturacion: 7)) // Pendiente Anulación
+                    .ToList();
+
+                var actualizacion = await _pedidoFacturaDao.ActualizarEstadoPorDocumentoAsync(usuarioLogueado.IdEmpresa, documentosConEstado);
+                if (actualizacion.IdTipoMensaje != 2)
+                {
+                    _logger.LogWarning(
+                        "No se pudo marcar Pendiente Anulación los documentos {IdDocumentos} tras enviar la comunicación de baja: {Mensaje}",
+                        string.Join(",", request.Items.Select(i => i.IdDocumentoElectronico)), actualizacion.Mensaje);
+                }
+
+                return new Respuesta { IdTipoMensaje = 2, Mensaje = "Comunicación de baja enviada correctamente.", Result = resultado.Datos };
             }
             catch (Exception ex)
             {

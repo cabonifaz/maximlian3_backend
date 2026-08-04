@@ -283,6 +283,124 @@ namespace SafetyReport.DAO
             }
         }
 
+        // Usado por el worker de sincronización — checkpoint por empresa (SINCRONIZACION_FACTURACION_CHECKPOINT), no requiere usuario.
+        public async Task<Respuesta> ObtenerCheckpointsSincronizacionAsync()
+        {
+            try
+            {
+                using SqlConnection cn = new(_dbConfig.ConnectionString);
+                using SqlCommand cmd = new("SP_PedidoFactura_ObtenerCheckpointsSincronizacion", cn);
+                cmd.CommandType = CommandType.StoredProcedure;
+
+                await cn.OpenAsync();
+                using var dr = await cmd.ExecuteReaderAsync();
+                var respuesta = await LeerCabeceraAsync(dr, cmd.CommandText);
+
+                var checkpoints = new List<CheckpointSincronizacionConsulta>();
+                if (respuesta.IdTipoMensaje == 2 && await dr.NextResultAsync())
+                {
+                    while (await dr.ReadAsync())
+                        checkpoints.Add(new CheckpointSincronizacionConsulta
+                        {
+                            IdEmpresa = Convert.ToInt32(dr["IdEmpresa"]),
+                            UltimoIdEvento = Convert.ToInt32(dr["UltimoIdEvento"])
+                        });
+
+                    respuesta.Result = checkpoints;
+                }
+
+                return respuesta;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error no controlado en la capa de datos.");
+                return new Respuesta { IdTipoMensaje = 3, Mensaje = ex.Message };
+            }
+        }
+
+        // checkpoints: ID=IdEmpresa, NUM1=UltimoIdEvento a fijar para esa empresa.
+        public async Task<Respuesta> ActualizarCheckpointSincronizacionAsync(List<(int IdEmpresa, int UltimoIdEvento)> checkpoints)
+        {
+            try
+            {
+                using SqlConnection cn = new(_dbConfig.ConnectionString);
+                using SqlCommand cmd = new("SP_PedidoFactura_ActualizarCheckpointSincronizacion", cn);
+
+                cmd.CommandType = CommandType.StoredProcedure;
+
+                var tabla = new DataTable();
+                tabla.Columns.Add("ID", typeof(int));
+                tabla.Columns.Add("NUM1", typeof(int));
+                foreach (var (idEmpresa, ultimoIdEvento) in checkpoints)
+                    tabla.Rows.Add(idEmpresa, ultimoIdEvento);
+
+                var tvpCheckpoint = cmd.Parameters.AddWithValue("@lstCheckpoint", tabla);
+                tvpCheckpoint.SqlDbType = SqlDbType.Structured;
+                tvpCheckpoint.TypeName = "LISTA_GENERAL_NUM";
+
+                await cn.OpenAsync();
+                using var dr = await cmd.ExecuteReaderAsync();
+
+                if (!await dr.ReadAsync())
+                {
+                    return new Respuesta { IdTipoMensaje = 3, Mensaje = "El procedimiento almacenado no devolvió el resultado esperado." };
+                }
+
+                return new Respuesta
+                {
+                    IdTipoMensaje = Convert.ToInt32(dr["IdTipoMensaje"]),
+                    Mensaje = dr["Mensaje"]?.ToString() ?? string.Empty
+                };
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error no controlado en la capa de datos.");
+                return new Respuesta { IdTipoMensaje = 3, Mensaje = ex.Message };
+            }
+        }
+
+        // documentosConEstado: ID=IdDocumentoElectronico, NUM1=IdEstadoFacturacion resuelto (8=Anulación Aprobada, 9=Anulación Rechazada).
+        public async Task<Respuesta> ActualizarEstadoPorDocumentoAsync(int idEmpresa, List<(int IdDocumentoElectronico, int IdEstadoFacturacion)> documentosConEstado)
+        {
+            try
+            {
+                using SqlConnection cn = new(_dbConfig.ConnectionString);
+                using SqlCommand cmd = new("SP_PedidoFactura_ActualizarEstadoPorDocumento", cn);
+
+                cmd.CommandType = CommandType.StoredProcedure;
+                cmd.Parameters.Add("@intIdEmpresa", SqlDbType.Int).Value = idEmpresa;
+
+                var tabla = new DataTable();
+                tabla.Columns.Add("ID", typeof(int));
+                tabla.Columns.Add("NUM1", typeof(int));
+                foreach (var (idDocumento, idEstado) in documentosConEstado)
+                    tabla.Rows.Add(idDocumento, idEstado);
+
+                var tvpDocumento = cmd.Parameters.AddWithValue("@lstDocumento", tabla);
+                tvpDocumento.SqlDbType = SqlDbType.Structured;
+                tvpDocumento.TypeName = "LISTA_GENERAL_NUM";
+
+                await cn.OpenAsync();
+                using var dr = await cmd.ExecuteReaderAsync();
+
+                if (!await dr.ReadAsync())
+                {
+                    return new Respuesta { IdTipoMensaje = 3, Mensaje = "El procedimiento almacenado no devolvió el resultado esperado." };
+                }
+
+                return new Respuesta
+                {
+                    IdTipoMensaje = Convert.ToInt32(dr["IdTipoMensaje"]),
+                    Mensaje = dr["Mensaje"]?.ToString() ?? string.Empty
+                };
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error no controlado en la capa de datos.");
+                return new Respuesta { IdTipoMensaje = 3, Mensaje = ex.Message };
+            }
+        }
+
         public async Task<Respuesta> ObtenerResumenAsync(UsuarioGeneral usuarioLogueado, DateOnly? fechaDesde, DateOnly? fechaHasta)
         {
             try
