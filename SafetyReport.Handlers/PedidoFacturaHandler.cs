@@ -259,6 +259,16 @@ namespace SafetyReport.Handlers
         // Confirma con SUNAT el documento ya guardado. ms-facturación recalcula FechaEmision/HoraEmision
         // a su propio reloj justo antes de enviar (ver EnviarDocumentoElectronicoASunatCasoDeUso) — no hace
         // falta que este Handler actualice nada antes de llamarlo.
+        // EstadoMaestroCodigo (ms-facturación) → PEDIDO_FACTURA.IdEstadoFacturacion (TABLA_MAESTRA IdMaestro=68).
+        // Error (8) no mapea: es una falla de transmisión, no una decisión de SUNAT — el pedido se queda en
+        // Borrador Factura (10) para poder reintentar el envío.
+        private static int? MapearEstadoFacturacion(int estadoCodigoSunat) => estadoCodigoSunat switch
+        {
+            3 or 4 => 5, // Aceptado / AceptadoConObservaciones → Aprobado
+            5 => 6,      // Rechazado → Rechazado
+            _ => null
+        };
+
         public async Task<Respuesta> EmitirFacturaAsync(UsuarioGeneral usuarioLogueado, int idDocumentoElectronico)
         {
             try
@@ -269,6 +279,20 @@ namespace SafetyReport.Handlers
                 if (resultado is null || resultado.IdTipoMensaje != 2 || resultado.Datos is null)
                 {
                     return new Respuesta { IdTipoMensaje = resultado?.IdTipoMensaje ?? 3, Mensaje = resultado?.Mensaje ?? "No se pudo emitir la factura." };
+                }
+
+                var idEstadoFacturacion = MapearEstadoFacturacion(resultado.Datos.EstadoCodigo);
+                if (idEstadoFacturacion.HasValue)
+                {
+                    var actualizacion = await _pedidoFacturaDao.ActualizarEstadoPorDocumentoAsync(
+                        usuarioLogueado.IdEmpresa, [(idDocumentoElectronico, idEstadoFacturacion.Value)]);
+
+                    if (actualizacion.IdTipoMensaje != 2)
+                    {
+                        _logger.LogWarning(
+                            "No se pudo actualizar el estado de facturación del documento {IdDocumentoElectronico} tras el envío a SUNAT: {Mensaje}",
+                            idDocumentoElectronico, actualizacion.Mensaje);
+                    }
                 }
 
                 return new Respuesta { IdTipoMensaje = 2, Mensaje = "Factura emitida correctamente.", Result = resultado.Datos };
