@@ -132,4 +132,11 @@ namespace SafetyReport.Models
         public int TotalPaginas { get; set; }
         public List<PedidoListaFacturacionConsulta> Pedidos { get; set; } = new();
     }
+
+    // TABLA_MAESTRA IdMaestro=76 — checkpoint del worker de sincronización, un registro por empresa.
+    public class CheckpointSincronizacionConsulta
+    {
+        public int IdEmpresa { get; set; }
+        public int UltimoIdEvento { get; set; }
+    }
 }

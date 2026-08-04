@@ -116,4 +116,15 @@ namespace SafetyReport.Models
         public string? SunatCodigoRespuesta { get; set; }
         public string? SunatDescripcionRespuesta { get; set; }
     }
+
+    // Fila de GET .../documentos-electronicos/eventos-recientes — usada por el worker de sincronización
+    // para detectar el resultado de una Comunicación de Baja (async, sendSummary/getStatus).
+    public class FacturacionEventoDocumento
+    {
+        public int IdEventoDocumento { get; set; }
+        public int IdDocumentoElectronico { get; set; }
+        public int IdEstadoNuevoMaestro { get; set; }
+        public string EstadoCodigo { get; set; } = string.Empty;
+        public bool EsAnulacion { get; set; }
+    }
 }

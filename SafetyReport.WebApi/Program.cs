@@ -261,6 +261,7 @@ var facturacionElectronicaConfig = builder.Configuration.GetSection("Facturacion
     ?? throw new Exception("Falta configuración FacturacionElectronica");
 builder.Services.AddSingleton(facturacionElectronicaConfig);
 builder.Services.AddHttpClient<FacturacionElectronicaService>();
+builder.Services.AddHostedService<SafetyReport.WebApi.Workers.SincronizacionFacturacionWorker>();
 
 var app = builder.Build();
 
