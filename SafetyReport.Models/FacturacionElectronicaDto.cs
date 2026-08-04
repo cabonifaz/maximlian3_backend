@@ -52,7 +52,7 @@ namespace SafetyReport.Models
         public string ProductoCodigo { get; set; } = string.Empty;
         public string? ProductoSunatCodigo { get; set; }
         public string Descripcion { get; set; } = string.Empty;
-        public string UnidadMedidaCodigo { get; set; } = string.Empty;
+        public int IdUnidadMedidaMaestro { get; set; }
         public decimal Cantidad { get; set; }
         public decimal ValorUnitario { get; set; }
         public decimal MontoDescuento { get; set; }
@@ -76,7 +76,7 @@ namespace SafetyReport.Models
         public string ProductoCodigo { get; set; } = string.Empty;
         public string? ProductoSunatCodigo { get; set; }
         public string Descripcion { get; set; } = string.Empty;
-        public string UnidadMedidaCodigo { get; set; } = string.Empty;
+        public int IdUnidadMedidaMaestro { get; set; }
         public decimal Cantidad { get; set; }
         public decimal ValorUnitario { get; set; }
         public decimal MontoDescuento { get; set; }
