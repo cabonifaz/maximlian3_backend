@@ -283,7 +283,7 @@ namespace SafetyReport.DAO
             }
         }
 
-        // Usado por el worker de sincronización — checkpoint por empresa (TABLA_MAESTRA IdMaestro=76), no requiere usuario.
+        // Usado por el worker de sincronización — checkpoint por empresa (SINCRONIZACION_FACTURACION_CHECKPOINT), no requiere usuario.
         public async Task<Respuesta> ObtenerCheckpointsSincronizacionAsync()
         {
             try
@@ -318,7 +318,8 @@ namespace SafetyReport.DAO
             }
         }
 
-        public async Task<Respuesta> ActualizarCheckpointSincronizacionAsync(int idEmpresa, int ultimoIdEvento)
+        // checkpoints: ID=IdEmpresa, NUM1=UltimoIdEvento a fijar para esa empresa.
+        public async Task<Respuesta> ActualizarCheckpointSincronizacionAsync(List<(int IdEmpresa, int UltimoIdEvento)> checkpoints)
         {
             try
             {
@@ -326,8 +327,16 @@ namespace SafetyReport.DAO
                 using SqlCommand cmd = new("SP_PedidoFactura_ActualizarCheckpointSincronizacion", cn);
 
                 cmd.CommandType = CommandType.StoredProcedure;
-                cmd.Parameters.Add("@intIdEmpresa", SqlDbType.Int).Value = idEmpresa;
-                cmd.Parameters.Add("@intUltimoIdEvento", SqlDbType.Int).Value = ultimoIdEvento;
+
+                var tabla = new DataTable();
+                tabla.Columns.Add("ID", typeof(int));
+                tabla.Columns.Add("NUM1", typeof(int));
+                foreach (var (idEmpresa, ultimoIdEvento) in checkpoints)
+                    tabla.Rows.Add(idEmpresa, ultimoIdEvento);
+
+                var tvpCheckpoint = cmd.Parameters.AddWithValue("@lstCheckpoint", tabla);
+                tvpCheckpoint.SqlDbType = SqlDbType.Structured;
+                tvpCheckpoint.TypeName = "LISTA_GENERAL_NUM";
 
                 await cn.OpenAsync();
                 using var dr = await cmd.ExecuteReaderAsync();
