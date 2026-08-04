@@ -128,6 +128,7 @@ namespace SafetyReport.DAO
                 cmd.Parameters.Add("@intIdEmpresaAtencion", SqlDbType.Int).Value = request.IdEmpresaAtencion;
                 cmd.Parameters.Add("@vchNumeroDocumentoInvestigado", SqlDbType.VarChar, 50).Value = (object?)request.NumeroDocumentoInvestigado ?? DBNull.Value;
                 cmd.Parameters.Add("@vchInvestigarRazonSocialNombres", SqlDbType.VarChar).Value = request.InvestigarRazonSocialNombres;
+                cmd.Parameters.Add("@intIdCompania", SqlDbType.Int).Value = request.IdCompania;
                 cmd.Parameters.Add("@intIdTarifario", SqlDbType.Int).Value = request.IdTarifario;
                 cmd.Parameters.Add("@intIdPlantilla", SqlDbType.Int).Value = request.IdPlantilla;
                 cmd.Parameters.Add("@intIdIdioma", SqlDbType.Int).Value = request.IdIdioma;
@@ -190,6 +191,9 @@ namespace SafetyReport.DAO
                 cmd.Parameters.Add("@intIdCliente", SqlDbType.Int).Value = request.IdCliente;
                 cmd.Parameters.Add("@vchNumeroDocumento", SqlDbType.VarChar, 50).Value = (object?)request.NumeroDocumento ?? DBNull.Value;
                 cmd.Parameters.Add("@vchNombreCliente", SqlDbType.VarChar, 255).Value = (object?)request.NombreCliente ?? DBNull.Value;
+                cmd.Parameters.Add("@intIdTipoPersona", SqlDbType.Int).Value = request.IdTipoPersona;
+                cmd.Parameters.Add("@vchNumeroDocumentoInvestigado", SqlDbType.VarChar, 50).Value = (object?)request.NumeroDocumentoInvestigado ?? DBNull.Value;
+                cmd.Parameters.Add("@vchInvestigarRazonSocialNombres", SqlDbType.VarChar).Value = request.InvestigarRazonSocialNombres;
                 cmd.Parameters.Add("@intIdCompania", SqlDbType.Int).Value = request.IdCompania;
                 cmd.Parameters.Add("@intIdTarifario", SqlDbType.Int).Value = request.IdTarifario;
                 cmd.Parameters.Add("@intIdPlantilla", SqlDbType.Int).Value = request.IdPlantilla;
