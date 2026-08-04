@@ -51,13 +51,30 @@ namespace SafetyReport.WebApi.Workers
                 return;
             }
 
+            var checkpointsAAvanzar = new List<(int IdEmpresa, int UltimoIdEvento)>();
+
             foreach (var checkpoint in lista)
             {
-                await SincronizarEmpresaAsync(pedidoFacturaDAO, facturacionElectronicaService, checkpoint, cancellationToken);
+                var nuevoCheckpoint = await SincronizarEmpresaAsync(pedidoFacturaDAO, facturacionElectronicaService, checkpoint, cancellationToken);
+                if (nuevoCheckpoint.HasValue)
+                {
+                    checkpointsAAvanzar.Add((checkpoint.IdEmpresa, nuevoCheckpoint.Value));
+                }
+            }
+
+            if (checkpointsAAvanzar.Count > 0)
+            {
+                var resultado = await pedidoFacturaDAO.ActualizarCheckpointSincronizacionAsync(checkpointsAAvanzar);
+                if (resultado.IdTipoMensaje != 2)
+                {
+                    logger.LogError("No se pudieron avanzar los checkpoints de sincronización de facturación: {Mensaje}", resultado.Mensaje);
+                }
             }
         }
 
-        private async Task SincronizarEmpresaAsync(
+        // Devuelve el nuevo checkpoint a fijar para la empresa, o null si no debe avanzar (falla de red/aplicación,
+        // se reintenta desde el mismo punto en el próximo ciclo).
+        private async Task<int?> SincronizarEmpresaAsync(
             PedidoFacturaDAO pedidoFacturaDAO, FacturacionElectronicaService facturacionElectronicaService,
             CheckpointSincronizacionConsulta checkpoint, CancellationToken cancellationToken)
         {
@@ -69,13 +86,13 @@ namespace SafetyReport.WebApi.Workers
                 logger.LogWarning(
                     "No se pudieron obtener eventos recientes de facturación para la empresa {IdEmpresa}: {Mensaje}",
                     checkpoint.IdEmpresa, envelope?.Mensaje);
-                return;
+                return null;
             }
 
             var eventos = envelope.Datos ?? [];
             if (eventos.Count == 0)
             {
-                return;
+                return null;
             }
 
             var documentosConEstado = eventos
@@ -93,12 +110,11 @@ namespace SafetyReport.WebApi.Workers
                     logger.LogError(
                         "No se pudo aplicar el estado de facturación sincronizado para la empresa {IdEmpresa}: {Mensaje}",
                         checkpoint.IdEmpresa, resultado.Mensaje);
-                    return; // No avanza el checkpoint: se reintenta en el próximo ciclo.
+                    return null; // No avanza el checkpoint: se reintenta en el próximo ciclo.
                 }
             }
 
-            var ultimoIdEvento = eventos.Max(evento => evento.IdEventoDocumento);
-            await pedidoFacturaDAO.ActualizarCheckpointSincronizacionAsync(checkpoint.IdEmpresa, ultimoIdEvento);
+            return eventos.Max(evento => evento.IdEventoDocumento);
         }
     }
 }
