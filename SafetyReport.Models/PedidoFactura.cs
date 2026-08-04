@@ -139,4 +139,18 @@ namespace SafetyReport.Models
         public int IdEmpresa { get; set; }
         public int UltimoIdEvento { get; set; }
     }
+
+    // Payload de POST PedidoFactura/anular. Todos los documentos deben compartir la misma FechaReferencia
+    // (regla SUNAT) — el llamador la conoce porque elige facturas del mismo día para anular juntas.
+    public class AnularFacturasRequest
+    {
+        public DateOnly FechaReferencia { get; set; }
+        public List<AnularFacturaItem> Items { get; set; } = new();
+    }
+
+    public class AnularFacturaItem
+    {
+        public int IdDocumentoElectronico { get; set; }
+        public string MotivoDescripcion { get; set; } = string.Empty;
+    }
 }

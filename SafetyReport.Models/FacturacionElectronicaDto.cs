@@ -127,4 +127,30 @@ namespace SafetyReport.Models
         public string EstadoCodigo { get; set; } = string.Empty;
         public bool EsAnulacion { get; set; }
     }
+
+    // Payload de POST api/v1/lotes-documento/comunicacion-baja. Todos los documentos deben compartir la
+    // misma FechaReferencia (regla SUNAT); ms-facturación valida eso contra la FechaEmision real de cada uno.
+    public class FacturacionComunicacionBajaRequest
+    {
+        public int IdInquilino { get; set; }
+        public int IdEmpresa { get; set; }
+        public DateOnly FechaReferencia { get; set; }
+        public List<FacturacionItemBaja> Items { get; set; } = new();
+    }
+
+    public class FacturacionItemBaja
+    {
+        public int IdDocumentoElectronico { get; set; }
+        public string MotivoDescripcion { get; set; } = string.Empty;
+    }
+
+    // sendSummary nunca resuelve en la misma llamada: el resultado esperable de éxito es un ticket, no un
+    // veredicto — el veredicto real llega después vía SincronizacionFacturacionWorker.
+    public class FacturacionLoteDocumentoCreado
+    {
+        public int IdLoteDocumento { get; set; }
+        public string Nombre { get; set; } = string.Empty;
+        public string EstadoCodigo { get; set; } = string.Empty;
+        public DateTime FechaGeneracion { get; set; }
+    }
 }

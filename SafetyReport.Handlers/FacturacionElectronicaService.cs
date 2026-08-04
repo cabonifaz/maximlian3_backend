@@ -55,5 +55,14 @@ namespace SafetyReport.Handlers
             var respuesta = await _httpClient.GetAsync(url, cancellationToken);
             return await respuesta.Content.ReadFromJsonAsync<FacturacionEnvelope<List<FacturacionEventoDocumento>>>(JsonOptions, cancellationToken);
         }
+
+        // Crea el lote de Comunicación de Baja y lo envía a SUNAT en el mismo paso (sendSummary). Devuelve
+        // un ticket, no un veredicto — el resultado real llega después vía SincronizacionFacturacionWorker.
+        public async Task<FacturacionEnvelope<FacturacionLoteDocumentoCreado>?> EnviarComunicacionBajaAsync(
+            FacturacionComunicacionBajaRequest request, CancellationToken cancellationToken)
+        {
+            var respuesta = await _httpClient.PostAsJsonAsync("api/v1/lotes-documento/comunicacion-baja", request, JsonOptions, cancellationToken);
+            return await respuesta.Content.ReadFromJsonAsync<FacturacionEnvelope<FacturacionLoteDocumentoCreado>>(JsonOptions, cancellationToken);
+        }
     }
 }
