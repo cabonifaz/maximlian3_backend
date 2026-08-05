@@ -39,7 +39,7 @@ namespace SafetyReport.Handlers
             return await respuesta.Content.ReadFromJsonAsync<FacturacionEnvelope<object>>(JsonOptions, cancellationToken);
         }
 
-        // tipoArchivo: "Xml" o "Pdf". Devuelve una URL presignada de S3 (vigencia 15 min) — el archivo
+        // tipoArchivo: "Xml" o "Pdf". Devuelve una URL presignada de S3 (vigencia 5 min) — el archivo
         // nunca pasa por ninguno de los dos backends, el cliente descarga directo de S3 con esa URL.
         public async Task<FacturacionEnvelope<string>?> ObtenerUrlDescargaAsync(
             int idInquilino, int idDocumentoElectronico, string tipoArchivo, CancellationToken cancellationToken)

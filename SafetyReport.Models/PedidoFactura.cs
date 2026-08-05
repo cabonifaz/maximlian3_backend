@@ -28,12 +28,14 @@ namespace SafetyReport.Models
         public string motivoDescripcion { get; set; } = string.Empty;
     }
 
-    // productoCodigo/descripcion/valorUnitario no vienen del front: se resuelven desde el propio Pedido
-    // (Codigo/NombreCliente/TARIFARIO.Precio), mismo criterio que idCliente.
+    // productoCodigo/valorUnitario no vienen del front: se resuelven desde el propio Pedido
+    // (Codigo/TARIFARIO.Precio), mismo criterio que idCliente. descripcion sí es libre: si no viene, se
+    // usa el mismo fallback de siempre (NombreCliente + tipo de trámite).
     public class GuardarBorradorFacturaLinea
     {
         public int idPedido { get; set; }
         public string? productoSunatCodigo { get; set; }
+        public string? descripcion { get; set; }
         public int idUnidadMedidaMaestro { get; set; }
         public decimal cantidad { get; set; }
         public decimal montoDescuento { get; set; }
@@ -54,12 +56,14 @@ namespace SafetyReport.Models
         public List<GuardarCambiosFacturaCuota> cuotas { get; set; } = new();
     }
 
-    // productoCodigo/descripcion no vienen del front, mismo criterio que GuardarBorradorFacturaLinea.
-    // idLineaDocumentoElectronico: 0 (u omitido) = línea nueva, >0 = actualizar una ya guardada.
+    // productoCodigo no viene del front, mismo criterio que GuardarBorradorFacturaLinea. descripcion sí es
+    // libre, mismo fallback si no viene. idLineaDocumentoElectronico: 0 (u omitido) = línea nueva, >0 =
+    // actualizar una ya guardada.
     public class GuardarCambiosFacturaLinea
     {
         public int idPedido { get; set; }
         public string? productoSunatCodigo { get; set; }
+        public string? descripcion { get; set; }
         public int idUnidadMedidaMaestro { get; set; }
         public decimal cantidad { get; set; }
         public decimal montoDescuento { get; set; }
