@@ -659,6 +659,7 @@ namespace SafetyReport.DAO
                             {
                                 IdPedido = Convert.ToInt32(dr["IdPedido"]),
                                 Codigo = dr["Codigo"]?.ToString() ?? string.Empty,
+                                NumReferencia = dr["NumReferencia"]?.ToString() ?? string.Empty,
                                 Investigado = GetNullableString(dr, "Investigado"),
                                 AplicaPenalidad = GetNullableString(dr, "AplicaPenalidad"),
                                 TipoTramite = GetNullableString(dr, "TipoTramite"),

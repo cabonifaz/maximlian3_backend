@@ -117,6 +117,7 @@ namespace SafetyReport.Models
     {
         public int IdPedido { get; set; }
         public string Codigo { get; set; } = string.Empty;
+        public string NumReferencia { get; set; } = string.Empty;
         public string? Investigado { get; set; }
         public string? AplicaPenalidad { get; set; }
         public string? TipoTramite { get; set; }
