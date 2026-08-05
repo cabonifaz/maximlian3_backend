@@ -98,6 +98,7 @@ namespace SafetyReport.Models
         public int IdCompania { get; set; }
         public string? NumeroDocumento { get; set; }
         public string? NombreCompleto { get; set; }
+        public string? NombreComercial { get; set; }
     }
 
     public class CompaniaListaResult

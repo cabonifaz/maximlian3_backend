@@ -350,7 +350,8 @@ namespace SafetyReport.DAO
                         {
                             IdCompania = Convert.ToInt32(dr["IdCompania"]),
                             NumeroDocumento = GetNullableString(dr, "NumeroDocumento"),
-                            NombreCompleto = GetNullableString(dr, "NombreCompleto")
+                            NombreCompleto = GetNullableString(dr, "NombreCompleto"),
+                            NombreComercial = GetNullableString(dr, "NombreComercial")
                         });
                     }
                 }
