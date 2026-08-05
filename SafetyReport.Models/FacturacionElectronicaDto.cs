@@ -153,4 +153,25 @@ namespace SafetyReport.Models
         public string EstadoCodigo { get; set; } = string.Empty;
         public DateTime FechaGeneracion { get; set; }
     }
+
+    // Respuesta de GET api/v1/documentos-electronicos/para-pedido-factura (ms-facturación).
+    public class FacturacionResultadoPaginado<T>
+    {
+        public int TotalRegistros { get; set; }
+        public int TotalPaginas { get; set; }
+        public List<T> Items { get; set; } = new();
+    }
+
+    public class FacturacionFacturaResumen
+    {
+        public int IdDocumentoElectronico { get; set; }
+        public string NumeroFactura { get; set; } = string.Empty;
+        public string ClienteNombre { get; set; } = string.Empty;
+        public DateOnly FechaEmision { get; set; }
+        public string FormaPagoCodigo { get; set; } = string.Empty;
+        public decimal TotalImporte { get; set; }
+        public string EstadoCodigo { get; set; } = string.Empty;
+        public string ColorLetra { get; set; } = string.Empty;
+        public string ColorFondo { get; set; } = string.Empty;
+    }
 }

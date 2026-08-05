@@ -112,6 +112,18 @@ namespace SafetyReport.Models
         public int numPag { get; set; } = 1;
     }
 
+    // Filtros para el proxy hacia GET api/v1/documentos-electronicos/para-pedido-factura (ms-facturación).
+    public class ListarFacturasRequest
+    {
+        public string? estadoCodigo { get; set; }
+        public int? idFormaPago { get; set; } // Num1 de TABLA_MAESTRA IdMaestro=9 en ms-facturación (1=Contado, 2=Credito)
+        public DateOnly? fechaDesde { get; set; }
+        public DateOnly? fechaHasta { get; set; }
+        public string? busqueda { get; set; }
+        public int pagina { get; set; } = 1;
+        public int tamanoPagina { get; set; } = 20;
+    }
+
     // Resultado de SP_Pedido_ListarParaFacturacion.
     public class PedidoListaFacturacionConsulta
     {
