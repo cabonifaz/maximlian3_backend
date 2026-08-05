@@ -24,6 +24,32 @@ namespace SafetyReport.Handlers
         public Task<Respuesta> ListarPedidosParaFacturacionAsync(UsuarioGeneral usuarioLogueado, ListarPedidosFacturacionRequest request) =>
             _pedidoDao.ListarParaFacturacionAsync(usuarioLogueado, request);
 
+        // Listado de facturas ya generadas — NumeroFactura/ClienteNombre/FormaPago/Estado vienen resueltos
+        // por ms-facturación, este Handler solo hace de proxy con los filtros del front.
+        public async Task<Respuesta> ListarFacturasAsync(UsuarioGeneral usuarioLogueado, ListarFacturasRequest request)
+        {
+            try
+            {
+                var resultado = await _facturacionService.ListarFacturasAsync(
+                    usuarioLogueado.IdEmpresa, // IdInquilino en ms-facturación = IdEmpresa acá
+                    1, // TODO: resolver desde EMPRESAS de ms-facturación (GET /api/v1/empresas?idInquilino=) en vez de fijo.
+                    request.estadoCodigo, request.idFormaPago, request.fechaDesde, request.fechaHasta, request.busqueda,
+                    request.pagina, request.tamanoPagina, CancellationToken.None);
+
+                if (resultado is null || resultado.IdTipoMensaje != 2)
+                {
+                    return new Respuesta { IdTipoMensaje = resultado?.IdTipoMensaje ?? 3, Mensaje = resultado?.Mensaje ?? "No se pudo obtener el listado de facturas." };
+                }
+
+                return new Respuesta { IdTipoMensaje = 2, Mensaje = "Consulta exitosa.", Result = resultado.Datos };
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error no controlado en la capa de negocio.");
+                return new Respuesta { IdTipoMensaje = 3, Mensaje = ex.Message };
+            }
+        }
+
         // Dado un pedido, resuelve su IdDocumentoElectronico (PEDIDO_FACTURA) y trae la factura ya
         // guardada en ms-facturación, para que el front la use como base de edición (guardarCambios).
         public async Task<Respuesta> ObtenerFacturaPorPedidoAsync(UsuarioGeneral usuarioLogueado, int idPedido)
