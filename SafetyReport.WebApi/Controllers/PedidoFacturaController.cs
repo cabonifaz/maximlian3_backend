@@ -52,6 +52,13 @@ namespace SafetyReport.WebApi.Controllers
             return Ok(respuesta);
         }
 
+        [HttpGet("facturaPorId/{idDocumentoElectronico:int}/urlDescarga")]
+        public async Task<IActionResult> ObtenerUrlDescarga(int idDocumentoElectronico, [FromQuery] string tipoArchivo)
+        {
+            var respuesta = await _pedidoFacturaHandler.ObtenerUrlDescargaAsync(UsuarioLogueado, idDocumentoElectronico, tipoArchivo);
+            return Ok(respuesta);
+        }
+
         [HttpGet("factura/{idPedido:int}")]
         public async Task<IActionResult> ObtenerFacturaPorPedido(int idPedido)
         {
