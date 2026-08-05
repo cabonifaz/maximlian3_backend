@@ -335,6 +335,7 @@ namespace SafetyReport.DAO
                 cmd.Parameters.Add("@intIdEmpresa", SqlDbType.Int).Value = usuarioLogueado.IdEmpresa;
                 cmd.Parameters.Add("@intIdRol", SqlDbType.Int).Value = usuarioLogueado.IdRol;
                 cmd.Parameters.Add("@vchBusqueda", SqlDbType.VarChar, 255).Value = (object?)filtro.Busqueda ?? DBNull.Value;
+                cmd.Parameters.Add("@intIdPais", SqlDbType.Int).Value = (object?)filtro.IdPais ?? DBNull.Value;
 
                 await cn.OpenAsync();
 
@@ -350,7 +351,9 @@ namespace SafetyReport.DAO
                         {
                             IdCompania = Convert.ToInt32(dr["IdCompania"]),
                             NumeroDocumento = GetNullableString(dr, "NumeroDocumento"),
-                            NombreCompleto = GetNullableString(dr, "NombreCompleto")
+                            NombreCompleto = GetNullableString(dr, "NombreCompleto"),
+                            NombreComercial = GetNullableString(dr, "NombreComercial"),
+                            TipoPersona = GetNullableString(dr, "TipoPersona")
                         });
                     }
                 }

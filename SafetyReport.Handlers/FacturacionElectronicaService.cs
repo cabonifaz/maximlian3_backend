@@ -64,5 +64,23 @@ namespace SafetyReport.Handlers
             var respuesta = await _httpClient.PostAsJsonAsync("api/v1/lotes-documento/comunicacion-baja", request, JsonOptions, cancellationToken);
             return await respuesta.Content.ReadFromJsonAsync<FacturacionEnvelope<FacturacionLoteDocumentoCreado>>(JsonOptions, cancellationToken);
         }
+
+        // Listado de facturas para la pantalla de PedidoFactura — NumeroFactura/ClienteNombre/FormaPago/
+        // Estado ya vienen resueltos por ms-facturación (SP_DocumentoElectronico_ListarParaPedidoFactura).
+        public async Task<FacturacionEnvelope<FacturacionResultadoPaginado<FacturacionFacturaResumen>>?> ListarFacturasAsync(
+            int idInquilino, int idEmpresa, string? estadoCodigo, int? idFormaPago, DateOnly? fechaDesde, DateOnly? fechaHasta,
+            string? busqueda, int pagina, int tamanoPagina, CancellationToken cancellationToken)
+        {
+            var query = new List<string> { $"idInquilino={idInquilino}", $"idEmpresa={idEmpresa}", $"pagina={pagina}", $"tamanoPagina={tamanoPagina}" };
+            if (!string.IsNullOrWhiteSpace(estadoCodigo)) query.Add($"estadoCodigo={Uri.EscapeDataString(estadoCodigo)}");
+            if (idFormaPago is not null) query.Add($"idFormaPago={idFormaPago}");
+            if (fechaDesde is not null) query.Add($"fechaDesde={fechaDesde:yyyy-MM-dd}");
+            if (fechaHasta is not null) query.Add($"fechaHasta={fechaHasta:yyyy-MM-dd}");
+            if (!string.IsNullOrWhiteSpace(busqueda)) query.Add($"busqueda={Uri.EscapeDataString(busqueda)}");
+
+            var url = $"api/v1/documentos-electronicos/para-pedido-factura?{string.Join('&', query)}";
+            var respuesta = await _httpClient.GetAsync(url, cancellationToken);
+            return await respuesta.Content.ReadFromJsonAsync<FacturacionEnvelope<FacturacionResultadoPaginado<FacturacionFacturaResumen>>>(JsonOptions, cancellationToken);
+        }
     }
 }

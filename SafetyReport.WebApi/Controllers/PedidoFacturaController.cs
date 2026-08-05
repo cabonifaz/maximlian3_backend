@@ -38,6 +38,20 @@ namespace SafetyReport.WebApi.Controllers
             return Ok(respuesta);
         }
 
+        [HttpGet("listarFacturas")]
+        public async Task<IActionResult> ListarFacturas([FromQuery] ListarFacturasRequest request)
+        {
+            var respuesta = await _pedidoFacturaHandler.ListarFacturasAsync(UsuarioLogueado, request);
+            return Ok(respuesta);
+        }
+
+        [HttpGet("facturaPorId/{idDocumentoElectronico:int}")]
+        public async Task<IActionResult> ObtenerFacturaPorId(int idDocumentoElectronico)
+        {
+            var respuesta = await _pedidoFacturaHandler.ObtenerFacturaPorIdAsync(UsuarioLogueado, idDocumentoElectronico);
+            return Ok(respuesta);
+        }
+
         [HttpGet("factura/{idPedido:int}")]
         public async Task<IActionResult> ObtenerFacturaPorPedido(int idPedido)
         {
