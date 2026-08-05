@@ -91,6 +91,7 @@ namespace SafetyReport.Models
     public class FiltroCompaniaBusqueda
     {
         public string? Busqueda { get; set; }
+        public int? IdPais { get; set; }
     }
 
     public class CompaniaBusquedaItem
@@ -99,6 +100,7 @@ namespace SafetyReport.Models
         public string? NumeroDocumento { get; set; }
         public string? NombreCompleto { get; set; }
         public string? NombreComercial { get; set; }
+        public string? TipoPersona { get; set; }
     }
 
     public class CompaniaListaResult
