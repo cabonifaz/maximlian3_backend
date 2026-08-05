@@ -170,6 +170,7 @@ namespace SafetyReport.Models
         public DateOnly FechaEmision { get; set; }
         public string FormaPagoCodigo { get; set; } = string.Empty;
         public decimal TotalImporte { get; set; }
+        public string MonedaIcono { get; set; } = string.Empty;
         public string EstadoCodigo { get; set; } = string.Empty;
         public string ColorLetra { get; set; } = string.Empty;
         public string ColorFondo { get; set; } = string.Empty;
