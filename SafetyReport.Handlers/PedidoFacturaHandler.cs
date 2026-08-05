@@ -50,6 +50,30 @@ namespace SafetyReport.Handlers
             }
         }
 
+        // Trae la factura directo por su propio id — cierra el hueco que dejaba ObtenerFacturaPorPedidoAsync
+        // (que exige idPedido) para el listado nuevo (ListarFacturasAsync), que solo devuelve
+        // IdDocumentoElectronico y no un idPedido único (una factura puede cubrir más de un pedido).
+        public async Task<Respuesta> ObtenerFacturaPorIdAsync(UsuarioGeneral usuarioLogueado, int idDocumentoElectronico)
+        {
+            try
+            {
+                var documento = await _facturacionService.ObtenerDocumentoAsync(
+                    usuarioLogueado.IdEmpresa, idDocumentoElectronico, CancellationToken.None);
+
+                if (documento is null || documento.IdTipoMensaje != 2)
+                {
+                    return new Respuesta { IdTipoMensaje = documento?.IdTipoMensaje ?? 3, Mensaje = documento?.Mensaje ?? "No se pudo obtener el documento electrónico." };
+                }
+
+                return new Respuesta { IdTipoMensaje = 2, Mensaje = "Consulta exitosa.", Result = documento.Datos };
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error no controlado en la capa de negocio.");
+                return new Respuesta { IdTipoMensaje = 3, Mensaje = ex.Message };
+            }
+        }
+
         // Dado un pedido, resuelve su IdDocumentoElectronico (PEDIDO_FACTURA) y trae la factura ya
         // guardada en ms-facturación, para que el front la use como base de edición (guardarCambios).
         public async Task<Respuesta> ObtenerFacturaPorPedidoAsync(UsuarioGeneral usuarioLogueado, int idPedido)
