@@ -39,6 +39,36 @@ namespace SafetyReport.Handlers
             return await respuesta.Content.ReadFromJsonAsync<FacturacionEnvelope<object>>(JsonOptions, cancellationToken);
         }
 
+        // El token nunca viene en ObtenerDocumentoAsync a propósito (ms-facturación no lo expone vía
+        // Obtener) — este es el único camino autenticado para conseguirlo, y solo sirve para armar el link
+        // de verificación pública (ver PedidoFacturaHandler.ObtenerUrlVerificacionAsync).
+        public async Task<FacturacionEnvelope<string>?> ObtenerTokenVerificacionAsync(
+            int idInquilino, int idDocumentoElectronico, CancellationToken cancellationToken)
+        {
+            var url = $"api/v1/documentos-electronicos/{idDocumentoElectronico}/token-verificacion?idInquilino={idInquilino}";
+            var respuesta = await _httpClient.GetAsync(url, cancellationToken);
+            return await respuesta.Content.ReadFromJsonAsync<FacturacionEnvelope<string>>(JsonOptions, cancellationToken);
+        }
+
+        // Verificación pública (sin idInquilino, sin login): ms-facturación ya devuelve una proyección
+        // público-segura (SP_DocumentoElectronico_ObtenerPorToken), sin ningún Id* interno.
+        public async Task<FacturacionEnvelope<object>?> ObtenerDocumentoPorTokenAsync(
+            string token, CancellationToken cancellationToken)
+        {
+            var url = $"api/v1/documentos-electronicos/token/{Uri.EscapeDataString(token)}";
+            var respuesta = await _httpClient.GetAsync(url, cancellationToken);
+            return await respuesta.Content.ReadFromJsonAsync<FacturacionEnvelope<object>>(JsonOptions, cancellationToken);
+        }
+
+        // tipoArchivo: "Xml" o "Pdf". Mismo criterio que ObtenerDocumentoPorTokenAsync.
+        public async Task<FacturacionEnvelope<string>?> ObtenerUrlDescargaPorTokenAsync(
+            string token, string tipoArchivo, CancellationToken cancellationToken)
+        {
+            var url = $"api/v1/documentos-electronicos/token/{Uri.EscapeDataString(token)}/url-descarga?tipoArchivo={Uri.EscapeDataString(tipoArchivo)}";
+            var respuesta = await _httpClient.GetAsync(url, cancellationToken);
+            return await respuesta.Content.ReadFromJsonAsync<FacturacionEnvelope<string>>(JsonOptions, cancellationToken);
+        }
+
         // tipoArchivo: "Xml" o "Pdf". Devuelve una URL presignada de S3 (vigencia 5 min) — el archivo
         // nunca pasa por ninguno de los dos backends, el cliente descarga directo de S3 con esa URL.
         public async Task<FacturacionEnvelope<string>?> ObtenerUrlDescargaAsync(

@@ -9,15 +9,17 @@ namespace SafetyReport.Handlers
         private readonly PedidoFacturaDAO _pedidoFacturaDao;
         private readonly PedidoDAO _pedidoDao;
         private readonly FacturacionElectronicaService _facturacionService;
+        private readonly FacturacionElectronicaConfig _facturacionConfig;
         private readonly ILogger<PedidoFacturaHandler> _logger;
 
         public PedidoFacturaHandler(
             PedidoFacturaDAO pedidoFacturaDao, PedidoDAO pedidoDao, FacturacionElectronicaService facturacionService,
-            ILogger<PedidoFacturaHandler> logger)
+            FacturacionElectronicaConfig facturacionConfig, ILogger<PedidoFacturaHandler> logger)
         {
             _pedidoFacturaDao = pedidoFacturaDao;
             _pedidoDao = pedidoDao;
             _facturacionService = facturacionService;
+            _facturacionConfig = facturacionConfig;
             _logger = logger;
         }
 
@@ -66,6 +68,32 @@ namespace SafetyReport.Handlers
                 }
 
                 return new Respuesta { IdTipoMensaje = 2, Mensaje = "Consulta exitosa.", Result = documento.Datos };
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error no controlado en la capa de negocio.");
+                return new Respuesta { IdTipoMensaje = 3, Mensaje = ex.Message };
+            }
+        }
+
+        // Arma el link público de verificación ({VerificacionFrontendUrl}/{token}) — a diferencia de
+        // ObtenerUrlDescargaAsync, acá el token nunca sale de este backend hacia afuera; solo se usa para
+        // componer la URL final que sí se comparte. Cualquiera con el link puede abrirlo sin login
+        // (VerificacionFacturaController, sin [Authorize]).
+        public async Task<Respuesta> ObtenerUrlVerificacionAsync(UsuarioGeneral usuarioLogueado, int idDocumentoElectronico)
+        {
+            try
+            {
+                var resultado = await _facturacionService.ObtenerTokenVerificacionAsync(
+                    usuarioLogueado.IdEmpresa, idDocumentoElectronico, CancellationToken.None);
+
+                if (resultado is null || resultado.IdTipoMensaje != 2 || string.IsNullOrEmpty(resultado.Datos))
+                {
+                    return new Respuesta { IdTipoMensaje = resultado?.IdTipoMensaje ?? 3, Mensaje = resultado?.Mensaje ?? "No se pudo obtener el link de verificación." };
+                }
+
+                var url = $"{_facturacionConfig.VerificacionFrontendUrl.TrimEnd('/')}/{resultado.Datos}";
+                return new Respuesta { IdTipoMensaje = 2, Mensaje = "Consulta exitosa.", Result = url };
             }
             catch (Exception ex)
             {

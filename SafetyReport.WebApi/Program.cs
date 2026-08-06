@@ -172,6 +172,7 @@ builder.Services.AddScoped<PedidoHandler>();
 builder.Services.AddScoped<PedidoDAO>();
 builder.Services.AddScoped<PedidoFacturaHandler>();
 builder.Services.AddScoped<PedidoFacturaDAO>();
+builder.Services.AddScoped<VerificacionFacturaHandler>();
 builder.Services.AddScoped<AsignacionHandler>();
 builder.Services.AddScoped<AsignacionDAO>();
 builder.Services.AddScoped<DocxGeneratorService>();
