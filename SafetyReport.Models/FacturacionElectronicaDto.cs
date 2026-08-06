@@ -141,6 +141,36 @@ namespace SafetyReport.Models
         public DateTime FchCre { get; set; }
     }
 
+    // Fila de GET .../campos-extra — pares etiqueta/valor libres que el usuario agrega a un documento, sin
+    // relación con el esquema SUNAT.
+    public class FacturacionCampoExtra
+    {
+        public int IdCampoExtraDocumentoElectronico { get; set; }
+        public string Etiqueta { get; set; } = string.Empty;
+        public string Valor { get; set; } = string.Empty;
+    }
+
+    public class FacturacionInsertarCampoExtraRequest
+    {
+        public int IdInquilino { get; set; }
+        public int IdDocumentoElectronico { get; set; }
+        public string Etiqueta { get; set; } = string.Empty;
+        public string Valor { get; set; } = string.Empty;
+    }
+
+    public class FacturacionInsertarLoteCamposExtraRequest
+    {
+        public int IdInquilino { get; set; }
+        public int IdDocumentoElectronico { get; set; }
+        public List<FacturacionCampoExtraEntrada> CamposExtra { get; set; } = new();
+    }
+
+    public class FacturacionCampoExtraEntrada
+    {
+        public string Etiqueta { get; set; } = string.Empty;
+        public string Valor { get; set; } = string.Empty;
+    }
+
     // Payload de POST api/v1/lotes-documento/comunicacion-baja. Todos los documentos deben compartir la
     // misma FechaReferencia (regla SUNAT); ms-facturación valida eso contra la FechaEmision real de cada uno.
     public class FacturacionComunicacionBajaRequest

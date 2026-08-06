@@ -147,6 +147,121 @@ namespace SafetyReport.Handlers
             }
         }
 
+        public async Task<Respuesta> InsertarCampoExtraAsync(UsuarioGeneral usuarioLogueado, int idDocumentoElectronico, string etiqueta, string valor)
+        {
+            try
+            {
+                var resultado = await _facturacionService.InsertarCampoExtraAsync(
+                    new FacturacionInsertarCampoExtraRequest
+                    {
+                        IdInquilino = usuarioLogueado.IdEmpresa,
+                        IdDocumentoElectronico = idDocumentoElectronico,
+                        Etiqueta = etiqueta,
+                        Valor = valor
+                    }, CancellationToken.None);
+
+                if (resultado is null || resultado.IdTipoMensaje != 2)
+                {
+                    return new Respuesta { IdTipoMensaje = resultado?.IdTipoMensaje ?? 3, Mensaje = resultado?.Mensaje ?? "No se pudo registrar el campo extra." };
+                }
+
+                return new Respuesta { IdTipoMensaje = 2, Mensaje = "Consulta exitosa.", Result = resultado.Datos };
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error no controlado en la capa de negocio.");
+                return new Respuesta { IdTipoMensaje = 3, Mensaje = ex.Message };
+            }
+        }
+
+        public async Task<Respuesta> InsertarLoteCamposExtraAsync(UsuarioGeneral usuarioLogueado, int idDocumentoElectronico, List<FacturacionCampoExtraEntrada> camposExtra)
+        {
+            try
+            {
+                var resultado = await _facturacionService.InsertarLoteCamposExtraAsync(
+                    new FacturacionInsertarLoteCamposExtraRequest
+                    {
+                        IdInquilino = usuarioLogueado.IdEmpresa,
+                        IdDocumentoElectronico = idDocumentoElectronico,
+                        CamposExtra = camposExtra
+                    }, CancellationToken.None);
+
+                if (resultado is null || resultado.IdTipoMensaje != 2)
+                {
+                    return new Respuesta { IdTipoMensaje = resultado?.IdTipoMensaje ?? 3, Mensaje = resultado?.Mensaje ?? "No se pudieron registrar los campos extra." };
+                }
+
+                return new Respuesta { IdTipoMensaje = 2, Mensaje = "Consulta exitosa.", Result = resultado.Datos };
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error no controlado en la capa de negocio.");
+                return new Respuesta { IdTipoMensaje = 3, Mensaje = ex.Message };
+            }
+        }
+
+        public async Task<Respuesta> ListarCamposExtraAsync(UsuarioGeneral usuarioLogueado, int idDocumentoElectronico)
+        {
+            try
+            {
+                var resultado = await _facturacionService.ListarCamposExtraAsync(usuarioLogueado.IdEmpresa, idDocumentoElectronico, CancellationToken.None);
+
+                if (resultado is null || resultado.IdTipoMensaje != 2)
+                {
+                    return new Respuesta { IdTipoMensaje = resultado?.IdTipoMensaje ?? 3, Mensaje = resultado?.Mensaje ?? "No se pudieron obtener los campos extra." };
+                }
+
+                return new Respuesta { IdTipoMensaje = 2, Mensaje = "Consulta exitosa.", Result = resultado.Datos };
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error no controlado en la capa de negocio.");
+                return new Respuesta { IdTipoMensaje = 3, Mensaje = ex.Message };
+            }
+        }
+
+        public async Task<Respuesta> ActualizarCampoExtraAsync(UsuarioGeneral usuarioLogueado, int idCampoExtraDocumentoElectronico, string etiqueta, string valor)
+        {
+            try
+            {
+                var resultado = await _facturacionService.ActualizarCampoExtraAsync(
+                    usuarioLogueado.IdEmpresa, idCampoExtraDocumentoElectronico,
+                    new FacturacionCampoExtraEntrada { Etiqueta = etiqueta, Valor = valor }, CancellationToken.None);
+
+                if (resultado is null || resultado.IdTipoMensaje != 2)
+                {
+                    return new Respuesta { IdTipoMensaje = resultado?.IdTipoMensaje ?? 3, Mensaje = resultado?.Mensaje ?? "No se pudo actualizar el campo extra." };
+                }
+
+                return new Respuesta { IdTipoMensaje = 2, Mensaje = "Consulta exitosa.", Result = resultado.Datos };
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error no controlado en la capa de negocio.");
+                return new Respuesta { IdTipoMensaje = 3, Mensaje = ex.Message };
+            }
+        }
+
+        public async Task<Respuesta> EliminarCampoExtraAsync(UsuarioGeneral usuarioLogueado, int idCampoExtraDocumentoElectronico)
+        {
+            try
+            {
+                var resultado = await _facturacionService.EliminarCampoExtraAsync(usuarioLogueado.IdEmpresa, idCampoExtraDocumentoElectronico, CancellationToken.None);
+
+                if (resultado is null || resultado.IdTipoMensaje != 2)
+                {
+                    return new Respuesta { IdTipoMensaje = resultado?.IdTipoMensaje ?? 3, Mensaje = resultado?.Mensaje ?? "No se pudo eliminar el campo extra." };
+                }
+
+                return new Respuesta { IdTipoMensaje = 2, Mensaje = "Consulta exitosa.", Result = resultado.Datos };
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error no controlado en la capa de negocio.");
+                return new Respuesta { IdTipoMensaje = 3, Mensaje = ex.Message };
+            }
+        }
+
         // Dado un pedido, resuelve su IdDocumentoElectronico (PEDIDO_FACTURA) y trae la factura ya
         // guardada en ms-facturación, para que el front la use como base de edición (guardarCambios).
         public async Task<Respuesta> ObtenerFacturaPorPedidoAsync(UsuarioGeneral usuarioLogueado, int idPedido)

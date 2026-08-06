@@ -73,6 +73,42 @@ namespace SafetyReport.WebApi.Controllers
             return Ok(respuesta);
         }
 
+        [HttpPost("facturaPorId/{idDocumentoElectronico:int}/camposExtra")]
+        public async Task<IActionResult> InsertarCampoExtra(int idDocumentoElectronico, [FromBody] CampoExtraRequest request)
+        {
+            var respuesta = await _pedidoFacturaHandler.InsertarCampoExtraAsync(UsuarioLogueado, idDocumentoElectronico, request.Etiqueta, request.Valor);
+            return Ok(respuesta);
+        }
+
+        [HttpPost("facturaPorId/{idDocumentoElectronico:int}/camposExtra/lote")]
+        public async Task<IActionResult> InsertarLoteCamposExtra(int idDocumentoElectronico, [FromBody] List<CampoExtraRequest> camposExtra)
+        {
+            var entradas = camposExtra.Select(c => new FacturacionCampoExtraEntrada { Etiqueta = c.Etiqueta, Valor = c.Valor }).ToList();
+            var respuesta = await _pedidoFacturaHandler.InsertarLoteCamposExtraAsync(UsuarioLogueado, idDocumentoElectronico, entradas);
+            return Ok(respuesta);
+        }
+
+        [HttpGet("facturaPorId/{idDocumentoElectronico:int}/camposExtra")]
+        public async Task<IActionResult> ListarCamposExtra(int idDocumentoElectronico)
+        {
+            var respuesta = await _pedidoFacturaHandler.ListarCamposExtraAsync(UsuarioLogueado, idDocumentoElectronico);
+            return Ok(respuesta);
+        }
+
+        [HttpPut("camposExtra/{idCampoExtraDocumentoElectronico:int}")]
+        public async Task<IActionResult> ActualizarCampoExtra(int idCampoExtraDocumentoElectronico, [FromBody] CampoExtraRequest request)
+        {
+            var respuesta = await _pedidoFacturaHandler.ActualizarCampoExtraAsync(UsuarioLogueado, idCampoExtraDocumentoElectronico, request.Etiqueta, request.Valor);
+            return Ok(respuesta);
+        }
+
+        [HttpDelete("camposExtra/{idCampoExtraDocumentoElectronico:int}")]
+        public async Task<IActionResult> EliminarCampoExtra(int idCampoExtraDocumentoElectronico)
+        {
+            var respuesta = await _pedidoFacturaHandler.EliminarCampoExtraAsync(UsuarioLogueado, idCampoExtraDocumentoElectronico);
+            return Ok(respuesta);
+        }
+
         [HttpGet("factura/{idPedido:int}")]
         public async Task<IActionResult> ObtenerFacturaPorPedido(int idPedido)
         {

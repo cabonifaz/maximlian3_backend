@@ -1,5 +1,11 @@
 namespace SafetyReport.Models
 {
+    public class CampoExtraRequest
+    {
+        public string Etiqueta { get; set; } = string.Empty;
+        public string Valor { get; set; } = string.Empty;
+    }
+
     public class GuardarBorradorFacturaRequest
     {
         public int idTipoDocumentoMaestro { get; set; }

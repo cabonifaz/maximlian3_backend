@@ -89,6 +89,44 @@ namespace SafetyReport.Handlers
             return await respuesta.Content.ReadFromJsonAsync<FacturacionEnvelope<List<FacturacionErrorDocumento>>>(JsonOptions, cancellationToken);
         }
 
+        public async Task<FacturacionEnvelope<int>?> InsertarCampoExtraAsync(
+            FacturacionInsertarCampoExtraRequest request, CancellationToken cancellationToken)
+        {
+            var respuesta = await _httpClient.PostAsJsonAsync("api/v1/campos-extra", request, JsonOptions, cancellationToken);
+            return await respuesta.Content.ReadFromJsonAsync<FacturacionEnvelope<int>>(JsonOptions, cancellationToken);
+        }
+
+        public async Task<FacturacionEnvelope<List<int>>?> InsertarLoteCamposExtraAsync(
+            FacturacionInsertarLoteCamposExtraRequest request, CancellationToken cancellationToken)
+        {
+            var respuesta = await _httpClient.PostAsJsonAsync("api/v1/campos-extra/lote", request, JsonOptions, cancellationToken);
+            return await respuesta.Content.ReadFromJsonAsync<FacturacionEnvelope<List<int>>>(JsonOptions, cancellationToken);
+        }
+
+        public async Task<FacturacionEnvelope<List<FacturacionCampoExtra>>?> ListarCamposExtraAsync(
+            int idInquilino, int idDocumentoElectronico, CancellationToken cancellationToken)
+        {
+            var url = $"api/v1/campos-extra?idInquilino={idInquilino}&idDocumentoElectronico={idDocumentoElectronico}";
+            var respuesta = await _httpClient.GetAsync(url, cancellationToken);
+            return await respuesta.Content.ReadFromJsonAsync<FacturacionEnvelope<List<FacturacionCampoExtra>>>(JsonOptions, cancellationToken);
+        }
+
+        public async Task<FacturacionEnvelope<int>?> ActualizarCampoExtraAsync(
+            int idInquilino, int idCampoExtraDocumentoElectronico, FacturacionCampoExtraEntrada campo, CancellationToken cancellationToken)
+        {
+            var url = $"api/v1/campos-extra/{idCampoExtraDocumentoElectronico}?idInquilino={idInquilino}";
+            var respuesta = await _httpClient.PutAsJsonAsync(url, campo, JsonOptions, cancellationToken);
+            return await respuesta.Content.ReadFromJsonAsync<FacturacionEnvelope<int>>(JsonOptions, cancellationToken);
+        }
+
+        public async Task<FacturacionEnvelope<int>?> EliminarCampoExtraAsync(
+            int idInquilino, int idCampoExtraDocumentoElectronico, CancellationToken cancellationToken)
+        {
+            var url = $"api/v1/campos-extra/{idCampoExtraDocumentoElectronico}?idInquilino={idInquilino}";
+            var respuesta = await _httpClient.DeleteAsync(url, cancellationToken);
+            return await respuesta.Content.ReadFromJsonAsync<FacturacionEnvelope<int>>(JsonOptions, cancellationToken);
+        }
+
         public async Task<FacturacionEnvelope<object>?> GuardarCambiosAsync(
             int idInquilino, int idDocumentoElectronico, FacturacionGuardarCambiosRequest request, CancellationToken cancellationToken)
         {
