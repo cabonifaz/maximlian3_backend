@@ -79,6 +79,16 @@ namespace SafetyReport.Handlers
             return await respuesta.Content.ReadFromJsonAsync<FacturacionEnvelope<string>>(JsonOptions, cancellationToken);
         }
 
+        // Solo los errores/observaciones del último intento de envío a SUNAT (no el historial completo de
+        // reintentos anteriores) — ver SP_ErrorDocumento_ListarUltimoEnvio en ms-facturación.
+        public async Task<FacturacionEnvelope<List<FacturacionErrorDocumento>>?> ObtenerErroresUltimoEnvioAsync(
+            int idInquilino, int idDocumentoElectronico, CancellationToken cancellationToken)
+        {
+            var url = $"api/v1/documentos-electronicos/{idDocumentoElectronico}/errores-ultimo-envio?idInquilino={idInquilino}";
+            var respuesta = await _httpClient.GetAsync(url, cancellationToken);
+            return await respuesta.Content.ReadFromJsonAsync<FacturacionEnvelope<List<FacturacionErrorDocumento>>>(JsonOptions, cancellationToken);
+        }
+
         public async Task<FacturacionEnvelope<object>?> GuardarCambiosAsync(
             int idInquilino, int idDocumentoElectronico, FacturacionGuardarCambiosRequest request, CancellationToken cancellationToken)
         {

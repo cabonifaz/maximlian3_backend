@@ -66,6 +66,13 @@ namespace SafetyReport.WebApi.Controllers
             return Ok(respuesta);
         }
 
+        [HttpGet("facturaPorId/{idDocumentoElectronico:int}/erroresUltimoEnvio")]
+        public async Task<IActionResult> ObtenerErroresUltimoEnvio(int idDocumentoElectronico)
+        {
+            var respuesta = await _pedidoFacturaHandler.ObtenerErroresUltimoEnvioAsync(UsuarioLogueado, idDocumentoElectronico);
+            return Ok(respuesta);
+        }
+
         [HttpGet("factura/{idPedido:int}")]
         public async Task<IActionResult> ObtenerFacturaPorPedido(int idPedido)
         {

@@ -128,6 +128,19 @@ namespace SafetyReport.Models
         public bool EsAnulacion { get; set; }
     }
 
+    // Fila de GET .../documentos-electronicos/{id}/errores-ultimo-envio — solo los errores/observaciones
+    // del último intento de envío a SUNAT, no el historial completo de reintentos anteriores.
+    public class FacturacionErrorDocumento
+    {
+        public int IdErrorDocumento { get; set; }
+        public string OrigenErrorCodigo { get; set; } = string.Empty;
+        public string CodigoError { get; set; } = string.Empty;
+        public string MensajeError { get; set; } = string.Empty;
+        public string? Campo { get; set; }
+        public string SeveridadCodigo { get; set; } = string.Empty;
+        public DateTime FchCre { get; set; }
+    }
+
     // Payload de POST api/v1/lotes-documento/comunicacion-baja. Todos los documentos deben compartir la
     // misma FechaReferencia (regla SUNAT); ms-facturación valida eso contra la FechaEmision real de cada uno.
     public class FacturacionComunicacionBajaRequest

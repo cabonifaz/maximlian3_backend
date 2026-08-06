@@ -76,7 +76,7 @@ namespace SafetyReport.Handlers
             }
         }
 
-        // Arma el link público de verificación ({VerificacionFrontendUrl}/{token}) — a diferencia de
+        // Arma el link público de verificación ({VerificacionFrontendUrl}/factura/{token}) — a diferencia de
         // ObtenerUrlDescargaAsync, acá el token nunca sale de este backend hacia afuera; solo se usa para
         // componer la URL final que sí se comparte. Cualquiera con el link puede abrirlo sin login
         // (VerificacionFacturaController, sin [Authorize]).
@@ -92,7 +92,7 @@ namespace SafetyReport.Handlers
                     return new Respuesta { IdTipoMensaje = resultado?.IdTipoMensaje ?? 3, Mensaje = resultado?.Mensaje ?? "No se pudo obtener el link de verificación." };
                 }
 
-                var url = $"{_facturacionConfig.VerificacionFrontendUrl.TrimEnd('/')}/{resultado.Datos}";
+                var url = $"{_facturacionConfig.VerificacionFrontendUrl.TrimEnd('/')}/factura/{resultado.Datos}";
                 return new Respuesta { IdTipoMensaje = 2, Mensaje = "Consulta exitosa.", Result = url };
             }
             catch (Exception ex)
@@ -113,6 +113,29 @@ namespace SafetyReport.Handlers
                 if (resultado is null || resultado.IdTipoMensaje != 2)
                 {
                     return new Respuesta { IdTipoMensaje = resultado?.IdTipoMensaje ?? 3, Mensaje = resultado?.Mensaje ?? "No se pudo obtener la URL de descarga." };
+                }
+
+                return new Respuesta { IdTipoMensaje = 2, Mensaje = "Consulta exitosa.", Result = resultado.Datos };
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error no controlado en la capa de negocio.");
+                return new Respuesta { IdTipoMensaje = 3, Mensaje = ex.Message };
+            }
+        }
+
+        // Solo los errores/observaciones del último intento de envío a SUNAT (no el historial completo de
+        // reintentos anteriores) — ver SP_ErrorDocumento_ListarUltimoEnvio en ms-facturación.
+        public async Task<Respuesta> ObtenerErroresUltimoEnvioAsync(UsuarioGeneral usuarioLogueado, int idDocumentoElectronico)
+        {
+            try
+            {
+                var resultado = await _facturacionService.ObtenerErroresUltimoEnvioAsync(
+                    usuarioLogueado.IdEmpresa, idDocumentoElectronico, CancellationToken.None);
+
+                if (resultado is null || resultado.IdTipoMensaje != 2)
+                {
+                    return new Respuesta { IdTipoMensaje = resultado?.IdTipoMensaje ?? 3, Mensaje = resultado?.Mensaje ?? "No se pudieron obtener los errores del último envío." };
                 }
 
                 return new Respuesta { IdTipoMensaje = 2, Mensaje = "Consulta exitosa.", Result = resultado.Datos };
