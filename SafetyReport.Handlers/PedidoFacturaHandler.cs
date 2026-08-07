@@ -147,7 +147,7 @@ namespace SafetyReport.Handlers
             }
         }
 
-        public async Task<Respuesta> InsertarCampoExtraAsync(UsuarioGeneral usuarioLogueado, int idDocumentoElectronico, string etiqueta, string valor)
+        public async Task<Respuesta> InsertarCampoExtraAsync(UsuarioGeneral usuarioLogueado, int idDocumentoElectronico, string texto)
         {
             try
             {
@@ -156,8 +156,7 @@ namespace SafetyReport.Handlers
                     {
                         IdInquilino = usuarioLogueado.IdEmpresa,
                         IdDocumentoElectronico = idDocumentoElectronico,
-                        Etiqueta = etiqueta,
-                        Valor = valor
+                        Texto = texto
                     }, CancellationToken.None);
 
                 if (resultado is null || resultado.IdTipoMensaje != 2)
@@ -220,13 +219,13 @@ namespace SafetyReport.Handlers
             }
         }
 
-        public async Task<Respuesta> ActualizarCampoExtraAsync(UsuarioGeneral usuarioLogueado, int idCampoExtraDocumentoElectronico, string etiqueta, string valor)
+        public async Task<Respuesta> ActualizarCampoExtraAsync(UsuarioGeneral usuarioLogueado, int idCampoExtraDocumentoElectronico, string texto)
         {
             try
             {
                 var resultado = await _facturacionService.ActualizarCampoExtraAsync(
                     usuarioLogueado.IdEmpresa, idCampoExtraDocumentoElectronico,
-                    new FacturacionCampoExtraEntrada { Etiqueta = etiqueta, Valor = valor }, CancellationToken.None);
+                    new FacturacionCampoExtraEntrada { Texto = texto }, CancellationToken.None);
 
                 if (resultado is null || resultado.IdTipoMensaje != 2)
                 {
@@ -369,7 +368,8 @@ namespace SafetyReport.Handlers
                         MontoDescuento = l.montoDescuento,
                         IdAfectacionIgvMaestro = l.idAfectacionIgvMaestro,
                         PorcentajeIgv = l.porcentajeIgv
-                    }).ToList()
+                    }).ToList(),
+                    CamposExtra = request.camposExtra?.Select(c => new FacturacionCampoExtraEntrada { Texto = c.Texto }).ToList()
                 };
 
                 var insertado = await _facturacionService.InsertarDocumentoAsync(facturacionRequest, CancellationToken.None);
@@ -453,6 +453,11 @@ namespace SafetyReport.Handlers
                         FechaVencimiento = c.fechaVencimiento,
                         Monto = c.monto,
                         IdCuotaDocumentoElectronico = c.idCuotaDocumentoElectronico
+                    }).ToList(),
+                    CamposExtra = request.camposExtra?.Select(c => new FacturacionCampoExtraEdicion
+                    {
+                        Texto = c.Texto,
+                        IdCampoExtraDocumentoElectronico = c.idCampoExtraDocumentoElectronico
                     }).ToList()
                 };
 

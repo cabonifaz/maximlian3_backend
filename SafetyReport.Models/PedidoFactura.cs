@@ -2,8 +2,16 @@ namespace SafetyReport.Models
 {
     public class CampoExtraRequest
     {
-        public string Etiqueta { get; set; } = string.Empty;
-        public string Valor { get; set; } = string.Empty;
+        public string Texto { get; set; } = string.Empty;
+    }
+
+    // Campo extra dentro de guardarBorrador/guardarCambios — idCampoExtraDocumentoElectronico es 0
+    // (u omitido) para uno nuevo, o el id existente para actualizar uno ya guardado (solo aplica en
+    // guardarCambios; guardarBorrador siempre inserta, así que ahí siempre viene en 0).
+    public class CampoExtraEdicionRequest
+    {
+        public string Texto { get; set; } = string.Empty;
+        public int idCampoExtraDocumentoElectronico { get; set; }
     }
 
     public class GuardarBorradorFacturaRequest
@@ -18,6 +26,7 @@ namespace SafetyReport.Models
         public int idCliente { get; set; }
         public GuardarBorradorFacturaDocumentoAfectado? documentoAfectado { get; set; }
         public List<GuardarBorradorFacturaLinea> lineas { get; set; } = new();
+        public List<CampoExtraRequest>? camposExtra { get; set; }
     }
 
     public class GuardarBorradorFacturaCuota
@@ -62,6 +71,7 @@ namespace SafetyReport.Models
         public int idTipoOperacionMaestro { get; set; }
         public List<GuardarCambiosFacturaLinea> lineas { get; set; } = new();
         public List<GuardarCambiosFacturaCuota> cuotas { get; set; } = new();
+        public List<CampoExtraEdicionRequest>? camposExtra { get; set; }
     }
 
     // productoCodigo no viene del front, mismo criterio que GuardarBorradorFacturaLinea. descripcion sí es

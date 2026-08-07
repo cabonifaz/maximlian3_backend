@@ -14,6 +14,7 @@ namespace SafetyReport.Models
         public FacturacionCliente Cliente { get; set; } = new();
         public FacturacionDocumentoAfectado? DocumentoAfectado { get; set; }
         public List<FacturacionItem> Items { get; set; } = new();
+        public List<FacturacionCampoExtraEntrada>? CamposExtra { get; set; }
     }
 
     public class FacturacionFormaPago
@@ -71,6 +72,16 @@ namespace SafetyReport.Models
         public int IdTipoOperacionMaestro { get; set; }
         public List<FacturacionLineaEdicion> Lineas { get; set; } = new();
         public List<FacturacionCuotaEdicion> Cuotas { get; set; } = new();
+        public List<FacturacionCampoExtraEdicion>? CamposExtra { get; set; }
+    }
+
+    // Campo extra dentro de guardar-cambios — IdCampoExtraDocumentoElectronico 0 (u omitido) = nuevo,
+    // >0 = actualizar uno existente. Distinto de FacturacionCampoExtraEntrada (usado en Insertar/InsertarLote,
+    // que no tiene Id porque ahí nada existe todavía).
+    public class FacturacionCampoExtraEdicion
+    {
+        public string Texto { get; set; } = string.Empty;
+        public int IdCampoExtraDocumentoElectronico { get; set; }
     }
 
     public class FacturacionLineaEdicion
@@ -143,21 +154,19 @@ namespace SafetyReport.Models
         public DateTime FchCre { get; set; }
     }
 
-    // Fila de GET .../campos-extra — pares etiqueta/valor libres que el usuario agrega a un documento, sin
-    // relación con el esquema SUNAT.
+    // Fila de GET .../campos-extra — texto libre que el usuario agrega a un documento, sin relación con el
+    // esquema SUNAT.
     public class FacturacionCampoExtra
     {
         public int IdCampoExtraDocumentoElectronico { get; set; }
-        public string Etiqueta { get; set; } = string.Empty;
-        public string Valor { get; set; } = string.Empty;
+        public string Texto { get; set; } = string.Empty;
     }
 
     public class FacturacionInsertarCampoExtraRequest
     {
         public int IdInquilino { get; set; }
         public int IdDocumentoElectronico { get; set; }
-        public string Etiqueta { get; set; } = string.Empty;
-        public string Valor { get; set; } = string.Empty;
+        public string Texto { get; set; } = string.Empty;
     }
 
     public class FacturacionInsertarLoteCamposExtraRequest
@@ -169,8 +178,7 @@ namespace SafetyReport.Models
 
     public class FacturacionCampoExtraEntrada
     {
-        public string Etiqueta { get; set; } = string.Empty;
-        public string Valor { get; set; } = string.Empty;
+        public string Texto { get; set; } = string.Empty;
     }
 
     // Payload de POST api/v1/lotes-documento/comunicacion-baja. Todos los documentos deben compartir la

@@ -76,14 +76,14 @@ namespace SafetyReport.WebApi.Controllers
         [HttpPost("facturaPorId/{idDocumentoElectronico:int}/camposExtra")]
         public async Task<IActionResult> InsertarCampoExtra(int idDocumentoElectronico, [FromBody] CampoExtraRequest request)
         {
-            var respuesta = await _pedidoFacturaHandler.InsertarCampoExtraAsync(UsuarioLogueado, idDocumentoElectronico, request.Etiqueta, request.Valor);
+            var respuesta = await _pedidoFacturaHandler.InsertarCampoExtraAsync(UsuarioLogueado, idDocumentoElectronico, request.Texto);
             return Ok(respuesta);
         }
 
         [HttpPost("facturaPorId/{idDocumentoElectronico:int}/camposExtra/lote")]
         public async Task<IActionResult> InsertarLoteCamposExtra(int idDocumentoElectronico, [FromBody] List<CampoExtraRequest> camposExtra)
         {
-            var entradas = camposExtra.Select(c => new FacturacionCampoExtraEntrada { Etiqueta = c.Etiqueta, Valor = c.Valor }).ToList();
+            var entradas = camposExtra.Select(c => new FacturacionCampoExtraEntrada { Texto = c.Texto }).ToList();
             var respuesta = await _pedidoFacturaHandler.InsertarLoteCamposExtraAsync(UsuarioLogueado, idDocumentoElectronico, entradas);
             return Ok(respuesta);
         }
@@ -98,7 +98,7 @@ namespace SafetyReport.WebApi.Controllers
         [HttpPut("camposExtra/{idCampoExtraDocumentoElectronico:int}")]
         public async Task<IActionResult> ActualizarCampoExtra(int idCampoExtraDocumentoElectronico, [FromBody] CampoExtraRequest request)
         {
-            var respuesta = await _pedidoFacturaHandler.ActualizarCampoExtraAsync(UsuarioLogueado, idCampoExtraDocumentoElectronico, request.Etiqueta, request.Valor);
+            var respuesta = await _pedidoFacturaHandler.ActualizarCampoExtraAsync(UsuarioLogueado, idCampoExtraDocumentoElectronico, request.Texto);
             return Ok(respuesta);
         }
 
