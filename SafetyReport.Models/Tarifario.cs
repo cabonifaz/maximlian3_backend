@@ -103,6 +103,7 @@ namespace SafetyReport.Models
         public string SimboloMoneda { get; set; } = string.Empty;
         public decimal Precio { get; set; }
         public int IdPais { get; set; }
+        public string Pais { get; set; } = string.Empty;
         public int IdProducto { get; set; }
         public int IdTipoTramite { get; set; }
         public int DiasMin { get; set; }
