@@ -151,7 +151,12 @@ builder.Services.AddCors(options =>
         policy.WithOrigins(allowedOrigins)
               .AllowAnyHeader()
               .AllowAnyMethod()
-              .AllowCredentials();
+              .AllowCredentials()
+              // Por default el navegador solo expone a JS un set fijo de response headers "safelisted"
+              // (Content-Type, Content-Length, etc.) — Content-Disposition (nombre del archivo en las
+              // descargas, p.ej. sireRvie/txt) queda invisible para el fetch/XHR del front si no se declara
+              // acá explícitamente, aunque el servidor sí lo mande.
+              .WithExposedHeaders("Content-Disposition");
     });
 });
 
