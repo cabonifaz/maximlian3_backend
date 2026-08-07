@@ -16,6 +16,29 @@ namespace SafetyReport.Handlers
             _httpClient = httpClient;
         }
 
+        // SIRE RVIE: ms-facturación genera el TXT al vuelo y lo devuelve como archivo crudo (text/plain +
+        // Content-Disposition), no como FacturacionEnvelope<T> — a diferencia de todo lo demás en este
+        // servicio, acá hay que inspeccionar la respuesta HTTP directamente (bytes en éxito, el mismo JSON
+        // de siempre en error) en vez de deserializar a ciegas.
+        public async Task<(bool Exito, string Mensaje, byte[]? Contenido, string? NombreArchivo)> ObtenerTxtSireRvieAsync(
+            int idInquilino, int idEmpresa, DateOnly periodo, CancellationToken cancellationToken)
+        {
+            var url = $"api/v1/documentos-electronicos/sire-rvie/txt?idInquilino={idInquilino}&idEmpresa={idEmpresa}&periodo={periodo:yyyy-MM-dd}";
+            var respuesta = await _httpClient.GetAsync(url, cancellationToken);
+
+            if (respuesta.IsSuccessStatusCode)
+            {
+                var contenido = await respuesta.Content.ReadAsByteArrayAsync(cancellationToken);
+                var nombreArchivo = (respuesta.Content.Headers.ContentDisposition?.FileNameStar
+                    ?? respuesta.Content.Headers.ContentDisposition?.FileName
+                    ?? "sire-rvie.txt").Trim('"');
+                return (true, "TXT SIRE RVIE generado correctamente.", contenido, nombreArchivo);
+            }
+
+            var envelope = await respuesta.Content.ReadFromJsonAsync<FacturacionEnvelope<object>>(JsonOptions, cancellationToken);
+            return (false, envelope?.Mensaje ?? "No se pudo generar el TXT SIRE RVIE.", null, null);
+        }
+
         public async Task<FacturacionEnvelope<FacturacionDocumentoCreado>?> InsertarDocumentoAsync(
             FacturacionInsertarDocumentoRequest request, CancellationToken cancellationToken)
         {

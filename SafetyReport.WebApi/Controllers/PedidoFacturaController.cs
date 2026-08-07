@@ -73,6 +73,17 @@ namespace SafetyReport.WebApi.Controllers
             return Ok(respuesta);
         }
 
+        [HttpGet("sireRvie/txt")]
+        public async Task<IActionResult> GenerarTxtSireRvie([FromQuery] DateOnly periodo)
+        {
+            var respuesta = await _pedidoFacturaHandler.GenerarTxtSireRvieAsync(UsuarioLogueado, periodo);
+
+            if (respuesta.IdTipoMensaje != 2 || respuesta.Result is not SireRvieExportacion exportacion)
+                return Ok(respuesta);
+
+            return File(exportacion.Archivo, exportacion.ContentType, exportacion.NombreArchivo);
+        }
+
         [HttpPost("facturaPorId/{idDocumentoElectronico:int}/camposExtra")]
         public async Task<IActionResult> InsertarCampoExtra(int idDocumentoElectronico, [FromBody] CampoExtraRequest request)
         {

@@ -5,6 +5,15 @@ namespace SafetyReport.Models
         public string Texto { get; set; } = string.Empty;
     }
 
+    // SIRE RVIE: el TXT se genera al vuelo por request, nunca se guarda en S3 — mismo criterio de
+    // exportación que CompaniaNoticiaDetalleExportacion.
+    public class SireRvieExportacion
+    {
+        public string NombreArchivo { get; set; } = string.Empty;
+        public string ContentType { get; set; } = string.Empty;
+        public byte[] Archivo { get; set; } = [];
+    }
+
     // Campo extra dentro de guardarBorrador/guardarCambios — idCampoExtraDocumentoElectronico es 0
     // (u omitido) para uno nuevo, o el id existente para actualizar uno ya guardado (solo aplica en
     // guardarCambios; guardarBorrador siempre inserta, así que ahí siempre viene en 0).

@@ -147,6 +147,40 @@ namespace SafetyReport.Handlers
             }
         }
 
+        // TXT SIRE RVIE — generado al vuelo por ms-facturación, nunca se guarda en S3. Se propaga tal cual
+        // (Result = SireRvieExportacion) para que el controller lo devuelva como File(...) en vez de JSON.
+        public async Task<Respuesta> GenerarTxtSireRvieAsync(UsuarioGeneral usuarioLogueado, DateOnly periodo)
+        {
+            try
+            {
+                var idEmpresa = 1; // TODO: resolver desde EMPRESAS de ms-facturación, mismo TODO que GuardarBorradorFacturaAsync.
+                var (exito, mensaje, contenido, nombreArchivo) = await _facturacionService.ObtenerTxtSireRvieAsync(
+                    usuarioLogueado.IdEmpresa, idEmpresa, periodo, CancellationToken.None);
+
+                if (!exito || contenido is null || nombreArchivo is null)
+                {
+                    return new Respuesta { IdTipoMensaje = 1, Mensaje = mensaje };
+                }
+
+                return new Respuesta
+                {
+                    IdTipoMensaje = 2,
+                    Mensaje = mensaje,
+                    Result = new SireRvieExportacion
+                    {
+                        NombreArchivo = nombreArchivo,
+                        ContentType = "text/plain",
+                        Archivo = contenido
+                    }
+                };
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error no controlado en la capa de negocio.");
+                return new Respuesta { IdTipoMensaje = 3, Mensaje = ex.Message };
+            }
+        }
+
         public async Task<Respuesta> InsertarCampoExtraAsync(UsuarioGeneral usuarioLogueado, int idDocumentoElectronico, string texto)
         {
             try
