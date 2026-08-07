@@ -1,3 +1,4 @@
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using SafetyReport.DAO;
 using SafetyReport.Models;
@@ -9,17 +10,17 @@ namespace SafetyReport.Handlers
         private readonly PedidoFacturaDAO _pedidoFacturaDao;
         private readonly PedidoDAO _pedidoDao;
         private readonly FacturacionElectronicaService _facturacionService;
-        private readonly FacturacionElectronicaConfig _facturacionConfig;
+        private readonly IConfiguration _configuration;
         private readonly ILogger<PedidoFacturaHandler> _logger;
 
         public PedidoFacturaHandler(
             PedidoFacturaDAO pedidoFacturaDao, PedidoDAO pedidoDao, FacturacionElectronicaService facturacionService,
-            FacturacionElectronicaConfig facturacionConfig, ILogger<PedidoFacturaHandler> logger)
+            IConfiguration configuration, ILogger<PedidoFacturaHandler> logger)
         {
             _pedidoFacturaDao = pedidoFacturaDao;
             _pedidoDao = pedidoDao;
             _facturacionService = facturacionService;
-            _facturacionConfig = facturacionConfig;
+            _configuration = configuration;
             _logger = logger;
         }
 
@@ -76,10 +77,13 @@ namespace SafetyReport.Handlers
             }
         }
 
-        // Arma el link público de verificación ({VerificacionFrontendUrl}/factura/{token}) — a diferencia de
-        // ObtenerUrlDescargaAsync, acá el token nunca sale de este backend hacia afuera; solo se usa para
-        // componer la URL final que sí se comparte. Cualquiera con el link puede abrirlo sin login
-        // (VerificacionFacturaController, sin [Authorize]).
+        // Arma el link público de verificación ({Cors:AllowedOrigins[0]}/factura/{token}) — el front de este
+        // proyecto solo corre en un origin, así que reusar el primer AllowedOrigins evita mantener la misma
+        // URL duplicada en dos claves de config. Si algún día AllowedOrigins tiene más de un origin real
+        // (más de un front), esto deja de ser válido y hay que volver a una clave propia.
+        // A diferencia de ObtenerUrlDescargaAsync, acá el token nunca sale de este backend hacia afuera;
+        // solo se usa para componer la URL final que sí se comparte. Cualquiera con el link puede abrirlo
+        // sin login (VerificacionFacturaController, sin [Authorize]).
         public async Task<Respuesta> ObtenerUrlVerificacionAsync(UsuarioGeneral usuarioLogueado, int idDocumentoElectronico)
         {
             try
@@ -92,7 +96,10 @@ namespace SafetyReport.Handlers
                     return new Respuesta { IdTipoMensaje = resultado?.IdTipoMensaje ?? 3, Mensaje = resultado?.Mensaje ?? "No se pudo obtener el link de verificación." };
                 }
 
-                var url = $"{_facturacionConfig.VerificacionFrontendUrl.TrimEnd('/')}/factura/{resultado.Datos}";
+                var frontendUrl = _configuration.GetSection("Cors:AllowedOrigins").GetChildren().FirstOrDefault()?.Value
+                    ?? throw new InvalidOperationException("No se configuró Cors:AllowedOrigins.");
+
+                var url = $"{frontendUrl.TrimEnd('/')}/factura/{resultado.Datos}";
                 return new Respuesta { IdTipoMensaje = 2, Mensaje = "Consulta exitosa.", Result = url };
             }
             catch (Exception ex)
