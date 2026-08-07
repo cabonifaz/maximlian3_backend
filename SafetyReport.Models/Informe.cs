@@ -821,6 +821,7 @@ namespace SafetyReport.Models
         public int IdInforme { get; set; }
         public int IdPedido { get; set; }
         public string? CodigoPedido { get; set; }
+        public string? Cliente { get; set; }
         public int? IdFase { get; set; }
         public string? Plantilla { get; set; }
         public string? EstadoInforme { get; set; }

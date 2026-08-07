@@ -52,6 +52,74 @@ namespace SafetyReport.WebApi.Controllers
             return Ok(respuesta);
         }
 
+        [HttpGet("facturaPorId/{idDocumentoElectronico:int}/urlDescarga")]
+        public async Task<IActionResult> ObtenerUrlDescarga(int idDocumentoElectronico, [FromQuery] string tipoArchivo)
+        {
+            var respuesta = await _pedidoFacturaHandler.ObtenerUrlDescargaAsync(UsuarioLogueado, idDocumentoElectronico, tipoArchivo);
+            return Ok(respuesta);
+        }
+
+        [HttpGet("facturaPorId/{idDocumentoElectronico:int}/urlVerificacion")]
+        public async Task<IActionResult> ObtenerUrlVerificacion(int idDocumentoElectronico)
+        {
+            var respuesta = await _pedidoFacturaHandler.ObtenerUrlVerificacionAsync(UsuarioLogueado, idDocumentoElectronico);
+            return Ok(respuesta);
+        }
+
+        [HttpGet("facturaPorId/{idDocumentoElectronico:int}/erroresUltimoEnvio")]
+        public async Task<IActionResult> ObtenerErroresUltimoEnvio(int idDocumentoElectronico)
+        {
+            var respuesta = await _pedidoFacturaHandler.ObtenerErroresUltimoEnvioAsync(UsuarioLogueado, idDocumentoElectronico);
+            return Ok(respuesta);
+        }
+
+        [HttpGet("sireRvie/txt")]
+        public async Task<IActionResult> GenerarTxtSireRvie([FromQuery] DateOnly periodo)
+        {
+            var respuesta = await _pedidoFacturaHandler.GenerarTxtSireRvieAsync(UsuarioLogueado, periodo);
+
+            if (respuesta.IdTipoMensaje != 2 || respuesta.Result is not SireRvieExportacion exportacion)
+                return Ok(respuesta);
+
+            return File(exportacion.Archivo, exportacion.ContentType, exportacion.NombreArchivo);
+        }
+
+        [HttpPost("facturaPorId/{idDocumentoElectronico:int}/camposExtra")]
+        public async Task<IActionResult> InsertarCampoExtra(int idDocumentoElectronico, [FromBody] CampoExtraRequest request)
+        {
+            var respuesta = await _pedidoFacturaHandler.InsertarCampoExtraAsync(UsuarioLogueado, idDocumentoElectronico, request.Texto);
+            return Ok(respuesta);
+        }
+
+        [HttpPost("facturaPorId/{idDocumentoElectronico:int}/camposExtra/lote")]
+        public async Task<IActionResult> InsertarLoteCamposExtra(int idDocumentoElectronico, [FromBody] List<CampoExtraRequest> camposExtra)
+        {
+            var entradas = camposExtra.Select(c => new FacturacionCampoExtraEntrada { Texto = c.Texto }).ToList();
+            var respuesta = await _pedidoFacturaHandler.InsertarLoteCamposExtraAsync(UsuarioLogueado, idDocumentoElectronico, entradas);
+            return Ok(respuesta);
+        }
+
+        [HttpGet("facturaPorId/{idDocumentoElectronico:int}/camposExtra")]
+        public async Task<IActionResult> ListarCamposExtra(int idDocumentoElectronico)
+        {
+            var respuesta = await _pedidoFacturaHandler.ListarCamposExtraAsync(UsuarioLogueado, idDocumentoElectronico);
+            return Ok(respuesta);
+        }
+
+        [HttpPut("camposExtra/{idCampoExtraDocumentoElectronico:int}")]
+        public async Task<IActionResult> ActualizarCampoExtra(int idCampoExtraDocumentoElectronico, [FromBody] CampoExtraRequest request)
+        {
+            var respuesta = await _pedidoFacturaHandler.ActualizarCampoExtraAsync(UsuarioLogueado, idCampoExtraDocumentoElectronico, request.Texto);
+            return Ok(respuesta);
+        }
+
+        [HttpDelete("camposExtra/{idCampoExtraDocumentoElectronico:int}")]
+        public async Task<IActionResult> EliminarCampoExtra(int idCampoExtraDocumentoElectronico)
+        {
+            var respuesta = await _pedidoFacturaHandler.EliminarCampoExtraAsync(UsuarioLogueado, idCampoExtraDocumentoElectronico);
+            return Ok(respuesta);
+        }
+
         [HttpGet("factura/{idPedido:int}")]
         public async Task<IActionResult> ObtenerFacturaPorPedido(int idPedido)
         {

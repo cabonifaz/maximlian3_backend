@@ -366,7 +366,7 @@ namespace SafetyReport.DAO
             try
             {
                 using SqlConnection cn = new SqlConnection(_dbConfig.ConnectionString);
-                using SqlCommand cmd = new SqlCommand("SP_Tarifario_Listar_Corta", cn);
+                using SqlCommand cmd = new SqlCommand("SP_Tarifario_ListaCorta", cn);
 
                 cmd.CommandType = CommandType.StoredProcedure;
 
@@ -404,6 +404,7 @@ namespace SafetyReport.DAO
                                 Moneda = dr["Moneda"]?.ToString() ?? string.Empty,
                                 Precio = Convert.ToDecimal(dr["Precio"]),
                                 IdPais = Convert.ToInt32(dr["IdPais"]),
+                                Pais = dr["Pais"]?.ToString() ?? string.Empty,
                                 IdProducto = Convert.ToInt32(dr["IdProducto"]),
                                 IdTipoTramite = Convert.ToInt32(dr["IdTipoTramite"]),
                                 DiasMin = Convert.ToInt32(dr["DiasMin"]),

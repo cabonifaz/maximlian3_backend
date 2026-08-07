@@ -1658,6 +1658,7 @@ namespace SafetyReport.DAO
                                 IdInforme = Convert.ToInt32(dr["IdInforme"]),
                                 IdPedido = Convert.ToInt32(dr["IdPedido"]),
                                 CodigoPedido = GetNullableString(dr, "CodigoPedido"),
+                                Cliente = GetNullableString(dr, "Cliente"),
                                 IdFase = GetNullableInt(dr, "IdFase"),
                                 Plantilla = GetNullableString(dr, "Plantilla"),
                                 EstadoInforme = GetNullableString(dr, "EstadoInforme"),
