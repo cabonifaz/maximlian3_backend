@@ -329,6 +329,7 @@ namespace SafetyReport.Handlers
                     NumeroReferencia = request.numeroReferencia,
                     IdTipoDocumentoMaestro = request.idTipoDocumentoMaestro,
                     IdMonedaMaestro = request.idMonedaMaestro,
+                    TipoCambio = request.tipoCambio,
                     IdTipoOperacionMaestro = request.idTipoOperacionMaestro,
                     FormaPago = new FacturacionFormaPago
                     {
@@ -430,6 +431,7 @@ namespace SafetyReport.Handlers
                     IdFormaPago = request.idFormaPago,
                     NumeroReferencia = request.numeroReferencia,
                     IdMonedaMaestro = request.idMonedaMaestro,
+                    TipoCambio = request.tipoCambio,
                     IdTipoOperacionMaestro = request.idTipoOperacionMaestro,
                     Lineas = request.lineas.Select((l, i) => new FacturacionLineaEdicion
                     {

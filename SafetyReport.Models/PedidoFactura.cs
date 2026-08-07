@@ -11,6 +11,7 @@ namespace SafetyReport.Models
         public int idTipoDocumentoMaestro { get; set; }
         public string? numeroReferencia { get; set; }
         public int idMonedaMaestro { get; set; }
+        public decimal? tipoCambio { get; set; }
         public int idTipoOperacionMaestro { get; set; }
         public int idFormaPago { get; set; }
         public List<GuardarBorradorFacturaCuota>? cuotas { get; set; }
@@ -57,6 +58,7 @@ namespace SafetyReport.Models
         public int idFormaPago { get; set; }
         public string? numeroReferencia { get; set; }
         public int idMonedaMaestro { get; set; }
+        public decimal? tipoCambio { get; set; }
         public int idTipoOperacionMaestro { get; set; }
         public List<GuardarCambiosFacturaLinea> lineas { get; set; } = new();
         public List<GuardarCambiosFacturaCuota> cuotas { get; set; } = new();

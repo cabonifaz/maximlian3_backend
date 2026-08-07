@@ -8,6 +8,7 @@ namespace SafetyReport.Models
         public string? NumeroReferencia { get; set; }
         public int IdTipoDocumentoMaestro { get; set; }
         public int IdMonedaMaestro { get; set; }
+        public decimal? TipoCambio { get; set; }
         public int IdTipoOperacionMaestro { get; set; }
         public FacturacionFormaPago FormaPago { get; set; } = new();
         public FacturacionCliente Cliente { get; set; } = new();
@@ -66,6 +67,7 @@ namespace SafetyReport.Models
         public int IdFormaPago { get; set; }
         public string? NumeroReferencia { get; set; }
         public int IdMonedaMaestro { get; set; }
+        public decimal? TipoCambio { get; set; }
         public int IdTipoOperacionMaestro { get; set; }
         public List<FacturacionLineaEdicion> Lineas { get; set; } = new();
         public List<FacturacionCuotaEdicion> Cuotas { get; set; } = new();
