@@ -1,3 +1,4 @@
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using SafetyReport.DAO;
 using SafetyReport.Models;
@@ -9,15 +10,17 @@ namespace SafetyReport.Handlers
         private readonly PedidoFacturaDAO _pedidoFacturaDao;
         private readonly PedidoDAO _pedidoDao;
         private readonly FacturacionElectronicaService _facturacionService;
+        private readonly IConfiguration _configuration;
         private readonly ILogger<PedidoFacturaHandler> _logger;
 
         public PedidoFacturaHandler(
             PedidoFacturaDAO pedidoFacturaDao, PedidoDAO pedidoDao, FacturacionElectronicaService facturacionService,
-            ILogger<PedidoFacturaHandler> logger)
+            IConfiguration configuration, ILogger<PedidoFacturaHandler> logger)
         {
             _pedidoFacturaDao = pedidoFacturaDao;
             _pedidoDao = pedidoDao;
             _facturacionService = facturacionService;
+            _configuration = configuration;
             _logger = logger;
         }
 
@@ -66,6 +69,231 @@ namespace SafetyReport.Handlers
                 }
 
                 return new Respuesta { IdTipoMensaje = 2, Mensaje = "Consulta exitosa.", Result = documento.Datos };
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error no controlado en la capa de negocio.");
+                return new Respuesta { IdTipoMensaje = 3, Mensaje = ex.Message };
+            }
+        }
+
+        // Arma el link público de verificación ({Cors:AllowedOrigins[0]}/factura/{token}) — el front de este
+        // proyecto solo corre en un origin, así que reusar el primer AllowedOrigins evita mantener la misma
+        // URL duplicada en dos claves de config. Si algún día AllowedOrigins tiene más de un origin real
+        // (más de un front), esto deja de ser válido y hay que volver a una clave propia.
+        // A diferencia de ObtenerUrlDescargaAsync, acá el token nunca sale de este backend hacia afuera;
+        // solo se usa para componer la URL final que sí se comparte. Cualquiera con el link puede abrirlo
+        // sin login (VerificacionFacturaController, sin [Authorize]).
+        public async Task<Respuesta> ObtenerUrlVerificacionAsync(UsuarioGeneral usuarioLogueado, int idDocumentoElectronico)
+        {
+            try
+            {
+                var resultado = await _facturacionService.ObtenerTokenVerificacionAsync(
+                    usuarioLogueado.IdEmpresa, idDocumentoElectronico, CancellationToken.None);
+
+                if (resultado is null || resultado.IdTipoMensaje != 2 || string.IsNullOrEmpty(resultado.Datos))
+                {
+                    return new Respuesta { IdTipoMensaje = resultado?.IdTipoMensaje ?? 3, Mensaje = resultado?.Mensaje ?? "No se pudo obtener el link de verificación." };
+                }
+
+                var frontendUrl = _configuration.GetSection("Cors:AllowedOrigins").GetChildren().FirstOrDefault()?.Value
+                    ?? throw new InvalidOperationException("No se configuró Cors:AllowedOrigins.");
+
+                var url = $"{frontendUrl.TrimEnd('/')}/factura/{resultado.Datos}";
+                return new Respuesta { IdTipoMensaje = 2, Mensaje = "Consulta exitosa.", Result = url };
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error no controlado en la capa de negocio.");
+                return new Respuesta { IdTipoMensaje = 3, Mensaje = ex.Message };
+            }
+        }
+
+        // tipoArchivo: "Xml" o "Pdf". Solo hace de proxy — la URL presignada la arma ms-facturación.
+        public async Task<Respuesta> ObtenerUrlDescargaAsync(UsuarioGeneral usuarioLogueado, int idDocumentoElectronico, string tipoArchivo)
+        {
+            try
+            {
+                var resultado = await _facturacionService.ObtenerUrlDescargaAsync(
+                    usuarioLogueado.IdEmpresa, idDocumentoElectronico, tipoArchivo, CancellationToken.None);
+
+                if (resultado is null || resultado.IdTipoMensaje != 2)
+                {
+                    return new Respuesta { IdTipoMensaje = resultado?.IdTipoMensaje ?? 3, Mensaje = resultado?.Mensaje ?? "No se pudo obtener la URL de descarga." };
+                }
+
+                return new Respuesta { IdTipoMensaje = 2, Mensaje = "Consulta exitosa.", Result = resultado.Datos };
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error no controlado en la capa de negocio.");
+                return new Respuesta { IdTipoMensaje = 3, Mensaje = ex.Message };
+            }
+        }
+
+        // Solo los errores/observaciones del último intento de envío a SUNAT (no el historial completo de
+        // reintentos anteriores) — ver SP_ErrorDocumento_ListarUltimoEnvio en ms-facturación.
+        public async Task<Respuesta> ObtenerErroresUltimoEnvioAsync(UsuarioGeneral usuarioLogueado, int idDocumentoElectronico)
+        {
+            try
+            {
+                var resultado = await _facturacionService.ObtenerErroresUltimoEnvioAsync(
+                    usuarioLogueado.IdEmpresa, idDocumentoElectronico, CancellationToken.None);
+
+                if (resultado is null || resultado.IdTipoMensaje != 2)
+                {
+                    return new Respuesta { IdTipoMensaje = resultado?.IdTipoMensaje ?? 3, Mensaje = resultado?.Mensaje ?? "No se pudieron obtener los errores del último envío." };
+                }
+
+                return new Respuesta { IdTipoMensaje = 2, Mensaje = "Consulta exitosa.", Result = resultado.Datos };
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error no controlado en la capa de negocio.");
+                return new Respuesta { IdTipoMensaje = 3, Mensaje = ex.Message };
+            }
+        }
+
+        // TXT SIRE RVIE — generado al vuelo por ms-facturación, nunca se guarda en S3. Se propaga tal cual
+        // (Result = SireRvieExportacion) para que el controller lo devuelva como File(...) en vez de JSON.
+        public async Task<Respuesta> GenerarTxtSireRvieAsync(UsuarioGeneral usuarioLogueado, DateOnly periodo)
+        {
+            try
+            {
+                var idEmpresa = 1; // TODO: resolver desde EMPRESAS de ms-facturación, mismo TODO que GuardarBorradorFacturaAsync.
+                var (exito, mensaje, contenido, nombreArchivo) = await _facturacionService.ObtenerTxtSireRvieAsync(
+                    usuarioLogueado.IdEmpresa, idEmpresa, periodo, CancellationToken.None);
+
+                if (!exito || contenido is null || nombreArchivo is null)
+                {
+                    return new Respuesta { IdTipoMensaje = 1, Mensaje = mensaje };
+                }
+
+                return new Respuesta
+                {
+                    IdTipoMensaje = 2,
+                    Mensaje = mensaje,
+                    Result = new SireRvieExportacion
+                    {
+                        NombreArchivo = nombreArchivo,
+                        ContentType = "text/plain",
+                        Archivo = contenido
+                    }
+                };
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error no controlado en la capa de negocio.");
+                return new Respuesta { IdTipoMensaje = 3, Mensaje = ex.Message };
+            }
+        }
+
+        public async Task<Respuesta> InsertarCampoExtraAsync(UsuarioGeneral usuarioLogueado, int idDocumentoElectronico, string texto)
+        {
+            try
+            {
+                var resultado = await _facturacionService.InsertarCampoExtraAsync(
+                    new FacturacionInsertarCampoExtraRequest
+                    {
+                        IdInquilino = usuarioLogueado.IdEmpresa,
+                        IdDocumentoElectronico = idDocumentoElectronico,
+                        Texto = texto
+                    }, CancellationToken.None);
+
+                if (resultado is null || resultado.IdTipoMensaje != 2)
+                {
+                    return new Respuesta { IdTipoMensaje = resultado?.IdTipoMensaje ?? 3, Mensaje = resultado?.Mensaje ?? "No se pudo registrar el campo extra." };
+                }
+
+                return new Respuesta { IdTipoMensaje = 2, Mensaje = "Consulta exitosa.", Result = resultado.Datos };
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error no controlado en la capa de negocio.");
+                return new Respuesta { IdTipoMensaje = 3, Mensaje = ex.Message };
+            }
+        }
+
+        public async Task<Respuesta> InsertarLoteCamposExtraAsync(UsuarioGeneral usuarioLogueado, int idDocumentoElectronico, List<FacturacionCampoExtraEntrada> camposExtra)
+        {
+            try
+            {
+                var resultado = await _facturacionService.InsertarLoteCamposExtraAsync(
+                    new FacturacionInsertarLoteCamposExtraRequest
+                    {
+                        IdInquilino = usuarioLogueado.IdEmpresa,
+                        IdDocumentoElectronico = idDocumentoElectronico,
+                        CamposExtra = camposExtra
+                    }, CancellationToken.None);
+
+                if (resultado is null || resultado.IdTipoMensaje != 2)
+                {
+                    return new Respuesta { IdTipoMensaje = resultado?.IdTipoMensaje ?? 3, Mensaje = resultado?.Mensaje ?? "No se pudieron registrar los campos extra." };
+                }
+
+                return new Respuesta { IdTipoMensaje = 2, Mensaje = "Consulta exitosa.", Result = resultado.Datos };
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error no controlado en la capa de negocio.");
+                return new Respuesta { IdTipoMensaje = 3, Mensaje = ex.Message };
+            }
+        }
+
+        public async Task<Respuesta> ListarCamposExtraAsync(UsuarioGeneral usuarioLogueado, int idDocumentoElectronico)
+        {
+            try
+            {
+                var resultado = await _facturacionService.ListarCamposExtraAsync(usuarioLogueado.IdEmpresa, idDocumentoElectronico, CancellationToken.None);
+
+                if (resultado is null || resultado.IdTipoMensaje != 2)
+                {
+                    return new Respuesta { IdTipoMensaje = resultado?.IdTipoMensaje ?? 3, Mensaje = resultado?.Mensaje ?? "No se pudieron obtener los campos extra." };
+                }
+
+                return new Respuesta { IdTipoMensaje = 2, Mensaje = "Consulta exitosa.", Result = resultado.Datos };
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error no controlado en la capa de negocio.");
+                return new Respuesta { IdTipoMensaje = 3, Mensaje = ex.Message };
+            }
+        }
+
+        public async Task<Respuesta> ActualizarCampoExtraAsync(UsuarioGeneral usuarioLogueado, int idCampoExtraDocumentoElectronico, string texto)
+        {
+            try
+            {
+                var resultado = await _facturacionService.ActualizarCampoExtraAsync(
+                    usuarioLogueado.IdEmpresa, idCampoExtraDocumentoElectronico,
+                    new FacturacionCampoExtraEntrada { Texto = texto }, CancellationToken.None);
+
+                if (resultado is null || resultado.IdTipoMensaje != 2)
+                {
+                    return new Respuesta { IdTipoMensaje = resultado?.IdTipoMensaje ?? 3, Mensaje = resultado?.Mensaje ?? "No se pudo actualizar el campo extra." };
+                }
+
+                return new Respuesta { IdTipoMensaje = 2, Mensaje = "Consulta exitosa.", Result = resultado.Datos };
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error no controlado en la capa de negocio.");
+                return new Respuesta { IdTipoMensaje = 3, Mensaje = ex.Message };
+            }
+        }
+
+        public async Task<Respuesta> EliminarCampoExtraAsync(UsuarioGeneral usuarioLogueado, int idCampoExtraDocumentoElectronico)
+        {
+            try
+            {
+                var resultado = await _facturacionService.EliminarCampoExtraAsync(usuarioLogueado.IdEmpresa, idCampoExtraDocumentoElectronico, CancellationToken.None);
+
+                if (resultado is null || resultado.IdTipoMensaje != 2)
+                {
+                    return new Respuesta { IdTipoMensaje = resultado?.IdTipoMensaje ?? 3, Mensaje = resultado?.Mensaje ?? "No se pudo eliminar el campo extra." };
+                }
+
+                return new Respuesta { IdTipoMensaje = 2, Mensaje = "Consulta exitosa.", Result = resultado.Datos };
             }
             catch (Exception ex)
             {
@@ -141,6 +369,7 @@ namespace SafetyReport.Handlers
                     NumeroReferencia = request.numeroReferencia,
                     IdTipoDocumentoMaestro = request.idTipoDocumentoMaestro,
                     IdMonedaMaestro = request.idMonedaMaestro,
+                    TipoCambio = request.tipoCambio,
                     IdTipoOperacionMaestro = request.idTipoOperacionMaestro,
                     FormaPago = new FacturacionFormaPago
                     {
@@ -173,14 +402,15 @@ namespace SafetyReport.Handlers
                         NumeroLinea = i + 1,
                         ProductoCodigo = pedidosPorId[l.idPedido].Codigo,
                         ProductoSunatCodigo = l.productoSunatCodigo,
-                        Descripcion = pedidosPorId[l.idPedido].NombreCliente ?? string.Empty,
+                        Descripcion = !string.IsNullOrWhiteSpace(l.descripcion) ? l.descripcion : pedidosPorId[l.idPedido].NombreCliente ?? string.Empty,
                         IdUnidadMedidaMaestro = l.idUnidadMedidaMaestro,
                         Cantidad = l.cantidad,
                         ValorUnitario = pedidosPorId[l.idPedido].Precio.Value,
                         MontoDescuento = l.montoDescuento,
                         IdAfectacionIgvMaestro = l.idAfectacionIgvMaestro,
                         PorcentajeIgv = l.porcentajeIgv
-                    }).ToList()
+                    }).ToList(),
+                    CamposExtra = request.camposExtra?.Select(c => new FacturacionCampoExtraEntrada { Texto = c.Texto }).ToList()
                 };
 
                 var insertado = await _facturacionService.InsertarDocumentoAsync(facturacionRequest, CancellationToken.None);
@@ -242,13 +472,14 @@ namespace SafetyReport.Handlers
                     IdFormaPago = request.idFormaPago,
                     NumeroReferencia = request.numeroReferencia,
                     IdMonedaMaestro = request.idMonedaMaestro,
+                    TipoCambio = request.tipoCambio,
                     IdTipoOperacionMaestro = request.idTipoOperacionMaestro,
                     Lineas = request.lineas.Select((l, i) => new FacturacionLineaEdicion
                     {
                         NumeroLinea = i + 1,
                         ProductoCodigo = pedidosPorId[l.idPedido].Codigo,
                         ProductoSunatCodigo = l.productoSunatCodigo,
-                        Descripcion = pedidosPorId[l.idPedido].NombreCliente ?? string.Empty,
+                        Descripcion = !string.IsNullOrWhiteSpace(l.descripcion) ? l.descripcion : pedidosPorId[l.idPedido].NombreCliente ?? string.Empty,
                         IdUnidadMedidaMaestro = l.idUnidadMedidaMaestro,
                         Cantidad = l.cantidad,
                         ValorUnitario = pedidosPorId[l.idPedido].Precio.Value,
@@ -263,6 +494,11 @@ namespace SafetyReport.Handlers
                         FechaVencimiento = c.fechaVencimiento,
                         Monto = c.monto,
                         IdCuotaDocumentoElectronico = c.idCuotaDocumentoElectronico
+                    }).ToList(),
+                    CamposExtra = request.camposExtra?.Select(c => new FacturacionCampoExtraEdicion
+                    {
+                        Texto = c.Texto,
+                        IdCampoExtraDocumentoElectronico = c.idCampoExtraDocumentoElectronico
                     }).ToList()
                 };
 

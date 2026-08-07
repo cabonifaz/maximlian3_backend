@@ -8,11 +8,13 @@ namespace SafetyReport.Models
         public string? NumeroReferencia { get; set; }
         public int IdTipoDocumentoMaestro { get; set; }
         public int IdMonedaMaestro { get; set; }
+        public decimal? TipoCambio { get; set; }
         public int IdTipoOperacionMaestro { get; set; }
         public FacturacionFormaPago FormaPago { get; set; } = new();
         public FacturacionCliente Cliente { get; set; } = new();
         public FacturacionDocumentoAfectado? DocumentoAfectado { get; set; }
         public List<FacturacionItem> Items { get; set; } = new();
+        public List<FacturacionCampoExtraEntrada>? CamposExtra { get; set; }
     }
 
     public class FacturacionFormaPago
@@ -66,9 +68,20 @@ namespace SafetyReport.Models
         public int IdFormaPago { get; set; }
         public string? NumeroReferencia { get; set; }
         public int IdMonedaMaestro { get; set; }
+        public decimal? TipoCambio { get; set; }
         public int IdTipoOperacionMaestro { get; set; }
         public List<FacturacionLineaEdicion> Lineas { get; set; } = new();
         public List<FacturacionCuotaEdicion> Cuotas { get; set; } = new();
+        public List<FacturacionCampoExtraEdicion>? CamposExtra { get; set; }
+    }
+
+    // Campo extra dentro de guardar-cambios — IdCampoExtraDocumentoElectronico 0 (u omitido) = nuevo,
+    // >0 = actualizar uno existente. Distinto de FacturacionCampoExtraEntrada (usado en Insertar/InsertarLote,
+    // que no tiene Id porque ahí nada existe todavía).
+    public class FacturacionCampoExtraEdicion
+    {
+        public string Texto { get; set; } = string.Empty;
+        public int IdCampoExtraDocumentoElectronico { get; set; }
     }
 
     public class FacturacionLineaEdicion
@@ -128,6 +141,46 @@ namespace SafetyReport.Models
         public bool EsAnulacion { get; set; }
     }
 
+    // Fila de GET .../documentos-electronicos/{id}/errores-ultimo-envio — solo los errores/observaciones
+    // del último intento de envío a SUNAT, no el historial completo de reintentos anteriores.
+    public class FacturacionErrorDocumento
+    {
+        public int IdErrorDocumento { get; set; }
+        public string OrigenErrorCodigo { get; set; } = string.Empty;
+        public string CodigoError { get; set; } = string.Empty;
+        public string MensajeError { get; set; } = string.Empty;
+        public string? Campo { get; set; }
+        public string SeveridadCodigo { get; set; } = string.Empty;
+        public DateTime FchCre { get; set; }
+    }
+
+    // Fila de GET .../campos-extra — texto libre que el usuario agrega a un documento, sin relación con el
+    // esquema SUNAT.
+    public class FacturacionCampoExtra
+    {
+        public int IdCampoExtraDocumentoElectronico { get; set; }
+        public string Texto { get; set; } = string.Empty;
+    }
+
+    public class FacturacionInsertarCampoExtraRequest
+    {
+        public int IdInquilino { get; set; }
+        public int IdDocumentoElectronico { get; set; }
+        public string Texto { get; set; } = string.Empty;
+    }
+
+    public class FacturacionInsertarLoteCamposExtraRequest
+    {
+        public int IdInquilino { get; set; }
+        public int IdDocumentoElectronico { get; set; }
+        public List<FacturacionCampoExtraEntrada> CamposExtra { get; set; } = new();
+    }
+
+    public class FacturacionCampoExtraEntrada
+    {
+        public string Texto { get; set; } = string.Empty;
+    }
+
     // Payload de POST api/v1/lotes-documento/comunicacion-baja. Todos los documentos deben compartir la
     // misma FechaReferencia (regla SUNAT); ms-facturación valida eso contra la FechaEmision real de cada uno.
     public class FacturacionComunicacionBajaRequest
@@ -170,6 +223,7 @@ namespace SafetyReport.Models
         public DateOnly FechaEmision { get; set; }
         public string FormaPagoCodigo { get; set; } = string.Empty;
         public decimal TotalImporte { get; set; }
+        public string MonedaIcono { get; set; } = string.Empty;
         public string EstadoCodigo { get; set; } = string.Empty;
         public string ColorLetra { get; set; } = string.Empty;
         public string ColorFondo { get; set; } = string.Empty;

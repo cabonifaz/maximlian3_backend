@@ -1,16 +1,41 @@
 namespace SafetyReport.Models
 {
+    public class CampoExtraRequest
+    {
+        public string Texto { get; set; } = string.Empty;
+    }
+
+    // SIRE RVIE: el TXT se genera al vuelo por request, nunca se guarda en S3 — mismo criterio de
+    // exportación que CompaniaNoticiaDetalleExportacion.
+    public class SireRvieExportacion
+    {
+        public string NombreArchivo { get; set; } = string.Empty;
+        public string ContentType { get; set; } = string.Empty;
+        public byte[] Archivo { get; set; } = [];
+    }
+
+    // Campo extra dentro de guardarBorrador/guardarCambios — idCampoExtraDocumentoElectronico es 0
+    // (u omitido) para uno nuevo, o el id existente para actualizar uno ya guardado (solo aplica en
+    // guardarCambios; guardarBorrador siempre inserta, así que ahí siempre viene en 0).
+    public class CampoExtraEdicionRequest
+    {
+        public string Texto { get; set; } = string.Empty;
+        public int idCampoExtraDocumentoElectronico { get; set; }
+    }
+
     public class GuardarBorradorFacturaRequest
     {
         public int idTipoDocumentoMaestro { get; set; }
         public string? numeroReferencia { get; set; }
         public int idMonedaMaestro { get; set; }
+        public decimal? tipoCambio { get; set; }
         public int idTipoOperacionMaestro { get; set; }
         public int idFormaPago { get; set; }
         public List<GuardarBorradorFacturaCuota>? cuotas { get; set; }
         public int idCliente { get; set; }
         public GuardarBorradorFacturaDocumentoAfectado? documentoAfectado { get; set; }
         public List<GuardarBorradorFacturaLinea> lineas { get; set; } = new();
+        public List<CampoExtraRequest>? camposExtra { get; set; }
     }
 
     public class GuardarBorradorFacturaCuota
@@ -28,12 +53,14 @@ namespace SafetyReport.Models
         public string motivoDescripcion { get; set; } = string.Empty;
     }
 
-    // productoCodigo/descripcion/valorUnitario no vienen del front: se resuelven desde el propio Pedido
-    // (Codigo/NombreCliente/TARIFARIO.Precio), mismo criterio que idCliente.
+    // productoCodigo/valorUnitario no vienen del front: se resuelven desde el propio Pedido
+    // (Codigo/TARIFARIO.Precio), mismo criterio que idCliente. descripcion sí es libre: si no viene, se
+    // usa el mismo fallback de siempre (NombreCliente + tipo de trámite).
     public class GuardarBorradorFacturaLinea
     {
         public int idPedido { get; set; }
         public string? productoSunatCodigo { get; set; }
+        public string? descripcion { get; set; }
         public int idUnidadMedidaMaestro { get; set; }
         public decimal cantidad { get; set; }
         public decimal montoDescuento { get; set; }
@@ -49,17 +76,21 @@ namespace SafetyReport.Models
         public int idFormaPago { get; set; }
         public string? numeroReferencia { get; set; }
         public int idMonedaMaestro { get; set; }
+        public decimal? tipoCambio { get; set; }
         public int idTipoOperacionMaestro { get; set; }
         public List<GuardarCambiosFacturaLinea> lineas { get; set; } = new();
         public List<GuardarCambiosFacturaCuota> cuotas { get; set; } = new();
+        public List<CampoExtraEdicionRequest>? camposExtra { get; set; }
     }
 
-    // productoCodigo/descripcion no vienen del front, mismo criterio que GuardarBorradorFacturaLinea.
-    // idLineaDocumentoElectronico: 0 (u omitido) = línea nueva, >0 = actualizar una ya guardada.
+    // productoCodigo no viene del front, mismo criterio que GuardarBorradorFacturaLinea. descripcion sí es
+    // libre, mismo fallback si no viene. idLineaDocumentoElectronico: 0 (u omitido) = línea nueva, >0 =
+    // actualizar una ya guardada.
     public class GuardarCambiosFacturaLinea
     {
         public int idPedido { get; set; }
         public string? productoSunatCodigo { get; set; }
+        public string? descripcion { get; set; }
         public int idUnidadMedidaMaestro { get; set; }
         public decimal cantidad { get; set; }
         public decimal montoDescuento { get; set; }
