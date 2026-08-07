@@ -415,7 +415,7 @@ namespace SafetyReport.DAO
             try
             {
                 using SqlConnection cn = new(_dbConfig.ConnectionString);
-                using SqlCommand cmd = new("SP_UsuarioAsignacion_Listar_Corta", cn);
+                using SqlCommand cmd = new("SP_UsuarioAsignacion_ListaCorta", cn);
 
                 cmd.CommandType = CommandType.StoredProcedure;
                 cmd.Parameters.Add("@intIdUsuario", SqlDbType.Int).Value = usuarioActual.IdUsuario;

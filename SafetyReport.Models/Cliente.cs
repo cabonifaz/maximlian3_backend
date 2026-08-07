@@ -180,6 +180,8 @@
         public int PedidosFacturados { get; set; }
         public string? IdIdiomaFacturacion { get; set; }
         public string? EstadoFacturacion { get; set; }
+        public string? ColorTexto { get; set; }
+        public string? ColorFondo { get; set; }
     }
 
     public class FiltroClientePedidosFacturacion
