@@ -615,7 +615,9 @@ namespace SafetyReport.DAO
                                 TotalPedidos = Convert.ToInt32(dr["TotalPedidos"]),
                                 PedidosFacturados = Convert.ToInt32(dr["PedidosFacturados"]),
                                 IdIdiomaFacturacion = GetNullableString(dr, "IdIdiomaFacturacion"),
-                                EstadoFacturacion = GetNullableString(dr, "EstadoFacturacion")
+                                EstadoFacturacion = GetNullableString(dr, "EstadoFacturacion"),
+                                ColorTexto = GetNullableString(dr, "ColorTexto"),
+                                ColorFondo = GetNullableString(dr, "ColorFondo")
                             });
                         }
                     }
