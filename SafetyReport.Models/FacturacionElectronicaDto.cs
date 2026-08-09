@@ -43,7 +43,6 @@ namespace SafetyReport.Models
     public class FacturacionDocumentoAfectado
     {
         public int IdDocumentoElectronicoRelacionado { get; set; }
-        public string TipoReferenciaCodigo { get; set; } = string.Empty;
         public string MotivoCodigo { get; set; } = string.Empty;
         public string MotivoDescripcion { get; set; } = string.Empty;
     }
