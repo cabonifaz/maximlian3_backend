@@ -31,6 +31,13 @@ namespace SafetyReport.WebApi.Controllers
             return Ok(respuesta);
         }
 
+        [HttpPut("notaCreditoDebito/{idDocumentoElectronico:int}")]
+        public async Task<IActionResult> EditarNotaCreditoDebito(int idDocumentoElectronico, [FromBody] EditarNotaCreditoDebitoRequest request)
+        {
+            var respuesta = await _pedidoFacturaHandler.EditarNotaCreditoDebitoAsync(UsuarioLogueado, idDocumentoElectronico, request);
+            return Ok(respuesta);
+        }
+
         [HttpGet("resumen")]
         public async Task<IActionResult> ObtenerResumen([FromQuery] DateOnly? fechaDesde, [FromQuery] DateOnly? fechaHasta)
         {

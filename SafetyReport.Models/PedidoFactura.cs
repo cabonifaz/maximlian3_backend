@@ -98,6 +98,38 @@ namespace SafetyReport.Models
         public decimal porcentajeIgv { get; set; }
     }
 
+    // Editar una Nota de Crédito/Débito existente (PendienteEnvio) — mismo criterio que
+    // GuardarCambiosFacturaRequest, pero sin idPedido: las líneas siguen siendo texto libre completo, igual
+    // que en GenerarNotaCreditoDebitoRequest. El cliente y documentoAfectado no se editan acá (se fijan al
+    // crear, ms-facturación no lo permite).
+    public class EditarNotaCreditoDebitoRequest
+    {
+        public int idFormaPago { get; set; }
+        public string? numeroReferencia { get; set; }
+        public int idMonedaMaestro { get; set; }
+        public decimal? tipoCambio { get; set; }
+        public int idTipoOperacionMaestro { get; set; }
+        public List<NotaCreditoDebitoLineaEdicion> lineas { get; set; } = new();
+        public List<GuardarCambiosFacturaCuota> cuotas { get; set; } = new();
+        public List<CampoExtraEdicionRequest>? camposExtra { get; set; }
+    }
+
+    // Mismo criterio que NotaCreditoDebitoLinea (todo texto libre, sin idPedido) + idLineaDocumentoElectronico
+    // (0 u omitido = línea nueva, >0 = actualizar una ya guardada), igual que GuardarCambiosFacturaLinea.
+    public class NotaCreditoDebitoLineaEdicion
+    {
+        public string productoCodigo { get; set; } = string.Empty;
+        public string? productoSunatCodigo { get; set; }
+        public string descripcion { get; set; } = string.Empty;
+        public int idUnidadMedidaMaestro { get; set; }
+        public decimal cantidad { get; set; }
+        public decimal valorUnitario { get; set; }
+        public decimal montoDescuento { get; set; }
+        public int idAfectacionIgvMaestro { get; set; }
+        public decimal porcentajeIgv { get; set; }
+        public int idLineaDocumentoElectronico { get; set; }
+    }
+
     // productoCodigo/valorUnitario no vienen del front: se resuelven desde el propio Pedido
     // (Codigo/TARIFARIO.Precio), mismo criterio que idCliente. descripcion sí es libre: si no viene, se
     // usa el mismo fallback de siempre (NombreCliente + tipo de trámite).
