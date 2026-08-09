@@ -24,6 +24,13 @@ namespace SafetyReport.WebApi.Controllers
             return Ok(respuesta);
         }
 
+        [HttpPost("notaCreditoDebito")]
+        public async Task<IActionResult> GenerarNotaCreditoDebito([FromBody] GenerarNotaCreditoDebitoRequest request)
+        {
+            var respuesta = await _pedidoFacturaHandler.GenerarNotaCreditoDebitoAsync(UsuarioLogueado, request);
+            return Ok(respuesta);
+        }
+
         [HttpGet("resumen")]
         public async Task<IActionResult> ObtenerResumen([FromQuery] DateOnly? fechaDesde, [FromQuery] DateOnly? fechaHasta)
         {

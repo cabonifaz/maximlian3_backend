@@ -440,6 +440,86 @@ namespace SafetyReport.Handlers
             }
         }
 
+        // A diferencia de GuardarBorradorFacturaAsync (líneas/cliente resueltos desde Pedido/Tarifario/
+        // CLIENTES), acá no hay Pedido de por medio: la Nota de Crédito/Débito referencia un documento ya
+        // emitido (documentoAfectado, obligatorio) y el front manda cliente e ítems completos. No se
+        // registra nada en PEDIDO_FACTURA porque no hay idPedido al que atar el envío.
+        public async Task<Respuesta> GenerarNotaCreditoDebitoAsync(UsuarioGeneral usuarioLogueado, GenerarNotaCreditoDebitoRequest request)
+        {
+            try
+            {
+                if (request.lineas.Count == 0)
+                {
+                    return new Respuesta { IdTipoMensaje = 1, Mensaje = "La nota debe tener al menos una línea." };
+                }
+
+                var facturacionRequest = new FacturacionInsertarDocumentoRequest
+                {
+                    IdInquilino = usuarioLogueado.IdEmpresa,
+                    IdEmpresa = 1, // TODO: resolver desde EMPRESAS de ms-facturación, mismo TODO que GuardarBorradorFacturaAsync.
+                    IdExterno = request.documentoAfectado.idDocumentoElectronicoRelacionado.ToString(),
+                    NumeroReferencia = request.numeroReferencia,
+                    IdTipoDocumentoMaestro = request.idTipoDocumentoMaestro,
+                    IdMonedaMaestro = request.idMonedaMaestro,
+                    TipoCambio = request.tipoCambio,
+                    IdTipoOperacionMaestro = request.idTipoOperacionMaestro,
+                    FormaPago = new FacturacionFormaPago
+                    {
+                        IdFormaPago = request.idFormaPago,
+                        Cuotas = request.cuotas?.Select(c => new FacturacionCuota
+                        {
+                            NumeroCuota = c.numeroCuota,
+                            FechaVencimiento = c.fechaVencimiento,
+                            Monto = c.monto
+                        }).ToList()
+                    },
+                    Cliente = new FacturacionCliente
+                    {
+                        IdTipoDocumentoSunat = request.cliente.idTipoDocumentoSunat,
+                        NumeroDocumento = request.cliente.numeroDocumento,
+                        Nombre = request.cliente.nombre,
+                        Correo = request.cliente.correo,
+                        Direccion = request.cliente.direccion,
+                        PaisCodigo = request.cliente.paisCodigo
+                    },
+                    DocumentoAfectado = new FacturacionDocumentoAfectado
+                    {
+                        IdDocumentoElectronicoRelacionado = request.documentoAfectado.idDocumentoElectronicoRelacionado,
+                        TipoReferenciaCodigo = request.documentoAfectado.tipoReferenciaCodigo,
+                        MotivoCodigo = request.documentoAfectado.motivoCodigo,
+                        MotivoDescripcion = request.documentoAfectado.motivoDescripcion
+                    },
+                    Items = request.lineas.Select((l, i) => new FacturacionItem
+                    {
+                        NumeroLinea = i + 1,
+                        ProductoCodigo = l.productoCodigo,
+                        ProductoSunatCodigo = l.productoSunatCodigo,
+                        Descripcion = l.descripcion,
+                        IdUnidadMedidaMaestro = l.idUnidadMedidaMaestro,
+                        Cantidad = l.cantidad,
+                        ValorUnitario = l.valorUnitario,
+                        MontoDescuento = l.montoDescuento,
+                        IdAfectacionIgvMaestro = l.idAfectacionIgvMaestro,
+                        PorcentajeIgv = l.porcentajeIgv
+                    }).ToList(),
+                    CamposExtra = request.camposExtra?.Select(c => new FacturacionCampoExtraEntrada { Texto = c.Texto }).ToList()
+                };
+
+                var insertado = await _facturacionService.InsertarDocumentoAsync(facturacionRequest, CancellationToken.None);
+                if (insertado is null || insertado.IdTipoMensaje != 2 || insertado.Datos is null)
+                {
+                    return new Respuesta { IdTipoMensaje = insertado?.IdTipoMensaje ?? 3, Mensaje = insertado?.Mensaje ?? "No se pudo crear el documento electrónico en facturación." };
+                }
+
+                return ResultadoOperacionExito(insertado.Datos.IdDocumentoElectronico);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error no controlado en la capa de negocio.");
+                return new Respuesta { IdTipoMensaje = 3, Mensaje = ex.Message };
+            }
+        }
+
         // Edita un documento existente en PendienteEnvio (lineas/cuotas/formaPago/numeroReferencia). El
         // cliente no se toca acá — ms-facturación no lo permite (solo se fija una vez, al Insertar).
         public async Task<Respuesta> GuardarCambiosFacturaAsync(

@@ -53,6 +53,53 @@ namespace SafetyReport.Models
         public string motivoDescripcion { get; set; } = string.Empty;
     }
 
+    // Payload de guardarBorrador/notaCreditoDebito: a diferencia de GuardarBorradorFacturaRequest (pensado
+    // para Factura/Boleta, donde cliente/línea se resuelven desde un Pedido vía idPedido/idCliente), acá el
+    // front manda cliente e ítems completos porque una Nota de Crédito/Débito no está atada a un Pedido —
+    // referencia otro documento electrónico ya emitido (documentoAfectado, obligatorio acá).
+    public class GenerarNotaCreditoDebitoRequest
+    {
+        public int idTipoDocumentoMaestro { get; set; }
+        public string? numeroReferencia { get; set; }
+        public int idMonedaMaestro { get; set; }
+        public decimal? tipoCambio { get; set; }
+        public int idTipoOperacionMaestro { get; set; }
+        public int idFormaPago { get; set; }
+        public List<GuardarBorradorFacturaCuota>? cuotas { get; set; }
+        public NotaCreditoDebitoCliente cliente { get; set; } = new();
+        public GuardarBorradorFacturaDocumentoAfectado documentoAfectado { get; set; } = new();
+        public List<NotaCreditoDebitoLinea> lineas { get; set; } = new();
+        public List<CampoExtraRequest>? camposExtra { get; set; }
+    }
+
+    // Mismos campos que FacturacionCliente (ms-facturación) — acá el front lo manda completo, no se resuelve
+    // desde CLIENTES vía idCliente como en GuardarBorradorFacturaRequest.
+    public class NotaCreditoDebitoCliente
+    {
+        public int idTipoDocumentoSunat { get; set; }
+        public string numeroDocumento { get; set; } = string.Empty;
+        public string? nombre { get; set; }
+        public string? correo { get; set; }
+        public string? direccion { get; set; }
+        public int paisCodigo { get; set; }
+    }
+
+    // productoCodigo/valorUnitario vienen completos del front acá (a diferencia de GuardarBorradorFacturaLinea,
+    // que los resuelve desde Pedido/Tarifario) porque una línea de NC/ND no corresponde a un Pedido propio —
+    // normalmente replica (total o parcialmente) una línea del documento afectado.
+    public class NotaCreditoDebitoLinea
+    {
+        public string productoCodigo { get; set; } = string.Empty;
+        public string? productoSunatCodigo { get; set; }
+        public string descripcion { get; set; } = string.Empty;
+        public int idUnidadMedidaMaestro { get; set; }
+        public decimal cantidad { get; set; }
+        public decimal valorUnitario { get; set; }
+        public decimal montoDescuento { get; set; }
+        public int idAfectacionIgvMaestro { get; set; }
+        public decimal porcentajeIgv { get; set; }
+    }
+
     // productoCodigo/valorUnitario no vienen del front: se resuelven desde el propio Pedido
     // (Codigo/TARIFARIO.Precio), mismo criterio que idCliente. descripcion sí es libre: si no viene, se
     // usa el mismo fallback de siempre (NombreCliente + tipo de trámite).
