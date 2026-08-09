@@ -68,6 +68,9 @@ namespace SafetyReport.Models
         public int IdMonedaMaestro { get; set; }
         public decimal? TipoCambio { get; set; }
         public int IdTipoOperacionMaestro { get; set; }
+        // Solo aplica a Nota de Crédito/Débito (null en Factura/Boleta) — a diferencia de documentoAfectado
+        // (fijo desde Insertar), el motivo sí es editable mientras el documento siga PendienteEnvio.
+        public int? IdMotivoMaestro { get; set; }
         public List<FacturacionLineaEdicion> Lineas { get; set; } = new();
         public List<FacturacionCuotaEdicion> Cuotas { get; set; } = new();
         public List<FacturacionCampoExtraEdicion>? CamposExtra { get; set; }

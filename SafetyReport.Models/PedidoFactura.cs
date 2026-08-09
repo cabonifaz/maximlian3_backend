@@ -102,8 +102,9 @@ namespace SafetyReport.Models
 
     // Editar una Nota de Crédito/Débito existente (PendienteEnvio) — mismo criterio que
     // GuardarCambiosFacturaRequest, pero sin idPedido: las líneas siguen siendo texto libre completo, igual
-    // que en GenerarNotaCreditoDebitoRequest. El cliente y documentoAfectado no se editan acá (se fijan al
-    // crear, ms-facturación no lo permite).
+    // que en GenerarNotaCreditoDebitoRequest. El cliente y idDocumentoElectronicoRelacionado no se editan
+    // acá (se fijan al crear, ms-facturación no lo permite) — idMotivoMaestro sí, es un detalle de negocio
+    // corregible mientras el documento siga PendienteEnvio.
     public class EditarNotaCreditoDebitoRequest
     {
         public int idFormaPago { get; set; }
@@ -111,6 +112,7 @@ namespace SafetyReport.Models
         public int idMonedaMaestro { get; set; }
         public decimal? tipoCambio { get; set; }
         public int idTipoOperacionMaestro { get; set; }
+        public int idMotivoMaestro { get; set; }
         public List<NotaCreditoDebitoLineaEdicion> lineas { get; set; } = new();
         public List<GuardarCambiosFacturaCuota> cuotas { get; set; } = new();
         public List<CampoExtraEdicionRequest>? camposExtra { get; set; }
