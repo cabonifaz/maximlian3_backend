@@ -62,6 +62,17 @@ namespace SafetyReport.Handlers
             return await respuesta.Content.ReadFromJsonAsync<FacturacionEnvelope<object>>(JsonOptions, cancellationToken);
         }
 
+        // Snapshot de cliente de un documento ya emitido, sin resolver los Num1 — para prellenar el
+        // receptor de una Nota de Crédito/Débito con el mismo cliente del documento afectado (ver
+        // PedidoFacturaHandler.ObtenerClienteDocumentoAsync / GenerarNotaCreditoDebitoAsync).
+        public async Task<FacturacionEnvelope<FacturacionCliente>?> ObtenerClienteDocumentoAsync(
+            int idInquilino, int idDocumentoElectronico, CancellationToken cancellationToken)
+        {
+            var url = $"api/v1/documentos-electronicos/{idDocumentoElectronico}/cliente?idInquilino={idInquilino}";
+            var respuesta = await _httpClient.GetAsync(url, cancellationToken);
+            return await respuesta.Content.ReadFromJsonAsync<FacturacionEnvelope<FacturacionCliente>>(JsonOptions, cancellationToken);
+        }
+
         // El token nunca viene en ObtenerDocumentoAsync a propósito (ms-facturación no lo expone vía
         // Obtener) — este es el único camino autenticado para conseguirlo, y solo sirve para armar el link
         // de verificación pública (ver PedidoFacturaHandler.ObtenerUrlVerificacionAsync).

@@ -77,6 +77,30 @@ namespace SafetyReport.Handlers
             }
         }
 
+        // Snapshot de cliente de una Factura/Boleta ya emitida — para prellenar "cliente" en
+        // GenerarNotaCreditoDebitoAsync con el mismo receptor del documento afectado, sin que el front
+        // tenga que volver a tipear sus datos.
+        public async Task<Respuesta> ObtenerClienteDocumentoAsync(UsuarioGeneral usuarioLogueado, int idDocumentoElectronico)
+        {
+            try
+            {
+                var resultado = await _facturacionService.ObtenerClienteDocumentoAsync(
+                    usuarioLogueado.IdEmpresa, idDocumentoElectronico, CancellationToken.None);
+
+                if (resultado is null || resultado.IdTipoMensaje != 2 || resultado.Datos is null)
+                {
+                    return new Respuesta { IdTipoMensaje = resultado?.IdTipoMensaje ?? 3, Mensaje = resultado?.Mensaje ?? "No se pudo obtener el cliente del documento electrónico." };
+                }
+
+                return new Respuesta { IdTipoMensaje = 2, Mensaje = "Consulta exitosa.", Result = resultado.Datos };
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error no controlado en la capa de negocio.");
+                return new Respuesta { IdTipoMensaje = 3, Mensaje = ex.Message };
+            }
+        }
+
         // Arma el link público de verificación ({Cors:AllowedOrigins[0]}/factura/{token}) — el front de este
         // proyecto solo corre en un origin, así que reusar el primer AllowedOrigins evita mantener la misma
         // URL duplicada en dos claves de config. Si algún día AllowedOrigins tiene más de un origin real
