@@ -414,11 +414,6 @@ namespace SafetyReport.Handlers
                         Direccion = clienteDatos.Direccion,
                         PaisCodigo = clienteDatos.IdPais
                     },
-                    DocumentoAfectado = request.documentoAfectado is null ? null : new FacturacionDocumentoAfectado
-                    {
-                        IdDocumentoElectronicoRelacionado = request.documentoAfectado.idDocumentoElectronicoRelacionado,
-                        IdMotivoMaestro = request.documentoAfectado.idMotivoMaestro
-                    },
                     Items = request.lineas.Select((l, i) => new FacturacionItem
                     {
                         NumeroLinea = i + 1,

@@ -23,6 +23,9 @@ namespace SafetyReport.Models
         public int idCampoExtraDocumentoElectronico { get; set; }
     }
 
+    // Exclusivo para Factura/Boleta — la Nota de Crédito/Débito tiene su propio endpoint dedicado
+    // (GenerarNotaCreditoDebitoRequest, notaCreditoDebito) porque no está atada a un Pedido; documentoAfectado
+    // no viaja acá, no tendría de dónde salir (líneas se resuelven vía idPedido, nunca desde otro documento).
     public class GuardarBorradorFacturaRequest
     {
         public int idTipoDocumentoMaestro { get; set; }
@@ -33,7 +36,6 @@ namespace SafetyReport.Models
         public int idFormaPago { get; set; }
         public List<GuardarBorradorFacturaCuota>? cuotas { get; set; }
         public int idCliente { get; set; }
-        public GuardarBorradorFacturaDocumentoAfectado? documentoAfectado { get; set; }
         public List<GuardarBorradorFacturaLinea> lineas { get; set; } = new();
         public List<CampoExtraRequest>? camposExtra { get; set; }
     }
