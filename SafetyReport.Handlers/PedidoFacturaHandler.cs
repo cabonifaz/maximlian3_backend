@@ -417,8 +417,7 @@ namespace SafetyReport.Handlers
                     DocumentoAfectado = request.documentoAfectado is null ? null : new FacturacionDocumentoAfectado
                     {
                         IdDocumentoElectronicoRelacionado = request.documentoAfectado.idDocumentoElectronicoRelacionado,
-                        MotivoCodigo = request.documentoAfectado.motivoCodigo,
-                        MotivoDescripcion = request.documentoAfectado.motivoDescripcion
+                        IdMotivoMaestro = request.documentoAfectado.idMotivoMaestro
                     },
                     Items = request.lineas.Select((l, i) => new FacturacionItem
                     {
@@ -508,8 +507,7 @@ namespace SafetyReport.Handlers
                     DocumentoAfectado = new FacturacionDocumentoAfectado
                     {
                         IdDocumentoElectronicoRelacionado = request.documentoAfectado.idDocumentoElectronicoRelacionado,
-                        MotivoCodigo = request.documentoAfectado.motivoCodigo,
-                        MotivoDescripcion = request.documentoAfectado.motivoDescripcion
+                        IdMotivoMaestro = request.documentoAfectado.idMotivoMaestro
                     },
                     Items = request.lineas.Select((l, i) => new FacturacionItem
                     {

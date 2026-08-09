@@ -48,8 +48,7 @@ namespace SafetyReport.Models
     public class GuardarBorradorFacturaDocumentoAfectado
     {
         public int idDocumentoElectronicoRelacionado { get; set; }
-        public string motivoCodigo { get; set; } = string.Empty;
-        public string motivoDescripcion { get; set; } = string.Empty;
+        public int idMotivoMaestro { get; set; }
     }
 
     // Payload de guardarBorrador/notaCreditoDebito: a diferencia de GuardarBorradorFacturaRequest (pensado
