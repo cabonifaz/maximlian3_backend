@@ -66,10 +66,10 @@ namespace SafetyReport.WebApi.Controllers
             return Ok(respuesta);
         }
 
-        [HttpGet("facturaPorId/{idDocumentoElectronico:int}/cliente")]
-        public async Task<IActionResult> ObtenerClienteDocumento(int idDocumentoElectronico)
+        [HttpGet("facturaPorId/{idDocumentoElectronico:int}/paraNota")]
+        public async Task<IActionResult> ObtenerParaNota(int idDocumentoElectronico)
         {
-            var respuesta = await _pedidoFacturaHandler.ObtenerClienteDocumentoAsync(UsuarioLogueado, idDocumentoElectronico);
+            var respuesta = await _pedidoFacturaHandler.ObtenerParaNotaAsync(UsuarioLogueado, idDocumentoElectronico);
             return Ok(respuesta);
         }
 

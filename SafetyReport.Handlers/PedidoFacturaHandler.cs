@@ -77,19 +77,19 @@ namespace SafetyReport.Handlers
             }
         }
 
-        // Snapshot de cliente de una Factura/Boleta ya emitida — para prellenar "cliente" en
-        // GenerarNotaCreditoDebitoAsync con el mismo receptor del documento afectado, sin que el front
+        // Cliente + listado de productos de una Factura/Boleta ya emitida — para prellenar "cliente" y
+        // listar los productos del documento afectado en GenerarNotaCreditoDebitoAsync, sin que el front
         // tenga que volver a tipear sus datos.
-        public async Task<Respuesta> ObtenerClienteDocumentoAsync(UsuarioGeneral usuarioLogueado, int idDocumentoElectronico)
+        public async Task<Respuesta> ObtenerParaNotaAsync(UsuarioGeneral usuarioLogueado, int idDocumentoElectronico)
         {
             try
             {
-                var resultado = await _facturacionService.ObtenerClienteDocumentoAsync(
+                var resultado = await _facturacionService.ObtenerParaNotaAsync(
                     usuarioLogueado.IdEmpresa, idDocumentoElectronico, CancellationToken.None);
 
                 if (resultado is null || resultado.IdTipoMensaje != 2 || resultado.Datos is null)
                 {
-                    return new Respuesta { IdTipoMensaje = resultado?.IdTipoMensaje ?? 3, Mensaje = resultado?.Mensaje ?? "No se pudo obtener el cliente del documento electrónico." };
+                    return new Respuesta { IdTipoMensaje = resultado?.IdTipoMensaje ?? 3, Mensaje = resultado?.Mensaje ?? "No se pudo obtener los datos del documento electrónico." };
                 }
 
                 return new Respuesta { IdTipoMensaje = 2, Mensaje = "Consulta exitosa.", Result = resultado.Datos };

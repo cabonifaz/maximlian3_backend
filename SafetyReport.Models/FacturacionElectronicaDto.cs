@@ -40,6 +40,22 @@ namespace SafetyReport.Models
         public int PaisCodigo { get; set; }
     }
 
+    // Respuesta de GET .../para-nota — cliente + listado de productos de un documento ya emitido, para
+    // prellenar/listar ambos al armar una Nota de Crédito/Débito contra ese documento.
+    public class FacturacionDatosParaNota
+    {
+        public FacturacionCliente Cliente { get; set; } = new();
+        public List<FacturacionProductoResumen> Productos { get; set; } = new();
+    }
+
+    // Solo el código de producto de cada línea del documento — referencia para el usuario, no se copia
+    // cantidad/precio/IGV.
+    public class FacturacionProductoResumen
+    {
+        public int NumeroLinea { get; set; }
+        public string ProductoCodigo { get; set; } = string.Empty;
+    }
+
     public class FacturacionDocumentoAfectado
     {
         public int IdDocumentoElectronicoRelacionado { get; set; }
