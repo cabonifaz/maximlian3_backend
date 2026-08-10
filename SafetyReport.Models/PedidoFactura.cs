@@ -23,6 +23,9 @@ namespace SafetyReport.Models
         public int idCampoExtraDocumentoElectronico { get; set; }
     }
 
+    // Exclusivo para Factura/Boleta — la Nota de Crédito/Débito tiene su propio endpoint dedicado
+    // (GenerarNotaCreditoDebitoRequest, notaCreditoDebito) porque no está atada a un Pedido; documentoAfectado
+    // no viaja acá, no tendría de dónde salir (líneas se resuelven vía idPedido, nunca desde otro documento).
     public class GuardarBorradorFacturaRequest
     {
         public int idTipoDocumentoMaestro { get; set; }
@@ -33,7 +36,6 @@ namespace SafetyReport.Models
         public int idFormaPago { get; set; }
         public List<GuardarBorradorFacturaCuota>? cuotas { get; set; }
         public int idCliente { get; set; }
-        public GuardarBorradorFacturaDocumentoAfectado? documentoAfectado { get; set; }
         public List<GuardarBorradorFacturaLinea> lineas { get; set; } = new();
         public List<CampoExtraRequest>? camposExtra { get; set; }
     }
@@ -48,9 +50,87 @@ namespace SafetyReport.Models
     public class GuardarBorradorFacturaDocumentoAfectado
     {
         public int idDocumentoElectronicoRelacionado { get; set; }
-        public string tipoReferenciaCodigo { get; set; } = string.Empty;
-        public string motivoCodigo { get; set; } = string.Empty;
-        public string motivoDescripcion { get; set; } = string.Empty;
+        public int idMotivoMaestro { get; set; }
+    }
+
+    // Payload de guardarBorrador/notaCreditoDebito: a diferencia de GuardarBorradorFacturaRequest (pensado
+    // para Factura/Boleta, donde cliente/línea se resuelven desde un Pedido vía idPedido/idCliente), acá el
+    // front manda cliente e ítems completos porque una Nota de Crédito/Débito no está atada a un Pedido —
+    // referencia otro documento electrónico ya emitido (documentoAfectado, obligatorio acá). Sin
+    // idFormaPago/cuotas: una Nota de Crédito/Débito no tiene forma de pago propia (no existe
+    // cac:PaymentTerms en el contenido documentado de CreditNote/DebitNote, Guía de Elaboración XML UBL 2.1
+    // SUNAT) — es un dato de la Factura/Boleta original, la nota solo ajusta montos contra ella.
+    public class GenerarNotaCreditoDebitoRequest
+    {
+        public int idTipoDocumentoMaestro { get; set; }
+        public string? numeroReferencia { get; set; }
+        public int idMonedaMaestro { get; set; }
+        public decimal? tipoCambio { get; set; }
+        public int idTipoOperacionMaestro { get; set; }
+        public NotaCreditoDebitoCliente cliente { get; set; } = new();
+        public GuardarBorradorFacturaDocumentoAfectado documentoAfectado { get; set; } = new();
+        public List<NotaCreditoDebitoLinea> lineas { get; set; } = new();
+        public List<CampoExtraRequest>? camposExtra { get; set; }
+    }
+
+    // Mismos campos que FacturacionCliente (ms-facturación) — acá el front lo manda completo, no se resuelve
+    // desde CLIENTES vía idCliente como en GuardarBorradorFacturaRequest.
+    public class NotaCreditoDebitoCliente
+    {
+        public int idTipoDocumentoSunat { get; set; }
+        public string numeroDocumento { get; set; } = string.Empty;
+        public string? nombre { get; set; }
+        public string? correo { get; set; }
+        public string? direccion { get; set; }
+        public int paisCodigo { get; set; }
+    }
+
+    // productoCodigo/valorUnitario vienen completos del front acá (a diferencia de GuardarBorradorFacturaLinea,
+    // que los resuelve desde Pedido/Tarifario) porque una línea de NC/ND no corresponde a un Pedido propio —
+    // normalmente replica (total o parcialmente) una línea del documento afectado.
+    public class NotaCreditoDebitoLinea
+    {
+        public string productoCodigo { get; set; } = string.Empty;
+        public string? productoSunatCodigo { get; set; }
+        public string descripcion { get; set; } = string.Empty;
+        public int idUnidadMedidaMaestro { get; set; }
+        public decimal cantidad { get; set; }
+        public decimal valorUnitario { get; set; }
+        public decimal montoDescuento { get; set; }
+        public int idAfectacionIgvMaestro { get; set; }
+        public decimal porcentajeIgv { get; set; }
+    }
+
+    // Editar una Nota de Crédito/Débito existente (PendienteEnvio) — mismo criterio que
+    // GuardarCambiosFacturaRequest, pero sin idPedido: las líneas siguen siendo texto libre completo, igual
+    // que en GenerarNotaCreditoDebitoRequest. El cliente y idDocumentoElectronicoRelacionado no se editan
+    // acá (se fijan al crear, ms-facturación no lo permite) — idMotivoMaestro sí, es un detalle de negocio
+    // corregible mientras el documento siga PendienteEnvio.
+    public class EditarNotaCreditoDebitoRequest
+    {
+        public string? numeroReferencia { get; set; }
+        public int idMonedaMaestro { get; set; }
+        public decimal? tipoCambio { get; set; }
+        public int idTipoOperacionMaestro { get; set; }
+        public int idMotivoMaestro { get; set; }
+        public List<NotaCreditoDebitoLineaEdicion> lineas { get; set; } = new();
+        public List<CampoExtraEdicionRequest>? camposExtra { get; set; }
+    }
+
+    // Mismo criterio que NotaCreditoDebitoLinea (todo texto libre, sin idPedido) + idLineaDocumentoElectronico
+    // (0 u omitido = línea nueva, >0 = actualizar una ya guardada), igual que GuardarCambiosFacturaLinea.
+    public class NotaCreditoDebitoLineaEdicion
+    {
+        public string productoCodigo { get; set; } = string.Empty;
+        public string? productoSunatCodigo { get; set; }
+        public string descripcion { get; set; } = string.Empty;
+        public int idUnidadMedidaMaestro { get; set; }
+        public decimal cantidad { get; set; }
+        public decimal valorUnitario { get; set; }
+        public decimal montoDescuento { get; set; }
+        public int idAfectacionIgvMaestro { get; set; }
+        public decimal porcentajeIgv { get; set; }
+        public int idLineaDocumentoElectronico { get; set; }
     }
 
     // productoCodigo/valorUnitario no vienen del front: se resuelven desde el propio Pedido

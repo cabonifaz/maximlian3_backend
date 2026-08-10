@@ -77,6 +77,30 @@ namespace SafetyReport.Handlers
             }
         }
 
+        // Cliente + listado de productos de una Factura/Boleta ya emitida — para prellenar "cliente" y
+        // listar los productos del documento afectado en GenerarNotaCreditoDebitoAsync, sin que el front
+        // tenga que volver a tipear sus datos.
+        public async Task<Respuesta> ObtenerParaNotaAsync(UsuarioGeneral usuarioLogueado, int idDocumentoElectronico)
+        {
+            try
+            {
+                var resultado = await _facturacionService.ObtenerParaNotaAsync(
+                    usuarioLogueado.IdEmpresa, idDocumentoElectronico, CancellationToken.None);
+
+                if (resultado is null || resultado.IdTipoMensaje != 2 || resultado.Datos is null)
+                {
+                    return new Respuesta { IdTipoMensaje = resultado?.IdTipoMensaje ?? 3, Mensaje = resultado?.Mensaje ?? "No se pudo obtener los datos del documento electrónico." };
+                }
+
+                return new Respuesta { IdTipoMensaje = 2, Mensaje = "Consulta exitosa.", Result = resultado.Datos };
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error no controlado en la capa de negocio.");
+                return new Respuesta { IdTipoMensaje = 3, Mensaje = ex.Message };
+            }
+        }
+
         // Arma el link público de verificación ({Cors:AllowedOrigins[0]}/factura/{token}) — el front de este
         // proyecto solo corre en un origin, así que reusar el primer AllowedOrigins evita mantener la misma
         // URL duplicada en dos claves de config. Si algún día AllowedOrigins tiene más de un origin real
@@ -390,13 +414,6 @@ namespace SafetyReport.Handlers
                         Direccion = clienteDatos.Direccion,
                         PaisCodigo = clienteDatos.IdPais
                     },
-                    DocumentoAfectado = request.documentoAfectado is null ? null : new FacturacionDocumentoAfectado
-                    {
-                        IdDocumentoElectronicoRelacionado = request.documentoAfectado.idDocumentoElectronicoRelacionado,
-                        TipoReferenciaCodigo = request.documentoAfectado.tipoReferenciaCodigo,
-                        MotivoCodigo = request.documentoAfectado.motivoCodigo,
-                        MotivoDescripcion = request.documentoAfectado.motivoDescripcion
-                    },
                     Items = request.lineas.Select((l, i) => new FacturacionItem
                     {
                         NumeroLinea = i + 1,
@@ -429,6 +446,76 @@ namespace SafetyReport.Handlers
                     _logger.LogWarning(
                         "No se pudo registrar el borrador de facturación para los pedidos {IdPedidos}: {Mensaje}",
                         string.Join(",", idPedidos), registro.Mensaje);
+                }
+
+                return ResultadoOperacionExito(insertado.Datos.IdDocumentoElectronico);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error no controlado en la capa de negocio.");
+                return new Respuesta { IdTipoMensaje = 3, Mensaje = ex.Message };
+            }
+        }
+
+        // A diferencia de GuardarBorradorFacturaAsync (líneas/cliente resueltos desde Pedido/Tarifario/
+        // CLIENTES), acá no hay Pedido de por medio: la Nota de Crédito/Débito referencia un documento ya
+        // emitido (documentoAfectado, obligatorio) y el front manda cliente e ítems completos. No se
+        // registra nada en PEDIDO_FACTURA porque no hay idPedido al que atar el envío.
+        public async Task<Respuesta> GenerarNotaCreditoDebitoAsync(UsuarioGeneral usuarioLogueado, GenerarNotaCreditoDebitoRequest request)
+        {
+            try
+            {
+                if (request.lineas.Count == 0)
+                {
+                    return new Respuesta { IdTipoMensaje = 1, Mensaje = "La nota debe tener al menos una línea." };
+                }
+
+                var facturacionRequest = new FacturacionInsertarDocumentoRequest
+                {
+                    IdInquilino = usuarioLogueado.IdEmpresa,
+                    IdEmpresa = 1, // TODO: resolver desde EMPRESAS de ms-facturación, mismo TODO que GuardarBorradorFacturaAsync.
+                    IdExterno = request.documentoAfectado.idDocumentoElectronicoRelacionado.ToString(),
+                    NumeroReferencia = request.numeroReferencia,
+                    IdTipoDocumentoMaestro = request.idTipoDocumentoMaestro,
+                    IdMonedaMaestro = request.idMonedaMaestro,
+                    TipoCambio = request.tipoCambio,
+                    IdTipoOperacionMaestro = request.idTipoOperacionMaestro,
+                    // Sin FormaPago: una Nota de Crédito/Débito no tiene forma de pago propia (ver
+                    // comentario en GenerarNotaCreditoDebitoRequest).
+                    Cliente = new FacturacionCliente
+                    {
+                        IdTipoDocumentoSunat = request.cliente.idTipoDocumentoSunat,
+                        NumeroDocumento = request.cliente.numeroDocumento,
+                        Nombre = request.cliente.nombre,
+                        Correo = request.cliente.correo,
+                        Direccion = request.cliente.direccion,
+                        PaisCodigo = request.cliente.paisCodigo
+                    },
+                    DocumentoAfectado = new FacturacionDocumentoAfectado
+                    {
+                        IdDocumentoElectronicoRelacionado = request.documentoAfectado.idDocumentoElectronicoRelacionado,
+                        IdMotivoMaestro = request.documentoAfectado.idMotivoMaestro
+                    },
+                    Items = request.lineas.Select((l, i) => new FacturacionItem
+                    {
+                        NumeroLinea = i + 1,
+                        ProductoCodigo = l.productoCodigo,
+                        ProductoSunatCodigo = l.productoSunatCodigo,
+                        Descripcion = l.descripcion,
+                        IdUnidadMedidaMaestro = l.idUnidadMedidaMaestro,
+                        Cantidad = l.cantidad,
+                        ValorUnitario = l.valorUnitario,
+                        MontoDescuento = l.montoDescuento,
+                        IdAfectacionIgvMaestro = l.idAfectacionIgvMaestro,
+                        PorcentajeIgv = l.porcentajeIgv
+                    }).ToList(),
+                    CamposExtra = request.camposExtra?.Select(c => new FacturacionCampoExtraEntrada { Texto = c.Texto }).ToList()
+                };
+
+                var insertado = await _facturacionService.InsertarDocumentoAsync(facturacionRequest, CancellationToken.None);
+                if (insertado is null || insertado.IdTipoMensaje != 2 || insertado.Datos is null)
+                {
+                    return new Respuesta { IdTipoMensaje = insertado?.IdTipoMensaje ?? 3, Mensaje = insertado?.Mensaje ?? "No se pudo crear el documento electrónico en facturación." };
                 }
 
                 return ResultadoOperacionExito(insertado.Datos.IdDocumentoElectronico);
@@ -528,6 +615,66 @@ namespace SafetyReport.Handlers
                     _logger.LogWarning(
                         "No se pudo desvincular los pedidos removidos del documento {IdDocumentoElectronico}: {Mensaje}",
                         idDocumentoElectronico, desvinculacion.Mensaje);
+                }
+
+                return new Respuesta { IdTipoMensaje = 2, Mensaje = "Cambios guardados correctamente." };
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error no controlado en la capa de negocio.");
+                return new Respuesta { IdTipoMensaje = 3, Mensaje = ex.Message };
+            }
+        }
+
+        // Edita una Nota de Crédito/Débito existente en PendienteEnvio — mismo criterio que
+        // GenerarNotaCreditoDebitoAsync frente a GuardarBorradorFacturaAsync: sin idPedido, líneas completas
+        // tal cual las manda el front, sin registrar/reconciliar nada en PEDIDO_FACTURA.
+        public async Task<Respuesta> EditarNotaCreditoDebitoAsync(
+            UsuarioGeneral usuarioLogueado, int idDocumentoElectronico, EditarNotaCreditoDebitoRequest request)
+        {
+            try
+            {
+                if (request.lineas.Count == 0)
+                {
+                    return new Respuesta { IdTipoMensaje = 1, Mensaje = "La nota debe tener al menos una línea." };
+                }
+
+                var facturacionRequest = new FacturacionGuardarCambiosRequest
+                {
+                    // Sin IdFormaPago/Cuotas: una Nota de Crédito/Débito no tiene forma de pago propia (ver
+                    // comentario en EditarNotaCreditoDebitoRequest).
+                    NumeroReferencia = request.numeroReferencia,
+                    IdMonedaMaestro = request.idMonedaMaestro,
+                    TipoCambio = request.tipoCambio,
+                    IdTipoOperacionMaestro = request.idTipoOperacionMaestro,
+                    IdMotivoMaestro = request.idMotivoMaestro,
+                    Lineas = request.lineas.Select((l, i) => new FacturacionLineaEdicion
+                    {
+                        NumeroLinea = i + 1,
+                        ProductoCodigo = l.productoCodigo,
+                        ProductoSunatCodigo = l.productoSunatCodigo,
+                        Descripcion = l.descripcion,
+                        IdUnidadMedidaMaestro = l.idUnidadMedidaMaestro,
+                        Cantidad = l.cantidad,
+                        ValorUnitario = l.valorUnitario,
+                        MontoDescuento = l.montoDescuento,
+                        IdAfectacionIgvMaestro = l.idAfectacionIgvMaestro,
+                        PorcentajeIgv = l.porcentajeIgv,
+                        IdLineaDocumentoElectronico = l.idLineaDocumentoElectronico
+                    }).ToList(),
+                    CamposExtra = request.camposExtra?.Select(c => new FacturacionCampoExtraEdicion
+                    {
+                        Texto = c.Texto,
+                        IdCampoExtraDocumentoElectronico = c.idCampoExtraDocumentoElectronico
+                    }).ToList()
+                };
+
+                var resultado = await _facturacionService.GuardarCambiosAsync(
+                    usuarioLogueado.IdEmpresa, idDocumentoElectronico, facturacionRequest, CancellationToken.None);
+
+                if (resultado is null || resultado.IdTipoMensaje != 2)
+                {
+                    return new Respuesta { IdTipoMensaje = resultado?.IdTipoMensaje ?? 3, Mensaje = resultado?.Mensaje ?? "No se pudieron guardar los cambios en facturación." };
                 }
 
                 return new Respuesta { IdTipoMensaje = 2, Mensaje = "Cambios guardados correctamente." };
