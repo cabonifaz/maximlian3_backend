@@ -239,6 +239,8 @@ namespace SafetyReport.Models
     {
         public int IdDocumentoElectronico { get; set; }
         public string NumeroFactura { get; set; } = string.Empty;
+        // "Factura"/"Boleta de venta"/"Nota de crédito de F003-1556"/"Nota de débito de F003-1556".
+        public string TipoDocumentoTexto { get; set; } = string.Empty;
         public string ClienteNombre { get; set; } = string.Empty;
         public DateOnly FechaEmision { get; set; }
         public string FormaPagoCodigo { get; set; } = string.Empty;
