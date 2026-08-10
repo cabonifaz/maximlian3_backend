@@ -24,6 +24,20 @@ namespace SafetyReport.WebApi.Controllers
             return Ok(respuesta);
         }
 
+        [HttpPost("notaCreditoDebito")]
+        public async Task<IActionResult> GenerarNotaCreditoDebito([FromBody] GenerarNotaCreditoDebitoRequest request)
+        {
+            var respuesta = await _pedidoFacturaHandler.GenerarNotaCreditoDebitoAsync(UsuarioLogueado, request);
+            return Ok(respuesta);
+        }
+
+        [HttpPut("notaCreditoDebito/{idDocumentoElectronico:int}")]
+        public async Task<IActionResult> EditarNotaCreditoDebito(int idDocumentoElectronico, [FromBody] EditarNotaCreditoDebitoRequest request)
+        {
+            var respuesta = await _pedidoFacturaHandler.EditarNotaCreditoDebitoAsync(UsuarioLogueado, idDocumentoElectronico, request);
+            return Ok(respuesta);
+        }
+
         [HttpGet("resumen")]
         public async Task<IActionResult> ObtenerResumen([FromQuery] DateOnly? fechaDesde, [FromQuery] DateOnly? fechaHasta)
         {
@@ -49,6 +63,13 @@ namespace SafetyReport.WebApi.Controllers
         public async Task<IActionResult> ObtenerFacturaPorId(int idDocumentoElectronico)
         {
             var respuesta = await _pedidoFacturaHandler.ObtenerFacturaPorIdAsync(UsuarioLogueado, idDocumentoElectronico);
+            return Ok(respuesta);
+        }
+
+        [HttpGet("facturaPorId/{idDocumentoElectronico:int}/paraNota")]
+        public async Task<IActionResult> ObtenerParaNota(int idDocumentoElectronico)
+        {
+            var respuesta = await _pedidoFacturaHandler.ObtenerParaNotaAsync(UsuarioLogueado, idDocumentoElectronico);
             return Ok(respuesta);
         }
 

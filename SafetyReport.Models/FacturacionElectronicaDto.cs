@@ -10,7 +10,9 @@ namespace SafetyReport.Models
         public int IdMonedaMaestro { get; set; }
         public decimal? TipoCambio { get; set; }
         public int IdTipoOperacionMaestro { get; set; }
-        public FacturacionFormaPago FormaPago { get; set; } = new();
+        // Null en Nota de Crédito/Débito: no tiene forma de pago propia (no existe cac:PaymentTerms en el
+        // contenido documentado de CreditNote/DebitNote) — es un dato de la Factura/Boleta original.
+        public FacturacionFormaPago? FormaPago { get; set; }
         public FacturacionCliente Cliente { get; set; } = new();
         public FacturacionDocumentoAfectado? DocumentoAfectado { get; set; }
         public List<FacturacionItem> Items { get; set; } = new();
@@ -40,12 +42,26 @@ namespace SafetyReport.Models
         public int PaisCodigo { get; set; }
     }
 
+    // Respuesta de GET .../para-nota — cliente + listado de productos de un documento ya emitido, para
+    // prellenar/listar ambos al armar una Nota de Crédito/Débito contra ese documento.
+    public class FacturacionDatosParaNota
+    {
+        public FacturacionCliente Cliente { get; set; } = new();
+        public List<FacturacionProductoResumen> Productos { get; set; } = new();
+    }
+
+    // Solo el código de producto de cada línea del documento — referencia para el usuario, no se copia
+    // cantidad/precio/IGV.
+    public class FacturacionProductoResumen
+    {
+        public int NumeroLinea { get; set; }
+        public string ProductoCodigo { get; set; } = string.Empty;
+    }
+
     public class FacturacionDocumentoAfectado
     {
         public int IdDocumentoElectronicoRelacionado { get; set; }
-        public string TipoReferenciaCodigo { get; set; } = string.Empty;
-        public string MotivoCodigo { get; set; } = string.Empty;
-        public string MotivoDescripcion { get; set; } = string.Empty;
+        public int IdMotivoMaestro { get; set; }
     }
 
     public class FacturacionItem
@@ -65,11 +81,15 @@ namespace SafetyReport.Models
     // Payload de PUT api/v1/documentos-electronicos/{id}/guardar-cambios.
     public class FacturacionGuardarCambiosRequest
     {
-        public int IdFormaPago { get; set; }
+        // Null en Nota de Crédito/Débito, mismo criterio que FacturacionInsertarDocumentoRequest.FormaPago.
+        public int? IdFormaPago { get; set; }
         public string? NumeroReferencia { get; set; }
         public int IdMonedaMaestro { get; set; }
         public decimal? TipoCambio { get; set; }
         public int IdTipoOperacionMaestro { get; set; }
+        // Solo aplica a Nota de Crédito/Débito (null en Factura/Boleta) — a diferencia de documentoAfectado
+        // (fijo desde Insertar), el motivo sí es editable mientras el documento siga PendienteEnvio.
+        public int? IdMotivoMaestro { get; set; }
         public List<FacturacionLineaEdicion> Lineas { get; set; } = new();
         public List<FacturacionCuotaEdicion> Cuotas { get; set; } = new();
         public List<FacturacionCampoExtraEdicion>? CamposExtra { get; set; }
@@ -219,6 +239,8 @@ namespace SafetyReport.Models
     {
         public int IdDocumentoElectronico { get; set; }
         public string NumeroFactura { get; set; } = string.Empty;
+        // "Factura"/"Boleta de venta"/"Nota de crédito de F003-1556"/"Nota de débito de F003-1556".
+        public string TipoDocumentoTexto { get; set; } = string.Empty;
         public string ClienteNombre { get; set; } = string.Empty;
         public DateOnly FechaEmision { get; set; }
         public string FormaPagoCodigo { get; set; } = string.Empty;
