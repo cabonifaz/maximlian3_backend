@@ -480,16 +480,8 @@ namespace SafetyReport.Handlers
                     IdMonedaMaestro = request.idMonedaMaestro,
                     TipoCambio = request.tipoCambio,
                     IdTipoOperacionMaestro = request.idTipoOperacionMaestro,
-                    FormaPago = new FacturacionFormaPago
-                    {
-                        IdFormaPago = request.idFormaPago,
-                        Cuotas = request.cuotas?.Select(c => new FacturacionCuota
-                        {
-                            NumeroCuota = c.numeroCuota,
-                            FechaVencimiento = c.fechaVencimiento,
-                            Monto = c.monto
-                        }).ToList()
-                    },
+                    // Sin FormaPago: una Nota de Crédito/Débito no tiene forma de pago propia (ver
+                    // comentario en GenerarNotaCreditoDebitoRequest).
                     Cliente = new FacturacionCliente
                     {
                         IdTipoDocumentoSunat = request.cliente.idTipoDocumentoSunat,
@@ -649,7 +641,8 @@ namespace SafetyReport.Handlers
 
                 var facturacionRequest = new FacturacionGuardarCambiosRequest
                 {
-                    IdFormaPago = request.idFormaPago,
+                    // Sin IdFormaPago/Cuotas: una Nota de Crédito/Débito no tiene forma de pago propia (ver
+                    // comentario en EditarNotaCreditoDebitoRequest).
                     NumeroReferencia = request.numeroReferencia,
                     IdMonedaMaestro = request.idMonedaMaestro,
                     TipoCambio = request.tipoCambio,
@@ -668,13 +661,6 @@ namespace SafetyReport.Handlers
                         IdAfectacionIgvMaestro = l.idAfectacionIgvMaestro,
                         PorcentajeIgv = l.porcentajeIgv,
                         IdLineaDocumentoElectronico = l.idLineaDocumentoElectronico
-                    }).ToList(),
-                    Cuotas = request.cuotas.Select(c => new FacturacionCuotaEdicion
-                    {
-                        NumeroCuota = c.numeroCuota,
-                        FechaVencimiento = c.fechaVencimiento,
-                        Monto = c.monto,
-                        IdCuotaDocumentoElectronico = c.idCuotaDocumentoElectronico
                     }).ToList(),
                     CamposExtra = request.camposExtra?.Select(c => new FacturacionCampoExtraEdicion
                     {

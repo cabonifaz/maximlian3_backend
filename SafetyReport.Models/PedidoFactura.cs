@@ -56,7 +56,10 @@ namespace SafetyReport.Models
     // Payload de guardarBorrador/notaCreditoDebito: a diferencia de GuardarBorradorFacturaRequest (pensado
     // para Factura/Boleta, donde cliente/línea se resuelven desde un Pedido vía idPedido/idCliente), acá el
     // front manda cliente e ítems completos porque una Nota de Crédito/Débito no está atada a un Pedido —
-    // referencia otro documento electrónico ya emitido (documentoAfectado, obligatorio acá).
+    // referencia otro documento electrónico ya emitido (documentoAfectado, obligatorio acá). Sin
+    // idFormaPago/cuotas: una Nota de Crédito/Débito no tiene forma de pago propia (no existe
+    // cac:PaymentTerms en el contenido documentado de CreditNote/DebitNote, Guía de Elaboración XML UBL 2.1
+    // SUNAT) — es un dato de la Factura/Boleta original, la nota solo ajusta montos contra ella.
     public class GenerarNotaCreditoDebitoRequest
     {
         public int idTipoDocumentoMaestro { get; set; }
@@ -64,8 +67,6 @@ namespace SafetyReport.Models
         public int idMonedaMaestro { get; set; }
         public decimal? tipoCambio { get; set; }
         public int idTipoOperacionMaestro { get; set; }
-        public int idFormaPago { get; set; }
-        public List<GuardarBorradorFacturaCuota>? cuotas { get; set; }
         public NotaCreditoDebitoCliente cliente { get; set; } = new();
         public GuardarBorradorFacturaDocumentoAfectado documentoAfectado { get; set; } = new();
         public List<NotaCreditoDebitoLinea> lineas { get; set; } = new();
@@ -107,14 +108,12 @@ namespace SafetyReport.Models
     // corregible mientras el documento siga PendienteEnvio.
     public class EditarNotaCreditoDebitoRequest
     {
-        public int idFormaPago { get; set; }
         public string? numeroReferencia { get; set; }
         public int idMonedaMaestro { get; set; }
         public decimal? tipoCambio { get; set; }
         public int idTipoOperacionMaestro { get; set; }
         public int idMotivoMaestro { get; set; }
         public List<NotaCreditoDebitoLineaEdicion> lineas { get; set; } = new();
-        public List<GuardarCambiosFacturaCuota> cuotas { get; set; } = new();
         public List<CampoExtraEdicionRequest>? camposExtra { get; set; }
     }
 

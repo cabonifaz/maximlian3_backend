@@ -10,7 +10,9 @@ namespace SafetyReport.Models
         public int IdMonedaMaestro { get; set; }
         public decimal? TipoCambio { get; set; }
         public int IdTipoOperacionMaestro { get; set; }
-        public FacturacionFormaPago FormaPago { get; set; } = new();
+        // Null en Nota de Crédito/Débito: no tiene forma de pago propia (no existe cac:PaymentTerms en el
+        // contenido documentado de CreditNote/DebitNote) — es un dato de la Factura/Boleta original.
+        public FacturacionFormaPago? FormaPago { get; set; }
         public FacturacionCliente Cliente { get; set; } = new();
         public FacturacionDocumentoAfectado? DocumentoAfectado { get; set; }
         public List<FacturacionItem> Items { get; set; } = new();
@@ -79,7 +81,8 @@ namespace SafetyReport.Models
     // Payload de PUT api/v1/documentos-electronicos/{id}/guardar-cambios.
     public class FacturacionGuardarCambiosRequest
     {
-        public int IdFormaPago { get; set; }
+        // Null en Nota de Crédito/Débito, mismo criterio que FacturacionInsertarDocumentoRequest.FormaPago.
+        public int? IdFormaPago { get; set; }
         public string? NumeroReferencia { get; set; }
         public int IdMonedaMaestro { get; set; }
         public decimal? TipoCambio { get; set; }
