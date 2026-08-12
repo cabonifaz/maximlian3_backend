@@ -246,6 +246,9 @@ namespace SafetyReport.Models
         public string FormaPagoCodigo { get; set; } = string.Empty;
         public decimal TotalImporte { get; set; }
         public string MonedaIcono { get; set; } = string.Empty;
+        // Si el documento tiene una Comunicación de Baja en curso o ya aceptada, EstadoCodigo/ColorLetra/
+        // ColorFondo ya reflejan ESE estado en vez del de emisión (ver SP_DocumentoElectronico_
+        // ListarParaPedidoFactura) — un solo badge por fila, nunca dos superpuestos.
         public string EstadoCodigo { get; set; } = string.Empty;
         public string ColorLetra { get; set; } = string.Empty;
         public string ColorFondo { get; set; } = string.Empty;
