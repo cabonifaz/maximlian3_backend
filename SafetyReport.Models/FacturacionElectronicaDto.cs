@@ -239,8 +239,10 @@ namespace SafetyReport.Models
     {
         public int IdDocumentoElectronico { get; set; }
         public string NumeroFactura { get; set; } = string.Empty;
-        // "Factura"/"Boleta de venta"/"Nota de crédito de F003-1556"/"Nota de débito de F003-1556".
+        // "Factura"/"Boleta de venta"/"Nota de crédito"/"Nota de débito".
         public string TipoDocumentoTexto { get; set; } = string.Empty;
+        // Serie-Correlativo del documento afectado (p.ej. "F003-1556"); solo para Nota de Crédito/Débito, NULL en Factura/Boleta.
+        public string? DocumentoAfectado { get; set; }
         public string ClienteNombre { get; set; } = string.Empty;
         public DateOnly FechaEmision { get; set; }
         public string FormaPagoCodigo { get; set; } = string.Empty;
