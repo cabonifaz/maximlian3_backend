@@ -47,9 +47,11 @@ namespace SafetyReport.Models
     public class FacturacionDatosParaNota
     {
         public FacturacionCliente Cliente { get; set; } = new();
-        // La Nota debe compartir la moneda del documento afectado (obligatorio por SUNAT) — ms-facturación
-        // la rechaza si no coincide, así que el llamador necesita este valor para prellenarla.
+        // La Nota debe compartir la moneda y el tipo de cambio del documento afectado (obligatorio por
+        // SUNAT) — ms-facturación la rechaza si no coinciden, así que el llamador necesita ambos valores
+        // para prellenarla. TipoCambio es null cuando la moneda es PEN.
         public int IdMonedaMaestro { get; set; }
+        public decimal? TipoCambio { get; set; }
         public List<FacturacionProductoResumen> Productos { get; set; } = new();
     }
 
