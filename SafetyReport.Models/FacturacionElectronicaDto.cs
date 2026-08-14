@@ -63,6 +63,7 @@ namespace SafetyReport.Models
         public int CantidadFacturas { get; set; }
         public decimal MontoTotalPEN { get; set; }
         public decimal? PromedioIngresoPEN { get; set; }
+        public string MonedaIcono { get; set; } = string.Empty;
     }
 
     // Solo el código de producto de cada línea del documento — referencia para el usuario, no se copia

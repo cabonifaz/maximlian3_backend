@@ -224,5 +224,6 @@ namespace SafetyReport.Models
         public decimal MontoTotalMensual { get; set; }
         public int CantidadFacturasEmitidas { get; set; }
         public decimal? PromedioIngresoMensual { get; set; }
+        public string MonedaIcono { get; set; } = string.Empty;
     }
 }
