@@ -55,6 +55,16 @@ namespace SafetyReport.Models
         public List<FacturacionProductoResumen> Productos { get; set; } = new();
     }
 
+    // Respuesta de GET .../resumen — dashboard de PedidoFactura. MontoTotalPEN es neto de Notas
+    // (Factura/Boleta + Nota de Débito − Nota de Crédito), siempre en PEN; CantidadFacturas cuenta solo
+    // Factura/Boleta. Ver SP_DocumentoElectronico_ObtenerResumenFacturacion.
+    public class FacturacionResumenFacturacion
+    {
+        public int CantidadFacturas { get; set; }
+        public decimal MontoTotalPEN { get; set; }
+        public decimal? PromedioIngresoPEN { get; set; }
+    }
+
     // Solo el código de producto de cada línea del documento — referencia para el usuario, no se copia
     // cantidad/precio/IGV.
     public class FacturacionProductoResumen
