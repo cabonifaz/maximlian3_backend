@@ -728,7 +728,7 @@ namespace SafetyReport.Handlers
                     }
                 }
 
-                return new Respuesta { IdTipoMensaje = 2, Mensaje = "Factura emitida correctamente.", Result = resultado.Datos };
+                return new Respuesta { IdTipoMensaje = 2, Mensaje = "Documento emitido correctamente.", Result = resultado.Datos };
             }
             catch (Exception ex)
             {

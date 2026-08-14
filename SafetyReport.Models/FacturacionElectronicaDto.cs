@@ -47,6 +47,9 @@ namespace SafetyReport.Models
     public class FacturacionDatosParaNota
     {
         public FacturacionCliente Cliente { get; set; } = new();
+        // La Nota debe compartir la moneda del documento afectado (obligatorio por SUNAT) — ms-facturación
+        // la rechaza si no coincide, así que el llamador necesita este valor para prellenarla.
+        public int IdMonedaMaestro { get; set; }
         public List<FacturacionProductoResumen> Productos { get; set; } = new();
     }
 
