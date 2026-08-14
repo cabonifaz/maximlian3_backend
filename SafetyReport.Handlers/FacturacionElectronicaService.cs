@@ -204,5 +204,19 @@ namespace SafetyReport.Handlers
             var respuesta = await _httpClient.GetAsync(url, cancellationToken);
             return await respuesta.Content.ReadFromJsonAsync<FacturacionEnvelope<FacturacionResultadoPaginado<FacturacionFacturaResumen>>>(JsonOptions, cancellationToken);
         }
+
+        // Dashboard de PedidoFactura — ver PedidoFacturaHandler.ObtenerResumenDashboardAsync (rol validado
+        // antes contra SP_PedidoFactura_Resumen; este llamado trae el monto real).
+        public async Task<FacturacionEnvelope<FacturacionResumenFacturacion>?> ObtenerResumenAsync(
+            int idInquilino, int idEmpresa, DateOnly? fechaDesde, DateOnly? fechaHasta, CancellationToken cancellationToken)
+        {
+            var query = new List<string> { $"idInquilino={idInquilino}", $"idEmpresa={idEmpresa}" };
+            if (fechaDesde is not null) query.Add($"fechaDesde={fechaDesde:yyyy-MM-dd}");
+            if (fechaHasta is not null) query.Add($"fechaHasta={fechaHasta:yyyy-MM-dd}");
+
+            var url = $"api/v1/documentos-electronicos/resumen?{string.Join('&', query)}";
+            var respuesta = await _httpClient.GetAsync(url, cancellationToken);
+            return await respuesta.Content.ReadFromJsonAsync<FacturacionEnvelope<FacturacionResumenFacturacion>>(JsonOptions, cancellationToken);
+        }
     }
 }
