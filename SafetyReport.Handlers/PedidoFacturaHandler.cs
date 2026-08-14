@@ -795,7 +795,58 @@ namespace SafetyReport.Handlers
             Result = new { IdDocumentoElectronico = idDocumentoElectronico }
         };
 
-        public Task<Respuesta> ObtenerResumenDashboardAsync(UsuarioGeneral usuarioLogueado, DateOnly? fechaDesde, DateOnly? fechaHasta) =>
-            _pedidoFacturaDao.ObtenerResumenAsync(usuarioLogueado, fechaDesde, fechaHasta);
+        // Rol validado acá (SP_PedidoFactura_Resumen, maximilian_staging); el monto real viene de
+        // ms-facturación (SP_DocumentoElectronico_ObtenerResumenFacturacion) — mismo patrón de dos pasos
+        // que el resto de este Handler, nunca acceso directo entre bases de datos.
+        public async Task<Respuesta> ObtenerResumenDashboardAsync(UsuarioGeneral usuarioLogueado, DateOnly? fechaDesde, DateOnly? fechaHasta)
+        {
+            try
+            {
+                var acceso = await _pedidoFacturaDao.ValidarAccesoResumenAsync(usuarioLogueado);
+                if (acceso.IdTipoMensaje != 2)
+                {
+                    return acceso;
+                }
+
+                // Mismos valores por defecto que tenía SP_PedidoFactura_Resumen antes de recortarse: sin
+                // rango explícito, el dashboard muestra el mes calendario anterior hasta hoy.
+                var desde = fechaDesde ?? new DateOnly(DateTime.Today.AddMonths(-1).Year, DateTime.Today.AddMonths(-1).Month, 1);
+                var hasta = fechaHasta ?? DateOnly.FromDateTime(DateTime.Today);
+
+                if (desde >= hasta)
+                {
+                    return new Respuesta { IdTipoMensaje = 1, Mensaje = "La fecha desde no puede ser mayor o igual a la fecha hasta." };
+                }
+
+                var resultado = await _facturacionService.ObtenerResumenAsync(
+                    usuarioLogueado.IdEmpresa, // IdInquilino en ms-facturación = IdEmpresa acá
+                    1, // TODO: resolver desde EMPRESAS de ms-facturación (GET /api/v1/empresas?idInquilino=) en vez de fijo.
+                    desde, hasta, CancellationToken.None);
+
+                if (resultado is null || resultado.IdTipoMensaje != 2 || resultado.Datos is null)
+                {
+                    return new Respuesta { IdTipoMensaje = resultado?.IdTipoMensaje ?? 3, Mensaje = resultado?.Mensaje ?? "No se pudo obtener el resumen de facturación." };
+                }
+
+                return new Respuesta
+                {
+                    IdTipoMensaje = 2,
+                    Mensaje = "Resumen de pedidos facturados generado correctamente.",
+                    Result = new ResumenPedidoFacturaConsulta
+                    {
+                        FechaDesde = desde,
+                        FechaHasta = hasta,
+                        MontoTotalMensual = resultado.Datos.MontoTotalPEN,
+                        CantidadFacturasEmitidas = resultado.Datos.CantidadFacturas,
+                        PromedioIngresoMensual = resultado.Datos.PromedioIngresoPEN
+                    }
+                };
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error no controlado en la capa de negocio.");
+                return new Respuesta { IdTipoMensaje = 3, Mensaje = ex.Message };
+            }
+        }
     }
 }
