@@ -838,7 +838,8 @@ namespace SafetyReport.Handlers
                         FechaHasta = hasta,
                         MontoTotalMensual = resultado.Datos.MontoTotalPEN,
                         CantidadFacturasEmitidas = resultado.Datos.CantidadFacturas,
-                        PromedioIngresoMensual = resultado.Datos.PromedioIngresoPEN
+                        PromedioIngresoMensual = resultado.Datos.PromedioIngresoPEN,
+                        MonedaIcono = resultado.Datos.MonedaIcono
                     }
                 };
             }
