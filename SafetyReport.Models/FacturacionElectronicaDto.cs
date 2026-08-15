@@ -174,6 +174,21 @@ namespace SafetyReport.Models
         public string? SunatDescripcionRespuesta { get; set; }
     }
 
+    // Body de PUT .../anular-manualmente — para cuando SUNAT ya muestra el documento como anulado sin que
+    // este sistema haya tramitado esa baja. FechaAnulacion es la fecha real en que ocurrió, no "ahora".
+    public class FacturacionAnularManualmenteRequest
+    {
+        public string Motivo { get; set; } = string.Empty;
+        public DateTime FechaAnulacion { get; set; }
+    }
+
+    // Respuesta de PUT .../anular-manualmente y .../estado-sunat.
+    public class FacturacionEstadoDocumentoActualizado
+    {
+        public int IdDocumentoElectronico { get; set; }
+        public string EstadoCodigo { get; set; } = string.Empty;
+    }
+
     // Fila de GET .../documentos-electronicos/eventos-recientes — usada por el worker de sincronización
     // para detectar el resultado de una Comunicación de Baja (async, sendSummary/getStatus).
     public class FacturacionEventoDocumento

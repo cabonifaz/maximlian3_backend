@@ -171,6 +171,14 @@ namespace SafetyReport.Handlers
             return await respuesta.Content.ReadFromJsonAsync<FacturacionEnvelope<FacturacionCuotaActualizada>>(JsonOptions, cancellationToken);
         }
 
+        public async Task<FacturacionEnvelope<FacturacionEstadoDocumentoActualizado>?> AnularManualmenteAsync(
+            int idInquilino, int idDocumentoElectronico, FacturacionAnularManualmenteRequest request, CancellationToken cancellationToken)
+        {
+            var url = $"api/v1/documentos-electronicos/{idDocumentoElectronico}/anular-manualmente?idInquilino={idInquilino}";
+            var respuesta = await _httpClient.PutAsJsonAsync(url, request, JsonOptions, cancellationToken);
+            return await respuesta.Content.ReadFromJsonAsync<FacturacionEnvelope<FacturacionEstadoDocumentoActualizado>>(JsonOptions, cancellationToken);
+        }
+
         public async Task<FacturacionEnvelope<object>?> GuardarCambiosAsync(
             int idInquilino, int idDocumentoElectronico, FacturacionGuardarCambiosRequest request, CancellationToken cancellationToken)
         {

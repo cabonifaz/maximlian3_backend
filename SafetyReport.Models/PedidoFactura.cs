@@ -13,6 +13,14 @@ namespace SafetyReport.Models
         public DateTime? fechaPago { get; set; }
     }
 
+    // Body de PUT .../facturaPorId/{id}/anularManualmente — para cuando SUNAT ya muestra el documento como
+    // anulado sin que este sistema haya tramitado esa baja. fechaAnulacion es la fecha real en que ocurrió.
+    public class AnularManualmenteRequest
+    {
+        public string motivo { get; set; } = string.Empty;
+        public DateTime fechaAnulacion { get; set; }
+    }
+
     // SIRE RVIE: el TXT se genera al vuelo por request, nunca se guarda en S3 — mismo criterio de
     // exportación que CompaniaNoticiaDetalleExportacion.
     public class SireRvieExportacion

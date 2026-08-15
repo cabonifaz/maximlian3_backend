@@ -261,6 +261,30 @@ namespace SafetyReport.Handlers
             }
         }
 
+        public async Task<Respuesta> AnularManualmenteAsync(
+            UsuarioGeneral usuarioLogueado, int idDocumentoElectronico, string motivo, DateTime fechaAnulacion)
+        {
+            try
+            {
+                var resultado = await _facturacionService.AnularManualmenteAsync(
+                    usuarioLogueado.IdEmpresa, idDocumentoElectronico,
+                    new FacturacionAnularManualmenteRequest { Motivo = motivo, FechaAnulacion = fechaAnulacion },
+                    CancellationToken.None);
+
+                if (resultado is null || resultado.IdTipoMensaje != 2)
+                {
+                    return new Respuesta { IdTipoMensaje = resultado?.IdTipoMensaje ?? 3, Mensaje = resultado?.Mensaje ?? "No se pudo registrar la anulación manual." };
+                }
+
+                return new Respuesta { IdTipoMensaje = 2, Mensaje = "Consulta exitosa.", Result = resultado.Datos };
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error no controlado en la capa de negocio.");
+                return new Respuesta { IdTipoMensaje = 3, Mensaje = ex.Message };
+            }
+        }
+
         public async Task<Respuesta> InsertarLoteCamposExtraAsync(UsuarioGeneral usuarioLogueado, int idDocumentoElectronico, List<FacturacionCampoExtraEntrada> camposExtra)
         {
             try
