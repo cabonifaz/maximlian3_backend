@@ -239,12 +239,13 @@ namespace SafetyReport.Handlers
         }
 
         public async Task<Respuesta> ActualizarEstadoCuotaAsync(
-            UsuarioGeneral usuarioLogueado, int idDocumentoElectronico, int idCuotaDocumentoElectronico, int idEstadoCuotaMaestro)
+            UsuarioGeneral usuarioLogueado, int idDocumentoElectronico, int idCuotaDocumentoElectronico,
+            int idEstadoCuotaMaestro, DateTime? fechaPago)
         {
             try
             {
                 var resultado = await _facturacionService.ActualizarEstadoCuotaAsync(
-                    usuarioLogueado.IdEmpresa, idDocumentoElectronico, idCuotaDocumentoElectronico, idEstadoCuotaMaestro, CancellationToken.None);
+                    usuarioLogueado.IdEmpresa, idDocumentoElectronico, idCuotaDocumentoElectronico, idEstadoCuotaMaestro, fechaPago, CancellationToken.None);
 
                 if (resultado is null || resultado.IdTipoMensaje != 2)
                 {

@@ -146,7 +146,7 @@ namespace SafetyReport.WebApi.Controllers
             int idDocumentoElectronico, int idCuotaDocumentoElectronico, [FromBody] ActualizarEstadoCuotaRequest request)
         {
             var respuesta = await _pedidoFacturaHandler.ActualizarEstadoCuotaAsync(
-                UsuarioLogueado, idDocumentoElectronico, idCuotaDocumentoElectronico, request.idEstadoCuotaMaestro);
+                UsuarioLogueado, idDocumentoElectronico, idCuotaDocumentoElectronico, request.idEstadoCuotaMaestro, request.fechaPago);
             return Ok(respuesta);
         }
 

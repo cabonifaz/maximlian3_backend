@@ -9,6 +9,8 @@ namespace SafetyReport.Models
     public class ActualizarEstadoCuotaRequest
     {
         public int idEstadoCuotaMaestro { get; set; }
+        // Debe ser coherente con idEstadoCuotaMaestro: NULL si Pendiente, obligatoria si Pagado.
+        public DateTime? fechaPago { get; set; }
     }
 
     // SIRE RVIE: el TXT se genera al vuelo por request, nunca se guarda en S3 — mismo criterio de

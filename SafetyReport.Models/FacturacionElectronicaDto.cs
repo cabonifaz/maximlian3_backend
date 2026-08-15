@@ -210,6 +210,8 @@ namespace SafetyReport.Models
     public class FacturacionActualizarEstadoCuotaRequest
     {
         public int EstadoCuotaCodigo { get; set; }
+        // Debe ser coherente con EstadoCuotaCodigo: NULL si Pendiente, obligatoria si Pagado.
+        public DateTime? FechaPago { get; set; }
     }
 
     // Respuesta de PUT .../cuotas/{id}/estado — la cuota ya actualizada.
