@@ -425,7 +425,8 @@ namespace SafetyReport.Handlers
                             NumeroCuota = c.numeroCuota,
                             FechaVencimiento = c.fechaVencimiento,
                             Monto = c.monto,
-                            IdEstadoCuotaMaestro = c.idEstadoCuotaMaestro
+                            IdEstadoCuotaMaestro = c.idEstadoCuotaMaestro,
+                            FechaPago = c.fechaPago
                         }).ToList()
                     },
                     Cliente = new FacturacionCliente
@@ -604,7 +605,8 @@ namespace SafetyReport.Handlers
                         FechaVencimiento = c.fechaVencimiento,
                         Monto = c.monto,
                         IdCuotaDocumentoElectronico = c.idCuotaDocumentoElectronico,
-                        IdEstadoCuotaMaestro = c.idEstadoCuotaMaestro
+                        IdEstadoCuotaMaestro = c.idEstadoCuotaMaestro,
+                        FechaPago = c.fechaPago
                     }).ToList(),
                     CamposExtra = request.camposExtra?.Select(c => new FacturacionCampoExtraEdicion
                     {

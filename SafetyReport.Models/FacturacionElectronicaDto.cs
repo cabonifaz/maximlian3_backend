@@ -33,6 +33,8 @@ namespace SafetyReport.Models
         // TABLA_MAESTRA IdMaestro=7 de ms-facturación (1=Pendiente, 2=Pagado) — el llamador lo decide
         // explícitamente, sin default implícito.
         public int IdEstadoCuotaMaestro { get; set; }
+        // Debe ser coherente con IdEstadoCuotaMaestro: NULL si Pendiente, obligatoria si Pagado.
+        public DateTime? FechaPago { get; set; }
     }
 
     public class FacturacionCliente
@@ -144,8 +146,9 @@ namespace SafetyReport.Models
         public DateOnly FechaVencimiento { get; set; }
         public decimal Monto { get; set; }
         public int IdCuotaDocumentoElectronico { get; set; }
-        // Ver FacturacionCuota.IdEstadoCuotaMaestro.
+        // Ver FacturacionCuota.IdEstadoCuotaMaestro/FechaPago.
         public int IdEstadoCuotaMaestro { get; set; }
+        public DateTime? FechaPago { get; set; }
     }
 
     public class FacturacionEnvelope<T>

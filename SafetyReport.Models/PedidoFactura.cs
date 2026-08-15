@@ -53,6 +53,8 @@ namespace SafetyReport.Models
         public decimal monto { get; set; }
         // TABLA_MAESTRA IdMaestro=7 de ms-facturación (1=Pendiente, 2=Pagado) — sin default implícito.
         public int idEstadoCuotaMaestro { get; set; }
+        // Debe ser coherente con idEstadoCuotaMaestro: NULL si Pendiente, obligatoria si Pagado.
+        public DateTime? fechaPago { get; set; }
     }
 
     public class GuardarBorradorFacturaDocumentoAfectado
@@ -194,8 +196,9 @@ namespace SafetyReport.Models
         public DateOnly fechaVencimiento { get; set; }
         public decimal monto { get; set; }
         public int idCuotaDocumentoElectronico { get; set; }
-        // Ver GuardarBorradorFacturaCuota.idEstadoCuotaMaestro.
+        // Ver GuardarBorradorFacturaCuota.idEstadoCuotaMaestro/fechaPago.
         public int idEstadoCuotaMaestro { get; set; }
+        public DateTime? fechaPago { get; set; }
     }
 
     // Resultado de SP_PedidoFactura_ObtenerIdDocumentoElectronico.
