@@ -203,6 +203,23 @@ namespace SafetyReport.Models
         public string Texto { get; set; } = string.Empty;
     }
 
+    // Body de PUT .../cuotas/{id}/estado — TABLA_MAESTRA IdMaestro=7 de ms-facturación (1=Pendiente, 2=Pagado).
+    public class FacturacionActualizarEstadoCuotaRequest
+    {
+        public int EstadoCuotaCodigo { get; set; }
+    }
+
+    // Respuesta de PUT .../cuotas/{id}/estado — la cuota ya actualizada.
+    public class FacturacionCuotaActualizada
+    {
+        public int IdCuotaDocumentoElectronico { get; set; }
+        public int NumeroCuota { get; set; }
+        public DateOnly FechaVencimiento { get; set; }
+        public decimal Monto { get; set; }
+        public string EstadoCuotaCodigo { get; set; } = string.Empty;
+        public DateTime? FechaPago { get; set; }
+    }
+
     public class FacturacionInsertarCampoExtraRequest
     {
         public int IdInquilino { get; set; }

@@ -5,6 +5,12 @@ namespace SafetyReport.Models
         public string Texto { get; set; } = string.Empty;
     }
 
+    // Body de PUT .../cuotas/{id}/estado — TABLA_MAESTRA IdMaestro=7 de ms-facturación (1=Pendiente, 2=Pagado).
+    public class ActualizarEstadoCuotaRequest
+    {
+        public int idEstadoCuotaMaestro { get; set; }
+    }
+
     // SIRE RVIE: el TXT se genera al vuelo por request, nunca se guarda en S3 — mismo criterio de
     // exportación que CompaniaNoticiaDetalleExportacion.
     public class SireRvieExportacion

@@ -161,6 +161,15 @@ namespace SafetyReport.Handlers
             return await respuesta.Content.ReadFromJsonAsync<FacturacionEnvelope<int>>(JsonOptions, cancellationToken);
         }
 
+        public async Task<FacturacionEnvelope<FacturacionCuotaActualizada>?> ActualizarEstadoCuotaAsync(
+            int idInquilino, int idDocumentoElectronico, int idCuotaDocumentoElectronico, int estadoCuotaCodigo, CancellationToken cancellationToken)
+        {
+            var url = $"api/v1/documentos-electronicos/{idDocumentoElectronico}/cuotas/{idCuotaDocumentoElectronico}/estado?idInquilino={idInquilino}";
+            var respuesta = await _httpClient.PutAsJsonAsync(
+                url, new FacturacionActualizarEstadoCuotaRequest { EstadoCuotaCodigo = estadoCuotaCodigo }, JsonOptions, cancellationToken);
+            return await respuesta.Content.ReadFromJsonAsync<FacturacionEnvelope<FacturacionCuotaActualizada>>(JsonOptions, cancellationToken);
+        }
+
         public async Task<FacturacionEnvelope<object>?> GuardarCambiosAsync(
             int idInquilino, int idDocumentoElectronico, FacturacionGuardarCambiosRequest request, CancellationToken cancellationToken)
         {
