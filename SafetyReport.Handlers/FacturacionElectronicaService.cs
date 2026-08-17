@@ -219,11 +219,16 @@ namespace SafetyReport.Handlers
         }
 
         // Previsualiza EnviarComunicacionBajaAsync sin ejecutar nada — mismas validaciones, y de poder
-        // enviarse la lista de documentos que se verían incluidos.
+        // enviarse la lista de documentos que se verían incluidos. Sin MotivoDescripcion por documento (a
+        // diferencia de EnviarComunicacionBajaAsync) — la validación nunca lo lee, así que el payload que
+        // queda es solo escalares + una lista de ids, entra entero en query string.
         public async Task<FacturacionEnvelope<List<FacturacionDocumentoBajaPreview>>?> PrevisualizarBajaAsync(
-            FacturacionComunicacionBajaRequest request, CancellationToken cancellationToken)
+            int idInquilino, int idEmpresa, DateOnly fechaReferencia, IReadOnlyList<int> idsDocumentoElectronico, CancellationToken cancellationToken)
         {
-            var respuesta = await _httpClient.PostAsJsonAsync("api/v1/lotes-documento/comunicacion-baja/preview", request, JsonOptions, cancellationToken);
+            var query = new List<string> { $"idInquilino={idInquilino}", $"idEmpresa={idEmpresa}", $"fechaReferencia={fechaReferencia:yyyy-MM-dd}" };
+            query.AddRange(idsDocumentoElectronico.Select(id => $"idsDocumentoElectronico={id}"));
+
+            var respuesta = await _httpClient.GetAsync($"api/v1/lotes-documento/comunicacion-baja/preview?{string.Join('&', query)}", cancellationToken);
             return await respuesta.Content.ReadFromJsonAsync<FacturacionEnvelope<List<FacturacionDocumentoBajaPreview>>>(JsonOptions, cancellationToken);
         }
 

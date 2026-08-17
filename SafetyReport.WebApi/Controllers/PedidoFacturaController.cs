@@ -200,10 +200,10 @@ namespace SafetyReport.WebApi.Controllers
             return Ok(respuesta);
         }
 
-        [HttpPost("anular/preview")]
-        public async Task<IActionResult> PrevisualizarAnular([FromBody] AnularFacturasRequest request)
+        [HttpGet("anular/preview")]
+        public async Task<IActionResult> PrevisualizarAnular([FromQuery] DateOnly fechaReferencia, [FromQuery] List<int> idsDocumentoElectronico)
         {
-            var respuesta = await _pedidoFacturaHandler.PrevisualizarBajaAsync(UsuarioLogueado, request);
+            var respuesta = await _pedidoFacturaHandler.PrevisualizarBajaAsync(UsuarioLogueado, fechaReferencia, idsDocumentoElectronico);
             return Ok(respuesta);
         }
     }
