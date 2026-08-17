@@ -158,6 +158,13 @@ namespace SafetyReport.WebApi.Controllers
             return Ok(respuesta);
         }
 
+        [HttpGet("facturaPorId/{idDocumentoElectronico:int}/anularManualmente/preview")]
+        public async Task<IActionResult> PrevisualizarAnulacionManual(int idDocumentoElectronico)
+        {
+            var respuesta = await _pedidoFacturaHandler.PrevisualizarAnulacionManualAsync(UsuarioLogueado, idDocumentoElectronico);
+            return Ok(respuesta);
+        }
+
         [HttpGet("factura/{idPedido:int}")]
         public async Task<IActionResult> ObtenerFacturaPorPedido(int idPedido)
         {
@@ -190,6 +197,13 @@ namespace SafetyReport.WebApi.Controllers
         public async Task<IActionResult> Anular([FromBody] AnularFacturasRequest request)
         {
             var respuesta = await _pedidoFacturaHandler.AnularFacturasAsync(UsuarioLogueado, request);
+            return Ok(respuesta);
+        }
+
+        [HttpGet("anular/preview")]
+        public async Task<IActionResult> PrevisualizarAnular([FromQuery] List<int> idsDocumentoElectronico)
+        {
+            var respuesta = await _pedidoFacturaHandler.PrevisualizarBajaAsync(UsuarioLogueado, idsDocumentoElectronico);
             return Ok(respuesta);
         }
     }

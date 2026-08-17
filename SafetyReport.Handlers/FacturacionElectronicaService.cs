@@ -171,12 +171,25 @@ namespace SafetyReport.Handlers
             return await respuesta.Content.ReadFromJsonAsync<FacturacionEnvelope<FacturacionCuotaActualizada>>(JsonOptions, cancellationToken);
         }
 
-        public async Task<FacturacionEnvelope<FacturacionEstadoDocumentoActualizado>?> AnularManualmenteAsync(
+        // Devuelve una fila por documento afectado (el documento indicado + toda Nota de Crédito/Débito
+        // vigente arrastrada automáticamente con él — ver SP_DocumentoElectronico_AnularManualmente), no
+        // solo el que se pasó.
+        public async Task<FacturacionEnvelope<List<FacturacionEstadoDocumentoActualizado>>?> AnularManualmenteAsync(
             int idInquilino, int idDocumentoElectronico, FacturacionAnularManualmenteRequest request, CancellationToken cancellationToken)
         {
             var url = $"api/v1/documentos-electronicos/{idDocumentoElectronico}/anular-manualmente?idInquilino={idInquilino}";
             var respuesta = await _httpClient.PutAsJsonAsync(url, request, JsonOptions, cancellationToken);
-            return await respuesta.Content.ReadFromJsonAsync<FacturacionEnvelope<FacturacionEstadoDocumentoActualizado>>(JsonOptions, cancellationToken);
+            return await respuesta.Content.ReadFromJsonAsync<FacturacionEnvelope<List<FacturacionEstadoDocumentoActualizado>>>(JsonOptions, cancellationToken);
+        }
+
+        // Previsualiza AnularManualmenteAsync sin ejecutar nada — mismas validaciones, y de poder ejecutarse
+        // la lista de documentos que se verían afectados.
+        public async Task<FacturacionEnvelope<List<FacturacionDocumentoAnulacionManualPreview>>?> PrevisualizarAnulacionManualAsync(
+            int idInquilino, int idDocumentoElectronico, CancellationToken cancellationToken)
+        {
+            var url = $"api/v1/documentos-electronicos/{idDocumentoElectronico}/anular-manualmente/preview?idInquilino={idInquilino}";
+            var respuesta = await _httpClient.GetAsync(url, cancellationToken);
+            return await respuesta.Content.ReadFromJsonAsync<FacturacionEnvelope<List<FacturacionDocumentoAnulacionManualPreview>>>(JsonOptions, cancellationToken);
         }
 
         public async Task<FacturacionEnvelope<object>?> GuardarCambiosAsync(
@@ -203,6 +216,20 @@ namespace SafetyReport.Handlers
         {
             var respuesta = await _httpClient.PostAsJsonAsync("api/v1/lotes-documento/comunicacion-baja", request, JsonOptions, cancellationToken);
             return await respuesta.Content.ReadFromJsonAsync<FacturacionEnvelope<FacturacionLoteDocumentoCreado>>(JsonOptions, cancellationToken);
+        }
+
+        // Previsualiza EnviarComunicacionBajaAsync sin ejecutar nada — mismas validaciones, y de poder
+        // enviarse la lista de documentos que se verían incluidos. Sin MotivoDescripcion ni FechaReferencia
+        // (a diferencia de EnviarComunicacionBajaAsync) — ninguno de los dos hace falta para la validación,
+        // así que el payload que queda es solo escalares + una lista de ids, entra entero en query string.
+        public async Task<FacturacionEnvelope<List<FacturacionDocumentoBajaPreview>>?> PrevisualizarBajaAsync(
+            int idInquilino, int idEmpresa, IReadOnlyList<int> idsDocumentoElectronico, CancellationToken cancellationToken)
+        {
+            var query = new List<string> { $"idInquilino={idInquilino}", $"idEmpresa={idEmpresa}" };
+            query.AddRange(idsDocumentoElectronico.Select(id => $"idsDocumentoElectronico={id}"));
+
+            var respuesta = await _httpClient.GetAsync($"api/v1/lotes-documento/comunicacion-baja/preview?{string.Join('&', query)}", cancellationToken);
+            return await respuesta.Content.ReadFromJsonAsync<FacturacionEnvelope<List<FacturacionDocumentoBajaPreview>>>(JsonOptions, cancellationToken);
         }
 
         // Listado de facturas para la pantalla de PedidoFactura — NumeroFactura/ClienteNombre/FormaPago/

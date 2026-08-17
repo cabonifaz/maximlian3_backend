@@ -261,6 +261,9 @@ namespace SafetyReport.Handlers
             }
         }
 
+        // Result es un arreglo (un item por documento afectado: el indicado + toda Nota de Crédito/Débito
+        // vigente arrastrada automáticamente con él), no un solo objeto — ver
+        // FacturacionElectronicaService.AnularManualmenteAsync.
         public async Task<Respuesta> AnularManualmenteAsync(
             UsuarioGeneral usuarioLogueado, int idDocumentoElectronico, string motivo, DateTime fechaAnulacion)
         {
@@ -274,6 +277,27 @@ namespace SafetyReport.Handlers
                 if (resultado is null || resultado.IdTipoMensaje != 2)
                 {
                     return new Respuesta { IdTipoMensaje = resultado?.IdTipoMensaje ?? 3, Mensaje = resultado?.Mensaje ?? "No se pudo registrar la anulación manual." };
+                }
+
+                return new Respuesta { IdTipoMensaje = 2, Mensaje = "Consulta exitosa.", Result = resultado.Datos };
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error no controlado en la capa de negocio.");
+                return new Respuesta { IdTipoMensaje = 3, Mensaje = ex.Message };
+            }
+        }
+
+        public async Task<Respuesta> PrevisualizarAnulacionManualAsync(UsuarioGeneral usuarioLogueado, int idDocumentoElectronico)
+        {
+            try
+            {
+                var resultado = await _facturacionService.PrevisualizarAnulacionManualAsync(
+                    usuarioLogueado.IdEmpresa, idDocumentoElectronico, CancellationToken.None);
+
+                if (resultado is null || resultado.IdTipoMensaje != 2)
+                {
+                    return new Respuesta { IdTipoMensaje = resultado?.IdTipoMensaje ?? 3, Mensaje = resultado?.Mensaje ?? "No se pudo previsualizar la anulación manual." };
                 }
 
                 return new Respuesta { IdTipoMensaje = 2, Mensaje = "Consulta exitosa.", Result = resultado.Datos };
@@ -831,6 +855,38 @@ namespace SafetyReport.Handlers
                 }
 
                 return new Respuesta { IdTipoMensaje = 2, Mensaje = "Comunicación de baja enviada correctamente.", Result = resultado.Datos };
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error no controlado en la capa de negocio.");
+                return new Respuesta { IdTipoMensaje = 3, Mensaje = ex.Message };
+            }
+        }
+
+        // Previsualiza AnularFacturasAsync sin ejecutar nada — mismas validaciones, y de poder enviarse la
+        // lista de documentos que se verían incluidos (los indicados + las Notas vigentes arrastradas). Sin
+        // MotivoDescripcion ni FechaReferencia (a diferencia de AnularFacturasAsync) — ninguno de los dos
+        // hace falta para la validación.
+        public async Task<Respuesta> PrevisualizarBajaAsync(UsuarioGeneral usuarioLogueado, List<int> idsDocumentoElectronico)
+        {
+            try
+            {
+                if (idsDocumentoElectronico.Count == 0)
+                {
+                    return new Respuesta { IdTipoMensaje = 1, Mensaje = "Debe indicar al menos un documento a anular." };
+                }
+
+                var resultado = await _facturacionService.PrevisualizarBajaAsync(
+                    usuarioLogueado.IdEmpresa,
+                    1, // TODO: resolver desde EMPRESAS de ms-facturación (GET /api/v1/empresas?idInquilino=) en vez de fijo.
+                    idsDocumentoElectronico, CancellationToken.None);
+
+                if (resultado is null || resultado.IdTipoMensaje != 2)
+                {
+                    return new Respuesta { IdTipoMensaje = resultado?.IdTipoMensaje ?? 3, Mensaje = resultado?.Mensaje ?? "No se pudo previsualizar la comunicación de baja." };
+                }
+
+                return new Respuesta { IdTipoMensaje = 2, Mensaje = "Consulta exitosa.", Result = resultado.Datos };
             }
             catch (Exception ex)
             {
