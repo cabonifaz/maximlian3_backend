@@ -102,6 +102,12 @@ namespace SafetyReport.Models
     // Payload de PUT api/v1/documentos-electronicos/{id}/guardar-cambios.
     public class FacturacionGuardarCambiosRequest
     {
+        // IdExterno solo se llenaba al crear el documento y quedaba obsoleto en cuanto las líneas cambiaban.
+        // Se recalcula igual que en FacturacionInsertarDocumentoRequest.IdExterno: join de los IdPedido de
+        // las líneas actuales para Factura/Boleta (GuardarCambiosFacturaAsync), o el id del documento
+        // afectado para Nota de Crédito/Débito (EditarNotaCreditoDebitoAsync, ese id nunca cambia pero
+        // igual se recalcula desde el mismo campo que Insertar, no se asume).
+        public string IdExterno { get; set; } = string.Empty;
         // Null en Nota de Crédito/Débito, mismo criterio que FacturacionInsertarDocumentoRequest.FormaPago.
         public int? IdFormaPago { get; set; }
         public string? NumeroReferencia { get; set; }
