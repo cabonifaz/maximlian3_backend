@@ -865,8 +865,9 @@ namespace SafetyReport.Handlers
 
         // Previsualiza AnularFacturasAsync sin ejecutar nada — mismas validaciones, y de poder enviarse la
         // lista de documentos que se verían incluidos (los indicados + las Notas vigentes arrastradas). Sin
-        // MotivoDescripcion por documento (a diferencia de AnularFacturasAsync) — la validación nunca lo lee.
-        public async Task<Respuesta> PrevisualizarBajaAsync(UsuarioGeneral usuarioLogueado, DateOnly fechaReferencia, List<int> idsDocumentoElectronico)
+        // MotivoDescripcion ni FechaReferencia (a diferencia de AnularFacturasAsync) — ninguno de los dos
+        // hace falta para la validación.
+        public async Task<Respuesta> PrevisualizarBajaAsync(UsuarioGeneral usuarioLogueado, List<int> idsDocumentoElectronico)
         {
             try
             {
@@ -878,7 +879,7 @@ namespace SafetyReport.Handlers
                 var resultado = await _facturacionService.PrevisualizarBajaAsync(
                     usuarioLogueado.IdEmpresa,
                     1, // TODO: resolver desde EMPRESAS de ms-facturación (GET /api/v1/empresas?idInquilino=) en vez de fijo.
-                    fechaReferencia, idsDocumentoElectronico, CancellationToken.None);
+                    idsDocumentoElectronico, CancellationToken.None);
 
                 if (resultado is null || resultado.IdTipoMensaje != 2)
                 {
