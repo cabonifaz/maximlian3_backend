@@ -238,6 +238,53 @@ namespace SafetyReport.Handlers
             }
         }
 
+        public async Task<Respuesta> ActualizarEstadoCuotaAsync(
+            UsuarioGeneral usuarioLogueado, int idDocumentoElectronico, int idCuotaDocumentoElectronico,
+            int idEstadoCuotaMaestro, DateTime? fechaPago)
+        {
+            try
+            {
+                var resultado = await _facturacionService.ActualizarEstadoCuotaAsync(
+                    usuarioLogueado.IdEmpresa, idDocumentoElectronico, idCuotaDocumentoElectronico, idEstadoCuotaMaestro, fechaPago, CancellationToken.None);
+
+                if (resultado is null || resultado.IdTipoMensaje != 2)
+                {
+                    return new Respuesta { IdTipoMensaje = resultado?.IdTipoMensaje ?? 3, Mensaje = resultado?.Mensaje ?? "No se pudo actualizar el estado de la cuota." };
+                }
+
+                return new Respuesta { IdTipoMensaje = 2, Mensaje = "Consulta exitosa.", Result = resultado.Datos };
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error no controlado en la capa de negocio.");
+                return new Respuesta { IdTipoMensaje = 3, Mensaje = ex.Message };
+            }
+        }
+
+        public async Task<Respuesta> AnularManualmenteAsync(
+            UsuarioGeneral usuarioLogueado, int idDocumentoElectronico, string motivo, DateTime fechaAnulacion)
+        {
+            try
+            {
+                var resultado = await _facturacionService.AnularManualmenteAsync(
+                    usuarioLogueado.IdEmpresa, idDocumentoElectronico,
+                    new FacturacionAnularManualmenteRequest { Motivo = motivo, FechaAnulacion = fechaAnulacion },
+                    CancellationToken.None);
+
+                if (resultado is null || resultado.IdTipoMensaje != 2)
+                {
+                    return new Respuesta { IdTipoMensaje = resultado?.IdTipoMensaje ?? 3, Mensaje = resultado?.Mensaje ?? "No se pudo registrar la anulación manual." };
+                }
+
+                return new Respuesta { IdTipoMensaje = 2, Mensaje = "Consulta exitosa.", Result = resultado.Datos };
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error no controlado en la capa de negocio.");
+                return new Respuesta { IdTipoMensaje = 3, Mensaje = ex.Message };
+            }
+        }
+
         public async Task<Respuesta> InsertarLoteCamposExtraAsync(UsuarioGeneral usuarioLogueado, int idDocumentoElectronico, List<FacturacionCampoExtraEntrada> camposExtra)
         {
             try
@@ -402,7 +449,9 @@ namespace SafetyReport.Handlers
                         {
                             NumeroCuota = c.numeroCuota,
                             FechaVencimiento = c.fechaVencimiento,
-                            Monto = c.monto
+                            Monto = c.monto,
+                            IdEstadoCuotaMaestro = c.idEstadoCuotaMaestro,
+                            FechaPago = c.fechaPago
                         }).ToList()
                     },
                     Cliente = new FacturacionCliente
@@ -580,7 +629,9 @@ namespace SafetyReport.Handlers
                         NumeroCuota = c.numeroCuota,
                         FechaVencimiento = c.fechaVencimiento,
                         Monto = c.monto,
-                        IdCuotaDocumentoElectronico = c.idCuotaDocumentoElectronico
+                        IdCuotaDocumentoElectronico = c.idCuotaDocumentoElectronico,
+                        IdEstadoCuotaMaestro = c.idEstadoCuotaMaestro,
+                        FechaPago = c.fechaPago
                     }).ToList(),
                     CamposExtra = request.camposExtra?.Select(c => new FacturacionCampoExtraEdicion
                     {

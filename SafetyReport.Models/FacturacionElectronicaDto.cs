@@ -30,6 +30,11 @@ namespace SafetyReport.Models
         public int NumeroCuota { get; set; }
         public DateOnly FechaVencimiento { get; set; }
         public decimal Monto { get; set; }
+        // TABLA_MAESTRA IdMaestro=7 de ms-facturación (1=Pendiente, 2=Pagado) — el llamador lo decide
+        // explícitamente, sin default implícito.
+        public int IdEstadoCuotaMaestro { get; set; }
+        // Debe ser coherente con IdEstadoCuotaMaestro: NULL si Pendiente, obligatoria si Pagado.
+        public DateTime? FechaPago { get; set; }
     }
 
     public class FacturacionCliente
@@ -141,6 +146,9 @@ namespace SafetyReport.Models
         public DateOnly FechaVencimiento { get; set; }
         public decimal Monto { get; set; }
         public int IdCuotaDocumentoElectronico { get; set; }
+        // Ver FacturacionCuota.IdEstadoCuotaMaestro/FechaPago.
+        public int IdEstadoCuotaMaestro { get; set; }
+        public DateTime? FechaPago { get; set; }
     }
 
     public class FacturacionEnvelope<T>
@@ -164,6 +172,21 @@ namespace SafetyReport.Models
         public int EstadoCodigo { get; set; } // EstadoMaestroCodigo: 3=Aceptado, 4=AceptadoConObservaciones, 5=Rechazado, 8=Error
         public string? SunatCodigoRespuesta { get; set; }
         public string? SunatDescripcionRespuesta { get; set; }
+    }
+
+    // Body de PUT .../anular-manualmente — para cuando SUNAT ya muestra el documento como anulado sin que
+    // este sistema haya tramitado esa baja. FechaAnulacion es la fecha real en que ocurrió, no "ahora".
+    public class FacturacionAnularManualmenteRequest
+    {
+        public string Motivo { get; set; } = string.Empty;
+        public DateTime FechaAnulacion { get; set; }
+    }
+
+    // Respuesta de PUT .../anular-manualmente y .../estado-sunat.
+    public class FacturacionEstadoDocumentoActualizado
+    {
+        public int IdDocumentoElectronico { get; set; }
+        public string EstadoCodigo { get; set; } = string.Empty;
     }
 
     // Fila de GET .../documentos-electronicos/eventos-recientes — usada por el worker de sincronización
@@ -196,6 +219,25 @@ namespace SafetyReport.Models
     {
         public int IdCampoExtraDocumentoElectronico { get; set; }
         public string Texto { get; set; } = string.Empty;
+    }
+
+    // Body de PUT .../cuotas/{id}/estado — TABLA_MAESTRA IdMaestro=7 de ms-facturación (1=Pendiente, 2=Pagado).
+    public class FacturacionActualizarEstadoCuotaRequest
+    {
+        public int EstadoCuotaCodigo { get; set; }
+        // Debe ser coherente con EstadoCuotaCodigo: NULL si Pendiente, obligatoria si Pagado.
+        public DateTime? FechaPago { get; set; }
+    }
+
+    // Respuesta de PUT .../cuotas/{id}/estado — la cuota ya actualizada.
+    public class FacturacionCuotaActualizada
+    {
+        public int IdCuotaDocumentoElectronico { get; set; }
+        public int NumeroCuota { get; set; }
+        public DateOnly FechaVencimiento { get; set; }
+        public decimal Monto { get; set; }
+        public string EstadoCuotaCodigo { get; set; } = string.Empty;
+        public DateTime? FechaPago { get; set; }
     }
 
     public class FacturacionInsertarCampoExtraRequest

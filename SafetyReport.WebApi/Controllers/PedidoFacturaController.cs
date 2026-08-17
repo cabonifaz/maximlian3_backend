@@ -141,6 +141,23 @@ namespace SafetyReport.WebApi.Controllers
             return Ok(respuesta);
         }
 
+        [HttpPut("facturaPorId/{idDocumentoElectronico:int}/cuotas/{idCuotaDocumentoElectronico:int}/estado")]
+        public async Task<IActionResult> ActualizarEstadoCuota(
+            int idDocumentoElectronico, int idCuotaDocumentoElectronico, [FromBody] ActualizarEstadoCuotaRequest request)
+        {
+            var respuesta = await _pedidoFacturaHandler.ActualizarEstadoCuotaAsync(
+                UsuarioLogueado, idDocumentoElectronico, idCuotaDocumentoElectronico, request.idEstadoCuotaMaestro, request.fechaPago);
+            return Ok(respuesta);
+        }
+
+        [HttpPut("facturaPorId/{idDocumentoElectronico:int}/anularManualmente")]
+        public async Task<IActionResult> AnularManualmente(int idDocumentoElectronico, [FromBody] AnularManualmenteRequest request)
+        {
+            var respuesta = await _pedidoFacturaHandler.AnularManualmenteAsync(
+                UsuarioLogueado, idDocumentoElectronico, request.motivo, request.fechaAnulacion);
+            return Ok(respuesta);
+        }
+
         [HttpGet("factura/{idPedido:int}")]
         public async Task<IActionResult> ObtenerFacturaPorPedido(int idPedido)
         {
