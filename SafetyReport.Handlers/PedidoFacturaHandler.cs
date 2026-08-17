@@ -629,6 +629,9 @@ namespace SafetyReport.Handlers
 
                 var facturacionRequest = new FacturacionGuardarCambiosRequest
                 {
+                    // Mismo cálculo que InsertarAsync — se manda de nuevo porque las líneas pudieron cambiar
+                    // (IdExterno solo se llenaba al crear el documento y quedaba obsoleto después).
+                    IdExterno = string.Join(",", request.lineas.Select(l => l.idPedido)),
                     IdFormaPago = request.idFormaPago,
                     NumeroReferencia = request.numeroReferencia,
                     IdMonedaMaestro = request.idMonedaMaestro,
@@ -716,6 +719,9 @@ namespace SafetyReport.Handlers
 
                 var facturacionRequest = new FacturacionGuardarCambiosRequest
                 {
+                    // Mismo cálculo que GenerarNotaCreditoDebitoAsync — el documento afectado no cambia,
+                    // pero igual se recalcula desde el campo del request en vez de asumir que sigue igual.
+                    IdExterno = request.idDocumentoElectronicoRelacionado.ToString(),
                     // Sin IdFormaPago/Cuotas: una Nota de Crédito/Débito no tiene forma de pago propia (ver
                     // comentario en EditarNotaCreditoDebitoRequest).
                     NumeroReferencia = request.numeroReferencia,
