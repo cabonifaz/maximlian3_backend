@@ -218,6 +218,15 @@ namespace SafetyReport.Handlers
             return await respuesta.Content.ReadFromJsonAsync<FacturacionEnvelope<FacturacionLoteDocumentoCreado>>(JsonOptions, cancellationToken);
         }
 
+        // Previsualiza EnviarComunicacionBajaAsync sin ejecutar nada — mismas validaciones, y de poder
+        // enviarse la lista de documentos que se verían incluidos.
+        public async Task<FacturacionEnvelope<List<FacturacionDocumentoBajaPreview>>?> PrevisualizarBajaAsync(
+            FacturacionComunicacionBajaRequest request, CancellationToken cancellationToken)
+        {
+            var respuesta = await _httpClient.PostAsJsonAsync("api/v1/lotes-documento/comunicacion-baja/preview", request, JsonOptions, cancellationToken);
+            return await respuesta.Content.ReadFromJsonAsync<FacturacionEnvelope<List<FacturacionDocumentoBajaPreview>>>(JsonOptions, cancellationToken);
+        }
+
         // Listado de facturas para la pantalla de PedidoFactura — NumeroFactura/ClienteNombre/FormaPago/
         // Estado ya vienen resueltos por ms-facturación (SP_DocumentoElectronico_ListarParaPedidoFactura).
         public async Task<FacturacionEnvelope<FacturacionResultadoPaginado<FacturacionFacturaResumen>>?> ListarFacturasAsync(

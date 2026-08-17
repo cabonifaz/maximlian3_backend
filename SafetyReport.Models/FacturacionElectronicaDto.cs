@@ -297,6 +297,18 @@ namespace SafetyReport.Models
         public DateTime FechaGeneracion { get; set; }
     }
 
+    // Fila de POST api/v1/lotes-documento/comunicacion-baja/preview — un documento por fila (uno de los
+    // indicados, o una Nota de Crédito/Débito vigente que se arrastraría con su Factura/Boleta). EstadoCodigo
+    // es el estado ACTUAL del documento, no cambió nada todavía.
+    public class FacturacionDocumentoBajaPreview
+    {
+        public int IdDocumentoElectronico { get; set; }
+        public string TipoDocumentoCodigo { get; set; } = string.Empty;
+        public string NumeroDocumento { get; set; } = string.Empty;
+        public DateOnly FechaEmision { get; set; }
+        public string EstadoCodigo { get; set; } = string.Empty;
+    }
+
     // Respuesta de GET api/v1/documentos-electronicos/para-pedido-factura (ms-facturación).
     public class FacturacionResultadoPaginado<T>
     {

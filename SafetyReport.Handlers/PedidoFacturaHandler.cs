@@ -863,6 +863,43 @@ namespace SafetyReport.Handlers
             }
         }
 
+        // Previsualiza AnularFacturasAsync sin ejecutar nada — mismas validaciones, y de poder enviarse la
+        // lista de documentos que se verían incluidos (los indicados + las Notas vigentes arrastradas).
+        public async Task<Respuesta> PrevisualizarBajaAsync(UsuarioGeneral usuarioLogueado, AnularFacturasRequest request)
+        {
+            try
+            {
+                if (request.Items.Count == 0)
+                {
+                    return new Respuesta { IdTipoMensaje = 1, Mensaje = "Debe indicar al menos un documento a anular." };
+                }
+
+                var facturacionRequest = new FacturacionComunicacionBajaRequest
+                {
+                    IdInquilino = usuarioLogueado.IdEmpresa,
+                    IdEmpresa = 1, // TODO: resolver desde EMPRESAS de ms-facturación (GET /api/v1/empresas?idInquilino=) en vez de fijo.
+                    FechaReferencia = request.FechaReferencia,
+                    Items = request.Items
+                        .Select(item => new FacturacionItemBaja { IdDocumentoElectronico = item.IdDocumentoElectronico, MotivoDescripcion = item.MotivoDescripcion })
+                        .ToList()
+                };
+
+                var resultado = await _facturacionService.PrevisualizarBajaAsync(facturacionRequest, CancellationToken.None);
+
+                if (resultado is null || resultado.IdTipoMensaje != 2)
+                {
+                    return new Respuesta { IdTipoMensaje = resultado?.IdTipoMensaje ?? 3, Mensaje = resultado?.Mensaje ?? "No se pudo previsualizar la comunicación de baja." };
+                }
+
+                return new Respuesta { IdTipoMensaje = 2, Mensaje = "Consulta exitosa.", Result = resultado.Datos };
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error no controlado en la capa de negocio.");
+                return new Respuesta { IdTipoMensaje = 3, Mensaje = ex.Message };
+            }
+        }
+
         private static Respuesta ResultadoOperacionExito(int idDocumentoElectronico) => new()
         {
             IdTipoMensaje = 2,

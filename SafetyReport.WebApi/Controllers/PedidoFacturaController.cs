@@ -199,5 +199,12 @@ namespace SafetyReport.WebApi.Controllers
             var respuesta = await _pedidoFacturaHandler.AnularFacturasAsync(UsuarioLogueado, request);
             return Ok(respuesta);
         }
+
+        [HttpPost("anular/preview")]
+        public async Task<IActionResult> PrevisualizarAnular([FromBody] AnularFacturasRequest request)
+        {
+            var respuesta = await _pedidoFacturaHandler.PrevisualizarBajaAsync(UsuarioLogueado, request);
+            return Ok(respuesta);
+        }
     }
 }
