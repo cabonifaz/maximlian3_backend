@@ -189,6 +189,18 @@ namespace SafetyReport.Models
         public string EstadoCodigo { get; set; } = string.Empty;
     }
 
+    // Fila de GET .../anular-manualmente/preview — un documento por fila (el indicado + toda Nota de
+    // Crédito/Débito vigente que se arrastraría con él si se ejecutara la anulación manual ahora mismo).
+    // EstadoCodigo es el estado ACTUAL del documento, no cambió nada todavía.
+    public class FacturacionDocumentoAnulacionManualPreview
+    {
+        public int IdDocumentoElectronico { get; set; }
+        public string TipoDocumentoCodigo { get; set; } = string.Empty;
+        public string NumeroDocumento { get; set; } = string.Empty;
+        public DateOnly FechaEmision { get; set; }
+        public string EstadoCodigo { get; set; } = string.Empty;
+    }
+
     // Fila de GET .../documentos-electronicos/eventos-recientes — usada por el worker de sincronización
     // para detectar el resultado de una Comunicación de Baja (async, sendSummary/getStatus).
     public class FacturacionEventoDocumento

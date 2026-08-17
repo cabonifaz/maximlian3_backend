@@ -182,6 +182,16 @@ namespace SafetyReport.Handlers
             return await respuesta.Content.ReadFromJsonAsync<FacturacionEnvelope<List<FacturacionEstadoDocumentoActualizado>>>(JsonOptions, cancellationToken);
         }
 
+        // Previsualiza AnularManualmenteAsync sin ejecutar nada — mismas validaciones, y de poder ejecutarse
+        // la lista de documentos que se verían afectados.
+        public async Task<FacturacionEnvelope<List<FacturacionDocumentoAnulacionManualPreview>>?> PrevisualizarAnulacionManualAsync(
+            int idInquilino, int idDocumentoElectronico, CancellationToken cancellationToken)
+        {
+            var url = $"api/v1/documentos-electronicos/{idDocumentoElectronico}/anular-manualmente/preview?idInquilino={idInquilino}";
+            var respuesta = await _httpClient.GetAsync(url, cancellationToken);
+            return await respuesta.Content.ReadFromJsonAsync<FacturacionEnvelope<List<FacturacionDocumentoAnulacionManualPreview>>>(JsonOptions, cancellationToken);
+        }
+
         public async Task<FacturacionEnvelope<object>?> GuardarCambiosAsync(
             int idInquilino, int idDocumentoElectronico, FacturacionGuardarCambiosRequest request, CancellationToken cancellationToken)
         {
