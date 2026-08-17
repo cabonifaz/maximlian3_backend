@@ -325,8 +325,59 @@ namespace SafetyReport.DAO
                 cmd.Parameters.Add("@intIdCliente", SqlDbType.Int).Value = idCliente;
 
                 await cn.OpenAsync();
+                return await LeerClienteConsultaAsync(cmd);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error no controlado en la capa de datos.");
 
-                using var dr = await cmd.ExecuteReaderAsync();
+                return new Respuesta
+                {
+                    IdTipoMensaje = 3,
+                    Mensaje = ex.Message,
+                    Result = new List<ClienteConsulta>()
+                };
+            }
+        }
+
+        // Mismo resultado que ObtenerClienteAsync, pero resuelto por IdDocumentoElectronico (la factura) en
+        // vez de un IdCliente directo — ver SP_Cliente_ObtenerPorDocumentoElectronico.
+        public async Task<Respuesta> ObtenerClientePorDocumentoElectronicoAsync(UsuarioGeneral usuarioLogueado, int idDocumentoElectronico)
+        {
+            try
+            {
+                using SqlConnection cn = new(_dbConfig.ConnectionString);
+                using SqlCommand cmd = new("SP_Cliente_ObtenerPorDocumentoElectronico", cn);
+
+                cmd.CommandType = CommandType.StoredProcedure;
+                cmd.Parameters.Add("@intIdUsuario", SqlDbType.Int).Value = usuarioLogueado.IdUsuario;
+                cmd.Parameters.Add("@vchUsuario", SqlDbType.VarChar, 32).Value = usuarioLogueado.Usuario;
+                cmd.Parameters.Add("@intIdEmpresa", SqlDbType.Int).Value = usuarioLogueado.IdEmpresa;
+                cmd.Parameters.Add("@intIdRol", SqlDbType.Int).Value = usuarioLogueado.IdRol;
+                cmd.Parameters.Add("@intIdDocumentoElectronico", SqlDbType.Int).Value = idDocumentoElectronico;
+
+                await cn.OpenAsync();
+                return await LeerClienteConsultaAsync(cmd);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error no controlado en la capa de datos.");
+
+                return new Respuesta
+                {
+                    IdTipoMensaje = 3,
+                    Mensaje = ex.Message,
+                    Result = new List<ClienteConsulta>()
+                };
+            }
+        }
+
+        // Lectura compartida por ObtenerClienteAsync/ObtenerClientePorDocumentoElectronicoAsync — ambos SPs
+        // devuelven exactamente el mismo shape (cabecera, cliente, formatos de documento), solo cambia cómo
+        // se resuelve el cliente del lado del SP.
+        private async Task<Respuesta> LeerClienteConsultaAsync(SqlCommand cmd)
+        {
+            using var dr = await cmd.ExecuteReaderAsync();
                 var respuesta = await LeerCabeceraAsync(dr, cmd.CommandText);
 
                 if (respuesta.IdTipoMensaje == 2 && await dr.NextResultAsync())
@@ -384,18 +435,6 @@ namespace SafetyReport.DAO
                 }
 
                 return respuesta;
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Error no controlado en la capa de datos.");
-
-                return new Respuesta
-                {
-                    IdTipoMensaje = 3,
-                    Mensaje = ex.Message,
-                    Result = new List<ClienteConsulta>()
-                };
-            }
         }
 
         public async Task<Respuesta> ListarClientesAsync(UsuarioGeneral usuarioLogueado, string? busqueda, int? numPag, int? idPais, int? idEstado)

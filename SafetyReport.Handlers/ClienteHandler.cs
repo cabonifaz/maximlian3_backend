@@ -72,6 +72,27 @@ namespace SafetyReport.Handlers
             }
         }
 
+        // Mismo resultado que ObtenerClienteAsync, pero resuelto por IdDocumentoElectronico (la factura) en
+        // vez de un IdCliente directo — ver SP_Cliente_ObtenerPorDocumentoElectronico.
+        public async Task<Respuesta> ObtenerClientePorDocumentoElectronicoAsync(UsuarioGeneral usuarioLogueado, int idDocumentoElectronico)
+        {
+            try
+            {
+                return await _dao.ObtenerClientePorDocumentoElectronicoAsync(usuarioLogueado, idDocumentoElectronico);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error no controlado en la capa de negocio.");
+
+                return new Respuesta
+                {
+                    IdTipoMensaje = 3,
+                    Mensaje = ex.Message,
+                    Result = new List<ClienteConsulta>()
+                };
+            }
+        }
+
         public async Task<Respuesta> ListarClientesAsync(UsuarioGeneral usuarioLogueado, string? busqueda, int? numPag, int? idPais, int? idEstado)
         {
             try
