@@ -251,7 +251,7 @@ namespace SafetyReport.Handlers
         }
 
         // Dashboard de PedidoFactura — ver PedidoFacturaHandler.ObtenerResumenDashboardAsync (rol validado
-        // antes contra SP_PedidoFactura_Resumen; este llamado trae el monto real).
+        // antes contra SP_PedidoFactura_ValidarAccesoResumen; este llamado trae el monto real).
         public async Task<FacturacionEnvelope<FacturacionResumenFacturacion>?> ObtenerResumenAsync(
             int idInquilino, int idEmpresa, DateOnly? fechaDesde, DateOnly? fechaHasta, CancellationToken cancellationToken)
         {
