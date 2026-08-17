@@ -171,12 +171,15 @@ namespace SafetyReport.Handlers
             return await respuesta.Content.ReadFromJsonAsync<FacturacionEnvelope<FacturacionCuotaActualizada>>(JsonOptions, cancellationToken);
         }
 
-        public async Task<FacturacionEnvelope<FacturacionEstadoDocumentoActualizado>?> AnularManualmenteAsync(
+        // Devuelve una fila por documento afectado (el documento indicado + toda Nota de Crédito/Débito
+        // vigente arrastrada automáticamente con él — ver SP_DocumentoElectronico_AnularManualmente), no
+        // solo el que se pasó.
+        public async Task<FacturacionEnvelope<List<FacturacionEstadoDocumentoActualizado>>?> AnularManualmenteAsync(
             int idInquilino, int idDocumentoElectronico, FacturacionAnularManualmenteRequest request, CancellationToken cancellationToken)
         {
             var url = $"api/v1/documentos-electronicos/{idDocumentoElectronico}/anular-manualmente?idInquilino={idInquilino}";
             var respuesta = await _httpClient.PutAsJsonAsync(url, request, JsonOptions, cancellationToken);
-            return await respuesta.Content.ReadFromJsonAsync<FacturacionEnvelope<FacturacionEstadoDocumentoActualizado>>(JsonOptions, cancellationToken);
+            return await respuesta.Content.ReadFromJsonAsync<FacturacionEnvelope<List<FacturacionEstadoDocumentoActualizado>>>(JsonOptions, cancellationToken);
         }
 
         public async Task<FacturacionEnvelope<object>?> GuardarCambiosAsync(

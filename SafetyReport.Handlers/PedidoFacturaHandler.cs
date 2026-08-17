@@ -261,6 +261,9 @@ namespace SafetyReport.Handlers
             }
         }
 
+        // Result es un arreglo (un item por documento afectado: el indicado + toda Nota de Crédito/Débito
+        // vigente arrastrada automáticamente con él), no un solo objeto — ver
+        // FacturacionElectronicaService.AnularManualmenteAsync.
         public async Task<Respuesta> AnularManualmenteAsync(
             UsuarioGeneral usuarioLogueado, int idDocumentoElectronico, string motivo, DateTime fechaAnulacion)
         {
