@@ -5,6 +5,22 @@ namespace SafetyReport.Models
         public string Texto { get; set; } = string.Empty;
     }
 
+    // Body de PUT .../cuotas/{id}/estado — TABLA_MAESTRA IdMaestro=7 de ms-facturación (1=Pendiente, 2=Pagado).
+    public class ActualizarEstadoCuotaRequest
+    {
+        public int idEstadoCuotaMaestro { get; set; }
+        // Debe ser coherente con idEstadoCuotaMaestro: NULL si Pendiente, obligatoria si Pagado.
+        public DateTime? fechaPago { get; set; }
+    }
+
+    // Body de PUT .../facturaPorId/{id}/anularManualmente — para cuando SUNAT ya muestra el documento como
+    // anulado sin que este sistema haya tramitado esa baja. fechaAnulacion es la fecha real en que ocurrió.
+    public class AnularManualmenteRequest
+    {
+        public string motivo { get; set; } = string.Empty;
+        public DateTime fechaAnulacion { get; set; }
+    }
+
     // SIRE RVIE: el TXT se genera al vuelo por request, nunca se guarda en S3 — mismo criterio de
     // exportación que CompaniaNoticiaDetalleExportacion.
     public class SireRvieExportacion
@@ -45,6 +61,10 @@ namespace SafetyReport.Models
         public int numeroCuota { get; set; }
         public DateOnly fechaVencimiento { get; set; }
         public decimal monto { get; set; }
+        // TABLA_MAESTRA IdMaestro=7 de ms-facturación (1=Pendiente, 2=Pagado) — sin default implícito.
+        public int idEstadoCuotaMaestro { get; set; }
+        // Debe ser coherente con idEstadoCuotaMaestro: NULL si Pendiente, obligatoria si Pagado.
+        public DateTime? fechaPago { get; set; }
     }
 
     public class GuardarBorradorFacturaDocumentoAfectado
@@ -186,6 +206,9 @@ namespace SafetyReport.Models
         public DateOnly fechaVencimiento { get; set; }
         public decimal monto { get; set; }
         public int idCuotaDocumentoElectronico { get; set; }
+        // Ver GuardarBorradorFacturaCuota.idEstadoCuotaMaestro/fechaPago.
+        public int idEstadoCuotaMaestro { get; set; }
+        public DateTime? fechaPago { get; set; }
     }
 
     // Resultado de SP_PedidoFactura_ObtenerIdDocumentoElectronico.
