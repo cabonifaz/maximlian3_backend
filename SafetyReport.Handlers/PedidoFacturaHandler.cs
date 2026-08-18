@@ -365,6 +365,44 @@ namespace SafetyReport.Handlers
             }
         }
 
+        // Elimina un borrador que nunca se envió a SUNAT (PendienteEnvio) y libera los pedidos que seguían
+        // enlazados a él — para Notas de Crédito/Débito la liberación es un no-op (ninguna fila de
+        // PEDIDO_FACTURA apunta a su id), mismo criterio que AnularManualmenteAsync.
+        public async Task<Respuesta> EliminarBorradorFacturaAsync(UsuarioGeneral usuarioLogueado, int idDocumentoElectronico)
+        {
+            try
+            {
+                var acceso = await _pedidoFacturaDao.ValidarAccesoFacturacionAsync(usuarioLogueado, "eliminar el borrador");
+                if (acceso.IdTipoMensaje != 2)
+                {
+                    return acceso;
+                }
+
+                var resultado = await _facturacionService.EliminarBorradorAsync(
+                    usuarioLogueado.IdEmpresa, idDocumentoElectronico, CancellationToken.None);
+
+                if (resultado is null || resultado.IdTipoMensaje != 2)
+                {
+                    return new Respuesta { IdTipoMensaje = resultado?.IdTipoMensaje ?? 3, Mensaje = resultado?.Mensaje ?? "No se pudo eliminar el borrador." };
+                }
+
+                var liberacion = await _pedidoFacturaDao.DesvincularAsync(usuarioLogueado, idDocumentoElectronico, []);
+                if (liberacion.IdTipoMensaje != 2)
+                {
+                    _logger.LogWarning(
+                        "No se pudo liberar los pedidos del borrador eliminado {IdDocumentoElectronico}: {Mensaje}",
+                        idDocumentoElectronico, liberacion.Mensaje);
+                }
+
+                return new Respuesta { IdTipoMensaje = 2, Mensaje = "Borrador eliminado correctamente." };
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error no controlado en la capa de negocio.");
+                return new Respuesta { IdTipoMensaje = 3, Mensaje = ex.Message };
+            }
+        }
+
         public async Task<Respuesta> PrevisualizarAnulacionManualAsync(UsuarioGeneral usuarioLogueado, int idDocumentoElectronico)
         {
             try

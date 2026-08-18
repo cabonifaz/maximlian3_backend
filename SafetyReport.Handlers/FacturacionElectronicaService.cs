@@ -192,6 +192,16 @@ namespace SafetyReport.Handlers
             return await respuesta.Content.ReadFromJsonAsync<FacturacionEnvelope<List<FacturacionDocumentoAnulacionManualPreview>>>(JsonOptions, cancellationToken);
         }
 
+        // Elimina (soft-delete) un borrador que nunca se envió a SUNAT (PendienteEnvio) — Factura, Boleta,
+        // Nota de Crédito o Nota de Débito. Ver SP_DocumentoElectronico_EliminarBorrador.
+        public async Task<FacturacionEnvelope<bool>?> EliminarBorradorAsync(
+            int idInquilino, int idDocumentoElectronico, CancellationToken cancellationToken)
+        {
+            var url = $"api/v1/documentos-electronicos/{idDocumentoElectronico}?idInquilino={idInquilino}";
+            var respuesta = await _httpClient.DeleteAsync(url, cancellationToken);
+            return await respuesta.Content.ReadFromJsonAsync<FacturacionEnvelope<bool>>(JsonOptions, cancellationToken);
+        }
+
         public async Task<FacturacionEnvelope<object>?> GuardarCambiosAsync(
             int idInquilino, int idDocumentoElectronico, FacturacionGuardarCambiosRequest request, CancellationToken cancellationToken)
         {
