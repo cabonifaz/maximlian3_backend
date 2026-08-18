@@ -894,12 +894,14 @@ namespace SafetyReport.Handlers
         // a su propio reloj justo antes de enviar (ver EnviarDocumentoElectronicoASunatCasoDeUso) — no hace
         // falta que este Handler actualice nada antes de llamarlo.
         // EstadoMaestroCodigo (ms-facturación) → PEDIDO_FACTURA.IdEstadoFacturacion (TABLA_MAESTRA IdMaestro=68).
-        // Error (8) no mapea: es una falla de transmisión, no una decisión de SUNAT — el pedido se queda en
-        // Borrador Factura (10) para poder reintentar el envío.
+        // Error (8) es SUNAT rechazando el contenido del comprobante (dato inválido, no un fallo de
+        // transmisión) — antes no mapeaba y el pedido quedaba varado en Borrador Factura (10), invisible en
+        // SP_Pedido_ListarParaFacturacion. Se mapea a Error de Factura (11) para que vuelva a aparecer.
         private static int? MapearEstadoFacturacion(int estadoCodigoSunat) => estadoCodigoSunat switch
         {
             3 or 4 => 5, // Aceptado / AceptadoConObservaciones → Aprobado
             5 => 6,      // Rechazado → Rechazado
+            8 => 11,     // ErrorSunat → Error de Factura
             _ => null
         };
 
