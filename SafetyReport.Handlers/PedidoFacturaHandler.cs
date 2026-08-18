@@ -339,6 +339,23 @@ namespace SafetyReport.Handlers
                     return new Respuesta { IdTipoMensaje = resultado?.IdTipoMensaje ?? 3, Mensaje = resultado?.Mensaje ?? "No se pudo registrar la anulación manual." };
                 }
 
+                // A diferencia de la Comunicación de Baja real (actualizada por SincronizacionFacturacionWorker
+                // al resolverse el ticket), acá no hay un worker async — se libera el pedido en el mismo
+                // request. No falla la operación si esto falla: el documento ya quedó anulado en ms-facturación,
+                // solo queda desincronizado el vínculo (mismo criterio que GuardarBorradorFacturaAsync).
+                if (resultado.Datos is { Count: > 0 })
+                {
+                    var liberacion = await _pedidoFacturaDao.ActualizarEstadoPorDocumentoAsync(
+                        usuarioLogueado.IdEmpresa,
+                        resultado.Datos.Select(d => (d.IdDocumentoElectronico, IdEstadoFacturacion: 8)).ToList());
+                    if (liberacion.IdTipoMensaje != 2)
+                    {
+                        _logger.LogWarning(
+                            "No se pudo liberar los pedidos de los documentos anulados manualmente {IdsDocumento}: {Mensaje}",
+                            string.Join(",", resultado.Datos.Select(d => d.IdDocumentoElectronico)), liberacion.Mensaje);
+                    }
+                }
+
                 return new Respuesta { IdTipoMensaje = 2, Mensaje = "Consulta exitosa.", Result = resultado.Datos };
             }
             catch (Exception ex)
