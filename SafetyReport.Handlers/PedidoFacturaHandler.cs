@@ -339,7 +339,62 @@ namespace SafetyReport.Handlers
                     return new Respuesta { IdTipoMensaje = resultado?.IdTipoMensaje ?? 3, Mensaje = resultado?.Mensaje ?? "No se pudo registrar la anulación manual." };
                 }
 
+                // A diferencia de la Comunicación de Baja real (actualizada por SincronizacionFacturacionWorker
+                // al resolverse el ticket), acá no hay un worker async — se libera el pedido en el mismo
+                // request. No falla la operación si esto falla: el documento ya quedó anulado en ms-facturación,
+                // solo queda desincronizado el vínculo (mismo criterio que GuardarBorradorFacturaAsync).
+                if (resultado.Datos is { Count: > 0 })
+                {
+                    var liberacion = await _pedidoFacturaDao.ActualizarEstadoPorDocumentoAsync(
+                        usuarioLogueado.IdEmpresa,
+                        resultado.Datos.Select(d => (d.IdDocumentoElectronico, IdEstadoFacturacion: 8)).ToList());
+                    if (liberacion.IdTipoMensaje != 2)
+                    {
+                        _logger.LogWarning(
+                            "No se pudo liberar los pedidos de los documentos anulados manualmente {IdsDocumento}: {Mensaje}",
+                            string.Join(",", resultado.Datos.Select(d => d.IdDocumentoElectronico)), liberacion.Mensaje);
+                    }
+                }
+
                 return new Respuesta { IdTipoMensaje = 2, Mensaje = "Consulta exitosa.", Result = resultado.Datos };
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error no controlado en la capa de negocio.");
+                return new Respuesta { IdTipoMensaje = 3, Mensaje = ex.Message };
+            }
+        }
+
+        // Elimina un borrador que nunca se envió a SUNAT (PendienteEnvio) y libera los pedidos que seguían
+        // enlazados a él — para Notas de Crédito/Débito la liberación es un no-op (ninguna fila de
+        // PEDIDO_FACTURA apunta a su id), mismo criterio que AnularManualmenteAsync.
+        public async Task<Respuesta> EliminarBorradorFacturaAsync(UsuarioGeneral usuarioLogueado, int idDocumentoElectronico)
+        {
+            try
+            {
+                var acceso = await _pedidoFacturaDao.ValidarAccesoFacturacionAsync(usuarioLogueado, "eliminar el borrador");
+                if (acceso.IdTipoMensaje != 2)
+                {
+                    return acceso;
+                }
+
+                var resultado = await _facturacionService.EliminarBorradorAsync(
+                    usuarioLogueado.IdEmpresa, idDocumentoElectronico, CancellationToken.None);
+
+                if (resultado is null || resultado.IdTipoMensaje != 2)
+                {
+                    return new Respuesta { IdTipoMensaje = resultado?.IdTipoMensaje ?? 3, Mensaje = resultado?.Mensaje ?? "No se pudo eliminar el borrador." };
+                }
+
+                var liberacion = await _pedidoFacturaDao.DesvincularAsync(usuarioLogueado, idDocumentoElectronico, []);
+                if (liberacion.IdTipoMensaje != 2)
+                {
+                    _logger.LogWarning(
+                        "No se pudo liberar los pedidos del borrador eliminado {IdDocumentoElectronico}: {Mensaje}",
+                        idDocumentoElectronico, liberacion.Mensaje);
+                }
+
+                return new Respuesta { IdTipoMensaje = 2, Mensaje = "Borrador eliminado correctamente." };
             }
             catch (Exception ex)
             {
@@ -894,12 +949,14 @@ namespace SafetyReport.Handlers
         // a su propio reloj justo antes de enviar (ver EnviarDocumentoElectronicoASunatCasoDeUso) — no hace
         // falta que este Handler actualice nada antes de llamarlo.
         // EstadoMaestroCodigo (ms-facturación) → PEDIDO_FACTURA.IdEstadoFacturacion (TABLA_MAESTRA IdMaestro=68).
-        // Error (8) no mapea: es una falla de transmisión, no una decisión de SUNAT — el pedido se queda en
-        // Borrador Factura (10) para poder reintentar el envío.
+        // Error (8) es SUNAT rechazando el contenido del comprobante (dato inválido, no un fallo de
+        // transmisión) — antes no mapeaba y el pedido quedaba varado en Borrador Factura (10), invisible en
+        // SP_Pedido_ListarParaFacturacion. Se mapea a Error de Factura (11) para que vuelva a aparecer.
         private static int? MapearEstadoFacturacion(int estadoCodigoSunat) => estadoCodigoSunat switch
         {
             3 or 4 => 5, // Aceptado / AceptadoConObservaciones → Aprobado
             5 => 6,      // Rechazado → Rechazado
+            8 => 11,     // ErrorSunat → Error de Factura
             _ => null
         };
 

@@ -246,6 +246,10 @@ namespace SafetyReport.Models
         public int? idTipoTramite { get; set; }
         public DateOnly? fechaInicio { get; set; }
         public DateOnly? fechaFin { get; set; }
+        // Documento en edición (borrador): también trae los pedidos que siguen enlazados a este documento en
+        // Borrador Factura, aunque ese estado normalmente esté fuera del listado — cubre el caso de un pedido
+        // quitado de las líneas en el editor pero todavía no guardado (GuardarCambios). 0 = sin este filtro extra.
+        public int idDocumentoElectronico { get; set; } = 0;
         public int numPag { get; set; } = 1;
     }
 

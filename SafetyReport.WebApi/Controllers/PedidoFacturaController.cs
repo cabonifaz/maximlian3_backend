@@ -186,6 +186,13 @@ namespace SafetyReport.WebApi.Controllers
             return Ok(respuesta);
         }
 
+        [HttpDelete("borrador/{idDocumentoElectronico:int}")]
+        public async Task<IActionResult> EliminarBorrador(int idDocumentoElectronico)
+        {
+            var respuesta = await _pedidoFacturaHandler.EliminarBorradorFacturaAsync(UsuarioLogueado, idDocumentoElectronico);
+            return Ok(respuesta);
+        }
+
         [HttpPut("estado/{idPedido:int}")]
         public async Task<IActionResult> ActualizarEstadoFacturacion(int idPedido, [FromQuery] int idEstadoFacturacion)
         {
