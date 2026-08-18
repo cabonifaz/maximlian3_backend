@@ -125,10 +125,13 @@ namespace SafetyReport.Models
     // GuardarCambiosFacturaRequest, pero sin idPedido: las líneas siguen siendo texto libre completo, igual
     // que en GenerarNotaCreditoDebitoRequest. El cliente y idDocumentoElectronicoRelacionado no se editan
     // acá (se fijan al crear, ms-facturación no lo permite) — idMotivoMaestro sí, es un detalle de negocio
-    // corregible mientras el documento siga PendienteEnvio.
+    // corregible mientras el documento siga PendienteEnvio. idDocumentoElectronicoRelacionado sí viaja en
+    // el payload (aunque no se edite) porque IdExterno se recalcula igual que en
+    // GenerarNotaCreditoDebitoRequest — el front ya lo conoce, se lo pidió al cargar la Nota para editarla.
     public class EditarNotaCreditoDebitoRequest
     {
         public string? numeroReferencia { get; set; }
+        public int idDocumentoElectronicoRelacionado { get; set; }
         public int idMonedaMaestro { get; set; }
         public decimal? tipoCambio { get; set; }
         public int idTipoOperacionMaestro { get; set; }
@@ -243,6 +246,10 @@ namespace SafetyReport.Models
         public int? idTipoTramite { get; set; }
         public DateOnly? fechaInicio { get; set; }
         public DateOnly? fechaFin { get; set; }
+        // Documento en edición (borrador): también trae los pedidos que siguen enlazados a este documento en
+        // Borrador Factura, aunque ese estado normalmente esté fuera del listado — cubre el caso de un pedido
+        // quitado de las líneas en el editor pero todavía no guardado (GuardarCambios). 0 = sin este filtro extra.
+        public int idDocumentoElectronico { get; set; } = 0;
         public int numPag { get; set; } = 1;
     }
 

@@ -33,6 +33,12 @@ namespace SafetyReport.Handlers
         {
             try
             {
+                var acceso = await _pedidoFacturaDao.ValidarAccesoFacturacionAsync(usuarioLogueado, "listar las facturas");
+                if (acceso.IdTipoMensaje != 2)
+                {
+                    return acceso;
+                }
+
                 var resultado = await _facturacionService.ListarFacturasAsync(
                     usuarioLogueado.IdEmpresa, // IdInquilino en ms-facturación = IdEmpresa acá
                     1, // TODO: resolver desde EMPRESAS de ms-facturación (GET /api/v1/empresas?idInquilino=) en vez de fijo.
@@ -60,6 +66,12 @@ namespace SafetyReport.Handlers
         {
             try
             {
+                var acceso = await _pedidoFacturaDao.ValidarAccesoFacturacionAsync(usuarioLogueado, "obtener la factura");
+                if (acceso.IdTipoMensaje != 2)
+                {
+                    return acceso;
+                }
+
                 var documento = await _facturacionService.ObtenerDocumentoAsync(
                     usuarioLogueado.IdEmpresa, idDocumentoElectronico, CancellationToken.None);
 
@@ -84,6 +96,12 @@ namespace SafetyReport.Handlers
         {
             try
             {
+                var acceso = await _pedidoFacturaDao.ValidarAccesoFacturacionAsync(usuarioLogueado, "obtener los datos para la nota");
+                if (acceso.IdTipoMensaje != 2)
+                {
+                    return acceso;
+                }
+
                 var resultado = await _facturacionService.ObtenerParaNotaAsync(
                     usuarioLogueado.IdEmpresa, idDocumentoElectronico, CancellationToken.None);
 
@@ -112,6 +130,12 @@ namespace SafetyReport.Handlers
         {
             try
             {
+                var acceso = await _pedidoFacturaDao.ValidarAccesoFacturacionAsync(usuarioLogueado, "obtener el link de verificación");
+                if (acceso.IdTipoMensaje != 2)
+                {
+                    return acceso;
+                }
+
                 var resultado = await _facturacionService.ObtenerTokenVerificacionAsync(
                     usuarioLogueado.IdEmpresa, idDocumentoElectronico, CancellationToken.None);
 
@@ -138,6 +162,12 @@ namespace SafetyReport.Handlers
         {
             try
             {
+                var acceso = await _pedidoFacturaDao.ValidarAccesoFacturacionAsync(usuarioLogueado, "obtener la url de descarga");
+                if (acceso.IdTipoMensaje != 2)
+                {
+                    return acceso;
+                }
+
                 var resultado = await _facturacionService.ObtenerUrlDescargaAsync(
                     usuarioLogueado.IdEmpresa, idDocumentoElectronico, tipoArchivo, CancellationToken.None);
 
@@ -161,6 +191,12 @@ namespace SafetyReport.Handlers
         {
             try
             {
+                var acceso = await _pedidoFacturaDao.ValidarAccesoFacturacionAsync(usuarioLogueado, "obtener los errores del último envío");
+                if (acceso.IdTipoMensaje != 2)
+                {
+                    return acceso;
+                }
+
                 var resultado = await _facturacionService.ObtenerErroresUltimoEnvioAsync(
                     usuarioLogueado.IdEmpresa, idDocumentoElectronico, CancellationToken.None);
 
@@ -184,6 +220,12 @@ namespace SafetyReport.Handlers
         {
             try
             {
+                var acceso = await _pedidoFacturaDao.ValidarAccesoFacturacionAsync(usuarioLogueado, "generar el TXT SIRE RVIE");
+                if (acceso.IdTipoMensaje != 2)
+                {
+                    return acceso;
+                }
+
                 var idEmpresa = 1; // TODO: resolver desde EMPRESAS de ms-facturación, mismo TODO que GuardarBorradorFacturaAsync.
                 var (exito, mensaje, contenido, nombreArchivo) = await _facturacionService.ObtenerTxtSireRvieAsync(
                     usuarioLogueado.IdEmpresa, idEmpresa, periodo, CancellationToken.None);
@@ -216,6 +258,12 @@ namespace SafetyReport.Handlers
         {
             try
             {
+                var acceso = await _pedidoFacturaDao.ValidarAccesoFacturacionAsync(usuarioLogueado, "insertar el campo extra");
+                if (acceso.IdTipoMensaje != 2)
+                {
+                    return acceso;
+                }
+
                 var resultado = await _facturacionService.InsertarCampoExtraAsync(
                     new FacturacionInsertarCampoExtraRequest
                     {
@@ -244,6 +292,12 @@ namespace SafetyReport.Handlers
         {
             try
             {
+                var acceso = await _pedidoFacturaDao.ValidarAccesoFacturacionAsync(usuarioLogueado, "actualizar el estado de la cuota");
+                if (acceso.IdTipoMensaje != 2)
+                {
+                    return acceso;
+                }
+
                 var resultado = await _facturacionService.ActualizarEstadoCuotaAsync(
                     usuarioLogueado.IdEmpresa, idDocumentoElectronico, idCuotaDocumentoElectronico, idEstadoCuotaMaestro, fechaPago, CancellationToken.None);
 
@@ -261,11 +315,20 @@ namespace SafetyReport.Handlers
             }
         }
 
+        // Result es un arreglo (un item por documento afectado: el indicado + toda Nota de Crédito/Débito
+        // vigente arrastrada automáticamente con él), no un solo objeto — ver
+        // FacturacionElectronicaService.AnularManualmenteAsync.
         public async Task<Respuesta> AnularManualmenteAsync(
             UsuarioGeneral usuarioLogueado, int idDocumentoElectronico, string motivo, DateTime fechaAnulacion)
         {
             try
             {
+                var acceso = await _pedidoFacturaDao.ValidarAccesoFacturacionAsync(usuarioLogueado, "anular manualmente el documento");
+                if (acceso.IdTipoMensaje != 2)
+                {
+                    return acceso;
+                }
+
                 var resultado = await _facturacionService.AnularManualmenteAsync(
                     usuarioLogueado.IdEmpresa, idDocumentoElectronico,
                     new FacturacionAnularManualmenteRequest { Motivo = motivo, FechaAnulacion = fechaAnulacion },
@@ -274,6 +337,88 @@ namespace SafetyReport.Handlers
                 if (resultado is null || resultado.IdTipoMensaje != 2)
                 {
                     return new Respuesta { IdTipoMensaje = resultado?.IdTipoMensaje ?? 3, Mensaje = resultado?.Mensaje ?? "No se pudo registrar la anulación manual." };
+                }
+
+                // A diferencia de la Comunicación de Baja real (actualizada por SincronizacionFacturacionWorker
+                // al resolverse el ticket), acá no hay un worker async — se libera el pedido en el mismo
+                // request. No falla la operación si esto falla: el documento ya quedó anulado en ms-facturación,
+                // solo queda desincronizado el vínculo (mismo criterio que GuardarBorradorFacturaAsync).
+                if (resultado.Datos is { Count: > 0 })
+                {
+                    var liberacion = await _pedidoFacturaDao.ActualizarEstadoPorDocumentoAsync(
+                        usuarioLogueado.IdEmpresa,
+                        resultado.Datos.Select(d => (d.IdDocumentoElectronico, IdEstadoFacturacion: 8)).ToList());
+                    if (liberacion.IdTipoMensaje != 2)
+                    {
+                        _logger.LogWarning(
+                            "No se pudo liberar los pedidos de los documentos anulados manualmente {IdsDocumento}: {Mensaje}",
+                            string.Join(",", resultado.Datos.Select(d => d.IdDocumentoElectronico)), liberacion.Mensaje);
+                    }
+                }
+
+                return new Respuesta { IdTipoMensaje = 2, Mensaje = "Consulta exitosa.", Result = resultado.Datos };
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error no controlado en la capa de negocio.");
+                return new Respuesta { IdTipoMensaje = 3, Mensaje = ex.Message };
+            }
+        }
+
+        // Elimina un borrador que nunca se envió a SUNAT (PendienteEnvio) y libera los pedidos que seguían
+        // enlazados a él — para Notas de Crédito/Débito la liberación es un no-op (ninguna fila de
+        // PEDIDO_FACTURA apunta a su id), mismo criterio que AnularManualmenteAsync.
+        public async Task<Respuesta> EliminarBorradorFacturaAsync(UsuarioGeneral usuarioLogueado, int idDocumentoElectronico)
+        {
+            try
+            {
+                var acceso = await _pedidoFacturaDao.ValidarAccesoFacturacionAsync(usuarioLogueado, "eliminar el borrador");
+                if (acceso.IdTipoMensaje != 2)
+                {
+                    return acceso;
+                }
+
+                var resultado = await _facturacionService.EliminarBorradorAsync(
+                    usuarioLogueado.IdEmpresa, idDocumentoElectronico, CancellationToken.None);
+
+                if (resultado is null || resultado.IdTipoMensaje != 2)
+                {
+                    return new Respuesta { IdTipoMensaje = resultado?.IdTipoMensaje ?? 3, Mensaje = resultado?.Mensaje ?? "No se pudo eliminar el borrador." };
+                }
+
+                var liberacion = await _pedidoFacturaDao.DesvincularAsync(usuarioLogueado, idDocumentoElectronico, []);
+                if (liberacion.IdTipoMensaje != 2)
+                {
+                    _logger.LogWarning(
+                        "No se pudo liberar los pedidos del borrador eliminado {IdDocumentoElectronico}: {Mensaje}",
+                        idDocumentoElectronico, liberacion.Mensaje);
+                }
+
+                return new Respuesta { IdTipoMensaje = 2, Mensaje = "Borrador eliminado correctamente." };
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error no controlado en la capa de negocio.");
+                return new Respuesta { IdTipoMensaje = 3, Mensaje = ex.Message };
+            }
+        }
+
+        public async Task<Respuesta> PrevisualizarAnulacionManualAsync(UsuarioGeneral usuarioLogueado, int idDocumentoElectronico)
+        {
+            try
+            {
+                var acceso = await _pedidoFacturaDao.ValidarAccesoFacturacionAsync(usuarioLogueado, "previsualizar la anulación manual");
+                if (acceso.IdTipoMensaje != 2)
+                {
+                    return acceso;
+                }
+
+                var resultado = await _facturacionService.PrevisualizarAnulacionManualAsync(
+                    usuarioLogueado.IdEmpresa, idDocumentoElectronico, CancellationToken.None);
+
+                if (resultado is null || resultado.IdTipoMensaje != 2)
+                {
+                    return new Respuesta { IdTipoMensaje = resultado?.IdTipoMensaje ?? 3, Mensaje = resultado?.Mensaje ?? "No se pudo previsualizar la anulación manual." };
                 }
 
                 return new Respuesta { IdTipoMensaje = 2, Mensaje = "Consulta exitosa.", Result = resultado.Datos };
@@ -289,6 +434,12 @@ namespace SafetyReport.Handlers
         {
             try
             {
+                var acceso = await _pedidoFacturaDao.ValidarAccesoFacturacionAsync(usuarioLogueado, "insertar el lote de campos extra");
+                if (acceso.IdTipoMensaje != 2)
+                {
+                    return acceso;
+                }
+
                 var resultado = await _facturacionService.InsertarLoteCamposExtraAsync(
                     new FacturacionInsertarLoteCamposExtraRequest
                     {
@@ -315,6 +466,12 @@ namespace SafetyReport.Handlers
         {
             try
             {
+                var acceso = await _pedidoFacturaDao.ValidarAccesoFacturacionAsync(usuarioLogueado, "listar los campos extra");
+                if (acceso.IdTipoMensaje != 2)
+                {
+                    return acceso;
+                }
+
                 var resultado = await _facturacionService.ListarCamposExtraAsync(usuarioLogueado.IdEmpresa, idDocumentoElectronico, CancellationToken.None);
 
                 if (resultado is null || resultado.IdTipoMensaje != 2)
@@ -335,6 +492,12 @@ namespace SafetyReport.Handlers
         {
             try
             {
+                var acceso = await _pedidoFacturaDao.ValidarAccesoFacturacionAsync(usuarioLogueado, "actualizar el campo extra");
+                if (acceso.IdTipoMensaje != 2)
+                {
+                    return acceso;
+                }
+
                 var resultado = await _facturacionService.ActualizarCampoExtraAsync(
                     usuarioLogueado.IdEmpresa, idCampoExtraDocumentoElectronico,
                     new FacturacionCampoExtraEntrada { Texto = texto }, CancellationToken.None);
@@ -357,6 +520,12 @@ namespace SafetyReport.Handlers
         {
             try
             {
+                var acceso = await _pedidoFacturaDao.ValidarAccesoFacturacionAsync(usuarioLogueado, "eliminar el campo extra");
+                if (acceso.IdTipoMensaje != 2)
+                {
+                    return acceso;
+                }
+
                 var resultado = await _facturacionService.EliminarCampoExtraAsync(usuarioLogueado.IdEmpresa, idCampoExtraDocumentoElectronico, CancellationToken.None);
 
                 if (resultado is null || resultado.IdTipoMensaje != 2)
@@ -379,6 +548,12 @@ namespace SafetyReport.Handlers
         {
             try
             {
+                var acceso = await _pedidoFacturaDao.ValidarAccesoFacturacionAsync(usuarioLogueado, "obtener la factura por pedido");
+                if (acceso.IdTipoMensaje != 2)
+                {
+                    return acceso;
+                }
+
                 var idDocumento = await _pedidoFacturaDao.ObtenerIdDocumentoElectronicoAsync(usuarioLogueado, idPedido);
                 if (idDocumento.IdTipoMensaje != 2 || idDocumento.Result is not PedidoFacturaIdDocumentoConsulta datos)
                 {
@@ -411,6 +586,12 @@ namespace SafetyReport.Handlers
         {
             try
             {
+                var acceso = await _pedidoFacturaDao.ValidarAccesoFacturacionAsync(usuarioLogueado, "guardar el borrador de la factura");
+                if (acceso.IdTipoMensaje != 2)
+                {
+                    return acceso;
+                }
+
                 if (request.lineas.Count == 0)
                 {
                     return new Respuesta { IdTipoMensaje = 1, Mensaje = "La factura debe tener al menos una línea." };
@@ -514,6 +695,12 @@ namespace SafetyReport.Handlers
         {
             try
             {
+                var acceso = await _pedidoFacturaDao.ValidarAccesoFacturacionAsync(usuarioLogueado, "generar la nota de crédito/débito");
+                if (acceso.IdTipoMensaje != 2)
+                {
+                    return acceso;
+                }
+
                 if (request.lineas.Count == 0)
                 {
                     return new Respuesta { IdTipoMensaje = 1, Mensaje = "La nota debe tener al menos una línea." };
@@ -583,6 +770,12 @@ namespace SafetyReport.Handlers
         {
             try
             {
+                var acceso = await _pedidoFacturaDao.ValidarAccesoFacturacionAsync(usuarioLogueado, "guardar los cambios de la factura");
+                if (acceso.IdTipoMensaje != 2)
+                {
+                    return acceso;
+                }
+
                 if (request.lineas.Count == 0)
                 {
                     return new Respuesta { IdTipoMensaje = 1, Mensaje = "La factura debe tener al menos una línea." };
@@ -605,6 +798,9 @@ namespace SafetyReport.Handlers
 
                 var facturacionRequest = new FacturacionGuardarCambiosRequest
                 {
+                    // Mismo cálculo que InsertarAsync — se manda de nuevo porque las líneas pudieron cambiar
+                    // (IdExterno solo se llenaba al crear el documento y quedaba obsoleto después).
+                    IdExterno = string.Join(",", request.lineas.Select(l => l.idPedido)),
                     IdFormaPago = request.idFormaPago,
                     NumeroReferencia = request.numeroReferencia,
                     IdMonedaMaestro = request.idMonedaMaestro,
@@ -685,6 +881,12 @@ namespace SafetyReport.Handlers
         {
             try
             {
+                var acceso = await _pedidoFacturaDao.ValidarAccesoFacturacionAsync(usuarioLogueado, "editar la nota de crédito/débito");
+                if (acceso.IdTipoMensaje != 2)
+                {
+                    return acceso;
+                }
+
                 if (request.lineas.Count == 0)
                 {
                     return new Respuesta { IdTipoMensaje = 1, Mensaje = "La nota debe tener al menos una línea." };
@@ -692,6 +894,9 @@ namespace SafetyReport.Handlers
 
                 var facturacionRequest = new FacturacionGuardarCambiosRequest
                 {
+                    // Mismo cálculo que GenerarNotaCreditoDebitoAsync — el documento afectado no cambia,
+                    // pero igual se recalcula desde el campo del request en vez de asumir que sigue igual.
+                    IdExterno = request.idDocumentoElectronicoRelacionado.ToString(),
                     // Sin IdFormaPago/Cuotas: una Nota de Crédito/Débito no tiene forma de pago propia (ver
                     // comentario en EditarNotaCreditoDebitoRequest).
                     NumeroReferencia = request.numeroReferencia,
@@ -744,12 +949,14 @@ namespace SafetyReport.Handlers
         // a su propio reloj justo antes de enviar (ver EnviarDocumentoElectronicoASunatCasoDeUso) — no hace
         // falta que este Handler actualice nada antes de llamarlo.
         // EstadoMaestroCodigo (ms-facturación) → PEDIDO_FACTURA.IdEstadoFacturacion (TABLA_MAESTRA IdMaestro=68).
-        // Error (8) no mapea: es una falla de transmisión, no una decisión de SUNAT — el pedido se queda en
-        // Borrador Factura (10) para poder reintentar el envío.
+        // Error (8) es SUNAT rechazando el contenido del comprobante (dato inválido, no un fallo de
+        // transmisión) — antes no mapeaba y el pedido quedaba varado en Borrador Factura (10), invisible en
+        // SP_Pedido_ListarParaFacturacion. Se mapea a Error de Factura (11) para que vuelva a aparecer.
         private static int? MapearEstadoFacturacion(int estadoCodigoSunat) => estadoCodigoSunat switch
         {
             3 or 4 => 5, // Aceptado / AceptadoConObservaciones → Aprobado
             5 => 6,      // Rechazado → Rechazado
+            8 => 11,     // ErrorSunat → Error de Factura
             _ => null
         };
 
@@ -757,6 +964,12 @@ namespace SafetyReport.Handlers
         {
             try
             {
+                var acceso = await _pedidoFacturaDao.ValidarAccesoFacturacionAsync(usuarioLogueado, "emitir la factura");
+                if (acceso.IdTipoMensaje != 2)
+                {
+                    return acceso;
+                }
+
                 var resultado = await _facturacionService.EnviarASunatAsync(
                     usuarioLogueado.IdEmpresa, idDocumentoElectronico, CancellationToken.None);
 
@@ -796,6 +1009,12 @@ namespace SafetyReport.Handlers
         {
             try
             {
+                var acceso = await _pedidoFacturaDao.ValidarAccesoFacturacionAsync(usuarioLogueado, "anular las facturas");
+                if (acceso.IdTipoMensaje != 2)
+                {
+                    return acceso;
+                }
+
                 if (request.Items.Count == 0)
                 {
                     return new Respuesta { IdTipoMensaje = 1, Mensaje = "Debe indicar al menos un documento a anular." };
@@ -839,6 +1058,44 @@ namespace SafetyReport.Handlers
             }
         }
 
+        // Previsualiza AnularFacturasAsync sin ejecutar nada — mismas validaciones, y de poder enviarse la
+        // lista de documentos que se verían incluidos (los indicados + las Notas vigentes arrastradas). Sin
+        // MotivoDescripcion ni FechaReferencia (a diferencia de AnularFacturasAsync) — ninguno de los dos
+        // hace falta para la validación.
+        public async Task<Respuesta> PrevisualizarBajaAsync(UsuarioGeneral usuarioLogueado, List<int> idsDocumentoElectronico)
+        {
+            try
+            {
+                var acceso = await _pedidoFacturaDao.ValidarAccesoFacturacionAsync(usuarioLogueado, "previsualizar la comunicación de baja");
+                if (acceso.IdTipoMensaje != 2)
+                {
+                    return acceso;
+                }
+
+                if (idsDocumentoElectronico.Count == 0)
+                {
+                    return new Respuesta { IdTipoMensaje = 1, Mensaje = "Debe indicar al menos un documento a anular." };
+                }
+
+                var resultado = await _facturacionService.PrevisualizarBajaAsync(
+                    usuarioLogueado.IdEmpresa,
+                    1, // TODO: resolver desde EMPRESAS de ms-facturación (GET /api/v1/empresas?idInquilino=) en vez de fijo.
+                    idsDocumentoElectronico, CancellationToken.None);
+
+                if (resultado is null || resultado.IdTipoMensaje != 2)
+                {
+                    return new Respuesta { IdTipoMensaje = resultado?.IdTipoMensaje ?? 3, Mensaje = resultado?.Mensaje ?? "No se pudo previsualizar la comunicación de baja." };
+                }
+
+                return new Respuesta { IdTipoMensaje = 2, Mensaje = "Consulta exitosa.", Result = resultado.Datos };
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error no controlado en la capa de negocio.");
+                return new Respuesta { IdTipoMensaje = 3, Mensaje = ex.Message };
+            }
+        }
+
         private static Respuesta ResultadoOperacionExito(int idDocumentoElectronico) => new()
         {
             IdTipoMensaje = 2,
@@ -846,8 +1103,8 @@ namespace SafetyReport.Handlers
             Result = new { IdDocumentoElectronico = idDocumentoElectronico }
         };
 
-        // Rol validado acá (SP_PedidoFactura_Resumen, maximilian_staging); el monto real viene de
-        // ms-facturación (SP_DocumentoElectronico_ObtenerResumenFacturacion) — mismo patrón de dos pasos
+        // Rol validado acá (SP_PedidoFactura_ValidarAccesoResumen, maximilian_staging); el monto real viene
+        // de ms-facturación (SP_DocumentoElectronico_ObtenerResumenFacturacion) — mismo patrón de dos pasos
         // que el resto de este Handler, nunca acceso directo entre bases de datos.
         public async Task<Respuesta> ObtenerResumenDashboardAsync(UsuarioGeneral usuarioLogueado, DateOnly? fechaDesde, DateOnly? fechaHasta)
         {

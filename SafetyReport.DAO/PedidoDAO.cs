@@ -574,7 +574,6 @@ namespace SafetyReport.DAO
                 using MySqlConnection cn = new(_dbConfig.ConnectionString);
                 using MySqlCommand cmd = new("SP_Pedido_ListarParaFacturacion", cn);
 
-                cmd.CommandType = CommandType.StoredProcedure;
                 cmd.Parameters.AddWithValue("@intIdUsuario", usuarioLogueado.IdUsuario);
                 cmd.Parameters.AddWithValue("@vchUsuario", usuarioLogueado.Usuario);
                 cmd.Parameters.AddWithValue("@intIdEmpresa", usuarioLogueado.IdEmpresa);
@@ -583,6 +582,7 @@ namespace SafetyReport.DAO
                 cmd.Parameters.AddWithValue("@intIdTipoTramite", (object?)request.idTipoTramite ?? DBNull.Value);
                 cmd.Parameters.AddWithValue("@dtFechaInicio", (object?)request.fechaInicio?.ToDateTime(TimeOnly.MinValue) ?? DBNull.Value);
                 cmd.Parameters.AddWithValue("@dtFechaFin", (object?)request.fechaFin?.ToDateTime(TimeOnly.MinValue) ?? DBNull.Value);
+                cmd.Parameters.AddWithValue("@intIdDocumentoElectronico", request.idDocumentoElectronico);
                 cmd.Parameters.AddWithValue("@numPag", request.numPag);
 
                 await cn.OpenAsync();

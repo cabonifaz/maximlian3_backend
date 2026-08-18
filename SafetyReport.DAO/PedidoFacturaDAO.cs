@@ -367,20 +367,52 @@ namespace SafetyReport.DAO
         }
 
         // Solo valida que el usuario tenga rol 6 (acceso al dashboard) — el monto real ahora sale de
-        // ms-facturación (ver PedidoFacturaHandler.ObtenerResumenDashboardAsync), SP_PedidoFactura_Resumen
-        // ya no calcula nada, solo autoriza.
+        // ms-facturación (ver PedidoFacturaHandler.ObtenerResumenDashboardAsync); SP_PedidoFactura_
+        // ValidarAccesoResumen (renombrado de SP_PedidoFactura_Resumen) ya no calcula nada, solo autoriza.
         public async Task<Respuesta> ValidarAccesoResumenAsync(UsuarioGeneral usuarioLogueado)
         {
             try
             {
                 using MySqlConnection cn = new(_dbConfig.ConnectionString);
-                using MySqlCommand cmd = new("SP_PedidoFactura_Resumen", cn);
+                using MySqlCommand cmd = new("SP_PedidoFactura_ValidarAccesoResumen", cn);
 
                 cmd.CommandType = CommandType.StoredProcedure;
                 cmd.Parameters.AddWithValue("@intIdUsuario", usuarioLogueado.IdUsuario);
                 cmd.Parameters.AddWithValue("@vchUsuario", usuarioLogueado.Usuario);
                 cmd.Parameters.AddWithValue("@intIdEmpresa", usuarioLogueado.IdEmpresa);
                 cmd.Parameters.AddWithValue("@intIdRol", usuarioLogueado.IdRol);
+
+                await cn.OpenAsync();
+                using var dr = await cmd.ExecuteReaderAsync();
+
+                return await LeerCabeceraAsync(dr, cmd.CommandText);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error no controlado en la capa de datos.");
+                return new Respuesta { IdTipoMensaje = 3, Mensaje = ex.Message };
+            }
+        }
+
+        // Mismo patrón que ValidarAccesoResumenAsync (solo autoriza, no calcula ni consulta nada) — para el
+        // resto de endpoints de PedidoFactura que usan ms-facturación como proxy HTTP. A diferencia de
+        // ValidarAccesoResumenAsync (rol 6, exclusivo del dashboard), SP_PedidoFactura_ValidarAccesoFacturacion
+        // exige rol 2 — mismo criterio que todo el módulo facturación. razon describe la acción para el
+        // mensaje de error (SP_PedidoFactura_ValidarAccesoFacturacion es genérico, reusado desde muchos
+        // endpoints distintos).
+        public async Task<Respuesta> ValidarAccesoFacturacionAsync(UsuarioGeneral usuarioLogueado, string razon)
+        {
+            try
+            {
+                using MySqlConnection cn = new(_dbConfig.ConnectionString);
+                using MySqlCommand cmd = new("SP_PedidoFactura_ValidarAccesoFacturacion", cn);
+
+                cmd.CommandType = CommandType.StoredProcedure;
+                cmd.Parameters.AddWithValue("@intIdUsuario", usuarioLogueado.IdUsuario);
+                cmd.Parameters.AddWithValue("@vchUsuario", usuarioLogueado.Usuario);
+                cmd.Parameters.AddWithValue("@intIdEmpresa", usuarioLogueado.IdEmpresa);
+                cmd.Parameters.AddWithValue("@intIdRol", usuarioLogueado.IdRol);
+                cmd.Parameters.AddWithValue("@vchRazon", razon);
 
                 await cn.OpenAsync();
                 using var dr = await cmd.ExecuteReaderAsync();
