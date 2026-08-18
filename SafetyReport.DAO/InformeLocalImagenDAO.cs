@@ -1,7 +1,9 @@
-using Microsoft.Data.SqlClient;
 using Microsoft.Extensions.Logging;
+using MySqlConnector;
 using SafetyReport.Models;
 using System.Data;
+using System.Data.Common;
+using System.Text.Json;
 
 namespace SafetyReport.DAO
 {
@@ -16,13 +18,13 @@ namespace SafetyReport.DAO
             _logger = logger;
         }
 
-        private static string? GetNullableString(SqlDataReader dr, string columnName)
+        private static string? GetNullableString(DbDataReader dr, string columnName)
         {
             var value = dr[columnName];
             return value == DBNull.Value ? null : value.ToString();
         }
 
-        private async Task<Respuesta> LeerCabeceraAsync(SqlDataReader dr, string commandText)
+        private async Task<Respuesta> LeerCabeceraAsync(DbDataReader dr, string commandText)
         {
             var respuesta = new Respuesta();
 
@@ -49,15 +51,13 @@ namespace SafetyReport.DAO
         {
             try
             {
-                var t = new DataTable();
-                t.Columns.Add("IdInformeLocalImagen", typeof(int));
-                foreach (var id in ids)
-                    t.Rows.Add(id);
-
-                using SqlConnection cn = new(_dbConfig.ConnectionString);
-                using SqlCommand cmd = new("SP_InformeLocalImagen_ObtenerUrls", cn) { CommandType = CommandType.StoredProcedure };
-                AgregarParametrosAuditoria(cmd, u);
-                AgregarTvp(cmd, "@lstIds", t, "LISTA_INFORME_LOCAL_IMAGEN_ID");
+                using MySqlConnection cn = new(_dbConfig.ConnectionString);
+                using MySqlCommand cmd = new("SP_InformeLocalImagen_ObtenerUrls", cn) { CommandType = CommandType.StoredProcedure };
+                cmd.Parameters.AddWithValue("@intIdUsuario", u.IdUsuario);
+                cmd.Parameters.AddWithValue("@vchUsuario", u.Usuario);
+                cmd.Parameters.AddWithValue("@intIdEmpresa", u.IdEmpresa);
+                cmd.Parameters.AddWithValue("@intIdRol", u.IdRol);
+                cmd.Parameters.AddWithValue("@jsonIds", JsonSerializer.Serialize(ids));
                 await cn.OpenAsync();
 
                 using var dr = await cmd.ExecuteReaderAsync();
@@ -98,15 +98,13 @@ namespace SafetyReport.DAO
         {
             try
             {
-                var t = new DataTable();
-                t.Columns.Add("IdInformeLocalImagen", typeof(int));
-                foreach (var id in ids)
-                    t.Rows.Add(id);
-
-                using SqlConnection cn = new(_dbConfig.ConnectionString);
-                using SqlCommand cmd = new("SP_InformeLocalImagen_ActualizarEstadoCarga", cn) { CommandType = CommandType.StoredProcedure };
-                AgregarParametrosAuditoria(cmd, u);
-                AgregarTvp(cmd, "@lstIds", t, "LISTA_INFORME_LOCAL_IMAGEN_ID");
+                using MySqlConnection cn = new(_dbConfig.ConnectionString);
+                using MySqlCommand cmd = new("SP_InformeLocalImagen_ActualizarEstadoCarga", cn) { CommandType = CommandType.StoredProcedure };
+                cmd.Parameters.AddWithValue("@intIdUsuario", u.IdUsuario);
+                cmd.Parameters.AddWithValue("@vchUsuario", u.Usuario);
+                cmd.Parameters.AddWithValue("@intIdEmpresa", u.IdEmpresa);
+                cmd.Parameters.AddWithValue("@intIdRol", u.IdRol);
+                cmd.Parameters.AddWithValue("@lstIds", JsonSerializer.Serialize(ids));
                 await cn.OpenAsync();
 
                 using var dr = await cmd.ExecuteReaderAsync();
@@ -125,11 +123,14 @@ namespace SafetyReport.DAO
 
         public async Task ActualizarImagenUrlAsync(UsuarioGeneral u, int idInformeLocalImagen, string imagenUrl)
         {
-            using SqlConnection cn = new(_dbConfig.ConnectionString);
-            using SqlCommand cmd = new("SP_InformeLocalImagen_ActualizarUrl", cn) { CommandType = CommandType.StoredProcedure };
-            AgregarParametrosAuditoria(cmd, u);
-            cmd.Parameters.Add("@intIdInformeLocalImagen", SqlDbType.Int).Value = idInformeLocalImagen;
-            cmd.Parameters.Add("@vchImagenURL", SqlDbType.VarChar, 2048).Value = imagenUrl;
+            using MySqlConnection cn = new(_dbConfig.ConnectionString);
+            using MySqlCommand cmd = new("SP_InformeLocalImagen_ActualizarUrl", cn) { CommandType = CommandType.StoredProcedure };
+            cmd.Parameters.AddWithValue("@intIdUsuario", u.IdUsuario);
+            cmd.Parameters.AddWithValue("@vchUsuario", u.Usuario);
+            cmd.Parameters.AddWithValue("@intIdEmpresa", u.IdEmpresa);
+            cmd.Parameters.AddWithValue("@intIdRol", u.IdRol);
+            cmd.Parameters.AddWithValue("@intIdInformeLocalImagen", idInformeLocalImagen);
+            cmd.Parameters.AddWithValue("@vchImagenURL", imagenUrl);
             await cn.OpenAsync();
 
             using var dr = await cmd.ExecuteReaderAsync();
@@ -141,19 +142,5 @@ namespace SafetyReport.DAO
             }
         }
 
-        private static void AgregarTvp(SqlCommand cmd, string paramName, DataTable table, string typeName)
-        {
-            var p = cmd.Parameters.AddWithValue(paramName, table);
-            p.SqlDbType = SqlDbType.Structured;
-            p.TypeName = typeName;
-        }
-
-        private static void AgregarParametrosAuditoria(SqlCommand cmd, UsuarioGeneral u)
-        {
-            cmd.Parameters.Add("@intIdUsuario", SqlDbType.Int).Value = u.IdUsuario;
-            cmd.Parameters.Add("@vchUsuario", SqlDbType.VarChar, 32).Value = u.Usuario;
-            cmd.Parameters.Add("@intIdEmpresa", SqlDbType.Int).Value = u.IdEmpresa;
-            cmd.Parameters.Add("@intIdRol", SqlDbType.Int).Value = u.IdRol;
-        }
     }
 }

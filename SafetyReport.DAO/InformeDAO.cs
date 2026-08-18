@@ -1,7 +1,8 @@
-using Microsoft.Data.SqlClient;
 using Microsoft.Extensions.Logging;
+using MySqlConnector;
 using SafetyReport.Models;
 using System.Data;
+using System.Data.Common;
 using System.Text.Json;
 
 namespace SafetyReport.DAO
@@ -19,837 +20,476 @@ namespace SafetyReport.DAO
 
         // ── TVP builders ─────────────────────────────────────────────────────────
 
-        private static DataTable ConstruirTablaBalances(List<InformeBalanceItem> items)
+        private static List<object> ConstruirBalancesJson(List<InformeBalanceItem> items)
         {
-            var t = new DataTable();
-            t.Columns.Add("ID", typeof(int));
-            t.Columns.Add("IdInformeBalance", typeof(int));
-            t.Columns.Add("FechaBalance", typeof(DateTime));
-            t.Columns.Add("FechaHasta", typeof(DateTime));
-            t.Columns.Add("FlgActualidad", typeof(bool));
-            t.Columns.Add("TipoCambio", typeof(decimal));
-            t.Columns.Add("IdMoneda", typeof(int));
-            t.Columns.Add("IdTipoBalance", typeof(int));
-            t.Columns.Add("IdTipoEstadoFinanciero", typeof(int));
             int i = 1;
-            foreach (var x in items)
-                t.Rows.Add(i++,
-                    (object?)x.IdInformeBalance ?? DBNull.Value,
-                    x.FechaBalance,
-                    (object?)x.FechaHasta ?? DBNull.Value,
-                    x.FlgActualidad,
-                    D4(x.TipoCambio),
-                    x.IdMoneda, x.IdTipoBalance,
-                    (object?)x.IdTipoEstadoFinanciero ?? DBNull.Value);
-            return t;
+            return items.Select(x => (object)new
+            {
+                ID = i++,
+                x.IdInformeBalance,
+                x.FechaBalance,
+                x.FechaHasta,
+                x.FlgActualidad,
+                TipoCambio = J4(x.TipoCambio),
+                x.IdMoneda,
+                x.IdTipoBalance,
+                x.IdTipoEstadoFinanciero
+            }).ToList();
         }
 
-        private static DataTable ConstruirTablaBancos(List<InformeBancoItem> items)
+        private static List<object> ConstruirBancosJson(List<InformeBancoItem> items)
         {
-            var t = new DataTable();
-            t.Columns.Add("ID", typeof(int));
-            t.Columns.Add("IdInformeBanco", typeof(int));
-            t.Columns.Add("IdBanco", typeof(int));
-            t.Columns.Add("NumeroCuenta", typeof(string));
-            t.Columns.Add("IdSector", typeof(int));
-            t.Columns.Add("Sectorista", typeof(string));
-            t.Columns.Add("ReferenciaBanco", typeof(string));
             int i = 1;
-            foreach (var x in items)
-                t.Rows.Add(i++, (object?)x.IdInformeBanco ?? DBNull.Value, x.IdBanco,
-                    (object?)x.NumeroCuenta ?? DBNull.Value, (object?)x.IdSector ?? DBNull.Value,
-                    (object?)x.Sectorista ?? DBNull.Value,
-                    (object?)x.ReferenciaBanco ?? DBNull.Value);
-            return t;
+            return items.Select(x => (object)new
+            {
+                ID = i++,
+                x.IdInformeBanco,
+                x.IdBanco,
+                x.NumeroCuenta,
+                x.IdSector,
+                x.Sectorista,
+                x.ReferenciaBanco
+            }).ToList();
         }
 
-        private static DataTable ConstruirTablaCompanias(List<InformeCompaniaRelacionadaItem> items)
+        private static List<object> ConstruirCompaniasJson(List<InformeCompaniaRelacionadaItem> items)
         {
-            var t = new DataTable();
-            t.Columns.Add("ID", typeof(int));
-            t.Columns.Add("IdInformeCompaniaRelacionada", typeof(int));
-            t.Columns.Add("IdCompania", typeof(int));
             int i = 1;
-            foreach (var x in items)
-                t.Rows.Add(i++, (object?)x.IdInformeCompaniaRelacionada ?? DBNull.Value, x.IdCompania);
-            return t;
+            return items.Select(x => (object)new
+            {
+                ID = i++,
+                x.IdInformeCompaniaRelacionada,
+                x.IdCompania
+            }).ToList();
         }
 
-        private static DataTable ConstruirTablaExpImp(List<InformeExportacionImportacionItem> items)
+        private static List<object> ConstruirExpImpJson(List<InformeExportacionImportacionItem> items)
         {
-            var t = new DataTable();
-            t.Columns.Add("ID", typeof(int));
-            t.Columns.Add("IdInformeExportacionImportacion", typeof(int));
-            t.Columns.Add("Anio", typeof(int));
-            t.Columns.Add("MesInicio", typeof(int));
-            t.Columns.Add("MesFin", typeof(int));
-            t.Columns.Add("IdMoneda", typeof(int));
-            t.Columns.Add("Paises", typeof(string));
-            t.Columns.Add("Monto", typeof(decimal));
-            t.Columns.Add("Productos", typeof(string));
-            t.Columns.Add("IdTipoOperacion", typeof(int));
-            t.Columns.Add("NumOperaciones", typeof(int));
             int i = 1;
-            foreach (var x in items)
-                t.Rows.Add(i++,
-                    (object?)x.IdInformeExportacionImportacion ?? DBNull.Value,
-                    x.Anio, x.MesInicio, x.MesFin, x.IdMoneda,
-                    (object?)x.Paises ?? DBNull.Value, D2(x.Monto),
-                    (object?)x.Productos ?? DBNull.Value, x.IdTipoOperacion,
-                    (object?)x.NumOperaciones ?? DBNull.Value);
-            return t;
+            return items.Select(x => (object)new
+            {
+                ID = i++,
+                x.IdInformeExportacionImportacion,
+                x.Anio,
+                x.MesInicio,
+                x.MesFin,
+                x.IdMoneda,
+                x.Paises,
+                Monto = J2(x.Monto),
+                x.Productos,
+                x.IdTipoOperacion,
+                x.NumOperaciones
+            }).ToList();
         }
 
-        private static DataTable ConstruirTablaProveedores(List<InformeProveedorItem> items)
+        private static List<object> ConstruirProveedoresJson(List<InformeProveedorItem> items)
         {
-            var t = new DataTable();
-            t.Columns.Add("ID", typeof(int));
-            t.Columns.Add("IdInformeProveedor", typeof(int));
-            t.Columns.Add("IdBancoProveedor", typeof(int));
-            t.Columns.Add("IdTipoPersona", typeof(int));
-            t.Columns.Add("Nombre", typeof(string));
-            t.Columns.Add("IdPais", typeof(int));
-            t.Columns.Add("IdTipoDocumento", typeof(int));
-            t.Columns.Add("NumeroDocumento", typeof(string));
-            t.Columns.Add("IdMoneda", typeof(int));
-            t.Columns.Add("FechaInicio", typeof(DateTime));
-            t.Columns.Add("IdLimiteCredito", typeof(int));
-            t.Columns.Add("PromedioMensual", typeof(decimal));
-            t.Columns.Add("PlazoCredito", typeof(string));
-            t.Columns.Add("Productos", typeof(string));
-            t.Columns.Add("IdCalificacion", typeof(int));
-            t.Columns.Add("Comentarios", typeof(string));
-            t.Columns.Add("NombreContacto", typeof(string));
-            t.Columns.Add("Telefono", typeof(string));
-            t.Columns.Add("ComienzoNegociaciones", typeof(string));
-            t.Columns.Add("IdPlazoCredito", typeof(int));
-            t.Columns.Add("EsTieneReferenciaComercial", typeof(bool));
-            t.Columns.Add("TipoCambio", typeof(decimal));
             int i = 1;
-            foreach (var x in items)
-                t.Rows.Add(i++,
-                    (object?)x.IdInformeProveedor ?? DBNull.Value,
-                    (object?)x.IdBancoProveedor ?? DBNull.Value, x.IdTipoPersona, x.Nombre,
-                    (object?)x.IdPais ?? DBNull.Value, (object?)x.IdTipoDocumento ?? DBNull.Value,
-                    (object?)x.NumeroDocumento ?? DBNull.Value, (object?)x.IdMoneda ?? DBNull.Value,
-                    (object?)x.FechaInicio ?? DBNull.Value, (object?)x.IdLimiteCredito ?? DBNull.Value,
-                    D4(x.PromedioMensual), (object?)x.PlazoCredito ?? DBNull.Value,
-                    (object?)x.Productos ?? DBNull.Value, (object?)x.IdCalificacion ?? DBNull.Value,
-                    (object?)x.Comentarios ?? DBNull.Value,
-                    (object?)x.NombreContacto ?? DBNull.Value,
-                    (object?)x.Telefono ?? DBNull.Value,
-                    (object?)x.ComienzoNegociaciones ?? DBNull.Value,
-                    (object?)x.IdPlazoCredito ?? DBNull.Value,
-                    (object?)x.EsTieneReferenciaComercial ?? DBNull.Value,
-                    D6(x.TipoCambio));
-            return t;
+            return items.Select(x => (object)new
+            {
+                ID = i++,
+                x.IdInformeProveedor,
+                x.IdBancoProveedor,
+                x.IdTipoPersona,
+                x.Nombre,
+                x.IdPais,
+                x.IdTipoDocumento,
+                x.NumeroDocumento,
+                x.IdMoneda,
+                x.FechaInicio,
+                x.IdLimiteCredito,
+                PromedioMensual = J4(x.PromedioMensual),
+                x.PlazoCredito,
+                x.Productos,
+                x.IdCalificacion,
+                x.Comentarios,
+                x.NombreContacto,
+                x.Telefono,
+                x.ComienzoNegociaciones,
+                x.IdPlazoCredito,
+                x.EsTieneReferenciaComercial,
+                TipoCambio = J6(x.TipoCambio)
+            }).ToList();
         }
 
-        private static DataTable ConstruirTablaBalancesDesagregado(List<InformeBalanceDesagregadoItem> items)
-        {
-            var t = new DataTable();
-            t.Columns.Add("ID", typeof(int));
-            t.Columns.Add("EfectivoEquivalente", typeof(decimal));
-            t.Columns.Add("OtrosActivosFinancierosCorriente", typeof(decimal));
-            t.Columns.Add("CuentasCobrarCorriente", typeof(decimal));
-            t.Columns.Add("InventariosCorriente", typeof(decimal));
-            t.Columns.Add("ActivosBiologicosCorriente", typeof(decimal));
-            t.Columns.Add("ActivosImpuestosGanancias", typeof(decimal));
-            t.Columns.Add("OtrosActivosNoFinancierosCorriente", typeof(decimal));
-            t.Columns.Add("TotalActivoCorriente", typeof(decimal));
-            t.Columns.Add("OtrosActivosFinancierosNoCorriente", typeof(decimal));
-            t.Columns.Add("InversionesSubsidiarias", typeof(decimal));
-            t.Columns.Add("CuentasCobrarNoCorriente", typeof(decimal));
-            t.Columns.Add("InventariosNoCorriente", typeof(decimal));
-            t.Columns.Add("ActivosBiologicosNoCorriente", typeof(decimal));
-            t.Columns.Add("PropiedadesInversion", typeof(decimal));
-            t.Columns.Add("PropiedadesPlantaEquipo", typeof(decimal));
-            t.Columns.Add("Intangibles", typeof(decimal));
-            t.Columns.Add("ActivosImpuestosDiferidos", typeof(decimal));
-            t.Columns.Add("ActivosImpuestosCorrientes", typeof(decimal));
-            t.Columns.Add("Plusvalia", typeof(decimal));
-            t.Columns.Add("OtrosActivosNoFinancierosNoCorriente", typeof(decimal));
-            t.Columns.Add("TotalActivoNoCorriente", typeof(decimal));
-            t.Columns.Add("TotalActivo", typeof(decimal));
-            t.Columns.Add("OtrosPasivosFinancierosCorriente", typeof(decimal));
-            t.Columns.Add("CuentasPagarCorriente", typeof(decimal));
-            t.Columns.Add("BeneficiosEmpleadosCorriente", typeof(decimal));
-            t.Columns.Add("OtrasProvisionesCorriente", typeof(decimal));
-            t.Columns.Add("ImpuestosGananciasCorriente", typeof(decimal));
-            t.Columns.Add("OtrosPasivosNoFinancierosCorriente", typeof(decimal));
-            t.Columns.Add("TotalPasivoCorriente", typeof(decimal));
-            t.Columns.Add("OtrosPasivosFinancierosNoCorriente", typeof(decimal));
-            t.Columns.Add("CuentasPagarNoCorriente", typeof(decimal));
-            t.Columns.Add("BeneficiosEmpleadosNoCorriente", typeof(decimal));
-            t.Columns.Add("OtrasProvisionesNoCorriente", typeof(decimal));
-            t.Columns.Add("ImpuestosDiferidosNoCorriente", typeof(decimal));
-            t.Columns.Add("ImpuestosCorrientesNoCorriente", typeof(decimal));
-            t.Columns.Add("OtrosPasivosNoFinancierosNoCorriente", typeof(decimal));
-            t.Columns.Add("TotalPasivoNoCorriente", typeof(decimal));
-            t.Columns.Add("TotalPasivos", typeof(decimal));
-            t.Columns.Add("CapitalEmitido", typeof(decimal));
-            t.Columns.Add("PrimasEmision", typeof(decimal));
-            t.Columns.Add("AccionesInversion", typeof(decimal));
-            t.Columns.Add("AccionesCartera", typeof(decimal));
-            t.Columns.Add("OtrasReservasCapital", typeof(decimal));
-            t.Columns.Add("ResultadosAcumulados", typeof(decimal));
-            t.Columns.Add("OtrasReservasPatrimonio", typeof(decimal));
-            t.Columns.Add("TotalPatrimonio", typeof(decimal));
-            t.Columns.Add("TotalPasivoPatrimonio", typeof(decimal));
-            t.Columns.Add("IngresosOrdinarios", typeof(decimal));
-            t.Columns.Add("CostoVentas", typeof(decimal));
-            t.Columns.Add("GananciaBruta", typeof(decimal));
-            t.Columns.Add("GastosVentas", typeof(decimal));
-            t.Columns.Add("GastosAdministracion", typeof(decimal));
-            t.Columns.Add("OtrosIngresosOperativos", typeof(decimal));
-            t.Columns.Add("OtrosGastosOperativos", typeof(decimal));
-            t.Columns.Add("OtrasGananciasPerdidas", typeof(decimal));
-            t.Columns.Add("GananciaOperativa", typeof(decimal));
-            t.Columns.Add("IngresosFinancieros", typeof(decimal));
-            t.Columns.Add("IngresosIntereses", typeof(decimal));
-            t.Columns.Add("GastosFinancieros", typeof(decimal));
-            t.Columns.Add("DeterioroValor", typeof(decimal));
-            t.Columns.Add("OtrosIngresosSubsidiarias", typeof(decimal));
-            t.Columns.Add("DiferenciasCambio", typeof(decimal));
-            t.Columns.Add("GananciaAntesImpuestos", typeof(decimal));
-            t.Columns.Add("IngresoGastoImpuesto", typeof(decimal));
-            t.Columns.Add("OperacionesDescontinuadas", typeof(decimal));
-            t.Columns.Add("GananciaNeta", typeof(decimal));
-            t.Columns.Add("IndiceLiquidez", typeof(decimal));
-            t.Columns.Add("CapitalTrabajo", typeof(decimal));
-            t.Columns.Add("RatioEndeudamiento", typeof(decimal));
-            t.Columns.Add("RatioRentabilidad", typeof(decimal));
-            foreach (var x in items)
-                t.Rows.Add(
-                    x.Id,
-                    D2(x.EfectivoEquivalente),
-                    D2(x.OtrosActivosFinancierosCorriente),
-                    D2(x.CuentasCobrarCorriente),
-                    D2(x.InventariosCorriente),
-                    D2(x.ActivosBiologicosCorriente),
-                    D2(x.ActivosImpuestosGanancias),
-                    D2(x.OtrosActivosNoFinancierosCorriente),
-                    D2(x.TotalActivoCorriente),
-                    D2(x.OtrosActivosFinancierosNoCorriente),
-                    D2(x.InversionesSubsidiarias),
-                    D2(x.CuentasCobrarNoCorriente),
-                    D2(x.InventariosNoCorriente),
-                    D2(x.ActivosBiologicosNoCorriente),
-                    D2(x.PropiedadesInversion),
-                    D2(x.PropiedadesPlantaEquipo),
-                    D2(x.Intangibles),
-                    D2(x.ActivosImpuestosDiferidos),
-                    D2(x.ActivosImpuestosCorrientes),
-                    D2(x.Plusvalia),
-                    D2(x.OtrosActivosNoFinancierosNoCorriente),
-                    D2(x.TotalActivoNoCorriente),
-                    D2(x.TotalActivo),
-                    D2(x.OtrosPasivosFinancierosCorriente),
-                    D2(x.CuentasPagarCorriente),
-                    D2(x.BeneficiosEmpleadosCorriente),
-                    D2(x.OtrasProvisionesCorriente),
-                    D2(x.ImpuestosGananciasCorriente),
-                    D2(x.OtrosPasivosNoFinancierosCorriente),
-                    D2(x.TotalPasivoCorriente),
-                    D2(x.OtrosPasivosFinancierosNoCorriente),
-                    D2(x.CuentasPagarNoCorriente),
-                    D2(x.BeneficiosEmpleadosNoCorriente),
-                    D2(x.OtrasProvisionesNoCorriente),
-                    D2(x.ImpuestosDiferidosNoCorriente),
-                    D2(x.ImpuestosCorrientesNoCorriente),
-                    D2(x.OtrosPasivosNoFinancierosNoCorriente),
-                    D2(x.TotalPasivoNoCorriente),
-                    D2(x.TotalPasivos),
-                    D2(x.CapitalEmitido),
-                    D2(x.PrimasEmision),
-                    D2(x.AccionesInversion),
-                    D2(x.AccionesCartera),
-                    D2(x.OtrasReservasCapital),
-                    D2(x.ResultadosAcumulados),
-                    D2(x.OtrasReservasPatrimonio),
-                    D2(x.TotalPatrimonio),
-                    D2(x.TotalPasivoPatrimonio),
-                    D2(x.IngresosOrdinarios),
-                    D2(x.CostoVentas),
-                    D2(x.GananciaBruta),
-                    D2(x.GastosVentas),
-                    D2(x.GastosAdministracion),
-                    D2(x.OtrosIngresosOperativos),
-                    D2(x.OtrosGastosOperativos),
-                    D2(x.OtrasGananciasPerdidas),
-                    D2(x.GananciaOperativa),
-                    D2(x.IngresosFinancieros),
-                    D2(x.IngresosIntereses),
-                    D2(x.GastosFinancieros),
-                    D2(x.DeterioroValor),
-                    D2(x.OtrosIngresosSubsidiarias),
-                    D2(x.DiferenciasCambio),
-                    D2(x.GananciaAntesImpuestos),
-                    D2(x.IngresoGastoImpuesto),
-                    D2(x.OperacionesDescontinuadas),
-                    D2(x.GananciaNeta),
-                    D2(x.IndiceLiquidez),
-                    D2(x.CapitalTrabajo),
-                    D2(x.RatioEndeudamiento),
-                    D2(x.RatioRentabilidad));
-            return t;
-        }
+        private static List<object> ConstruirBalancesDesagregadoJson(List<InformeBalanceDesagregadoItem> items) =>
+            items.Select(x => (object)new
+            {
+                x.Id,
+                EfectivoEquivalente = J2(x.EfectivoEquivalente),
+                OtrosActivosFinancierosCorriente = J2(x.OtrosActivosFinancierosCorriente),
+                CuentasCobrarCorriente = J2(x.CuentasCobrarCorriente),
+                InventariosCorriente = J2(x.InventariosCorriente),
+                ActivosBiologicosCorriente = J2(x.ActivosBiologicosCorriente),
+                ActivosImpuestosGanancias = J2(x.ActivosImpuestosGanancias),
+                OtrosActivosNoFinancierosCorriente = J2(x.OtrosActivosNoFinancierosCorriente),
+                TotalActivoCorriente = J2(x.TotalActivoCorriente),
+                OtrosActivosFinancierosNoCorriente = J2(x.OtrosActivosFinancierosNoCorriente),
+                InversionesSubsidiarias = J2(x.InversionesSubsidiarias),
+                CuentasCobrarNoCorriente = J2(x.CuentasCobrarNoCorriente),
+                InventariosNoCorriente = J2(x.InventariosNoCorriente),
+                ActivosBiologicosNoCorriente = J2(x.ActivosBiologicosNoCorriente),
+                PropiedadesInversion = J2(x.PropiedadesInversion),
+                PropiedadesPlantaEquipo = J2(x.PropiedadesPlantaEquipo),
+                Intangibles = J2(x.Intangibles),
+                ActivosImpuestosDiferidos = J2(x.ActivosImpuestosDiferidos),
+                ActivosImpuestosCorrientes = J2(x.ActivosImpuestosCorrientes),
+                Plusvalia = J2(x.Plusvalia),
+                OtrosActivosNoFinancierosNoCorriente = J2(x.OtrosActivosNoFinancierosNoCorriente),
+                TotalActivoNoCorriente = J2(x.TotalActivoNoCorriente),
+                TotalActivo = J2(x.TotalActivo),
+                OtrosPasivosFinancierosCorriente = J2(x.OtrosPasivosFinancierosCorriente),
+                CuentasPagarCorriente = J2(x.CuentasPagarCorriente),
+                BeneficiosEmpleadosCorriente = J2(x.BeneficiosEmpleadosCorriente),
+                OtrasProvisionesCorriente = J2(x.OtrasProvisionesCorriente),
+                ImpuestosGananciasCorriente = J2(x.ImpuestosGananciasCorriente),
+                OtrosPasivosNoFinancierosCorriente = J2(x.OtrosPasivosNoFinancierosCorriente),
+                TotalPasivoCorriente = J2(x.TotalPasivoCorriente),
+                OtrosPasivosFinancierosNoCorriente = J2(x.OtrosPasivosFinancierosNoCorriente),
+                CuentasPagarNoCorriente = J2(x.CuentasPagarNoCorriente),
+                BeneficiosEmpleadosNoCorriente = J2(x.BeneficiosEmpleadosNoCorriente),
+                OtrasProvisionesNoCorriente = J2(x.OtrasProvisionesNoCorriente),
+                ImpuestosDiferidosNoCorriente = J2(x.ImpuestosDiferidosNoCorriente),
+                ImpuestosCorrientesNoCorriente = J2(x.ImpuestosCorrientesNoCorriente),
+                OtrosPasivosNoFinancierosNoCorriente = J2(x.OtrosPasivosNoFinancierosNoCorriente),
+                TotalPasivoNoCorriente = J2(x.TotalPasivoNoCorriente),
+                TotalPasivos = J2(x.TotalPasivos),
+                CapitalEmitido = J2(x.CapitalEmitido),
+                PrimasEmision = J2(x.PrimasEmision),
+                AccionesInversion = J2(x.AccionesInversion),
+                AccionesCartera = J2(x.AccionesCartera),
+                OtrasReservasCapital = J2(x.OtrasReservasCapital),
+                ResultadosAcumulados = J2(x.ResultadosAcumulados),
+                OtrasReservasPatrimonio = J2(x.OtrasReservasPatrimonio),
+                TotalPatrimonio = J2(x.TotalPatrimonio),
+                TotalPasivoPatrimonio = J2(x.TotalPasivoPatrimonio),
+                IngresosOrdinarios = J2(x.IngresosOrdinarios),
+                CostoVentas = J2(x.CostoVentas),
+                GananciaBruta = J2(x.GananciaBruta),
+                GastosVentas = J2(x.GastosVentas),
+                GastosAdministracion = J2(x.GastosAdministracion),
+                OtrosIngresosOperativos = J2(x.OtrosIngresosOperativos),
+                OtrosGastosOperativos = J2(x.OtrosGastosOperativos),
+                OtrasGananciasPerdidas = J2(x.OtrasGananciasPerdidas),
+                GananciaOperativa = J2(x.GananciaOperativa),
+                IngresosFinancieros = J2(x.IngresosFinancieros),
+                IngresosIntereses = J2(x.IngresosIntereses),
+                GastosFinancieros = J2(x.GastosFinancieros),
+                DeterioroValor = J2(x.DeterioroValor),
+                OtrosIngresosSubsidiarias = J2(x.OtrosIngresosSubsidiarias),
+                DiferenciasCambio = J2(x.DiferenciasCambio),
+                GananciaAntesImpuestos = J2(x.GananciaAntesImpuestos),
+                IngresoGastoImpuesto = J2(x.IngresoGastoImpuesto),
+                OperacionesDescontinuadas = J2(x.OperacionesDescontinuadas),
+                GananciaNeta = J2(x.GananciaNeta),
+                IndiceLiquidez = J2(x.IndiceLiquidez),
+                CapitalTrabajo = J2(x.CapitalTrabajo),
+                RatioEndeudamiento = J2(x.RatioEndeudamiento),
+                RatioRentabilidad = J2(x.RatioRentabilidad)
+            }).ToList();
 
-        private static DataTable ConstruirTablaBalancesTotalizado(List<InformeBalanceTotalizadoItem> items)
-        {
-            var t = new DataTable();
-            t.Columns.Add("ID", typeof(int));
-            t.Columns.Add("TotalActivoCorriente", typeof(decimal));
-            t.Columns.Add("TotalActivoNoCorriente", typeof(decimal));
-            t.Columns.Add("TotalActivo", typeof(decimal));
-            t.Columns.Add("TotalPasivoCorriente", typeof(decimal));
-            t.Columns.Add("TotalPasivoNoCorriente", typeof(decimal));
-            t.Columns.Add("TotalPasivos", typeof(decimal));
-            t.Columns.Add("TotalPatrimonio", typeof(decimal));
-            t.Columns.Add("TotalPasivoPatrimonio", typeof(decimal));
-            t.Columns.Add("IngresosOrdinarios", typeof(decimal));
-            t.Columns.Add("GananciaNeta", typeof(decimal));
-            t.Columns.Add("IndiceLiquidez", typeof(decimal));
-            t.Columns.Add("CapitalTrabajo", typeof(decimal));
-            t.Columns.Add("RatioEndeudamiento", typeof(decimal));
-            t.Columns.Add("RatioRentabilidad", typeof(decimal));
-            foreach (var x in items)
-                t.Rows.Add(
-                    x.Id,
-                    D2(x.TotalActivoCorriente),
-                    D2(x.TotalActivoNoCorriente),
-                    D2(x.TotalActivo),
-                    D2(x.TotalPasivoCorriente),
-                    D2(x.TotalPasivoNoCorriente),
-                    D2(x.TotalPasivos),
-                    D2(x.TotalPatrimonio),
-                    D2(x.TotalPasivoPatrimonio),
-                    D2(x.IngresosOrdinarios),
-                    D2(x.GananciaNeta),
-                    D2(x.IndiceLiquidez),
-                    D2(x.CapitalTrabajo),
-                    D2(x.RatioEndeudamiento),
-                    D2(x.RatioRentabilidad));
-            return t;
-        }
+        private static List<object> ConstruirBalancesTotalizadoJson(List<InformeBalanceTotalizadoItem> items) =>
+            items.Select(x => (object)new
+            {
+                x.Id,
+                TotalActivoCorriente = J2(x.TotalActivoCorriente),
+                TotalActivoNoCorriente = J2(x.TotalActivoNoCorriente),
+                TotalActivo = J2(x.TotalActivo),
+                TotalPasivoCorriente = J2(x.TotalPasivoCorriente),
+                TotalPasivoNoCorriente = J2(x.TotalPasivoNoCorriente),
+                TotalPasivos = J2(x.TotalPasivos),
+                TotalPatrimonio = J2(x.TotalPatrimonio),
+                TotalPasivoPatrimonio = J2(x.TotalPasivoPatrimonio),
+                IngresosOrdinarios = J2(x.IngresosOrdinarios),
+                GananciaNeta = J2(x.GananciaNeta),
+                IndiceLiquidez = J2(x.IndiceLiquidez),
+                CapitalTrabajo = J2(x.CapitalTrabajo),
+                RatioEndeudamiento = J2(x.RatioEndeudamiento),
+                RatioRentabilidad = J2(x.RatioRentabilidad)
+            }).ToList();
 
-        private static DataTable ConstruirTablaBalancesBanco(List<InformeBalanceBancoItem> items)
-        {
-            var t = new DataTable();
-            t.Columns.Add("ID", typeof(int));
-            t.Columns.Add("Disponible", typeof(decimal));
-            t.Columns.Add("FondosInterbancarios", typeof(decimal));
-            t.Columns.Add("InversionesValorRazonable", typeof(decimal));
-            t.Columns.Add("CarteraCreditos", typeof(decimal));
-            t.Columns.Add("DerivadosNegociacionActivo", typeof(decimal));
-            t.Columns.Add("DerivadosCoberturaActivo", typeof(decimal));
-            t.Columns.Add("BienesRealizables", typeof(decimal));
-            t.Columns.Add("ParticipacionesSubsidiarias", typeof(decimal));
-            t.Columns.Add("InmuebleMobiliarioEquipo", typeof(decimal));
-            t.Columns.Add("ImpuestoRentaDiferido", typeof(decimal));
-            t.Columns.Add("OtrosActivos", typeof(decimal));
-            t.Columns.Add("TotalActivos", typeof(decimal));
-            t.Columns.Add("ObligacionesPublico", typeof(decimal));
-            t.Columns.Add("FondosInterbancariosPasivo", typeof(decimal));
-            t.Columns.Add("AdeudosFinancieras", typeof(decimal));
-            t.Columns.Add("DerivadosNegociacionPasivo", typeof(decimal));
-            t.Columns.Add("DerivadosCoberturaPasivo", typeof(decimal));
-            t.Columns.Add("CuentasPagarProvisiones", typeof(decimal));
-            t.Columns.Add("TotalPasivo", typeof(decimal));
-            t.Columns.Add("CapitalSocial", typeof(decimal));
-            t.Columns.Add("Reservas", typeof(decimal));
-            t.Columns.Add("ResultadosNoRealizados", typeof(decimal));
-            t.Columns.Add("ResultadoEjercicio", typeof(decimal));
-            t.Columns.Add("TotalPatrimonio", typeof(decimal));
-            t.Columns.Add("TotalPasivoPatrimonio", typeof(decimal));
-            t.Columns.Add("IngresosIntereses", typeof(decimal));
-            t.Columns.Add("UtilidadEjercicio", typeof(decimal));
-            foreach (var x in items)
-                t.Rows.Add(
-                    x.Id,
-                    D2(x.Disponible),
-                    D2(x.FondosInterbancarios),
-                    D2(x.InversionesValorRazonable),
-                    D2(x.CarteraCreditos),
-                    D2(x.DerivadosNegociacionActivo),
-                    D2(x.DerivadosCoberturaActivo),
-                    D2(x.BienesRealizables),
-                    D2(x.ParticipacionesSubsidiarias),
-                    D2(x.InmuebleMobiliarioEquipo),
-                    D2(x.ImpuestoRentaDiferido),
-                    D2(x.OtrosActivos),
-                    D2(x.TotalActivos),
-                    D2(x.ObligacionesPublico),
-                    D2(x.FondosInterbancariosPasivo),
-                    D2(x.AdeudosFinancieras),
-                    D2(x.DerivadosNegociacionPasivo),
-                    D2(x.DerivadosCoberturaPasivo),
-                    D2(x.CuentasPagarProvisiones),
-                    D2(x.TotalPasivo),
-                    D2(x.CapitalSocial),
-                    D2(x.Reservas),
-                    D2(x.ResultadosNoRealizados),
-                    D2(x.ResultadoEjercicio),
-                    D2(x.TotalPatrimonio),
-                    D2(x.TotalPasivoPatrimonio),
-                    D2(x.IngresosIntereses),
-                    D2(x.UtilidadEjercicio));
-            return t;
-        }
+        private static List<object> ConstruirBalancesBancoJson(List<InformeBalanceBancoItem> items) =>
+            items.Select(x => (object)new
+            {
+                x.Id,
+                Disponible = J2(x.Disponible),
+                FondosInterbancarios = J2(x.FondosInterbancarios),
+                InversionesValorRazonable = J2(x.InversionesValorRazonable),
+                CarteraCreditos = J2(x.CarteraCreditos),
+                DerivadosNegociacionActivo = J2(x.DerivadosNegociacionActivo),
+                DerivadosCoberturaActivo = J2(x.DerivadosCoberturaActivo),
+                BienesRealizables = J2(x.BienesRealizables),
+                ParticipacionesSubsidiarias = J2(x.ParticipacionesSubsidiarias),
+                InmuebleMobiliarioEquipo = J2(x.InmuebleMobiliarioEquipo),
+                ImpuestoRentaDiferido = J2(x.ImpuestoRentaDiferido),
+                OtrosActivos = J2(x.OtrosActivos),
+                TotalActivos = J2(x.TotalActivos),
+                ObligacionesPublico = J2(x.ObligacionesPublico),
+                FondosInterbancariosPasivo = J2(x.FondosInterbancariosPasivo),
+                AdeudosFinancieras = J2(x.AdeudosFinancieras),
+                DerivadosNegociacionPasivo = J2(x.DerivadosNegociacionPasivo),
+                DerivadosCoberturaPasivo = J2(x.DerivadosCoberturaPasivo),
+                CuentasPagarProvisiones = J2(x.CuentasPagarProvisiones),
+                TotalPasivo = J2(x.TotalPasivo),
+                CapitalSocial = J2(x.CapitalSocial),
+                Reservas = J2(x.Reservas),
+                ResultadosNoRealizados = J2(x.ResultadosNoRealizados),
+                ResultadoEjercicio = J2(x.ResultadoEjercicio),
+                TotalPatrimonio = J2(x.TotalPatrimonio),
+                TotalPasivoPatrimonio = J2(x.TotalPasivoPatrimonio),
+                IngresosIntereses = J2(x.IngresosIntereses),
+                UtilidadEjercicio = J2(x.UtilidadEjercicio)
+            }).ToList();
 
-        private static DataTable ConstruirTablaBalancesSeguro(List<InformeBalanceSeguroItem> items)
-        {
-            var t = new DataTable();
-            t.Columns.Add("ID", typeof(int));
-            t.Columns.Add("EfectivoDisponible", typeof(decimal));
-            t.Columns.Add("InversionesFinancieras", typeof(decimal));
-            t.Columns.Add("PrestamosInteresesNetos", typeof(decimal));
-            t.Columns.Add("PrimasCobrar", typeof(decimal));
-            t.Columns.Add("DeudasReaseguradores", typeof(decimal));
-            t.Columns.Add("ActivosVenta", typeof(decimal));
-            t.Columns.Add("PropiedadesInversion", typeof(decimal));
-            t.Columns.Add("PropiedadPlantaEquipo", typeof(decimal));
-            t.Columns.Add("OtrosActivos", typeof(decimal));
-            t.Columns.Add("TotalActivos", typeof(decimal));
-            t.Columns.Add("ObligacionesAsegurados", typeof(decimal));
-            t.Columns.Add("ReservasSiniestros", typeof(decimal));
-            t.Columns.Add("ReservasTecnicas", typeof(decimal));
-            t.Columns.Add("ObligacionesReaseguradores", typeof(decimal));
-            t.Columns.Add("ObligacionesFinancieras", typeof(decimal));
-            t.Columns.Add("CuentasPagar", typeof(decimal));
-            t.Columns.Add("OtrosPasivos", typeof(decimal));
-            t.Columns.Add("TotalPasivo", typeof(decimal));
-            t.Columns.Add("CapitalSocial", typeof(decimal));
-            t.Columns.Add("AportesCapitalNoCapitalizados", typeof(decimal));
-            t.Columns.Add("ResultadosAcumulados", typeof(decimal));
-            t.Columns.Add("PatrimonioRestringido", typeof(decimal));
-            t.Columns.Add("TotalPatrimonio", typeof(decimal));
-            t.Columns.Add("TotalPasivoPatrimonio", typeof(decimal));
-            t.Columns.Add("PrimasGanadasNetas", typeof(decimal));
-            t.Columns.Add("UtilidadNeta", typeof(decimal));
-            foreach (var x in items)
-                t.Rows.Add(
-                    x.Id,
-                    D2(x.EfectivoDisponible),
-                    D2(x.InversionesFinancieras),
-                    D2(x.PrestamosInteresesNetos),
-                    D2(x.PrimasCobrar),
-                    D2(x.DeudasReaseguradores),
-                    D2(x.ActivosVenta),
-                    D2(x.PropiedadesInversion),
-                    D2(x.PropiedadPlantaEquipo),
-                    D2(x.OtrosActivos),
-                    D2(x.TotalActivos),
-                    D2(x.ObligacionesAsegurados),
-                    D2(x.ReservasSiniestros),
-                    D2(x.ReservasTecnicas),
-                    D2(x.ObligacionesReaseguradores),
-                    D2(x.ObligacionesFinancieras),
-                    D2(x.CuentasPagar),
-                    D2(x.OtrosPasivos),
-                    D2(x.TotalPasivo),
-                    D2(x.CapitalSocial),
-                    D2(x.AportesCapitalNoCapitalizados),
-                    D2(x.ResultadosAcumulados),
-                    D2(x.PatrimonioRestringido),
-                    D2(x.TotalPatrimonio),
-                    D2(x.TotalPasivoPatrimonio),
-                    D2(x.PrimasGanadasNetas),
-                    D2(x.UtilidadNeta));
-            return t;
-        }
+        private static List<object> ConstruirBalancesSeguroJson(List<InformeBalanceSeguroItem> items) =>
+            items.Select(x => (object)new
+            {
+                x.Id,
+                EfectivoDisponible = J2(x.EfectivoDisponible),
+                InversionesFinancieras = J2(x.InversionesFinancieras),
+                PrestamosInteresesNetos = J2(x.PrestamosInteresesNetos),
+                PrimasCobrar = J2(x.PrimasCobrar),
+                DeudasReaseguradores = J2(x.DeudasReaseguradores),
+                ActivosVenta = J2(x.ActivosVenta),
+                PropiedadesInversion = J2(x.PropiedadesInversion),
+                PropiedadPlantaEquipo = J2(x.PropiedadPlantaEquipo),
+                OtrosActivos = J2(x.OtrosActivos),
+                TotalActivos = J2(x.TotalActivos),
+                ObligacionesAsegurados = J2(x.ObligacionesAsegurados),
+                ReservasSiniestros = J2(x.ReservasSiniestros),
+                ReservasTecnicas = J2(x.ReservasTecnicas),
+                ObligacionesReaseguradores = J2(x.ObligacionesReaseguradores),
+                ObligacionesFinancieras = J2(x.ObligacionesFinancieras),
+                CuentasPagar = J2(x.CuentasPagar),
+                OtrosPasivos = J2(x.OtrosPasivos),
+                TotalPasivo = J2(x.TotalPasivo),
+                CapitalSocial = J2(x.CapitalSocial),
+                AportesCapitalNoCapitalizados = J2(x.AportesCapitalNoCapitalizados),
+                ResultadosAcumulados = J2(x.ResultadosAcumulados),
+                PatrimonioRestringido = J2(x.PatrimonioRestringido),
+                TotalPatrimonio = J2(x.TotalPatrimonio),
+                TotalPasivoPatrimonio = J2(x.TotalPasivoPatrimonio),
+                PrimasGanadasNetas = J2(x.PrimasGanadasNetas),
+                UtilidadNeta = J2(x.UtilidadNeta)
+            }).ToList();
 
-        private static DataTable ConstruirTablaBalancesTurquia(List<InformeBalanceTurquiaItem> items)
-        {
-            var t = new DataTable();
-            t.Columns.Add("ID", typeof(int));
-            t.Columns.Add("Ano", typeof(int));
-            t.Columns.Add("FechaBalance", typeof(DateTime));
-            t.Columns.Add("IdMoneda", typeof(int));
-            t.Columns.Add("DuracionPeriodo", typeof(int));
-            t.Columns.Add("IdNivelConfiabilidad", typeof(int));
-            t.Columns.Add("TipoCambio", typeof(decimal));
-            t.Columns.Add("Efectivo", typeof(decimal));
-            t.Columns.Add("Existencias", typeof(decimal));
-            t.Columns.Add("Deudores", typeof(decimal));
-            t.Columns.Add("TotalCorriente", typeof(decimal));
-            t.Columns.Add("BienesTongibles", typeof(decimal));
-            t.Columns.Add("ActivosIntangibles", typeof(decimal));
-            t.Columns.Add("ActivoFijoNeto", typeof(decimal));
-            t.Columns.Add("TotalActivos", typeof(decimal));
-            t.Columns.Add("Prestamos", typeof(decimal));
-            t.Columns.Add("Acreedores", typeof(decimal));
-            t.Columns.Add("PasivosCorrientes", typeof(decimal));
-            t.Columns.Add("PasivosNoCorrientes", typeof(decimal));
-            t.Columns.Add("PasivosLargoPlazo", typeof(decimal));
-            t.Columns.Add("TotalPasivosNoCorrientes", typeof(decimal));
-            t.Columns.Add("TotalPasivos", typeof(decimal));
-            t.Columns.Add("Capital", typeof(decimal));
-            t.Columns.Add("Reservas", typeof(decimal));
-            t.Columns.Add("ResultadosAcumulados", typeof(decimal));
-            t.Columns.Add("ResultadoEjercicio", typeof(decimal));
-            t.Columns.Add("OtrasCuentas", typeof(decimal));
-            t.Columns.Add("Patrimonio", typeof(decimal));
-            t.Columns.Add("TotalPatrimonio", typeof(decimal));
-            t.Columns.Add("TotalPasivosPatrimonio", typeof(decimal));
-            t.Columns.Add("VentasNetas", typeof(decimal));
-            t.Columns.Add("CostoVentas", typeof(decimal));
-            t.Columns.Add("CostoMateriales", typeof(decimal));
-            t.Columns.Add("GananciaBruta", typeof(decimal));
-            t.Columns.Add("OtrosGastosOperativos", typeof(decimal));
-            t.Columns.Add("CostoEmpleados", typeof(decimal));
-            t.Columns.Add("Depreciacion", typeof(decimal));
-            t.Columns.Add("IngresosFinancieros", typeof(decimal));
-            t.Columns.Add("GastosFinancieros", typeof(decimal));
-            t.Columns.Add("InteresesPagados", typeof(decimal));
-            t.Columns.Add("PlFinanciero", typeof(decimal));
-            t.Columns.Add("IngresosExtraordinarios", typeof(decimal));
-            t.Columns.Add("GastosExtraordinarios", typeof(decimal));
-            t.Columns.Add("PlExtraordinario", typeof(decimal));
-            t.Columns.Add("GananciaAntesImpuestos", typeof(decimal));
-            t.Columns.Add("Impuestos", typeof(decimal));
-            t.Columns.Add("GananciaNeta", typeof(decimal));
-            t.Columns.Add("Ebit", typeof(decimal));
-            t.Columns.Add("Ebitda", typeof(decimal));
-            t.Columns.Add("Ganancia", typeof(decimal));
-            t.Columns.Add("IndiceLiquidez", typeof(decimal));
-            t.Columns.Add("CapitalTrabajo", typeof(decimal));
-            t.Columns.Add("RatioEndeudamiento", typeof(decimal));
-            t.Columns.Add("RatioRentabilidad", typeof(decimal));
-            foreach (var x in items)
-                t.Rows.Add(
-                    x.Id,
-                    (object?)x.Ano ?? DBNull.Value,
-                    (object?)x.FechaBalance ?? DBNull.Value,
-                    (object?)x.IdMoneda ?? DBNull.Value,
-                    (object?)x.DuracionPeriodo ?? DBNull.Value,
-                    (object?)x.IdNivelConfiabilidad ?? DBNull.Value,
-                    D6(x.TipoCambio),
-                    D2(x.Efectivo),
-                    D2(x.Existencias),
-                    D2(x.Deudores),
-                    D2(x.TotalCorriente),
-                    D2(x.BienesTongibles),
-                    D2(x.ActivosIntangibles),
-                    D2(x.ActivoFijoNeto),
-                    D2(x.TotalActivos),
-                    D2(x.Prestamos),
-                    D2(x.Acreedores),
-                    D2(x.PasivosCorrientes),
-                    D2(x.PasivosNoCorrientes),
-                    D2(x.PasivosLargoPlazo),
-                    D2(x.TotalPasivosNoCorrientes),
-                    D2(x.TotalPasivos),
-                    D2(x.Capital),
-                    D2(x.Reservas),
-                    D2(x.ResultadosAcumulados),
-                    D2(x.ResultadoEjercicio),
-                    D2(x.OtrasCuentas),
-                    D2(x.Patrimonio),
-                    D2(x.TotalPatrimonio),
-                    D2(x.TotalPasivosPatrimonio),
-                    D2(x.VentasNetas),
-                    D2(x.CostoVentas),
-                    D2(x.CostoMateriales),
-                    D2(x.GananciaBruta),
-                    D2(x.OtrosGastosOperativos),
-                    D2(x.CostoEmpleados),
-                    D2(x.Depreciacion),
-                    D2(x.IngresosFinancieros),
-                    D2(x.GastosFinancieros),
-                    D2(x.InteresesPagados),
-                    D2(x.PlFinanciero),
-                    D2(x.IngresosExtraordinarios),
-                    D2(x.GastosExtraordinarios),
-                    D2(x.PlExtraordinario),
-                    D2(x.GananciaAntesImpuestos),
-                    D2(x.Impuestos),
-                    D2(x.GananciaNeta),
-                    D2(x.Ebit),
-                    D2(x.Ebitda),
-                    D2(x.Ganancia),
-                    D2(x.IndiceLiquidez),
-                    D2(x.CapitalTrabajo),
-                    D2(x.RatioEndeudamiento),
-                    D2(x.RatioRentabilidad));
-            return t;
-        }
+        private static List<object> ConstruirBalancesTurquiaJson(List<InformeBalanceTurquiaItem> items) =>
+            items.Select(x => (object)new
+            {
+                x.Id,
+                x.Ano,
+                x.FechaBalance,
+                x.IdMoneda,
+                x.DuracionPeriodo,
+                x.IdNivelConfiabilidad,
+                TipoCambio = J6(x.TipoCambio),
+                Efectivo = J2(x.Efectivo),
+                Existencias = J2(x.Existencias),
+                Deudores = J2(x.Deudores),
+                TotalCorriente = J2(x.TotalCorriente),
+                BienesTongibles = J2(x.BienesTongibles),
+                ActivosIntangibles = J2(x.ActivosIntangibles),
+                ActivoFijoNeto = J2(x.ActivoFijoNeto),
+                TotalActivos = J2(x.TotalActivos),
+                Prestamos = J2(x.Prestamos),
+                Acreedores = J2(x.Acreedores),
+                PasivosCorrientes = J2(x.PasivosCorrientes),
+                PasivosNoCorrientes = J2(x.PasivosNoCorrientes),
+                PasivosLargoPlazo = J2(x.PasivosLargoPlazo),
+                TotalPasivosNoCorrientes = J2(x.TotalPasivosNoCorrientes),
+                TotalPasivos = J2(x.TotalPasivos),
+                Capital = J2(x.Capital),
+                Reservas = J2(x.Reservas),
+                ResultadosAcumulados = J2(x.ResultadosAcumulados),
+                ResultadoEjercicio = J2(x.ResultadoEjercicio),
+                OtrasCuentas = J2(x.OtrasCuentas),
+                Patrimonio = J2(x.Patrimonio),
+                TotalPatrimonio = J2(x.TotalPatrimonio),
+                TotalPasivosPatrimonio = J2(x.TotalPasivosPatrimonio),
+                VentasNetas = J2(x.VentasNetas),
+                CostoVentas = J2(x.CostoVentas),
+                CostoMateriales = J2(x.CostoMateriales),
+                GananciaBruta = J2(x.GananciaBruta),
+                OtrosGastosOperativos = J2(x.OtrosGastosOperativos),
+                CostoEmpleados = J2(x.CostoEmpleados),
+                Depreciacion = J2(x.Depreciacion),
+                IngresosFinancieros = J2(x.IngresosFinancieros),
+                GastosFinancieros = J2(x.GastosFinancieros),
+                InteresesPagados = J2(x.InteresesPagados),
+                PlFinanciero = J2(x.PlFinanciero),
+                IngresosExtraordinarios = J2(x.IngresosExtraordinarios),
+                GastosExtraordinarios = J2(x.GastosExtraordinarios),
+                PlExtraordinario = J2(x.PlExtraordinario),
+                GananciaAntesImpuestos = J2(x.GananciaAntesImpuestos),
+                Impuestos = J2(x.Impuestos),
+                GananciaNeta = J2(x.GananciaNeta),
+                Ebit = J2(x.Ebit),
+                Ebitda = J2(x.Ebitda),
+                Ganancia = J2(x.Ganancia),
+                IndiceLiquidez = J2(x.IndiceLiquidez),
+                CapitalTrabajo = J2(x.CapitalTrabajo),
+                RatioEndeudamiento = J2(x.RatioEndeudamiento),
+                RatioRentabilidad = J2(x.RatioRentabilidad)
+            }).ToList();
 
-        private static DataTable ConstruirTablaDirectoriosEjecutivos(List<InformeDirectorioEjecutivoItem> items)
+        private static List<object> ConstruirDirectoriosEjecutivosJson(List<InformeDirectorioEjecutivoItem> items)
         {
-            var t = new DataTable();
-            t.Columns.Add("ID", typeof(int));
-            t.Columns.Add("IdInformeDirectorioEjecutivo", typeof(int));
-            t.Columns.Add("IdDirectorioEjecutivo", typeof(int));
-            t.Columns.Add("IdCargo", typeof(string));
-            t.Columns.Add("VinculadoDesde", typeof(DateTime));
-            t.Columns.Add("CompaniaAnterior", typeof(string));
-            t.Columns.Add("Participacion", typeof(decimal));
-            t.Columns.Add("Orden", typeof(int));
-            t.Columns.Add("EsParticipanteDirectiva", typeof(bool));
-            t.Columns.Add("ApareceImpresoLista", typeof(bool));
-            t.Columns.Add("ImprimeDatosEjecutivos", typeof(bool));
             int i = 1;
-            foreach (var x in items)
-                t.Rows.Add(i++,
-                    (object?)x.IdInformeDirectorioEjecutivo ?? DBNull.Value,
-                    x.IdDirectorioEjecutivo,
-                    (object?)x.IdCargo ?? DBNull.Value,
-                    (object?)x.VinculadoDesde ?? DBNull.Value,
-                    (object?)x.CompaniaAnterior ?? DBNull.Value,
-                    (object?)x.Participacion ?? DBNull.Value,
-                    (object?)x.Orden ?? DBNull.Value,
-                    (object?)x.EsParticipanteDirectiva ?? DBNull.Value,
-                    (object?)x.ApareceImpresoLista ?? DBNull.Value,
-                    (object?)x.ImprimeDatosEjecutivos ?? DBNull.Value);
-            return t;
+            return items.Select(x => (object)new
+            {
+                ID = i++,
+                x.IdInformeDirectorioEjecutivo,
+                x.IdDirectorioEjecutivo,
+                x.IdCargo,
+                x.VinculadoDesde,
+                x.CompaniaAnterior,
+                x.Participacion,
+                x.Orden,
+                x.EsParticipanteDirectiva,
+                x.ApareceImpresoLista,
+                x.ImprimeDatosEjecutivos
+            }).ToList();
         }
 
-        private static DataTable ConstruirTablaLocales(List<InformeLocalItem> items)
+        private static List<object> ConstruirLocalesJson(List<InformeLocalItem> items)
         {
-            var t = new DataTable();
-            t.Columns.Add("ID", typeof(int));
-            t.Columns.Add("IdInformeLocal", typeof(int));
-            t.Columns.Add("IdTipoLocal", typeof(int));
-            t.Columns.Add("Comentario", typeof(string));
             int i = 1;
-            foreach (var x in items)
-                t.Rows.Add(i++,
-                    (object?)x.IdInformeLocal ?? DBNull.Value,
-                    (object?)x.IdTipoLocal ?? DBNull.Value,
-                    (object?)x.Comentario ?? DBNull.Value);
-            return t;
+            return items.Select(x => (object)new
+            {
+                ID = i++,
+                x.IdInformeLocal,
+                x.IdTipoLocal,
+                x.Comentario
+            }).ToList();
         }
 
-        private static DataTable ConstruirTablaLocalImagenes(List<InformeLocalItem> items)
+        private static List<object> ConstruirLocalImagenesJson(List<InformeLocalItem> items)
         {
-            var t = new DataTable();
-            t.Columns.Add("ID", typeof(int));
-            t.Columns.Add("IdInformeLocalImagen", typeof(int));
-            t.Columns.Add("IdLocal", typeof(int));
-            t.Columns.Add("ImagenURL", typeof(string));
-            t.Columns.Add("IdTipoArchivo", typeof(int));
-            t.Columns.Add("Nombre", typeof(string));
+            var resultado = new List<object>();
             int img = 1;
             int localIdx = 1;
             foreach (var local in items)
             {
                 foreach (var imagen in local.Imagenes)
-                    t.Rows.Add(img++, (object?)imagen.IdInformeLocalImagen ?? DBNull.Value,
-                        localIdx, imagen.ImagenURL, imagen.IdTipoArchivo,
-                        (object?)imagen.Nombre ?? DBNull.Value);
+                {
+                    resultado.Add(new
+                    {
+                        ID = img++,
+                        imagen.IdInformeLocalImagen,
+                        IdLocal = localIdx,
+                        imagen.ImagenURL,
+                        imagen.IdTipoArchivo,
+                        imagen.Nombre
+                    });
+                }
                 localIdx++;
             }
-            return t;
+            return resultado;
         }
 
-        private static DataTable ConstruirTablaIdentificacion(InformeCrear r)
+        private static object ConstruirIdentificacionJson(InformeCrear r) => new
         {
-            var t = new DataTable();
-            t.Columns.Add("IdTipoPersona", typeof(int));
-            t.Columns.Add("Nombre", typeof(string));
-            t.Columns.Add("NombreComercial", typeof(string));
-            t.Columns.Add("IdPais", typeof(int));
-            t.Columns.Add("OperacionesTCMoneda", typeof(int));
-            t.Columns.Add("TaxIdType", typeof(int));
-            t.Columns.Add("TaxNum", typeof(string));
-            t.Columns.Add("Direccion", typeof(string));
-            t.Columns.Add("Ubigeo", typeof(string));
-            t.Columns.Add("CodigoPostal", typeof(string));
-            t.Columns.Add("Telefono", typeof(string));
-            t.Columns.Add("Fax", typeof(string));
-            t.Columns.Add("Email", typeof(string));
-            t.Columns.Add("PaginaWeb", typeof(string));
-            t.Columns.Add("IdEstadoManual", typeof(int));
-            t.Columns.Add("DatosAdicionales", typeof(string));
-            t.Columns.Add("ObservacionesIdentificacion", typeof(string));
-            t.Rows.Add(
-                (object?)r.IdTipoPersona ?? DBNull.Value,
-                (object?)r.Nombre ?? DBNull.Value,
-                (object?)r.NombreComercial ?? DBNull.Value,
-                (object?)r.IdPais ?? DBNull.Value,
-                (object?)r.OperacionesTCMoneda ?? DBNull.Value,
-                (object?)r.TaxIdType ?? DBNull.Value,
-                (object?)r.TaxNum ?? DBNull.Value,
-                (object?)r.Direccion ?? DBNull.Value,
-                (object?)r.Ubigeo ?? DBNull.Value,
-                (object?)r.CodigoPostal ?? DBNull.Value,
-                (object?)r.Telefono ?? DBNull.Value,
-                (object?)r.Fax ?? DBNull.Value,
-                (object?)r.Email ?? DBNull.Value,
-                (object?)r.PaginaWeb ?? DBNull.Value,
-                (object?)r.IdEstadoManual ?? DBNull.Value,
-                (object?)r.DatosAdicionales ?? DBNull.Value,
-                (object?)r.ObservacionesIdentificacion ?? DBNull.Value
-            );
-            return t;
-        }
+            r.IdTipoPersona,
+            r.Nombre,
+            r.NombreComercial,
+            r.IdPais,
+            r.OperacionesTCMoneda,
+            r.TaxIdType,
+            r.TaxNum,
+            r.Direccion,
+            r.Ubigeo,
+            r.CodigoPostal,
+            r.Telefono,
+            r.Fax,
+            r.Email,
+            r.PaginaWeb,
+            r.IdEstadoManual,
+            r.DatosAdicionales,
+            r.ObservacionesIdentificacion
+        };
 
-        private static DataTable ConstruirTablaAspectosLegales(InformeCrear r)
+        private static object ConstruirAspectosLegalesJson(InformeCrear r) => new
         {
-            var t = new DataTable();
-            t.Columns.Add("IdTipoEmpresa", typeof(int));
-            t.Columns.Add("FechaConstitucion", typeof(DateTime));
-            t.Columns.Add("IdCiudadRegistro", typeof(int));
-            t.Columns.Add("IdNotaria", typeof(string));
-            t.Columns.Add("IdNotario", typeof(string));
-            t.Columns.Add("IdRegistro", typeof(string));
-            t.Columns.Add("IdPlazo", typeof(string));
-            t.Columns.Add("IdOperacionesCambioDivisas", typeof(int));
-            t.Columns.Add("CapitalInicial", typeof(decimal));
-            t.Columns.Add("CapitalPagado", typeof(decimal));
-            t.Columns.Add("FechaUltimoIncremento", typeof(DateTime));
-            t.Columns.Add("IdTipoIncremento", typeof(int));
-            t.Columns.Add("PatrimonioNeto", typeof(decimal));
-            t.Columns.Add("TipoAcciones", typeof(string));
-            t.Columns.Add("ValorAcciones", typeof(decimal));
-            t.Columns.Add("CotizaBolsa", typeof(bool));
-            t.Columns.Add("TipoCambio", typeof(decimal));
-            t.Columns.Add("IdTipoCambio", typeof(int));
-            t.Columns.Add("Antecedentes", typeof(string));
-            t.Columns.Add("AspectosLegales", typeof(string));
-            t.Columns.Add("ComentariosAspectoLegal", typeof(string));
-            t.Rows.Add(
-                (object?)r.IdTipoEmpresa ?? DBNull.Value,
-                (object?)r.FechaConstitucion ?? DBNull.Value,
-                (object?)r.IdCiudadRegistro ?? DBNull.Value,
-                (object?)r.IdNotaria ?? DBNull.Value,
-                (object?)r.IdNotario ?? DBNull.Value,
-                (object?)r.IdRegistro ?? DBNull.Value,
-                (object?)r.IdPlazo ?? DBNull.Value,
-                (object?)r.IdOperacionesCambioDivisas ?? DBNull.Value,
-                D2(r.CapitalInicial),
-                D2(r.CapitalPagado),
-                (object?)r.FechaUltimoIncremento ?? DBNull.Value,
-                (object?)r.IdTipoIncremento ?? DBNull.Value,
-                D2(r.PatrimonioNeto),
-                (object?)r.TipoAcciones ?? DBNull.Value,
-                D2(r.ValorAcciones),
-                (object?)r.CotizaBolsa ?? DBNull.Value,
-                D6(r.TipoCambio),
-                (object?)r.IdTipoCambio ?? DBNull.Value,
-                (object?)r.Antecedentes ?? DBNull.Value,
-                (object?)r.AspectosLegales ?? DBNull.Value,
-                (object?)r.ComentariosAspectoLegal ?? DBNull.Value
-            );
-            return t;
-        }
+            r.IdTipoEmpresa,
+            r.FechaConstitucion,
+            r.IdCiudadRegistro,
+            r.IdNotaria,
+            r.IdNotario,
+            r.IdRegistro,
+            r.IdPlazo,
+            r.IdOperacionesCambioDivisas,
+            CapitalInicial = J2(r.CapitalInicial),
+            CapitalPagado = J2(r.CapitalPagado),
+            r.FechaUltimoIncremento,
+            r.IdTipoIncremento,
+            PatrimonioNeto = J2(r.PatrimonioNeto),
+            r.TipoAcciones,
+            ValorAcciones = J2(r.ValorAcciones),
+            r.CotizaBolsa,
+            TipoCambio = J6(r.TipoCambio),
+            r.IdTipoCambio,
+            r.Antecedentes,
+            r.AspectosLegales,
+            r.ComentariosAspectoLegal
+        };
 
-        private static DataTable ConstruirTablaRamoOperaciones(InformeCrear r)
+        private static object ConstruirRamoOperacionesJson(InformeCrear r) => new
         {
-            var t = new DataTable();
-            t.Columns.Add("IdSector", typeof(int));
-            t.Columns.Add("Actividad", typeof(string));
-            t.Columns.Add("IdIsicCategoria", typeof(int));
-            t.Columns.Add("IdIsicClase", typeof(int));
-            t.Columns.Add("ActividadPrincipal", typeof(string));
-            t.Columns.Add("VentasContado", typeof(decimal));
-            t.Columns.Add("VentasContadoText", typeof(string));
-            t.Columns.Add("VentasCredito", typeof(decimal));
-            t.Columns.Add("VentasCreditoText", typeof(string));
-            t.Columns.Add("IdVentasCreditoTiempo", typeof(int));
-            t.Columns.Add("VentasInternacionales", typeof(decimal));
-            t.Columns.Add("VentasInternacionalesText", typeof(string));
-            t.Columns.Add("VentasNacionales", typeof(decimal));
-            t.Columns.Add("VentasNacionalesText", typeof(string));
-            t.Columns.Add("ComprasNacionales", typeof(decimal));
-            t.Columns.Add("ComprasNacionalesText", typeof(string));
-            t.Columns.Add("ComprasInternacionales", typeof(decimal));
-            t.Columns.Add("ComprasInternacionalesText", typeof(string));
-            t.Columns.Add("ComprasContadoNacionales", typeof(decimal));
-            t.Columns.Add("ComprasContadoNacionalesText", typeof(string));
-            t.Columns.Add("ComprasCreditoNacionales", typeof(decimal));
-            t.Columns.Add("ComprasCreditoNacionalesText", typeof(string));
-            t.Columns.Add("IdComprasCreditoNacionalesTiempo", typeof(int));
-            t.Columns.Add("ComprasContadoInternacionales", typeof(decimal));
-            t.Columns.Add("ComprasContadoInternacionalesText", typeof(string));
-            t.Columns.Add("ComprasCreditoInternacionales", typeof(decimal));
-            t.Columns.Add("ComprasCreditoInternacionalesText", typeof(string));
-            t.Columns.Add("IdComprasCreditoInternacionalesTiempo", typeof(int));
-            t.Columns.Add("NumeroEmpleados", typeof(int));
-            t.Columns.Add("NumeroEmpleadosText", typeof(string));
-            t.Columns.Add("ComentariosOperaciones", typeof(string));
-            t.Rows.Add(
-                (object?)r.IdSector ?? DBNull.Value,
-                (object?)r.Actividad ?? DBNull.Value,
-                (object?)r.IdIsicCategoria ?? DBNull.Value,
-                (object?)r.IdIsicClase ?? DBNull.Value,
-                (object?)r.ActividadPrincipal ?? DBNull.Value,
-                D2(r.VentasContado),
-                (object?)r.VentasContadoText ?? DBNull.Value,
-                D2(r.VentasCredito),
-                (object?)r.VentasCreditoText ?? DBNull.Value,
-                (object?)r.IdVentasCreditoTiempo ?? DBNull.Value,
-                D2(r.VentasInternacionales),
-                (object?)r.VentasInternacionalesText ?? DBNull.Value,
-                D2(r.VentasNacionales),
-                (object?)r.VentasNacionalesText ?? DBNull.Value,
-                D2(r.ComprasNacionales),
-                (object?)r.ComprasNacionalesText ?? DBNull.Value,
-                D2(r.ComprasInternacionales),
-                (object?)r.ComprasInternacionalesText ?? DBNull.Value,
-                D2(r.ComprasContadoNacionales),
-                (object?)r.ComprasContadoNacionalesText ?? DBNull.Value,
-                D2(r.ComprasCreditoNacionales),
-                (object?)r.ComprasCreditoNacionalesText ?? DBNull.Value,
-                (object?)r.IdComprasCreditoNacionalesTiempo ?? DBNull.Value,
-                D2(r.ComprasContadoInternacionales),
-                (object?)r.ComprasContadoInternacionalesText ?? DBNull.Value,
-                D2(r.ComprasCreditoInternacionales),
-                (object?)r.ComprasCreditoInternacionalesText ?? DBNull.Value,
-                (object?)r.IdComprasCreditoInternacionalesTiempo ?? DBNull.Value,
-                (object?)r.NumeroEmpleados ?? DBNull.Value,
-                (object?)r.NumeroEmpleadosText ?? DBNull.Value,
-                (object?)r.ComentariosOperaciones ?? DBNull.Value
-            );
-            return t;
-        }
+            r.IdSector,
+            r.Actividad,
+            r.IdIsicCategoria,
+            r.IdIsicClase,
+            r.ActividadPrincipal,
+            VentasContado = J2(r.VentasContado),
+            r.VentasContadoText,
+            VentasCredito = J2(r.VentasCredito),
+            r.VentasCreditoText,
+            r.IdVentasCreditoTiempo,
+            VentasInternacionales = J2(r.VentasInternacionales),
+            r.VentasInternacionalesText,
+            VentasNacionales = J2(r.VentasNacionales),
+            r.VentasNacionalesText,
+            ComprasNacionales = J2(r.ComprasNacionales),
+            r.ComprasNacionalesText,
+            ComprasInternacionales = J2(r.ComprasInternacionales),
+            r.ComprasInternacionalesText,
+            ComprasContadoNacionales = J2(r.ComprasContadoNacionales),
+            r.ComprasContadoNacionalesText,
+            ComprasCreditoNacionales = J2(r.ComprasCreditoNacionales),
+            r.ComprasCreditoNacionalesText,
+            r.IdComprasCreditoNacionalesTiempo,
+            ComprasContadoInternacionales = J2(r.ComprasContadoInternacionales),
+            r.ComprasContadoInternacionalesText,
+            ComprasCreditoInternacionales = J2(r.ComprasCreditoInternacionales),
+            r.ComprasCreditoInternacionalesText,
+            r.IdComprasCreditoInternacionalesTiempo,
+            r.NumeroEmpleados,
+            r.NumeroEmpleadosText,
+            r.ComentariosOperaciones
+        };
 
-        private static DataTable ConstruirTablaInformacionFinanciera(InformeCrear r)
+        private static object ConstruirInformacionFinancieraJson(InformeCrear r) => new
         {
-            var t = new DataTable();
-            t.Columns.Add("ContenidoInformacionFinanciera", typeof(string));
-            t.Columns.Add("ComentarioInformacionFinanciera", typeof(string));
-            t.Columns.Add("ActivosFijos", typeof(string));
-            t.Columns.Add("Seguros", typeof(string));
-            t.Rows.Add(
-                (object?)r.ContenidoInformacionFinanciera ?? DBNull.Value,
-                (object?)r.ComentarioInformacionFinanciera ?? DBNull.Value,
-                (object?)r.ActivosFijos ?? DBNull.Value,
-                (object?)r.Seguros ?? DBNull.Value
-            );
-            return t;
-        }
+            r.ContenidoInformacionFinanciera,
+            r.ComentarioInformacionFinanciera,
+            r.ActivosFijos,
+            r.Seguros
+        };
 
-        private static DataTable ConstruirTablaBancosProveedores(InformeCrear r)
+        private static object ConstruirBancosProveedoresJson(InformeCrear r) => new
         {
-            var t = new DataTable();
-            t.Columns.Add("ComentarioProveedor", typeof(string));
-            t.Columns.Add("ReferenciaBanco", typeof(string));
-            t.Columns.Add("Litigios", typeof(string));
-            t.Columns.Add("RiesgoPrincipal", typeof(string));
-            t.Columns.Add("Superintendecia", typeof(string));
-            t.Rows.Add(
-                (object?)r.ComentarioProveedor ?? DBNull.Value,
-                (object?)r.ReferenciaBanco ?? DBNull.Value,
-                (object?)r.Litigios ?? DBNull.Value,
-                (object?)r.RiesgoPrincipal ?? DBNull.Value,
-                (object?)r.Superintendecia ?? DBNull.Value
-            );
-            return t;
-        }
+            r.ComentarioProveedor,
+            r.ReferenciaBanco,
+            r.Litigios,
+            r.RiesgoPrincipal,
+            r.Superintendecia
+        };
 
-        private static DataTable ConstruirTablaDatosGenerales(InformeCrear r)
+        private static object ConstruirDatosGeneralesJson(InformeCrear r) => new
         {
-            var t = new DataTable();
-            t.Columns.Add("InformacionGeneral", typeof(string));
-            t.Columns.Add("OpinionCredito", typeof(string));
-            t.Rows.Add(
-                (object?)r.InformacionGeneral ?? DBNull.Value,
-                (object?)r.OpinionCredito ?? DBNull.Value
-            );
-            return t;
-        }
+            r.InformacionGeneral,
+            r.OpinionCredito
+        };
 
         // ── Decimal rounding helpers (match SQL TVP column precision) ────────────
 
@@ -857,10 +497,15 @@ namespace SafetyReport.DAO
         private static object D4(decimal? v) => v.HasValue ? (object)Math.Round(v.Value, 4, MidpointRounding.AwayFromZero) : DBNull.Value;
         private static object D6(decimal? v) => v.HasValue ? (object)Math.Round(v.Value, 6, MidpointRounding.AwayFromZero) : DBNull.Value;
 
+        // Mismo redondeo que D2/D4/D6 pero devolviendo decimal? (para serializar a JSON en vez de DataTable).
+        private static decimal? J2(decimal? v) => v.HasValue ? Math.Round(v.Value, 2, MidpointRounding.AwayFromZero) : null;
+        private static decimal? J4(decimal? v) => v.HasValue ? Math.Round(v.Value, 4, MidpointRounding.AwayFromZero) : null;
+        private static decimal? J6(decimal? v) => v.HasValue ? Math.Round(v.Value, 6, MidpointRounding.AwayFromZero) : null;
+
         // ── Reader helper ─────────────────────────────────────────────────────────
 
         // Lee el result set 1 (siempre presente): IdTipoMensaje, Mensaje. Sin columna Result.
-        private async Task<Respuesta> LeerCabeceraAsync(SqlDataReader dr, string procedimiento)
+        private async Task<Respuesta> LeerCabeceraAsync(DbDataReader dr, string procedimiento)
         {
             var respuesta = new Respuesta();
 
@@ -882,24 +527,24 @@ namespace SafetyReport.DAO
             return respuesta;
         }
 
-        private static int? GetNullableInt(SqlDataReader dr, string columna) =>
+        private static int? GetNullableInt(DbDataReader dr, string columna) =>
             dr[columna] == DBNull.Value ? null : Convert.ToInt32(dr[columna]);
 
-        private static decimal? GetNullableDecimal(SqlDataReader dr, string columna) =>
+        private static decimal? GetNullableDecimal(DbDataReader dr, string columna) =>
             dr[columna] == DBNull.Value ? null : Convert.ToDecimal(dr[columna]);
 
-        private static bool? GetNullableBool(SqlDataReader dr, string columna) =>
+        private static bool? GetNullableBool(DbDataReader dr, string columna) =>
             dr[columna] == DBNull.Value ? null : Convert.ToBoolean(dr[columna]);
 
-        private static DateTime? GetNullableDateTime(SqlDataReader dr, string columna) =>
+        private static DateTime? GetNullableDateTime(DbDataReader dr, string columna) =>
             dr[columna] == DBNull.Value ? null : Convert.ToDateTime(dr[columna]);
 
-        private static string? GetNullableString(SqlDataReader dr, string columna) =>
+        private static string? GetNullableString(DbDataReader dr, string columna) =>
             dr[columna] == DBNull.Value ? null : dr[columna].ToString();
 
         // Lee el result set de imagenes pendientes (IdInformeLocalImagen, ImagenURL, Nombre)
         // que Informe_Insertar/Informe_Actualizar emiten como su ultimo result set en exito.
-        private static async Task<List<InformeLocalImagenPendiente>> LeerImagenesPendientesAsync(SqlDataReader dr)
+        private static async Task<List<InformeLocalImagenPendiente>> LeerImagenesPendientesAsync(DbDataReader dr)
         {
             var imagenes = new List<InformeLocalImagenPendiente>();
             while (await dr.ReadAsync())
@@ -915,51 +560,36 @@ namespace SafetyReport.DAO
 
         // ── Helpers para agregar TVPs ─────────────────────────────────────────────
 
-        private static void AgregarTvp(SqlCommand cmd, string paramName, DataTable table, string typeName)
+        private static void AgregarParametrosCampos(MySqlCommand cmd, InformeCrear r)
         {
-            var p = cmd.Parameters.AddWithValue(paramName, table);
-            p.SqlDbType = SqlDbType.Structured;
-            p.TypeName = typeName;
+            cmd.Parameters.AddWithValue("@intIdPedido", (object?)r.IdPedido ?? DBNull.Value);
+            cmd.Parameters.AddWithValue("@bitFlgTieneInformacion", (object?)r.FlgTieneInformacion ?? DBNull.Value);
+            cmd.Parameters.AddWithValue("@intIdEstadoInforme", (object?)r.IdEstadoInforme ?? DBNull.Value);
+            cmd.Parameters.AddWithValue("@intIdFormatoFecha", (object?)r.IdFormatoFecha ?? DBNull.Value);
         }
 
-        private static void AgregarParametrosAuditoria(SqlCommand cmd, UsuarioGeneral u)
+        private static void AgregarTvpsCampos(MySqlCommand cmd, InformeCrear r)
         {
-            cmd.Parameters.Add("@intIdUsuario", SqlDbType.Int).Value = u.IdUsuario;
-            cmd.Parameters.Add("@vchUsuario", SqlDbType.VarChar, 32).Value = u.Usuario;
-            cmd.Parameters.Add("@intIdEmpresa", SqlDbType.Int).Value = u.IdEmpresa;
-            cmd.Parameters.Add("@intIdRol", SqlDbType.Int).Value = u.IdRol;
-        }
+            cmd.Parameters.AddWithValue("@tvpIdentificacion", JsonSerializer.Serialize(ConstruirIdentificacionJson(r)));
+            cmd.Parameters.AddWithValue("@tvpAspectosLegales", JsonSerializer.Serialize(ConstruirAspectosLegalesJson(r)));
+            cmd.Parameters.AddWithValue("@tvpRamoOperaciones", JsonSerializer.Serialize(ConstruirRamoOperacionesJson(r)));
+            cmd.Parameters.AddWithValue("@tvpInformacionFinanciera", JsonSerializer.Serialize(ConstruirInformacionFinancieraJson(r)));
+            cmd.Parameters.AddWithValue("@tvpBancosProveedores", JsonSerializer.Serialize(ConstruirBancosProveedoresJson(r)));
+            cmd.Parameters.AddWithValue("@tvpDatosGenerales", JsonSerializer.Serialize(ConstruirDatosGeneralesJson(r)));
 
-        private static void AgregarParametrosCampos(SqlCommand cmd, InformeCrear r)
-        {
-            cmd.Parameters.Add("@intIdPedido", SqlDbType.Int).Value = (object?)r.IdPedido ?? DBNull.Value;
-            cmd.Parameters.Add("@bitFlgTieneInformacion", SqlDbType.Bit).Value = (object?)r.FlgTieneInformacion ?? DBNull.Value;
-            cmd.Parameters.Add("@intIdEstadoInforme", SqlDbType.Int).Value = (object?)r.IdEstadoInforme ?? DBNull.Value;
-            cmd.Parameters.Add("@intIdFormatoFecha", SqlDbType.Int).Value = (object?)r.IdFormatoFecha ?? DBNull.Value;
-        }
-
-        private static void AgregarTvpsCampos(SqlCommand cmd, InformeCrear r)
-        {
-            AgregarTvp(cmd, "@tvpIdentificacion", ConstruirTablaIdentificacion(r), "INFORME_IDENTIFICACION");
-            AgregarTvp(cmd, "@tvpAspectosLegales", ConstruirTablaAspectosLegales(r), "INFORME_ASPECTOS_LEGALES");
-            AgregarTvp(cmd, "@tvpRamoOperaciones", ConstruirTablaRamoOperaciones(r), "INFORME_RAMO_OPERACIONES");
-            AgregarTvp(cmd, "@tvpInformacionFinanciera", ConstruirTablaInformacionFinanciera(r), "INFORME_INFORMACION_FINANCIERA");
-            AgregarTvp(cmd, "@tvpBancosProveedores", ConstruirTablaBancosProveedores(r), "INFORME_BANCOS_PROVEEDORES");
-            AgregarTvp(cmd, "@tvpDatosGenerales", ConstruirTablaDatosGenerales(r), "INFORME_DATOS_GENERALES");
-
-            AgregarTvp(cmd, "@lstBalances", ConstruirTablaBalances(r.lstBalances), "LISTA_INFORME_BALANCE");
-            AgregarTvp(cmd, "@lstBalancesDesagregado", ConstruirTablaBalancesDesagregado(r.lstBalancesDesagregado), "LISTA_INFORME_BALANCE_DESAGREGADO");
-            AgregarTvp(cmd, "@lstBalancesTotalizado", ConstruirTablaBalancesTotalizado(r.lstBalancesTotalizado), "LISTA_INFORME_BALANCE_TOTALIZADO");
-            AgregarTvp(cmd, "@lstBalancesBanco", ConstruirTablaBalancesBanco(r.lstBalancesBanco), "LISTA_INFORME_BALANCE_BANCO");
-            AgregarTvp(cmd, "@lstBalancesSeguro", ConstruirTablaBalancesSeguro(r.lstBalancesSeguro), "LISTA_INFORME_BALANCE_SEGURO");
-            AgregarTvp(cmd, "@lstBalancesTurquia", ConstruirTablaBalancesTurquia(r.lstBalancesTurquia), "LISTA_INFORME_BALANCE_TURQUIA");
-            AgregarTvp(cmd, "@lstBancos", ConstruirTablaBancos(r.lstBancos), "LISTA_INFORME_BANCO");
-            AgregarTvp(cmd, "@lstCompanias", ConstruirTablaCompanias(r.lstCompaniasRelacionadas), "LISTA_INFORME_COMPANIA_RELACIONADA");
-            AgregarTvp(cmd, "@lstExpImp", ConstruirTablaExpImp(r.lstExportacionesImportaciones), "LISTA_INFORME_EXPORTACION_IMPORTACION");
-            AgregarTvp(cmd, "@lstProveedores", ConstruirTablaProveedores(r.lstProveedores), "LISTA_INFORME_PROVEEDOR");
-            AgregarTvp(cmd, "@lstDirectoriosEjecutivos", ConstruirTablaDirectoriosEjecutivos(r.lstDirectoriosEjecutivos), "LISTA_INFORME_DIRECTORIO_EJECUTIVO");
-            AgregarTvp(cmd, "@lstLocales", ConstruirTablaLocales(r.lstLocales), "LISTA_INFORME_LOCAL");
-            AgregarTvp(cmd, "@lstLocalImagenes", ConstruirTablaLocalImagenes(r.lstLocales), "LISTA_INFORME_LOCAL_IMAGEN");
+            cmd.Parameters.AddWithValue("@lstBalances", JsonSerializer.Serialize(ConstruirBalancesJson(r.lstBalances)));
+            cmd.Parameters.AddWithValue("@lstBalancesDesagregado", JsonSerializer.Serialize(ConstruirBalancesDesagregadoJson(r.lstBalancesDesagregado)));
+            cmd.Parameters.AddWithValue("@lstBalancesTotalizado", JsonSerializer.Serialize(ConstruirBalancesTotalizadoJson(r.lstBalancesTotalizado)));
+            cmd.Parameters.AddWithValue("@lstBalancesBanco", JsonSerializer.Serialize(ConstruirBalancesBancoJson(r.lstBalancesBanco)));
+            cmd.Parameters.AddWithValue("@lstBalancesSeguro", JsonSerializer.Serialize(ConstruirBalancesSeguroJson(r.lstBalancesSeguro)));
+            cmd.Parameters.AddWithValue("@lstBalancesTurquia", JsonSerializer.Serialize(ConstruirBalancesTurquiaJson(r.lstBalancesTurquia)));
+            cmd.Parameters.AddWithValue("@lstBancos", JsonSerializer.Serialize(ConstruirBancosJson(r.lstBancos)));
+            cmd.Parameters.AddWithValue("@lstCompanias", JsonSerializer.Serialize(ConstruirCompaniasJson(r.lstCompaniasRelacionadas)));
+            cmd.Parameters.AddWithValue("@lstExpImp", JsonSerializer.Serialize(ConstruirExpImpJson(r.lstExportacionesImportaciones)));
+            cmd.Parameters.AddWithValue("@lstProveedores", JsonSerializer.Serialize(ConstruirProveedoresJson(r.lstProveedores)));
+            cmd.Parameters.AddWithValue("@lstDirectoriosEjecutivos", JsonSerializer.Serialize(ConstruirDirectoriosEjecutivosJson(r.lstDirectoriosEjecutivos)));
+            cmd.Parameters.AddWithValue("@lstLocales", JsonSerializer.Serialize(ConstruirLocalesJson(r.lstLocales)));
+            cmd.Parameters.AddWithValue("@lstLocalImagenes", JsonSerializer.Serialize(ConstruirLocalImagenesJson(r.lstLocales)));
         }
 
         // ── CRUD ─────────────────────────────────────────────────────────────────
@@ -968,9 +598,12 @@ namespace SafetyReport.DAO
         {
             try
             {
-                using SqlConnection cn = new(_dbConfig.ConnectionString);
-                using SqlCommand cmd = new("SP_Informe_Insertar", cn) { CommandType = CommandType.StoredProcedure };
-                AgregarParametrosAuditoria(cmd, u);
+                using MySqlConnection cn = new(_dbConfig.ConnectionString);
+                using MySqlCommand cmd = new("SP_Informe_Insertar", cn) { CommandType = CommandType.StoredProcedure };
+                cmd.Parameters.AddWithValue("@intIdUsuario", u.IdUsuario);
+                cmd.Parameters.AddWithValue("@vchUsuario", u.Usuario);
+                cmd.Parameters.AddWithValue("@intIdEmpresa", u.IdEmpresa);
+                cmd.Parameters.AddWithValue("@intIdRol", u.IdRol);
                 AgregarParametrosCampos(cmd, request);
                 AgregarTvpsCampos(cmd, request);
                 await cn.OpenAsync();
@@ -1004,10 +637,13 @@ namespace SafetyReport.DAO
         {
             try
             {
-                using SqlConnection cn = new(_dbConfig.ConnectionString);
-                using SqlCommand cmd = new("SP_Informe_Actualizar", cn) { CommandType = CommandType.StoredProcedure };
-                AgregarParametrosAuditoria(cmd, u);
-                cmd.Parameters.Add("@intIdInforme", SqlDbType.Int).Value = request.IdInforme;
+                using MySqlConnection cn = new(_dbConfig.ConnectionString);
+                using MySqlCommand cmd = new("SP_Informe_Actualizar", cn) { CommandType = CommandType.StoredProcedure };
+                cmd.Parameters.AddWithValue("@intIdUsuario", u.IdUsuario);
+                cmd.Parameters.AddWithValue("@vchUsuario", u.Usuario);
+                cmd.Parameters.AddWithValue("@intIdEmpresa", u.IdEmpresa);
+                cmd.Parameters.AddWithValue("@intIdRol", u.IdRol);
+                cmd.Parameters.AddWithValue("@intIdInforme", request.IdInforme);
                 AgregarParametrosCampos(cmd, request);
                 AgregarTvpsCampos(cmd, request);
                 await cn.OpenAsync();
@@ -1041,7 +677,7 @@ namespace SafetyReport.DAO
         // Lee un result set de detalle de balance (una fila por IdInformeBalance) hacia un
         // diccionario IdInformeBalance -> JsonElement con el resto de columnas, para poblar
         // InformeBalanceConsulta.CuentaBalance sin depender de JSON_QUERY en el SP.
-        private static async Task<Dictionary<int, JsonElement>> LeerDetalleBalanceAsync(SqlDataReader dr)
+        private static async Task<Dictionary<int, JsonElement>> LeerDetalleBalanceAsync(DbDataReader dr)
         {
             var resultado = new Dictionary<int, JsonElement>();
             var columnas = Enumerable.Range(0, dr.FieldCount)
@@ -1066,11 +702,14 @@ namespace SafetyReport.DAO
         {
             try
             {
-                using SqlConnection cn = new(_dbConfig.ConnectionString);
-                using SqlCommand cmd = new("SP_Informe_Obtener", cn) { CommandType = CommandType.StoredProcedure };
-                AgregarParametrosAuditoria(cmd, u);
-                cmd.Parameters.Add("@intIdPedido", SqlDbType.Int).Value = idPedido;
-                cmd.Parameters.Add("@intIdInforme", SqlDbType.Int).Value = idInforme;
+                using MySqlConnection cn = new(_dbConfig.ConnectionString);
+                using MySqlCommand cmd = new("SP_Informe_Obtener", cn) { CommandType = CommandType.StoredProcedure };
+                cmd.Parameters.AddWithValue("@intIdUsuario", u.IdUsuario);
+                cmd.Parameters.AddWithValue("@vchUsuario", u.Usuario);
+                cmd.Parameters.AddWithValue("@intIdEmpresa", u.IdEmpresa);
+                cmd.Parameters.AddWithValue("@intIdRol", u.IdRol);
+                cmd.Parameters.AddWithValue("@intIdPedido", idPedido);
+                cmd.Parameters.AddWithValue("@intIdInforme", idInforme);
                 await cn.OpenAsync();
 
                 using var dr = await cmd.ExecuteReaderAsync();
@@ -1397,11 +1036,14 @@ namespace SafetyReport.DAO
         {
             try
             {
-                using SqlConnection cn = new(_dbConfig.ConnectionString);
-                using SqlCommand cmd = new("SP_Pedido_GenerarDocumento", cn) { CommandType = CommandType.StoredProcedure };
-                AgregarParametrosAuditoria(cmd, u);
-                cmd.Parameters.Add("@intIdInforme", SqlDbType.Int).Value = idInforme;
-                cmd.Parameters.Add("@intIdPedido", SqlDbType.Int).Value = idPedido;
+                using MySqlConnection cn = new(_dbConfig.ConnectionString);
+                using MySqlCommand cmd = new("SP_Pedido_GenerarDocumento", cn) { CommandType = CommandType.StoredProcedure };
+                cmd.Parameters.AddWithValue("@intIdUsuario", u.IdUsuario);
+                cmd.Parameters.AddWithValue("@vchUsuario", u.Usuario);
+                cmd.Parameters.AddWithValue("@intIdEmpresa", u.IdEmpresa);
+                cmd.Parameters.AddWithValue("@intIdRol", u.IdRol);
+                cmd.Parameters.AddWithValue("@intIdInforme", idInforme);
+                cmd.Parameters.AddWithValue("@intIdPedido", idPedido);
                 await cn.OpenAsync();
 
                 var respuesta = new Respuesta();
@@ -1435,11 +1077,14 @@ namespace SafetyReport.DAO
         {
             try
             {
-                using SqlConnection cn = new(_dbConfig.ConnectionString);
-                using SqlCommand cmd = new("SP_Pedido_GenerarDocumentoXml", cn) { CommandType = CommandType.StoredProcedure };
-                AgregarParametrosAuditoria(cmd, u);
-                cmd.Parameters.Add("@intIdInforme", SqlDbType.Int).Value = idInforme;
-                cmd.Parameters.Add("@intIdPedido", SqlDbType.Int).Value = idPedido;
+                using MySqlConnection cn = new(_dbConfig.ConnectionString);
+                using MySqlCommand cmd = new("SP_Pedido_GenerarDocumentoXml", cn) { CommandType = CommandType.StoredProcedure };
+                cmd.Parameters.AddWithValue("@intIdUsuario", u.IdUsuario);
+                cmd.Parameters.AddWithValue("@vchUsuario", u.Usuario);
+                cmd.Parameters.AddWithValue("@intIdEmpresa", u.IdEmpresa);
+                cmd.Parameters.AddWithValue("@intIdRol", u.IdRol);
+                cmd.Parameters.AddWithValue("@intIdInforme", idInforme);
+                cmd.Parameters.AddWithValue("@intIdPedido", idPedido);
                 await cn.OpenAsync();
 
                 var respuesta = new Respuesta();
@@ -1473,11 +1118,14 @@ namespace SafetyReport.DAO
         {
             try
             {
-                using SqlConnection cn = new(_dbConfig.ConnectionString);
-                using SqlCommand cmd = new("SP_Informe_ObtenerDocumento", cn) { CommandType = CommandType.StoredProcedure };
-                AgregarParametrosAuditoria(cmd, u);
-                cmd.Parameters.Add("@intIdInforme", SqlDbType.Int).Value = idInforme;
-                cmd.Parameters.Add("@intIdPedido", SqlDbType.Int).Value = idPedido;
+                using MySqlConnection cn = new(_dbConfig.ConnectionString);
+                using MySqlCommand cmd = new("SP_Informe_ObtenerDocumento", cn) { CommandType = CommandType.StoredProcedure };
+                cmd.Parameters.AddWithValue("@intIdUsuario", u.IdUsuario);
+                cmd.Parameters.AddWithValue("@vchUsuario", u.Usuario);
+                cmd.Parameters.AddWithValue("@intIdEmpresa", u.IdEmpresa);
+                cmd.Parameters.AddWithValue("@intIdRol", u.IdRol);
+                cmd.Parameters.AddWithValue("@intIdInforme", idInforme);
+                cmd.Parameters.AddWithValue("@intIdPedido", idPedido);
                 await cn.OpenAsync();
 
                 using var dr = await cmd.ExecuteReaderAsync();
@@ -1508,11 +1156,14 @@ namespace SafetyReport.DAO
         {
             try
             {
-                using SqlConnection cn = new(_dbConfig.ConnectionString);
-                using SqlCommand cmd = new("SP_Informe_ActualizarEstado", cn) { CommandType = CommandType.StoredProcedure };
-                AgregarParametrosAuditoria(cmd, u);
-                cmd.Parameters.Add("@intIdInforme", SqlDbType.Int).Value = idInforme;
-                cmd.Parameters.Add("@intIdEstadoInforme", SqlDbType.Int).Value = idEstadoInforme;
+                using MySqlConnection cn = new(_dbConfig.ConnectionString);
+                using MySqlCommand cmd = new("SP_Informe_ActualizarEstado", cn) { CommandType = CommandType.StoredProcedure };
+                cmd.Parameters.AddWithValue("@intIdUsuario", u.IdUsuario);
+                cmd.Parameters.AddWithValue("@vchUsuario", u.Usuario);
+                cmd.Parameters.AddWithValue("@intIdEmpresa", u.IdEmpresa);
+                cmd.Parameters.AddWithValue("@intIdRol", u.IdRol);
+                cmd.Parameters.AddWithValue("@intIdInforme", idInforme);
+                cmd.Parameters.AddWithValue("@intIdEstadoInforme", idEstadoInforme);
                 await cn.OpenAsync();
 
                 using var dr = await cmd.ExecuteReaderAsync();
@@ -1530,11 +1181,14 @@ namespace SafetyReport.DAO
         {
             try
             {
-                using SqlConnection cn = new(_dbConfig.ConnectionString);
-                using SqlCommand cmd = new("SP_Informe_ObtenerDatosPrefactura", cn) { CommandType = CommandType.StoredProcedure };
-                AgregarParametrosAuditoria(cmd, u);
-                cmd.Parameters.Add("@intIdInforme", SqlDbType.Int).Value = idInforme;
-                cmd.Parameters.Add("@intIdEstadoInforme", SqlDbType.Int).Value = idEstadoInforme;
+                using MySqlConnection cn = new(_dbConfig.ConnectionString);
+                using MySqlCommand cmd = new("SP_Informe_ObtenerDatosPrefactura", cn) { CommandType = CommandType.StoredProcedure };
+                cmd.Parameters.AddWithValue("@intIdUsuario", u.IdUsuario);
+                cmd.Parameters.AddWithValue("@vchUsuario", u.Usuario);
+                cmd.Parameters.AddWithValue("@intIdEmpresa", u.IdEmpresa);
+                cmd.Parameters.AddWithValue("@intIdRol", u.IdRol);
+                cmd.Parameters.AddWithValue("@intIdInforme", idInforme);
+                cmd.Parameters.AddWithValue("@intIdEstadoInforme", idEstadoInforme);
                 await cn.OpenAsync();
 
                 using var dr = await cmd.ExecuteReaderAsync();
@@ -1570,11 +1224,14 @@ namespace SafetyReport.DAO
         {
             try
             {
-                using SqlConnection cn = new(_dbConfig.ConnectionString);
-                using SqlCommand cmd = new("SP_Informe_ObtenerRutaDocumento", cn) { CommandType = CommandType.StoredProcedure };
-                AgregarParametrosAuditoria(cmd, u);
-                cmd.Parameters.Add("@intIdInforme", SqlDbType.Int).Value = idInforme;
-                cmd.Parameters.Add("@intIdPedido", SqlDbType.Int).Value = idPedido;
+                using MySqlConnection cn = new(_dbConfig.ConnectionString);
+                using MySqlCommand cmd = new("SP_Informe_ObtenerRutaDocumento", cn) { CommandType = CommandType.StoredProcedure };
+                cmd.Parameters.AddWithValue("@intIdUsuario", u.IdUsuario);
+                cmd.Parameters.AddWithValue("@vchUsuario", u.Usuario);
+                cmd.Parameters.AddWithValue("@intIdEmpresa", u.IdEmpresa);
+                cmd.Parameters.AddWithValue("@intIdRol", u.IdRol);
+                cmd.Parameters.AddWithValue("@intIdInforme", idInforme);
+                cmd.Parameters.AddWithValue("@intIdPedido", idPedido);
                 await cn.OpenAsync();
 
                 using var dr = await cmd.ExecuteReaderAsync();
@@ -1597,11 +1254,14 @@ namespace SafetyReport.DAO
         {
             try
             {
-                using SqlConnection cn = new(_dbConfig.ConnectionString);
-                using SqlCommand cmd = new("SP_Informe_ActualizarDocumento", cn) { CommandType = CommandType.StoredProcedure };
-                AgregarParametrosAuditoria(cmd, u);
-                cmd.Parameters.Add("@intIdInforme", SqlDbType.Int).Value = idInforme;
-                cmd.Parameters.Add("@vchUrlDocumento", SqlDbType.VarChar, 500).Value = urlDocumento;
+                using MySqlConnection cn = new(_dbConfig.ConnectionString);
+                using MySqlCommand cmd = new("SP_Informe_ActualizarDocumento", cn) { CommandType = CommandType.StoredProcedure };
+                cmd.Parameters.AddWithValue("@intIdUsuario", u.IdUsuario);
+                cmd.Parameters.AddWithValue("@vchUsuario", u.Usuario);
+                cmd.Parameters.AddWithValue("@intIdEmpresa", u.IdEmpresa);
+                cmd.Parameters.AddWithValue("@intIdRol", u.IdRol);
+                cmd.Parameters.AddWithValue("@intIdInforme", idInforme);
+                cmd.Parameters.AddWithValue("@vchUrlDocumento", urlDocumento);
                 await cn.OpenAsync();
 
                 using var dr = await cmd.ExecuteReaderAsync();
@@ -1619,15 +1279,18 @@ namespace SafetyReport.DAO
         {
             try
             {
-                using SqlConnection cn = new(_dbConfig.ConnectionString);
-                using SqlCommand cmd = new("SP_Informe_Listar", cn) { CommandType = CommandType.StoredProcedure };
-                AgregarParametrosAuditoria(cmd, u);
-                cmd.Parameters.Add("@vchBusqueda", SqlDbType.VarChar, 255).Value = (object?)filtro.Busqueda ?? DBNull.Value;
-                cmd.Parameters.Add("@intIdPedido", SqlDbType.Int).Value = (object?)filtro.IdPedido ?? DBNull.Value;
-                cmd.Parameters.Add("@vchIdEstado", SqlDbType.VarChar, 255).Value = (object?)filtro.IdEstado ?? DBNull.Value;
-                cmd.Parameters.Add("@vchIdPlantilla", SqlDbType.VarChar, 255).Value = (object?)filtro.IdPlantilla ?? DBNull.Value;
-                cmd.Parameters.Add("@vchIdTipoTramite", SqlDbType.VarChar, 255).Value = (object?)filtro.IdTipoTramite ?? DBNull.Value;
-                cmd.Parameters.Add("@numPag", SqlDbType.Int).Value = (object?)filtro.NumPag ?? DBNull.Value;
+                using MySqlConnection cn = new(_dbConfig.ConnectionString);
+                using MySqlCommand cmd = new("SP_Informe_Listar", cn) { CommandType = CommandType.StoredProcedure };
+                cmd.Parameters.AddWithValue("@intIdUsuario", u.IdUsuario);
+                cmd.Parameters.AddWithValue("@vchUsuario", u.Usuario);
+                cmd.Parameters.AddWithValue("@intIdEmpresa", u.IdEmpresa);
+                cmd.Parameters.AddWithValue("@intIdRol", u.IdRol);
+                cmd.Parameters.AddWithValue("@vchBusqueda", (object?)filtro.Busqueda ?? DBNull.Value);
+                cmd.Parameters.AddWithValue("@intIdPedido", (object?)filtro.IdPedido ?? DBNull.Value);
+                cmd.Parameters.AddWithValue("@vchIdEstado", (object?)filtro.IdEstado ?? DBNull.Value);
+                cmd.Parameters.AddWithValue("@vchIdPlantilla", (object?)filtro.IdPlantilla ?? DBNull.Value);
+                cmd.Parameters.AddWithValue("@vchIdTipoTramite", (object?)filtro.IdTipoTramite ?? DBNull.Value);
+                cmd.Parameters.AddWithValue("@numPag", (object?)filtro.NumPag ?? DBNull.Value);
                 await cn.OpenAsync();
 
                 using var dr = await cmd.ExecuteReaderAsync();
@@ -1687,13 +1350,16 @@ namespace SafetyReport.DAO
         {
             try
             {
-                using SqlConnection cn = new(_dbConfig.ConnectionString);
-                using SqlCommand cmd = new("SP_Informe_ListarIdPorCompania", cn) { CommandType = CommandType.StoredProcedure };
-                AgregarParametrosAuditoria(cmd, u);
-                cmd.Parameters.Add("@intIdCompania", SqlDbType.Int).Value = filtro.IdCompania;
-                cmd.Parameters.Add("@dtmFchInicio", SqlDbType.Date).Value = (object?)filtro.FchInicio ?? DBNull.Value;
-                cmd.Parameters.Add("@dtmFchFin", SqlDbType.Date).Value = (object?)filtro.FchFin ?? DBNull.Value;
-                cmd.Parameters.Add("@numPag", SqlDbType.Int).Value = (object?)filtro.NumPag ?? DBNull.Value;
+                using MySqlConnection cn = new(_dbConfig.ConnectionString);
+                using MySqlCommand cmd = new("SP_Informe_ListarIdPorCompania", cn) { CommandType = CommandType.StoredProcedure };
+                cmd.Parameters.AddWithValue("@intIdUsuario", u.IdUsuario);
+                cmd.Parameters.AddWithValue("@vchUsuario", u.Usuario);
+                cmd.Parameters.AddWithValue("@intIdEmpresa", u.IdEmpresa);
+                cmd.Parameters.AddWithValue("@intIdRol", u.IdRol);
+                cmd.Parameters.AddWithValue("@intIdCompania", filtro.IdCompania);
+                cmd.Parameters.AddWithValue("@dtmFchInicio", (object?)filtro.FchInicio ?? DBNull.Value);
+                cmd.Parameters.AddWithValue("@dtmFchFin", (object?)filtro.FchFin ?? DBNull.Value);
+                cmd.Parameters.AddWithValue("@numPag", (object?)filtro.NumPag ?? DBNull.Value);
                 await cn.OpenAsync();
 
                 using var dr = await cmd.ExecuteReaderAsync();
@@ -1739,66 +1405,66 @@ namespace SafetyReport.DAO
         {
             try
             {
-                using SqlConnection cn = new(_dbConfig.ConnectionString);
-                using SqlCommand cmd = new("SP_Informe_Balance_Desagregado_Calcular", cn) { CommandType = CommandType.StoredProcedure };
-                cmd.Parameters.Add("@intIdUsuario",                              SqlDbType.Int).Value     = u.IdUsuario;
-                cmd.Parameters.Add("@vchUsuario",                                SqlDbType.VarChar, 32).Value = u.Usuario;
-                cmd.Parameters.Add("@intIdEmpresa",                              SqlDbType.Int).Value     = u.IdEmpresa;
-                cmd.Parameters.Add("@intIdRol",                                  SqlDbType.Int).Value     = u.IdRol;
-                cmd.Parameters.Add("@decEfectivoEquivalente",                    SqlDbType.Decimal).Value = D2(r.EfectivoEquivalente);
-                cmd.Parameters.Add("@decOtrosActivosFinancierosCorriente",       SqlDbType.Decimal).Value = D2(r.OtrosActivosFinancierosCorriente);
-                cmd.Parameters.Add("@decCuentasCobrarCorriente",                 SqlDbType.Decimal).Value = D2(r.CuentasCobrarCorriente);
-                cmd.Parameters.Add("@decInventariosCorriente",                   SqlDbType.Decimal).Value = D2(r.InventariosCorriente);
-                cmd.Parameters.Add("@decActivosBiologicosCorriente",             SqlDbType.Decimal).Value = D2(r.ActivosBiologicosCorriente);
-                cmd.Parameters.Add("@decActivosImpuestosGanancias",              SqlDbType.Decimal).Value = D2(r.ActivosImpuestosGanancias);
-                cmd.Parameters.Add("@decOtrosActivosNoFinancierosCorriente",     SqlDbType.Decimal).Value = D2(r.OtrosActivosNoFinancierosCorriente);
-                cmd.Parameters.Add("@decOtrosActivosFinancierosNoCorriente",     SqlDbType.Decimal).Value = D2(r.OtrosActivosFinancierosNoCorriente);
-                cmd.Parameters.Add("@decInversionesSubsidiarias",                SqlDbType.Decimal).Value = D2(r.InversionesSubsidiarias);
-                cmd.Parameters.Add("@decCuentasCobrarNoCorriente",               SqlDbType.Decimal).Value = D2(r.CuentasCobrarNoCorriente);
-                cmd.Parameters.Add("@decInventariosNoCorriente",                 SqlDbType.Decimal).Value = D2(r.InventariosNoCorriente);
-                cmd.Parameters.Add("@decActivosBiologicosNoCorriente",           SqlDbType.Decimal).Value = D2(r.ActivosBiologicosNoCorriente);
-                cmd.Parameters.Add("@decPropiedadesInversion",                   SqlDbType.Decimal).Value = D2(r.PropiedadesInversion);
-                cmd.Parameters.Add("@decPropiedadesPlantaEquipo",                SqlDbType.Decimal).Value = D2(r.PropiedadesPlantaEquipo);
-                cmd.Parameters.Add("@decIntangibles",                            SqlDbType.Decimal).Value = D2(r.Intangibles);
-                cmd.Parameters.Add("@decActivosImpuestosDiferidos",              SqlDbType.Decimal).Value = D2(r.ActivosImpuestosDiferidos);
-                cmd.Parameters.Add("@decActivosImpuestosCorrientes",             SqlDbType.Decimal).Value = D2(r.ActivosImpuestosCorrientes);
-                cmd.Parameters.Add("@decPlusvalia",                              SqlDbType.Decimal).Value = D2(r.Plusvalia);
-                cmd.Parameters.Add("@decOtrosActivosNoFinancierosNoCorriente",   SqlDbType.Decimal).Value = D2(r.OtrosActivosNoFinancierosNoCorriente);
-                cmd.Parameters.Add("@decOtrosPasivosFinancierosCorriente",       SqlDbType.Decimal).Value = D2(r.OtrosPasivosFinancierosCorriente);
-                cmd.Parameters.Add("@decCuentasPagarCorriente",                  SqlDbType.Decimal).Value = D2(r.CuentasPagarCorriente);
-                cmd.Parameters.Add("@decBeneficiosEmpleadosCorriente",           SqlDbType.Decimal).Value = D2(r.BeneficiosEmpleadosCorriente);
-                cmd.Parameters.Add("@decOtrasProvisionesCorriente",              SqlDbType.Decimal).Value = D2(r.OtrasProvisionesCorriente);
-                cmd.Parameters.Add("@decImpuestosGananciasCorriente",            SqlDbType.Decimal).Value = D2(r.ImpuestosGananciasCorriente);
-                cmd.Parameters.Add("@decOtrosPasivosNoFinancierosCorriente",     SqlDbType.Decimal).Value = D2(r.OtrosPasivosNoFinancierosCorriente);
-                cmd.Parameters.Add("@decOtrosPasivosFinancierosNoCorriente",     SqlDbType.Decimal).Value = D2(r.OtrosPasivosFinancierosNoCorriente);
-                cmd.Parameters.Add("@decCuentasPagarNoCorriente",                SqlDbType.Decimal).Value = D2(r.CuentasPagarNoCorriente);
-                cmd.Parameters.Add("@decBeneficiosEmpleadosNoCorriente",         SqlDbType.Decimal).Value = D2(r.BeneficiosEmpleadosNoCorriente);
-                cmd.Parameters.Add("@decOtrasProvisionesNoCorriente",            SqlDbType.Decimal).Value = D2(r.OtrasProvisionesNoCorriente);
-                cmd.Parameters.Add("@decImpuestosDiferidosNoCorriente",          SqlDbType.Decimal).Value = D2(r.ImpuestosDiferidosNoCorriente);
-                cmd.Parameters.Add("@decImpuestosCorrientesNoCorriente",         SqlDbType.Decimal).Value = D2(r.ImpuestosCorrientesNoCorriente);
-                cmd.Parameters.Add("@decOtrosPasivosNoFinancierosNoCorriente",   SqlDbType.Decimal).Value = D2(r.OtrosPasivosNoFinancierosNoCorriente);
-                cmd.Parameters.Add("@decCapitalEmitido",                         SqlDbType.Decimal).Value = D2(r.CapitalEmitido);
-                cmd.Parameters.Add("@decPrimasEmision",                          SqlDbType.Decimal).Value = D2(r.PrimasEmision);
-                cmd.Parameters.Add("@decAccionesInversion",                      SqlDbType.Decimal).Value = D2(r.AccionesInversion);
-                cmd.Parameters.Add("@decAccionesCartera",                        SqlDbType.Decimal).Value = D2(r.AccionesCartera);
-                cmd.Parameters.Add("@decOtrasReservasCapital",                   SqlDbType.Decimal).Value = D2(r.OtrasReservasCapital);
-                cmd.Parameters.Add("@decResultadosAcumulados",                   SqlDbType.Decimal).Value = D2(r.ResultadosAcumulados);
-                cmd.Parameters.Add("@decOtrasReservasPatrimonio",                SqlDbType.Decimal).Value = D2(r.OtrasReservasPatrimonio);
-                cmd.Parameters.Add("@decIngresosOrdinarios",                     SqlDbType.Decimal).Value = D2(r.IngresosOrdinarios);
-                cmd.Parameters.Add("@decCostoVentas",                            SqlDbType.Decimal).Value = D2(r.CostoVentas);
-                cmd.Parameters.Add("@decGastosVentas",                           SqlDbType.Decimal).Value = D2(r.GastosVentas);
-                cmd.Parameters.Add("@decGastosAdministracion",                   SqlDbType.Decimal).Value = D2(r.GastosAdministracion);
-                cmd.Parameters.Add("@decOtrosIngresosOperativos",                SqlDbType.Decimal).Value = D2(r.OtrosIngresosOperativos);
-                cmd.Parameters.Add("@decOtrosGastosOperativos",                  SqlDbType.Decimal).Value = D2(r.OtrosGastosOperativos);
-                cmd.Parameters.Add("@decOtrasGananciasPerdidas",                 SqlDbType.Decimal).Value = D2(r.OtrasGananciasPerdidas);
-                cmd.Parameters.Add("@decIngresosFinancieros",                    SqlDbType.Decimal).Value = D2(r.IngresosFinancieros);
-                cmd.Parameters.Add("@decIngresosIntereses",                      SqlDbType.Decimal).Value = D2(r.IngresosIntereses);
-                cmd.Parameters.Add("@decGastosFinancieros",                      SqlDbType.Decimal).Value = D2(r.GastosFinancieros);
-                cmd.Parameters.Add("@decDeterioroValor",                         SqlDbType.Decimal).Value = D2(r.DeterioroValor);
-                cmd.Parameters.Add("@decOtrosIngresosSubsidiarias",              SqlDbType.Decimal).Value = D2(r.OtrosIngresosSubsidiarias);
-                cmd.Parameters.Add("@decDiferenciasCambio",                      SqlDbType.Decimal).Value = D2(r.DiferenciasCambio);
-                cmd.Parameters.Add("@decIngresoGastoImpuesto",                   SqlDbType.Decimal).Value = D2(r.IngresoGastoImpuesto);
-                cmd.Parameters.Add("@decOperacionesDescontinuadas",              SqlDbType.Decimal).Value = D2(r.OperacionesDescontinuadas);
+                using MySqlConnection cn = new(_dbConfig.ConnectionString);
+                using MySqlCommand cmd = new("SP_Informe_Balance_Desagregado_Calcular", cn) { CommandType = CommandType.StoredProcedure };
+                cmd.Parameters.AddWithValue("@intIdUsuario", u.IdUsuario);
+                cmd.Parameters.AddWithValue("@vchUsuario", u.Usuario);
+                cmd.Parameters.AddWithValue("@intIdEmpresa", u.IdEmpresa);
+                cmd.Parameters.AddWithValue("@intIdRol", u.IdRol);
+                cmd.Parameters.AddWithValue("@decEfectivoEquivalente", D2(r.EfectivoEquivalente));
+                cmd.Parameters.AddWithValue("@decOtrosActivosFinancierosCorriente", D2(r.OtrosActivosFinancierosCorriente));
+                cmd.Parameters.AddWithValue("@decCuentasCobrarCorriente", D2(r.CuentasCobrarCorriente));
+                cmd.Parameters.AddWithValue("@decInventariosCorriente", D2(r.InventariosCorriente));
+                cmd.Parameters.AddWithValue("@decActivosBiologicosCorriente", D2(r.ActivosBiologicosCorriente));
+                cmd.Parameters.AddWithValue("@decActivosImpuestosGanancias", D2(r.ActivosImpuestosGanancias));
+                cmd.Parameters.AddWithValue("@decOtrosActivosNoFinancierosCorriente", D2(r.OtrosActivosNoFinancierosCorriente));
+                cmd.Parameters.AddWithValue("@decOtrosActivosFinancierosNoCorriente", D2(r.OtrosActivosFinancierosNoCorriente));
+                cmd.Parameters.AddWithValue("@decInversionesSubsidiarias", D2(r.InversionesSubsidiarias));
+                cmd.Parameters.AddWithValue("@decCuentasCobrarNoCorriente", D2(r.CuentasCobrarNoCorriente));
+                cmd.Parameters.AddWithValue("@decInventariosNoCorriente", D2(r.InventariosNoCorriente));
+                cmd.Parameters.AddWithValue("@decActivosBiologicosNoCorriente", D2(r.ActivosBiologicosNoCorriente));
+                cmd.Parameters.AddWithValue("@decPropiedadesInversion", D2(r.PropiedadesInversion));
+                cmd.Parameters.AddWithValue("@decPropiedadesPlantaEquipo", D2(r.PropiedadesPlantaEquipo));
+                cmd.Parameters.AddWithValue("@decIntangibles", D2(r.Intangibles));
+                cmd.Parameters.AddWithValue("@decActivosImpuestosDiferidos", D2(r.ActivosImpuestosDiferidos));
+                cmd.Parameters.AddWithValue("@decActivosImpuestosCorrientes", D2(r.ActivosImpuestosCorrientes));
+                cmd.Parameters.AddWithValue("@decPlusvalia", D2(r.Plusvalia));
+                cmd.Parameters.AddWithValue("@decOtrosActivosNoFinancierosNoCorriente", D2(r.OtrosActivosNoFinancierosNoCorriente));
+                cmd.Parameters.AddWithValue("@decOtrosPasivosFinancierosCorriente", D2(r.OtrosPasivosFinancierosCorriente));
+                cmd.Parameters.AddWithValue("@decCuentasPagarCorriente", D2(r.CuentasPagarCorriente));
+                cmd.Parameters.AddWithValue("@decBeneficiosEmpleadosCorriente", D2(r.BeneficiosEmpleadosCorriente));
+                cmd.Parameters.AddWithValue("@decOtrasProvisionesCorriente", D2(r.OtrasProvisionesCorriente));
+                cmd.Parameters.AddWithValue("@decImpuestosGananciasCorriente", D2(r.ImpuestosGananciasCorriente));
+                cmd.Parameters.AddWithValue("@decOtrosPasivosNoFinancierosCorriente", D2(r.OtrosPasivosNoFinancierosCorriente));
+                cmd.Parameters.AddWithValue("@decOtrosPasivosFinancierosNoCorriente", D2(r.OtrosPasivosFinancierosNoCorriente));
+                cmd.Parameters.AddWithValue("@decCuentasPagarNoCorriente", D2(r.CuentasPagarNoCorriente));
+                cmd.Parameters.AddWithValue("@decBeneficiosEmpleadosNoCorriente", D2(r.BeneficiosEmpleadosNoCorriente));
+                cmd.Parameters.AddWithValue("@decOtrasProvisionesNoCorriente", D2(r.OtrasProvisionesNoCorriente));
+                cmd.Parameters.AddWithValue("@decImpuestosDiferidosNoCorriente", D2(r.ImpuestosDiferidosNoCorriente));
+                cmd.Parameters.AddWithValue("@decImpuestosCorrientesNoCorriente", D2(r.ImpuestosCorrientesNoCorriente));
+                cmd.Parameters.AddWithValue("@decOtrosPasivosNoFinancierosNoCorriente", D2(r.OtrosPasivosNoFinancierosNoCorriente));
+                cmd.Parameters.AddWithValue("@decCapitalEmitido", D2(r.CapitalEmitido));
+                cmd.Parameters.AddWithValue("@decPrimasEmision", D2(r.PrimasEmision));
+                cmd.Parameters.AddWithValue("@decAccionesInversion", D2(r.AccionesInversion));
+                cmd.Parameters.AddWithValue("@decAccionesCartera", D2(r.AccionesCartera));
+                cmd.Parameters.AddWithValue("@decOtrasReservasCapital", D2(r.OtrasReservasCapital));
+                cmd.Parameters.AddWithValue("@decResultadosAcumulados", D2(r.ResultadosAcumulados));
+                cmd.Parameters.AddWithValue("@decOtrasReservasPatrimonio", D2(r.OtrasReservasPatrimonio));
+                cmd.Parameters.AddWithValue("@decIngresosOrdinarios", D2(r.IngresosOrdinarios));
+                cmd.Parameters.AddWithValue("@decCostoVentas", D2(r.CostoVentas));
+                cmd.Parameters.AddWithValue("@decGastosVentas", D2(r.GastosVentas));
+                cmd.Parameters.AddWithValue("@decGastosAdministracion", D2(r.GastosAdministracion));
+                cmd.Parameters.AddWithValue("@decOtrosIngresosOperativos", D2(r.OtrosIngresosOperativos));
+                cmd.Parameters.AddWithValue("@decOtrosGastosOperativos", D2(r.OtrosGastosOperativos));
+                cmd.Parameters.AddWithValue("@decOtrasGananciasPerdidas", D2(r.OtrasGananciasPerdidas));
+                cmd.Parameters.AddWithValue("@decIngresosFinancieros", D2(r.IngresosFinancieros));
+                cmd.Parameters.AddWithValue("@decIngresosIntereses", D2(r.IngresosIntereses));
+                cmd.Parameters.AddWithValue("@decGastosFinancieros", D2(r.GastosFinancieros));
+                cmd.Parameters.AddWithValue("@decDeterioroValor", D2(r.DeterioroValor));
+                cmd.Parameters.AddWithValue("@decOtrosIngresosSubsidiarias", D2(r.OtrosIngresosSubsidiarias));
+                cmd.Parameters.AddWithValue("@decDiferenciasCambio", D2(r.DiferenciasCambio));
+                cmd.Parameters.AddWithValue("@decIngresoGastoImpuesto", D2(r.IngresoGastoImpuesto));
+                cmd.Parameters.AddWithValue("@decOperacionesDescontinuadas", D2(r.OperacionesDescontinuadas));
                 await cn.OpenAsync();
 
                 using var dr = await cmd.ExecuteReaderAsync();
@@ -1843,32 +1509,32 @@ namespace SafetyReport.DAO
         {
             try
             {
-                using SqlConnection cn = new(_dbConfig.ConnectionString);
-                using SqlCommand cmd = new("SP_Informe_Balance_Seguro_Calcular", cn) { CommandType = CommandType.StoredProcedure };
-                cmd.Parameters.Add("@intIdUsuario",                          SqlDbType.Int).Value        = u.IdUsuario;
-                cmd.Parameters.Add("@vchUsuario",                            SqlDbType.VarChar, 32).Value = u.Usuario;
-                cmd.Parameters.Add("@intIdEmpresa",                          SqlDbType.Int).Value        = u.IdEmpresa;
-                cmd.Parameters.Add("@intIdRol",                              SqlDbType.Int).Value        = u.IdRol;
-                cmd.Parameters.Add("@decEfectivoDisponible",                 SqlDbType.Decimal).Value    = D2(r.EfectivoDisponible);
-                cmd.Parameters.Add("@decInversionesFinancieras",             SqlDbType.Decimal).Value    = D2(r.InversionesFinancieras);
-                cmd.Parameters.Add("@decPrestamosInteresesNetos",            SqlDbType.Decimal).Value    = D2(r.PrestamosInteresesNetos);
-                cmd.Parameters.Add("@decPrimasCobrar",                       SqlDbType.Decimal).Value    = D2(r.PrimasCobrar);
-                cmd.Parameters.Add("@decDeudasReaseguradores",               SqlDbType.Decimal).Value    = D2(r.DeudasReaseguradores);
-                cmd.Parameters.Add("@decActivosVenta",                       SqlDbType.Decimal).Value    = D2(r.ActivosVenta);
-                cmd.Parameters.Add("@decPropiedadesInversion",               SqlDbType.Decimal).Value    = D2(r.PropiedadesInversion);
-                cmd.Parameters.Add("@decPropiedadPlantaEquipo",              SqlDbType.Decimal).Value    = D2(r.PropiedadPlantaEquipo);
-                cmd.Parameters.Add("@decOtrosActivos",                       SqlDbType.Decimal).Value    = D2(r.OtrosActivos);
-                cmd.Parameters.Add("@decObligacionesAsegurados",             SqlDbType.Decimal).Value    = D2(r.ObligacionesAsegurados);
-                cmd.Parameters.Add("@decReservasSiniestros",                 SqlDbType.Decimal).Value    = D2(r.ReservasSiniestros);
-                cmd.Parameters.Add("@decReservasTecnicas",                   SqlDbType.Decimal).Value    = D2(r.ReservasTecnicas);
-                cmd.Parameters.Add("@decObligacionesReaseguradores",         SqlDbType.Decimal).Value    = D2(r.ObligacionesReaseguradores);
-                cmd.Parameters.Add("@decObligacionesFinancieras",            SqlDbType.Decimal).Value    = D2(r.ObligacionesFinancieras);
-                cmd.Parameters.Add("@decCuentasPagar",                       SqlDbType.Decimal).Value    = D2(r.CuentasPagar);
-                cmd.Parameters.Add("@decOtrosPasivos",                       SqlDbType.Decimal).Value    = D2(r.OtrosPasivos);
-                cmd.Parameters.Add("@decCapitalSocial",                      SqlDbType.Decimal).Value    = D2(r.CapitalSocial);
-                cmd.Parameters.Add("@decAportesCapitalNoCapitalizados",      SqlDbType.Decimal).Value    = D2(r.AportesCapitalNoCapitalizados);
-                cmd.Parameters.Add("@decResultadosAcumulados",               SqlDbType.Decimal).Value    = D2(r.ResultadosAcumulados);
-                cmd.Parameters.Add("@decPatrimonioRestringido",              SqlDbType.Decimal).Value    = D2(r.PatrimonioRestringido);
+                using MySqlConnection cn = new(_dbConfig.ConnectionString);
+                using MySqlCommand cmd = new("SP_Informe_Balance_Seguro_Calcular", cn) { CommandType = CommandType.StoredProcedure };
+                cmd.Parameters.AddWithValue("@intIdUsuario", u.IdUsuario);
+                cmd.Parameters.AddWithValue("@vchUsuario", u.Usuario);
+                cmd.Parameters.AddWithValue("@intIdEmpresa", u.IdEmpresa);
+                cmd.Parameters.AddWithValue("@intIdRol", u.IdRol);
+                cmd.Parameters.AddWithValue("@decEfectivoDisponible", D2(r.EfectivoDisponible));
+                cmd.Parameters.AddWithValue("@decInversionesFinancieras", D2(r.InversionesFinancieras));
+                cmd.Parameters.AddWithValue("@decPrestamosInteresesNetos", D2(r.PrestamosInteresesNetos));
+                cmd.Parameters.AddWithValue("@decPrimasCobrar", D2(r.PrimasCobrar));
+                cmd.Parameters.AddWithValue("@decDeudasReaseguradores", D2(r.DeudasReaseguradores));
+                cmd.Parameters.AddWithValue("@decActivosVenta", D2(r.ActivosVenta));
+                cmd.Parameters.AddWithValue("@decPropiedadesInversion", D2(r.PropiedadesInversion));
+                cmd.Parameters.AddWithValue("@decPropiedadPlantaEquipo", D2(r.PropiedadPlantaEquipo));
+                cmd.Parameters.AddWithValue("@decOtrosActivos", D2(r.OtrosActivos));
+                cmd.Parameters.AddWithValue("@decObligacionesAsegurados", D2(r.ObligacionesAsegurados));
+                cmd.Parameters.AddWithValue("@decReservasSiniestros", D2(r.ReservasSiniestros));
+                cmd.Parameters.AddWithValue("@decReservasTecnicas", D2(r.ReservasTecnicas));
+                cmd.Parameters.AddWithValue("@decObligacionesReaseguradores", D2(r.ObligacionesReaseguradores));
+                cmd.Parameters.AddWithValue("@decObligacionesFinancieras", D2(r.ObligacionesFinancieras));
+                cmd.Parameters.AddWithValue("@decCuentasPagar", D2(r.CuentasPagar));
+                cmd.Parameters.AddWithValue("@decOtrosPasivos", D2(r.OtrosPasivos));
+                cmd.Parameters.AddWithValue("@decCapitalSocial", D2(r.CapitalSocial));
+                cmd.Parameters.AddWithValue("@decAportesCapitalNoCapitalizados", D2(r.AportesCapitalNoCapitalizados));
+                cmd.Parameters.AddWithValue("@decResultadosAcumulados", D2(r.ResultadosAcumulados));
+                cmd.Parameters.AddWithValue("@decPatrimonioRestringido", D2(r.PatrimonioRestringido));
                 await cn.OpenAsync();
 
                 using var dr = await cmd.ExecuteReaderAsync();
@@ -1901,33 +1567,33 @@ namespace SafetyReport.DAO
         {
             try
             {
-                using SqlConnection cn = new(_dbConfig.ConnectionString);
-                using SqlCommand cmd = new("SP_Informe_Balance_Banco_Calcular", cn) { CommandType = CommandType.StoredProcedure };
-                cmd.Parameters.Add("@intIdUsuario",                      SqlDbType.Int).Value        = u.IdUsuario;
-                cmd.Parameters.Add("@vchUsuario",                        SqlDbType.VarChar, 32).Value = u.Usuario;
-                cmd.Parameters.Add("@intIdEmpresa",                      SqlDbType.Int).Value        = u.IdEmpresa;
-                cmd.Parameters.Add("@intIdRol",                          SqlDbType.Int).Value        = u.IdRol;
-                cmd.Parameters.Add("@decDisponible",                     SqlDbType.Decimal).Value    = D2(r.Disponible);
-                cmd.Parameters.Add("@decFondosInterbancarios",           SqlDbType.Decimal).Value    = D2(r.FondosInterbancarios);
-                cmd.Parameters.Add("@decInversionesValorRazonable",      SqlDbType.Decimal).Value    = D2(r.InversionesValorRazonable);
-                cmd.Parameters.Add("@decCarteraCreditos",                SqlDbType.Decimal).Value    = D2(r.CarteraCreditos);
-                cmd.Parameters.Add("@decDerivadosNegociacionActivo",     SqlDbType.Decimal).Value    = D2(r.DerivadosNegociacionActivo);
-                cmd.Parameters.Add("@decDerivadosCoberturaActivo",       SqlDbType.Decimal).Value    = D2(r.DerivadosCoberturaActivo);
-                cmd.Parameters.Add("@decBienesRealizables",              SqlDbType.Decimal).Value    = D2(r.BienesRealizables);
-                cmd.Parameters.Add("@decParticipacionesSubsidiarias",    SqlDbType.Decimal).Value    = D2(r.ParticipacionesSubsidiarias);
-                cmd.Parameters.Add("@decInmuebleMobiliarioEquipo",       SqlDbType.Decimal).Value    = D2(r.InmuebleMobiliarioEquipo);
-                cmd.Parameters.Add("@decImpuestoRentaDiferido",          SqlDbType.Decimal).Value    = D2(r.ImpuestoRentaDiferido);
-                cmd.Parameters.Add("@decOtrosActivos",                   SqlDbType.Decimal).Value    = D2(r.OtrosActivos);
-                cmd.Parameters.Add("@decObligacionesPublico",            SqlDbType.Decimal).Value    = D2(r.ObligacionesPublico);
-                cmd.Parameters.Add("@decFondosInterbancariosPasivo",     SqlDbType.Decimal).Value    = D2(r.FondosInterbancariosPasivo);
-                cmd.Parameters.Add("@decAdeudosFinancieras",             SqlDbType.Decimal).Value    = D2(r.AdeudosFinancieras);
-                cmd.Parameters.Add("@decDerivadosNegociacionPasivo",     SqlDbType.Decimal).Value    = D2(r.DerivadosNegociacionPasivo);
-                cmd.Parameters.Add("@decDerivadosCoberturaPasivo",       SqlDbType.Decimal).Value    = D2(r.DerivadosCoberturaPasivo);
-                cmd.Parameters.Add("@decCuentasPagarProvisiones",        SqlDbType.Decimal).Value    = D2(r.CuentasPagarProvisiones);
-                cmd.Parameters.Add("@decCapitalSocial",                  SqlDbType.Decimal).Value    = D2(r.CapitalSocial);
-                cmd.Parameters.Add("@decReservas",                       SqlDbType.Decimal).Value    = D2(r.Reservas);
-                cmd.Parameters.Add("@decResultadosNoRealizados",         SqlDbType.Decimal).Value    = D2(r.ResultadosNoRealizados);
-                cmd.Parameters.Add("@decResultadoEjercicio",             SqlDbType.Decimal).Value    = D2(r.ResultadoEjercicio);
+                using MySqlConnection cn = new(_dbConfig.ConnectionString);
+                using MySqlCommand cmd = new("SP_Informe_Balance_Banco_Calcular", cn) { CommandType = CommandType.StoredProcedure };
+                cmd.Parameters.AddWithValue("@intIdUsuario", u.IdUsuario);
+                cmd.Parameters.AddWithValue("@vchUsuario", u.Usuario);
+                cmd.Parameters.AddWithValue("@intIdEmpresa", u.IdEmpresa);
+                cmd.Parameters.AddWithValue("@intIdRol", u.IdRol);
+                cmd.Parameters.AddWithValue("@decDisponible", D2(r.Disponible));
+                cmd.Parameters.AddWithValue("@decFondosInterbancarios", D2(r.FondosInterbancarios));
+                cmd.Parameters.AddWithValue("@decInversionesValorRazonable", D2(r.InversionesValorRazonable));
+                cmd.Parameters.AddWithValue("@decCarteraCreditos", D2(r.CarteraCreditos));
+                cmd.Parameters.AddWithValue("@decDerivadosNegociacionActivo", D2(r.DerivadosNegociacionActivo));
+                cmd.Parameters.AddWithValue("@decDerivadosCoberturaActivo", D2(r.DerivadosCoberturaActivo));
+                cmd.Parameters.AddWithValue("@decBienesRealizables", D2(r.BienesRealizables));
+                cmd.Parameters.AddWithValue("@decParticipacionesSubsidiarias", D2(r.ParticipacionesSubsidiarias));
+                cmd.Parameters.AddWithValue("@decInmuebleMobiliarioEquipo", D2(r.InmuebleMobiliarioEquipo));
+                cmd.Parameters.AddWithValue("@decImpuestoRentaDiferido", D2(r.ImpuestoRentaDiferido));
+                cmd.Parameters.AddWithValue("@decOtrosActivos", D2(r.OtrosActivos));
+                cmd.Parameters.AddWithValue("@decObligacionesPublico", D2(r.ObligacionesPublico));
+                cmd.Parameters.AddWithValue("@decFondosInterbancariosPasivo", D2(r.FondosInterbancariosPasivo));
+                cmd.Parameters.AddWithValue("@decAdeudosFinancieras", D2(r.AdeudosFinancieras));
+                cmd.Parameters.AddWithValue("@decDerivadosNegociacionPasivo", D2(r.DerivadosNegociacionPasivo));
+                cmd.Parameters.AddWithValue("@decDerivadosCoberturaPasivo", D2(r.DerivadosCoberturaPasivo));
+                cmd.Parameters.AddWithValue("@decCuentasPagarProvisiones", D2(r.CuentasPagarProvisiones));
+                cmd.Parameters.AddWithValue("@decCapitalSocial", D2(r.CapitalSocial));
+                cmd.Parameters.AddWithValue("@decReservas", D2(r.Reservas));
+                cmd.Parameters.AddWithValue("@decResultadosNoRealizados", D2(r.ResultadosNoRealizados));
+                cmd.Parameters.AddWithValue("@decResultadoEjercicio", D2(r.ResultadoEjercicio));
                 await cn.OpenAsync();
 
                 using var dr = await cmd.ExecuteReaderAsync();
@@ -1960,42 +1626,42 @@ namespace SafetyReport.DAO
         {
             try
             {
-                using SqlConnection cn = new(_dbConfig.ConnectionString);
-                using SqlCommand cmd = new("SP_Informe_Balance_Turquia_Calcular", cn) { CommandType = CommandType.StoredProcedure };
-                cmd.Parameters.Add("@intIdUsuario",                SqlDbType.Int).Value         = u.IdUsuario;
-                cmd.Parameters.Add("@vchUsuario",                  SqlDbType.VarChar, 32).Value = u.Usuario;
-                cmd.Parameters.Add("@intIdEmpresa",                SqlDbType.Int).Value         = u.IdEmpresa;
-                cmd.Parameters.Add("@intIdRol",                    SqlDbType.Int).Value         = u.IdRol;
-                cmd.Parameters.Add("@decEfectivo",                 SqlDbType.Decimal).Value     = D2(r.Efectivo);
-                cmd.Parameters.Add("@decExistencias",              SqlDbType.Decimal).Value     = D2(r.Existencias);
-                cmd.Parameters.Add("@decDeudores",                 SqlDbType.Decimal).Value     = D2(r.Deudores);
-                cmd.Parameters.Add("@decBienesTongibles",          SqlDbType.Decimal).Value     = D2(r.BienesTongibles);
-                cmd.Parameters.Add("@decActivosIntangibles",       SqlDbType.Decimal).Value     = D2(r.ActivosIntangibles);
-                cmd.Parameters.Add("@decPrestamos",                SqlDbType.Decimal).Value     = D2(r.Prestamos);
-                cmd.Parameters.Add("@decAcreedores",               SqlDbType.Decimal).Value     = D2(r.Acreedores);
-                cmd.Parameters.Add("@decPasivosNoCorrientes",      SqlDbType.Decimal).Value     = D2(r.PasivosNoCorrientes);
-                cmd.Parameters.Add("@decPasivosLargoPlazo",        SqlDbType.Decimal).Value     = D2(r.PasivosLargoPlazo);
-                cmd.Parameters.Add("@decPatrimonio",               SqlDbType.Decimal).Value     = D2(r.Patrimonio);
-                cmd.Parameters.Add("@decReservas",                 SqlDbType.Decimal).Value     = D2(r.Reservas);
-                cmd.Parameters.Add("@decResultadosAcumulados",     SqlDbType.Decimal).Value     = D2(r.ResultadosAcumulados);
-                cmd.Parameters.Add("@decPerdidaGanancias",         SqlDbType.Decimal).Value     = D2(r.PerdidaGanancias);
-                cmd.Parameters.Add("@decOtrasCuentas",             SqlDbType.Decimal).Value     = D2(r.OtrasCuentas);
-                cmd.Parameters.Add("@decVentasNetas",              SqlDbType.Decimal).Value     = D2(r.VentasNetas);
-                cmd.Parameters.Add("@decCostoVentas",              SqlDbType.Decimal).Value     = D2(r.CostoVentas);
-                cmd.Parameters.Add("@decOtrosGastosOperativos",    SqlDbType.Decimal).Value     = D2(r.OtrosGastosOperativos);
-                cmd.Parameters.Add("@decCostoEmpleados",           SqlDbType.Decimal).Value     = D2(r.CostoEmpleados);
-                cmd.Parameters.Add("@decDepreciacion",             SqlDbType.Decimal).Value     = D2(r.Depreciacion);
-                cmd.Parameters.Add("@decIngresosFinancieros",      SqlDbType.Decimal).Value     = D2(r.IngresosFinancieros);
-                cmd.Parameters.Add("@decGastosFinancieros",        SqlDbType.Decimal).Value     = D2(r.GastosFinancieros);
-                cmd.Parameters.Add("@decIngresosExtraordinarios",  SqlDbType.Decimal).Value     = D2(r.IngresosExtraordinarios);
-                cmd.Parameters.Add("@decGastosExtraordinarios",    SqlDbType.Decimal).Value     = D2(r.GastosExtraordinarios);
-                cmd.Parameters.Add("@decImpuestos",                SqlDbType.Decimal).Value     = D2(r.Impuestos);
-                cmd.Parameters.Add("@decCostoMateriales",          SqlDbType.Decimal).Value     = D2(r.CostoMateriales);
-                cmd.Parameters.Add("@decInteresesPagados",         SqlDbType.Decimal).Value     = D2(r.InteresesPagados);
-                cmd.Parameters.Add("@decCapital",                  SqlDbType.Decimal).Value     = D2(r.Capital);
-                cmd.Parameters.Add("@decEbit",                     SqlDbType.Decimal).Value     = D2(r.Ebit);
-                cmd.Parameters.Add("@decEbitda",                   SqlDbType.Decimal).Value     = D2(r.Ebitda);
-                cmd.Parameters.Add("@decGanancia",                 SqlDbType.Decimal).Value     = D2(r.Ganancia);
+                using MySqlConnection cn = new(_dbConfig.ConnectionString);
+                using MySqlCommand cmd = new("SP_Informe_Balance_Turquia_Calcular", cn) { CommandType = CommandType.StoredProcedure };
+                cmd.Parameters.AddWithValue("@intIdUsuario", u.IdUsuario);
+                cmd.Parameters.AddWithValue("@vchUsuario", u.Usuario);
+                cmd.Parameters.AddWithValue("@intIdEmpresa", u.IdEmpresa);
+                cmd.Parameters.AddWithValue("@intIdRol", u.IdRol);
+                cmd.Parameters.AddWithValue("@decEfectivo", D2(r.Efectivo));
+                cmd.Parameters.AddWithValue("@decExistencias", D2(r.Existencias));
+                cmd.Parameters.AddWithValue("@decDeudores", D2(r.Deudores));
+                cmd.Parameters.AddWithValue("@decBienesTongibles", D2(r.BienesTongibles));
+                cmd.Parameters.AddWithValue("@decActivosIntangibles", D2(r.ActivosIntangibles));
+                cmd.Parameters.AddWithValue("@decPrestamos", D2(r.Prestamos));
+                cmd.Parameters.AddWithValue("@decAcreedores", D2(r.Acreedores));
+                cmd.Parameters.AddWithValue("@decPasivosNoCorrientes", D2(r.PasivosNoCorrientes));
+                cmd.Parameters.AddWithValue("@decPasivosLargoPlazo", D2(r.PasivosLargoPlazo));
+                cmd.Parameters.AddWithValue("@decPatrimonio", D2(r.Patrimonio));
+                cmd.Parameters.AddWithValue("@decReservas", D2(r.Reservas));
+                cmd.Parameters.AddWithValue("@decResultadosAcumulados", D2(r.ResultadosAcumulados));
+                cmd.Parameters.AddWithValue("@decPerdidaGanancias", D2(r.PerdidaGanancias));
+                cmd.Parameters.AddWithValue("@decOtrasCuentas", D2(r.OtrasCuentas));
+                cmd.Parameters.AddWithValue("@decVentasNetas", D2(r.VentasNetas));
+                cmd.Parameters.AddWithValue("@decCostoVentas", D2(r.CostoVentas));
+                cmd.Parameters.AddWithValue("@decOtrosGastosOperativos", D2(r.OtrosGastosOperativos));
+                cmd.Parameters.AddWithValue("@decCostoEmpleados", D2(r.CostoEmpleados));
+                cmd.Parameters.AddWithValue("@decDepreciacion", D2(r.Depreciacion));
+                cmd.Parameters.AddWithValue("@decIngresosFinancieros", D2(r.IngresosFinancieros));
+                cmd.Parameters.AddWithValue("@decGastosFinancieros", D2(r.GastosFinancieros));
+                cmd.Parameters.AddWithValue("@decIngresosExtraordinarios", D2(r.IngresosExtraordinarios));
+                cmd.Parameters.AddWithValue("@decGastosExtraordinarios", D2(r.GastosExtraordinarios));
+                cmd.Parameters.AddWithValue("@decImpuestos", D2(r.Impuestos));
+                cmd.Parameters.AddWithValue("@decCostoMateriales", D2(r.CostoMateriales));
+                cmd.Parameters.AddWithValue("@decInteresesPagados", D2(r.InteresesPagados));
+                cmd.Parameters.AddWithValue("@decCapital", D2(r.Capital));
+                cmd.Parameters.AddWithValue("@decEbit", D2(r.Ebit));
+                cmd.Parameters.AddWithValue("@decEbitda", D2(r.Ebitda));
+                cmd.Parameters.AddWithValue("@decGanancia", D2(r.Ganancia));
                 await cn.OpenAsync();
 
                 using var dr = await cmd.ExecuteReaderAsync();
@@ -2043,19 +1709,19 @@ namespace SafetyReport.DAO
         {
             try
             {
-                using SqlConnection cn = new(_dbConfig.ConnectionString);
-                using SqlCommand cmd = new("SP_Informe_Balance_Totalizado_Calcular", cn) { CommandType = CommandType.StoredProcedure };
-                cmd.Parameters.Add("@intIdUsuario",              SqlDbType.Int).Value        = u.IdUsuario;
-                cmd.Parameters.Add("@vchUsuario",                SqlDbType.VarChar, 32).Value = u.Usuario;
-                cmd.Parameters.Add("@intIdEmpresa",              SqlDbType.Int).Value        = u.IdEmpresa;
-                cmd.Parameters.Add("@intIdRol",                  SqlDbType.Int).Value        = u.IdRol;
-                cmd.Parameters.Add("@decTotalActivoCorriente",   SqlDbType.Decimal).Value    = D2(r.TotalActivoCorriente);
-                cmd.Parameters.Add("@decTotalActivoNoCorriente", SqlDbType.Decimal).Value    = D2(r.TotalActivoNoCorriente);
-                cmd.Parameters.Add("@decTotalPasivoCorriente",   SqlDbType.Decimal).Value    = D2(r.TotalPasivoCorriente);
-                cmd.Parameters.Add("@decTotalPasivoNoCorriente", SqlDbType.Decimal).Value    = D2(r.TotalPasivoNoCorriente);
-                cmd.Parameters.Add("@decTotalPatrimonio",        SqlDbType.Decimal).Value    = D2(r.TotalPatrimonio);
-                cmd.Parameters.Add("@decIngresosOrdinarios",     SqlDbType.Decimal).Value    = D2(r.IngresosOrdinarios);
-                cmd.Parameters.Add("@decGananciaNeta",           SqlDbType.Decimal).Value    = D2(r.GananciaNeta);
+                using MySqlConnection cn = new(_dbConfig.ConnectionString);
+                using MySqlCommand cmd = new("SP_Informe_Balance_Totalizado_Calcular", cn) { CommandType = CommandType.StoredProcedure };
+                cmd.Parameters.AddWithValue("@intIdUsuario", u.IdUsuario);
+                cmd.Parameters.AddWithValue("@vchUsuario", u.Usuario);
+                cmd.Parameters.AddWithValue("@intIdEmpresa", u.IdEmpresa);
+                cmd.Parameters.AddWithValue("@intIdRol", u.IdRol);
+                cmd.Parameters.AddWithValue("@decTotalActivoCorriente", D2(r.TotalActivoCorriente));
+                cmd.Parameters.AddWithValue("@decTotalActivoNoCorriente", D2(r.TotalActivoNoCorriente));
+                cmd.Parameters.AddWithValue("@decTotalPasivoCorriente", D2(r.TotalPasivoCorriente));
+                cmd.Parameters.AddWithValue("@decTotalPasivoNoCorriente", D2(r.TotalPasivoNoCorriente));
+                cmd.Parameters.AddWithValue("@decTotalPatrimonio", D2(r.TotalPatrimonio));
+                cmd.Parameters.AddWithValue("@decIngresosOrdinarios", D2(r.IngresosOrdinarios));
+                cmd.Parameters.AddWithValue("@decGananciaNeta", D2(r.GananciaNeta));
                 await cn.OpenAsync();
 
                 using var dr = await cmd.ExecuteReaderAsync();
@@ -2091,10 +1757,13 @@ namespace SafetyReport.DAO
         {
             try
             {
-                using SqlConnection cn = new(_dbConfig.ConnectionString);
-                using SqlCommand cmd = new("SP_Informe_ObtenerOCrear", cn) { CommandType = CommandType.StoredProcedure };
-                AgregarParametrosAuditoria(cmd, u);
-                cmd.Parameters.Add("@intIdPedido", SqlDbType.Int).Value = idPedido;
+                using MySqlConnection cn = new(_dbConfig.ConnectionString);
+                using MySqlCommand cmd = new("SP_Informe_ObtenerOCrear", cn) { CommandType = CommandType.StoredProcedure };
+                cmd.Parameters.AddWithValue("@intIdUsuario", u.IdUsuario);
+                cmd.Parameters.AddWithValue("@vchUsuario", u.Usuario);
+                cmd.Parameters.AddWithValue("@intIdEmpresa", u.IdEmpresa);
+                cmd.Parameters.AddWithValue("@intIdRol", u.IdRol);
+                cmd.Parameters.AddWithValue("@intIdPedido", idPedido);
                 await cn.OpenAsync();
 
                 using var dr = await cmd.ExecuteReaderAsync();
@@ -2119,10 +1788,13 @@ namespace SafetyReport.DAO
         {
             try
             {
-                using SqlConnection cn = new(_dbConfig.ConnectionString);
-                using SqlCommand cmd = new("SP_Informe_Eliminar", cn) { CommandType = CommandType.StoredProcedure };
-                AgregarParametrosAuditoria(cmd, u);
-                cmd.Parameters.Add("@intIdInforme", SqlDbType.Int).Value = idInforme;
+                using MySqlConnection cn = new(_dbConfig.ConnectionString);
+                using MySqlCommand cmd = new("SP_Informe_Eliminar", cn) { CommandType = CommandType.StoredProcedure };
+                cmd.Parameters.AddWithValue("@intIdUsuario", u.IdUsuario);
+                cmd.Parameters.AddWithValue("@vchUsuario", u.Usuario);
+                cmd.Parameters.AddWithValue("@intIdEmpresa", u.IdEmpresa);
+                cmd.Parameters.AddWithValue("@intIdRol", u.IdRol);
+                cmd.Parameters.AddWithValue("@intIdInforme", idInforme);
                 await cn.OpenAsync();
 
                 using var dr = await cmd.ExecuteReaderAsync();

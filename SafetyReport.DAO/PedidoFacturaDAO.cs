@@ -1,7 +1,9 @@
-using Microsoft.Data.SqlClient;
 using Microsoft.Extensions.Logging;
+using MySqlConnector;
 using SafetyReport.Models;
 using System.Data;
+using System.Data.Common;
+using System.Text.Json;
 
 namespace SafetyReport.DAO
 {
@@ -16,20 +18,7 @@ namespace SafetyReport.DAO
             _logger = logger;
         }
 
-        private static DataTable ConstruirTablaListaGeneralNum(List<int> valores)
-        {
-            var table = new DataTable();
-            table.Columns.Add("ID", typeof(int));
-            table.Columns.Add("NUM1", typeof(int));
-
-            int i = 1;
-            foreach (var valor in valores)
-                table.Rows.Add(i++, valor);
-
-            return table;
-        }
-
-        private async Task<Respuesta> LeerCabeceraAsync(SqlDataReader dr, string procedimiento)
+        private async Task<Respuesta> LeerCabeceraAsync(DbDataReader dr, string procedimiento)
         {
             var respuesta = new Respuesta();
 
@@ -51,10 +40,10 @@ namespace SafetyReport.DAO
             return respuesta;
         }
 
-        private static string? GetNullableString(SqlDataReader dr, string columna) =>
+        private static string? GetNullableString(DbDataReader dr, string columna) =>
             dr[columna] == DBNull.Value ? null : dr[columna].ToString();
 
-        private static decimal? GetNullableDecimal(SqlDataReader dr, string columna) =>
+        private static decimal? GetNullableDecimal(DbDataReader dr, string columna) =>
             dr[columna] == DBNull.Value ? null : Convert.ToDecimal(dr[columna]);
 
         // Une SP_Cliente_ObtenerParaFacturacion + SP_Pedido_ObtenerParaFacturacion en un solo viaje.
@@ -63,19 +52,16 @@ namespace SafetyReport.DAO
         {
             try
             {
-                using SqlConnection cn = new(_dbConfig.ConnectionString);
-                using SqlCommand cmd = new("SP_Facturacion_ObtenerDatosBorrador", cn);
+                using MySqlConnection cn = new(_dbConfig.ConnectionString);
+                using MySqlCommand cmd = new("SP_Facturacion_ObtenerDatosBorrador", cn);
 
                 cmd.CommandType = CommandType.StoredProcedure;
-                cmd.Parameters.Add("@intIdUsuario", SqlDbType.Int).Value = usuarioLogueado.IdUsuario;
-                cmd.Parameters.Add("@vchUsuario", SqlDbType.VarChar, 32).Value = usuarioLogueado.Usuario;
-                cmd.Parameters.Add("@intIdEmpresa", SqlDbType.Int).Value = usuarioLogueado.IdEmpresa;
-                cmd.Parameters.Add("@intIdRol", SqlDbType.Int).Value = usuarioLogueado.IdRol;
-                cmd.Parameters.Add("@intIdCliente", SqlDbType.Int).Value = (object?)idCliente ?? DBNull.Value;
-
-                var tvpIdPedido = cmd.Parameters.AddWithValue("@lstIdPedido", ConstruirTablaListaGeneralNum(idPedidos));
-                tvpIdPedido.SqlDbType = SqlDbType.Structured;
-                tvpIdPedido.TypeName = "LISTA_GENERAL_NUM";
+                cmd.Parameters.AddWithValue("@intIdUsuario", usuarioLogueado.IdUsuario);
+                cmd.Parameters.AddWithValue("@vchUsuario", usuarioLogueado.Usuario);
+                cmd.Parameters.AddWithValue("@intIdEmpresa", usuarioLogueado.IdEmpresa);
+                cmd.Parameters.AddWithValue("@intIdRol", usuarioLogueado.IdRol);
+                cmd.Parameters.AddWithValue("@intIdCliente", (object?)idCliente ?? DBNull.Value);
+                cmd.Parameters.AddWithValue("@jsonIdPedidos", JsonSerializer.Serialize(idPedidos));
 
                 await cn.OpenAsync();
 
@@ -129,15 +115,15 @@ namespace SafetyReport.DAO
         {
             try
             {
-                using SqlConnection cn = new(_dbConfig.ConnectionString);
-                using SqlCommand cmd = new("SP_PedidoFactura_ObtenerIdDocumentoElectronico", cn);
+                using MySqlConnection cn = new(_dbConfig.ConnectionString);
+                using MySqlCommand cmd = new("SP_PedidoFactura_ObtenerIdDocumentoElectronico", cn);
 
                 cmd.CommandType = CommandType.StoredProcedure;
-                cmd.Parameters.Add("@intIdUsuario", SqlDbType.Int).Value = usuarioLogueado.IdUsuario;
-                cmd.Parameters.Add("@vchUsuario", SqlDbType.VarChar, 32).Value = usuarioLogueado.Usuario;
-                cmd.Parameters.Add("@intIdEmpresa", SqlDbType.Int).Value = usuarioLogueado.IdEmpresa;
-                cmd.Parameters.Add("@intIdRol", SqlDbType.Int).Value = usuarioLogueado.IdRol;
-                cmd.Parameters.Add("@intIdPedido", SqlDbType.Int).Value = idPedido;
+                cmd.Parameters.AddWithValue("@intIdUsuario", usuarioLogueado.IdUsuario);
+                cmd.Parameters.AddWithValue("@vchUsuario", usuarioLogueado.Usuario);
+                cmd.Parameters.AddWithValue("@intIdEmpresa", usuarioLogueado.IdEmpresa);
+                cmd.Parameters.AddWithValue("@intIdRol", usuarioLogueado.IdRol);
+                cmd.Parameters.AddWithValue("@intIdPedido", idPedido);
 
                 await cn.OpenAsync();
 
@@ -168,21 +154,17 @@ namespace SafetyReport.DAO
         {
             try
             {
-                using SqlConnection cn = new(_dbConfig.ConnectionString);
-                using SqlCommand cmd = new("SP_PedidoFactura_RegistrarEnvio", cn);
+                using MySqlConnection cn = new(_dbConfig.ConnectionString);
+                using MySqlCommand cmd = new("SP_PedidoFactura_RegistrarEnvio", cn);
 
                 cmd.CommandType = CommandType.StoredProcedure;
-                cmd.Parameters.Add("@intIdUsuario", SqlDbType.Int).Value = usuarioLogueado.IdUsuario;
-                cmd.Parameters.Add("@vchUsuario", SqlDbType.VarChar, 32).Value = usuarioLogueado.Usuario;
-                cmd.Parameters.Add("@intIdEmpresa", SqlDbType.Int).Value = usuarioLogueado.IdEmpresa;
-                cmd.Parameters.Add("@intIdRol", SqlDbType.Int).Value = usuarioLogueado.IdRol;
-
-                var tvpIdPedido = cmd.Parameters.AddWithValue("@lstIdPedido", ConstruirTablaListaGeneralNum(idPedidos));
-                tvpIdPedido.SqlDbType = SqlDbType.Structured;
-                tvpIdPedido.TypeName = "LISTA_GENERAL_NUM";
-
-                cmd.Parameters.Add("@intIdDocumentoElectronico", SqlDbType.Int).Value = idDocumentoElectronico;
-                cmd.Parameters.Add("@intIdEstadoFacturacion", SqlDbType.Int).Value = (object?)idEstadoFacturacion ?? DBNull.Value;
+                cmd.Parameters.AddWithValue("@intIdUsuario", usuarioLogueado.IdUsuario);
+                cmd.Parameters.AddWithValue("@vchUsuario", usuarioLogueado.Usuario);
+                cmd.Parameters.AddWithValue("@intIdEmpresa", usuarioLogueado.IdEmpresa);
+                cmd.Parameters.AddWithValue("@intIdRol", usuarioLogueado.IdRol);
+                cmd.Parameters.AddWithValue("@lstIdPedido", JsonSerializer.Serialize(idPedidos));
+                cmd.Parameters.AddWithValue("@intIdDocumentoElectronico", idDocumentoElectronico);
+                cmd.Parameters.AddWithValue("@intIdEstadoFacturacion", (object?)idEstadoFacturacion ?? DBNull.Value);
 
                 await cn.OpenAsync();
                 using var dr = await cmd.ExecuteReaderAsync();
@@ -212,19 +194,16 @@ namespace SafetyReport.DAO
         {
             try
             {
-                using SqlConnection cn = new(_dbConfig.ConnectionString);
-                using SqlCommand cmd = new("SP_PedidoFactura_Desvincular", cn);
+                using MySqlConnection cn = new(_dbConfig.ConnectionString);
+                using MySqlCommand cmd = new("SP_PedidoFactura_Desvincular", cn);
 
                 cmd.CommandType = CommandType.StoredProcedure;
-                cmd.Parameters.Add("@intIdUsuario", SqlDbType.Int).Value = usuarioLogueado.IdUsuario;
-                cmd.Parameters.Add("@vchUsuario", SqlDbType.VarChar, 32).Value = usuarioLogueado.Usuario;
-                cmd.Parameters.Add("@intIdEmpresa", SqlDbType.Int).Value = usuarioLogueado.IdEmpresa;
-                cmd.Parameters.Add("@intIdRol", SqlDbType.Int).Value = usuarioLogueado.IdRol;
-                cmd.Parameters.Add("@intIdDocumentoElectronico", SqlDbType.Int).Value = idDocumentoElectronico;
-
-                var tvpIdPedido = cmd.Parameters.AddWithValue("@lstIdPedido", ConstruirTablaListaGeneralNum(idPedidosVigentes));
-                tvpIdPedido.SqlDbType = SqlDbType.Structured;
-                tvpIdPedido.TypeName = "LISTA_GENERAL_NUM";
+                cmd.Parameters.AddWithValue("@intIdUsuario", usuarioLogueado.IdUsuario);
+                cmd.Parameters.AddWithValue("@vchUsuario", usuarioLogueado.Usuario);
+                cmd.Parameters.AddWithValue("@intIdEmpresa", usuarioLogueado.IdEmpresa);
+                cmd.Parameters.AddWithValue("@intIdRol", usuarioLogueado.IdRol);
+                cmd.Parameters.AddWithValue("@intIdDocumentoElectronico", idDocumentoElectronico);
+                cmd.Parameters.AddWithValue("@lstIdPedido", JsonSerializer.Serialize(idPedidosVigentes));
 
                 await cn.OpenAsync();
                 using var dr = await cmd.ExecuteReaderAsync();
@@ -251,16 +230,16 @@ namespace SafetyReport.DAO
         {
             try
             {
-                using SqlConnection cn = new(_dbConfig.ConnectionString);
-                using SqlCommand cmd = new("SP_PedidoFactura_ActualizarEstado", cn);
+                using MySqlConnection cn = new(_dbConfig.ConnectionString);
+                using MySqlCommand cmd = new("SP_PedidoFactura_ActualizarEstado", cn);
 
                 cmd.CommandType = CommandType.StoredProcedure;
-                cmd.Parameters.Add("@intIdUsuario", SqlDbType.Int).Value = usuarioLogueado.IdUsuario;
-                cmd.Parameters.Add("@vchUsuario", SqlDbType.VarChar, 32).Value = usuarioLogueado.Usuario;
-                cmd.Parameters.Add("@intIdEmpresa", SqlDbType.Int).Value = usuarioLogueado.IdEmpresa;
-                cmd.Parameters.Add("@intIdRol", SqlDbType.Int).Value = usuarioLogueado.IdRol;
-                cmd.Parameters.Add("@intIdPedido", SqlDbType.Int).Value = idPedido;
-                cmd.Parameters.Add("@intIdEstadoFacturacion", SqlDbType.Int).Value = idEstadoFacturacion;
+                cmd.Parameters.AddWithValue("@intIdUsuario", usuarioLogueado.IdUsuario);
+                cmd.Parameters.AddWithValue("@vchUsuario", usuarioLogueado.Usuario);
+                cmd.Parameters.AddWithValue("@intIdEmpresa", usuarioLogueado.IdEmpresa);
+                cmd.Parameters.AddWithValue("@intIdRol", usuarioLogueado.IdRol);
+                cmd.Parameters.AddWithValue("@intIdPedido", idPedido);
+                cmd.Parameters.AddWithValue("@intIdEstadoFacturacion", idEstadoFacturacion);
 
                 await cn.OpenAsync();
                 using var dr = await cmd.ExecuteReaderAsync();
@@ -288,8 +267,8 @@ namespace SafetyReport.DAO
         {
             try
             {
-                using SqlConnection cn = new(_dbConfig.ConnectionString);
-                using SqlCommand cmd = new("SP_PedidoFactura_ObtenerCheckpointsSincronizacion", cn);
+                using MySqlConnection cn = new(_dbConfig.ConnectionString);
+                using MySqlCommand cmd = new("SP_PedidoFactura_ObtenerCheckpointsSincronizacion", cn);
                 cmd.CommandType = CommandType.StoredProcedure;
 
                 await cn.OpenAsync();
@@ -323,20 +302,13 @@ namespace SafetyReport.DAO
         {
             try
             {
-                using SqlConnection cn = new(_dbConfig.ConnectionString);
-                using SqlCommand cmd = new("SP_PedidoFactura_ActualizarCheckpointSincronizacion", cn);
+                using MySqlConnection cn = new(_dbConfig.ConnectionString);
+                using MySqlCommand cmd = new("SP_PedidoFactura_ActualizarCheckpointSincronizacion", cn);
 
                 cmd.CommandType = CommandType.StoredProcedure;
 
-                var tabla = new DataTable();
-                tabla.Columns.Add("ID", typeof(int));
-                tabla.Columns.Add("NUM1", typeof(int));
-                foreach (var (idEmpresa, ultimoIdEvento) in checkpoints)
-                    tabla.Rows.Add(idEmpresa, ultimoIdEvento);
-
-                var tvpCheckpoint = cmd.Parameters.AddWithValue("@lstCheckpoint", tabla);
-                tvpCheckpoint.SqlDbType = SqlDbType.Structured;
-                tvpCheckpoint.TypeName = "LISTA_GENERAL_NUM";
+                var checkpointJson = checkpoints.Select(c => new { c.IdEmpresa, c.UltimoIdEvento });
+                cmd.Parameters.AddWithValue("@lstCheckpoint", JsonSerializer.Serialize(checkpointJson));
 
                 await cn.OpenAsync();
                 using var dr = await cmd.ExecuteReaderAsync();
@@ -364,21 +336,14 @@ namespace SafetyReport.DAO
         {
             try
             {
-                using SqlConnection cn = new(_dbConfig.ConnectionString);
-                using SqlCommand cmd = new("SP_PedidoFactura_ActualizarEstadoPorDocumento", cn);
+                using MySqlConnection cn = new(_dbConfig.ConnectionString);
+                using MySqlCommand cmd = new("SP_PedidoFactura_ActualizarEstadoPorDocumento", cn);
 
                 cmd.CommandType = CommandType.StoredProcedure;
-                cmd.Parameters.Add("@intIdEmpresa", SqlDbType.Int).Value = idEmpresa;
+                cmd.Parameters.AddWithValue("@intIdEmpresa", idEmpresa);
 
-                var tabla = new DataTable();
-                tabla.Columns.Add("ID", typeof(int));
-                tabla.Columns.Add("NUM1", typeof(int));
-                foreach (var (idDocumento, idEstado) in documentosConEstado)
-                    tabla.Rows.Add(idDocumento, idEstado);
-
-                var tvpDocumento = cmd.Parameters.AddWithValue("@lstDocumento", tabla);
-                tvpDocumento.SqlDbType = SqlDbType.Structured;
-                tvpDocumento.TypeName = "LISTA_GENERAL_NUM";
+                var documentoJson = documentosConEstado.Select(d => new { d.IdDocumentoElectronico, d.IdEstadoFacturacion });
+                cmd.Parameters.AddWithValue("@lstDocumento", JsonSerializer.Serialize(documentoJson));
 
                 await cn.OpenAsync();
                 using var dr = await cmd.ExecuteReaderAsync();
@@ -408,14 +373,14 @@ namespace SafetyReport.DAO
         {
             try
             {
-                using SqlConnection cn = new(_dbConfig.ConnectionString);
-                using SqlCommand cmd = new("SP_PedidoFactura_Resumen", cn);
+                using MySqlConnection cn = new(_dbConfig.ConnectionString);
+                using MySqlCommand cmd = new("SP_PedidoFactura_Resumen", cn);
 
                 cmd.CommandType = CommandType.StoredProcedure;
-                cmd.Parameters.Add("@intIdUsuario", SqlDbType.Int).Value = usuarioLogueado.IdUsuario;
-                cmd.Parameters.Add("@vchUsuario", SqlDbType.VarChar, 32).Value = usuarioLogueado.Usuario;
-                cmd.Parameters.Add("@intIdEmpresa", SqlDbType.Int).Value = usuarioLogueado.IdEmpresa;
-                cmd.Parameters.Add("@intIdRol", SqlDbType.Int).Value = usuarioLogueado.IdRol;
+                cmd.Parameters.AddWithValue("@intIdUsuario", usuarioLogueado.IdUsuario);
+                cmd.Parameters.AddWithValue("@vchUsuario", usuarioLogueado.Usuario);
+                cmd.Parameters.AddWithValue("@intIdEmpresa", usuarioLogueado.IdEmpresa);
+                cmd.Parameters.AddWithValue("@intIdRol", usuarioLogueado.IdRol);
 
                 await cn.OpenAsync();
                 using var dr = await cmd.ExecuteReaderAsync();

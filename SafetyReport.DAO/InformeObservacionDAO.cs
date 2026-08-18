@@ -1,7 +1,9 @@
-using Microsoft.Data.SqlClient;
 using Microsoft.Extensions.Logging;
+using MySqlConnector;
 using SafetyReport.Models;
 using System.Data;
+using System.Data.Common;
+using System.Text.Json;
 
 namespace SafetyReport.DAO
 {
@@ -20,10 +22,13 @@ namespace SafetyReport.DAO
         {
             try
             {
-                using SqlConnection cn = new(_dbConfig.ConnectionString);
-                using SqlCommand cmd = new("SP_InformeObservacion_Listar", cn) { CommandType = CommandType.StoredProcedure };
-                AgregarParametrosAuditoria(cmd, u);
-                cmd.Parameters.Add("@intIdPedido", SqlDbType.Int).Value = idPedido;
+                using MySqlConnection cn = new(_dbConfig.ConnectionString);
+                using MySqlCommand cmd = new("SP_InformeObservacion_Listar", cn) { CommandType = CommandType.StoredProcedure };
+                cmd.Parameters.AddWithValue("@intIdUsuario", u.IdUsuario);
+                cmd.Parameters.AddWithValue("@vchUsuario", u.Usuario);
+                cmd.Parameters.AddWithValue("@intIdEmpresa", u.IdEmpresa);
+                cmd.Parameters.AddWithValue("@intIdRol", u.IdRol);
+                cmd.Parameters.AddWithValue("@intIdPedido", idPedido);
                 await cn.OpenAsync();
 
                 using var dr = await cmd.ExecuteReaderAsync();
@@ -58,18 +63,15 @@ namespace SafetyReport.DAO
         {
             try
             {
-                var t = new DataTable();
-                t.Columns.Add("Observacion", typeof(string));
-                t.Columns.Add("Checked", typeof(bool));
-                foreach (var o in observaciones)
-                    t.Rows.Add((object?)o.Observacion ?? DBNull.Value, o.Checked);
-
-                using SqlConnection cn = new(_dbConfig.ConnectionString);
-                using SqlCommand cmd = new("SP_InformeObservacion_InsertarLote", cn) { CommandType = CommandType.StoredProcedure };
-                AgregarParametrosAuditoria(cmd, u);
-                cmd.Parameters.Add("@intIdInforme", SqlDbType.Int).Value = idInforme;
-                cmd.Parameters.Add("@intIdPedido", SqlDbType.Int).Value = idPedido;
-                AgregarTvp(cmd, "@lstObservaciones", t, "LISTA_INFORME_OBSERVACION");
+                using MySqlConnection cn = new(_dbConfig.ConnectionString);
+                using MySqlCommand cmd = new("SP_InformeObservacion_InsertarLote", cn) { CommandType = CommandType.StoredProcedure };
+                cmd.Parameters.AddWithValue("@intIdUsuario", u.IdUsuario);
+                cmd.Parameters.AddWithValue("@vchUsuario", u.Usuario);
+                cmd.Parameters.AddWithValue("@intIdEmpresa", u.IdEmpresa);
+                cmd.Parameters.AddWithValue("@intIdRol", u.IdRol);
+                cmd.Parameters.AddWithValue("@intIdInforme", idInforme);
+                cmd.Parameters.AddWithValue("@intIdPedido", idPedido);
+                cmd.Parameters.AddWithValue("@lstObservaciones", JsonSerializer.Serialize(observaciones));
                 await cn.OpenAsync();
 
                 using var dr = await cmd.ExecuteReaderAsync();
@@ -94,12 +96,15 @@ namespace SafetyReport.DAO
         {
             try
             {
-                using SqlConnection cn = new(_dbConfig.ConnectionString);
-                using SqlCommand cmd = new("SP_InformeObservacion_Editar", cn) { CommandType = CommandType.StoredProcedure };
-                AgregarParametrosAuditoria(cmd, u);
-                cmd.Parameters.Add("@intIdInformeObservacion", SqlDbType.Int).Value = request.IdInformeObservacion;
-                cmd.Parameters.Add("@vchObservacion", SqlDbType.VarChar, 500).Value = (object?)request.Observacion ?? DBNull.Value;
-                cmd.Parameters.Add("@bitChecked", SqlDbType.Bit).Value = request.Checked;
+                using MySqlConnection cn = new(_dbConfig.ConnectionString);
+                using MySqlCommand cmd = new("SP_InformeObservacion_Editar", cn) { CommandType = CommandType.StoredProcedure };
+                cmd.Parameters.AddWithValue("@intIdUsuario", u.IdUsuario);
+                cmd.Parameters.AddWithValue("@vchUsuario", u.Usuario);
+                cmd.Parameters.AddWithValue("@intIdEmpresa", u.IdEmpresa);
+                cmd.Parameters.AddWithValue("@intIdRol", u.IdRol);
+                cmd.Parameters.AddWithValue("@intIdInformeObservacion", request.IdInformeObservacion);
+                cmd.Parameters.AddWithValue("@vchObservacion", (object?)request.Observacion ?? DBNull.Value);
+                cmd.Parameters.AddWithValue("@bitChecked", request.Checked);
                 await cn.OpenAsync();
 
                 using var dr = await cmd.ExecuteReaderAsync();
@@ -124,10 +129,13 @@ namespace SafetyReport.DAO
         {
             try
             {
-                using SqlConnection cn = new(_dbConfig.ConnectionString);
-                using SqlCommand cmd = new("SP_InformeObservacion_Eliminar", cn) { CommandType = CommandType.StoredProcedure };
-                AgregarParametrosAuditoria(cmd, u);
-                cmd.Parameters.Add("@intIdInformeObservacion", SqlDbType.Int).Value = idInformeObservacion;
+                using MySqlConnection cn = new(_dbConfig.ConnectionString);
+                using MySqlCommand cmd = new("SP_InformeObservacion_Eliminar", cn) { CommandType = CommandType.StoredProcedure };
+                cmd.Parameters.AddWithValue("@intIdUsuario", u.IdUsuario);
+                cmd.Parameters.AddWithValue("@vchUsuario", u.Usuario);
+                cmd.Parameters.AddWithValue("@intIdEmpresa", u.IdEmpresa);
+                cmd.Parameters.AddWithValue("@intIdRol", u.IdRol);
+                cmd.Parameters.AddWithValue("@intIdInformeObservacion", idInformeObservacion);
                 await cn.OpenAsync();
 
                 using var dr = await cmd.ExecuteReaderAsync();
@@ -149,7 +157,7 @@ namespace SafetyReport.DAO
         }
 
         // Lee el result set 1 (siempre presente): IdTipoMensaje, Mensaje. Sin columna Result.
-        private async Task<Respuesta> LeerCabeceraAsync(SqlDataReader dr, string procedimiento)
+        private async Task<Respuesta> LeerCabeceraAsync(DbDataReader dr, string procedimiento)
         {
             var respuesta = new Respuesta();
 
@@ -171,22 +179,8 @@ namespace SafetyReport.DAO
             return respuesta;
         }
 
-        private static string? GetNullableString(SqlDataReader dr, string columna) =>
+        private static string? GetNullableString(DbDataReader dr, string columna) =>
             dr[columna] == DBNull.Value ? null : dr[columna].ToString();
 
-        private static void AgregarTvp(SqlCommand cmd, string paramName, DataTable table, string typeName)
-        {
-            var p = cmd.Parameters.AddWithValue(paramName, table);
-            p.SqlDbType = SqlDbType.Structured;
-            p.TypeName = typeName;
-        }
-
-        private static void AgregarParametrosAuditoria(SqlCommand cmd, UsuarioGeneral u)
-        {
-            cmd.Parameters.Add("@intIdUsuario", SqlDbType.Int).Value = u.IdUsuario;
-            cmd.Parameters.Add("@vchUsuario", SqlDbType.VarChar, 32).Value = u.Usuario;
-            cmd.Parameters.Add("@intIdEmpresa", SqlDbType.Int).Value = u.IdEmpresa;
-            cmd.Parameters.Add("@intIdRol", SqlDbType.Int).Value = u.IdRol;
-        }
     }
 }

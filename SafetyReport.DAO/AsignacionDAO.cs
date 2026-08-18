@@ -1,7 +1,9 @@
-using Microsoft.Data.SqlClient;
 using Microsoft.Extensions.Logging;
+using MySqlConnector;
 using SafetyReport.Models;
 using System.Data;
+using System.Data.Common;
+using System.Text.Json;
 
 namespace SafetyReport.DAO
 {
@@ -16,49 +18,16 @@ namespace SafetyReport.DAO
             _logger = logger;
         }
 
-        private static DataTable ConstruirTablaListaGeneralNum(List<int>? valores)
-        {
-            var table = new DataTable();
-            table.Columns.Add("ID", typeof(int));
-            table.Columns.Add("NUM1", typeof(int));
-
-            int i = 1;
-            if (valores != null)
-            {
-                foreach (var valor in valores)
-                {
-                    table.Rows.Add(i++, valor);
-                }
-            }
-
-            return table;
-        }
-
-        private static DataTable ConstruirTablaAsignados(List<AsignacionUsuario> asignados)
-        {
-            var table = new DataTable();
-            table.Columns.Add("ID", typeof(int));
-            table.Columns.Add("IdUsuarioAsignado", typeof(int));
-            table.Columns.Add("IdRolAsignado", typeof(int));
-            table.Columns.Add("IdEstado", typeof(int));
-
-            int i = 1;
-            foreach (var a in asignados)
-                table.Rows.Add(i++, a.IdUsuarioAsignado, a.IdRolAsignado, a.IdEstado);
-
-            return table;
-        }
-
         // ── Reader helpers ────────────────────────────────────────────────────────
 
-        private static int? GetNullableInt(SqlDataReader dr, string columna) =>
+        private static int? GetNullableInt(DbDataReader dr, string columna) =>
             dr[columna] == DBNull.Value ? null : Convert.ToInt32(dr[columna]);
 
-        private static string? GetNullableString(SqlDataReader dr, string columna) =>
+        private static string? GetNullableString(DbDataReader dr, string columna) =>
             dr[columna] == DBNull.Value ? null : dr[columna].ToString();
 
         // Lee el result set 1 (siempre presente): IdTipoMensaje, Mensaje.
-        private async Task<Respuesta> LeerCabeceraAsync(SqlDataReader dr, string procedimiento)
+        private async Task<Respuesta> LeerCabeceraAsync(DbDataReader dr, string procedimiento)
         {
             var respuesta = new Respuesta();
 
@@ -81,7 +50,7 @@ namespace SafetyReport.DAO
         }
 
         // Lee un result set de una sola columna IdAsignacion (result set 2 en éxito).
-        private static async Task<List<T>> LeerIdAsignacionesAsync<T>(SqlDataReader dr, Func<int, T> map)
+        private static async Task<List<T>> LeerIdAsignacionesAsync<T>(DbDataReader dr, Func<int, T> map)
         {
             var lista = new List<T>();
             while (await dr.ReadAsync())
@@ -94,24 +63,16 @@ namespace SafetyReport.DAO
         {
             try
             {
-                using SqlConnection cn = new(_dbConfig.ConnectionString);
-                using SqlCommand cmd = new("SP_Asignacion_Insertar", cn);
+                using MySqlConnection cn = new(_dbConfig.ConnectionString);
+                using MySqlCommand cmd = new("SP_Asignacion_Insertar", cn);
 
                 cmd.CommandType = CommandType.StoredProcedure;
-                cmd.Parameters.Add("@intIdUsuario", SqlDbType.Int).Value = usuarioActual.IdUsuario;
-                cmd.Parameters.Add("@vchUsuario", SqlDbType.VarChar, 32).Value = usuarioActual.Usuario;
-                cmd.Parameters.Add("@intIdEmpresa", SqlDbType.Int).Value = usuarioActual.IdEmpresa;
-                cmd.Parameters.Add("@intIdRol", SqlDbType.Int).Value = usuarioActual.IdRol;
-
-                var tableIdsPedido = ConstruirTablaListaGeneralNum(request.IdsPedido);
-                var tvpIdsPedido = cmd.Parameters.AddWithValue("@lstIdsPedido", tableIdsPedido);
-                tvpIdsPedido.SqlDbType = SqlDbType.Structured;
-                tvpIdsPedido.TypeName = "LISTA_GENERAL_NUM";
-
-                var tableAsignados = ConstruirTablaAsignados(request.Asignados);
-                var tvpAsignados = cmd.Parameters.AddWithValue("@lstAsignados", tableAsignados);
-                tvpAsignados.SqlDbType = SqlDbType.Structured;
-                tvpAsignados.TypeName = "LISTA_ASIGNADOS";
+                cmd.Parameters.AddWithValue("@intIdUsuario", usuarioActual.IdUsuario);
+                cmd.Parameters.AddWithValue("@vchUsuario", usuarioActual.Usuario);
+                cmd.Parameters.AddWithValue("@intIdEmpresa", usuarioActual.IdEmpresa);
+                cmd.Parameters.AddWithValue("@intIdRol", usuarioActual.IdRol);
+                cmd.Parameters.AddWithValue("@lstIdsPedido", JsonSerializer.Serialize(request.IdsPedido ?? new List<int>()));
+                cmd.Parameters.AddWithValue("@lstAsignados", JsonSerializer.Serialize(request.Asignados));
 
                 await cn.OpenAsync();
 
@@ -142,19 +103,16 @@ namespace SafetyReport.DAO
         {
             try
             {
-                using SqlConnection cn = new(_dbConfig.ConnectionString);
-                using SqlCommand cmd = new("SP_Asignacion_Actualizar", cn);
+                using MySqlConnection cn = new(_dbConfig.ConnectionString);
+                using MySqlCommand cmd = new("SP_Asignacion_Actualizar", cn);
 
                 cmd.CommandType = CommandType.StoredProcedure;
-                cmd.Parameters.Add("@intIdUsuario", SqlDbType.Int).Value = usuarioActual.IdUsuario;
-                cmd.Parameters.Add("@vchUsuario", SqlDbType.VarChar, 32).Value = usuarioActual.Usuario;
-                cmd.Parameters.Add("@intIdEmpresa", SqlDbType.Int).Value = usuarioActual.IdEmpresa;
-                cmd.Parameters.Add("@intIdRol", SqlDbType.Int).Value = usuarioActual.IdRol;
-                cmd.Parameters.Add("@intIdPedido", SqlDbType.Int).Value = request.IdPedido;
-                var tableAsignados = ConstruirTablaAsignados(request.Asignados);
-                var tvpAsignados = cmd.Parameters.AddWithValue("@lstAsignados", tableAsignados);
-                tvpAsignados.SqlDbType = SqlDbType.Structured;
-                tvpAsignados.TypeName = "LISTA_ASIGNADOS";
+                cmd.Parameters.AddWithValue("@intIdUsuario", usuarioActual.IdUsuario);
+                cmd.Parameters.AddWithValue("@vchUsuario", usuarioActual.Usuario);
+                cmd.Parameters.AddWithValue("@intIdEmpresa", usuarioActual.IdEmpresa);
+                cmd.Parameters.AddWithValue("@intIdRol", usuarioActual.IdRol);
+                cmd.Parameters.AddWithValue("@intIdPedido", request.IdPedido);
+                cmd.Parameters.AddWithValue("@lstAsignados", JsonSerializer.Serialize(request.Asignados));
 
                 await cn.OpenAsync();
 
@@ -185,17 +143,17 @@ namespace SafetyReport.DAO
         {
             try
             {
-                using SqlConnection cn = new(_dbConfig.ConnectionString);
-                using SqlCommand cmd = new("SP_Asignacion_Listar", cn);
+                using MySqlConnection cn = new(_dbConfig.ConnectionString);
+                using MySqlCommand cmd = new("SP_Asignacion_Listar", cn);
 
                 cmd.CommandType = CommandType.StoredProcedure;
-                cmd.Parameters.Add("@intIdUsuario", SqlDbType.Int).Value = usuarioActual.IdUsuario;
-                cmd.Parameters.Add("@vchUsuario", SqlDbType.VarChar, 32).Value = usuarioActual.Usuario;
-                cmd.Parameters.Add("@intIdEmpresa", SqlDbType.Int).Value = usuarioActual.IdEmpresa;
-                cmd.Parameters.Add("@intIdRol", SqlDbType.Int).Value = usuarioActual.IdRol;
-                cmd.Parameters.Add("@vchBusqueda", SqlDbType.VarChar, 255).Value = (object?)request.busqueda ?? DBNull.Value;
-                cmd.Parameters.Add("@intIdEstado", SqlDbType.Int).Value = (object?)request.idEstado ?? DBNull.Value;
-                cmd.Parameters.Add("@numPag", SqlDbType.Int).Value = (object?)request.numPag ?? DBNull.Value;
+                cmd.Parameters.AddWithValue("@intIdUsuario", usuarioActual.IdUsuario);
+                cmd.Parameters.AddWithValue("@vchUsuario", usuarioActual.Usuario);
+                cmd.Parameters.AddWithValue("@intIdEmpresa", usuarioActual.IdEmpresa);
+                cmd.Parameters.AddWithValue("@intIdRol", usuarioActual.IdRol);
+                cmd.Parameters.AddWithValue("@vchBusqueda", (object?)request.busqueda ?? DBNull.Value);
+                cmd.Parameters.AddWithValue("@intIdEstado", (object?)request.idEstado ?? DBNull.Value);
+                cmd.Parameters.AddWithValue("@numPag", (object?)request.numPag ?? DBNull.Value);
 
                 await cn.OpenAsync();
 
@@ -258,15 +216,15 @@ namespace SafetyReport.DAO
         {
             try
             {
-                using SqlConnection cn = new(_dbConfig.ConnectionString);
-                using SqlCommand cmd = new("SP_Asignacion_Obtener", cn);
+                using MySqlConnection cn = new(_dbConfig.ConnectionString);
+                using MySqlCommand cmd = new("SP_Asignacion_Obtener", cn);
 
                 cmd.CommandType = CommandType.StoredProcedure;
-                cmd.Parameters.Add("@intIdUsuario", SqlDbType.Int).Value = usuarioActual.IdUsuario;
-                cmd.Parameters.Add("@vchUsuario", SqlDbType.VarChar, 32).Value = usuarioActual.Usuario;
-                cmd.Parameters.Add("@intIdEmpresa", SqlDbType.Int).Value = usuarioActual.IdEmpresa;
-                cmd.Parameters.Add("@intIdRol", SqlDbType.Int).Value = usuarioActual.IdRol;
-                cmd.Parameters.Add("@intIdAsignacion", SqlDbType.Int).Value = idAsignacion;
+                cmd.Parameters.AddWithValue("@intIdUsuario", usuarioActual.IdUsuario);
+                cmd.Parameters.AddWithValue("@vchUsuario", usuarioActual.Usuario);
+                cmd.Parameters.AddWithValue("@intIdEmpresa", usuarioActual.IdEmpresa);
+                cmd.Parameters.AddWithValue("@intIdRol", usuarioActual.IdRol);
+                cmd.Parameters.AddWithValue("@intIdAsignacion", idAsignacion);
 
                 await cn.OpenAsync();
 
@@ -316,16 +274,16 @@ namespace SafetyReport.DAO
         {
             try
             {
-                using SqlConnection cn = new(_dbConfig.ConnectionString);
-                using SqlCommand cmd = new("SP_Asignacion_Bandeja", cn);
+                using MySqlConnection cn = new(_dbConfig.ConnectionString);
+                using MySqlCommand cmd = new("SP_Asignacion_Bandeja", cn);
 
                 cmd.CommandType = CommandType.StoredProcedure;
-                cmd.Parameters.Add("@intIdUsuario", SqlDbType.Int).Value = usuarioActual.IdUsuario;
-                cmd.Parameters.Add("@vchUsuario", SqlDbType.VarChar, 32).Value = usuarioActual.Usuario;
-                cmd.Parameters.Add("@intIdEmpresa", SqlDbType.Int).Value = usuarioActual.IdEmpresa;
-                cmd.Parameters.Add("@intIdRol", SqlDbType.Int).Value = usuarioActual.IdRol;
-                cmd.Parameters.Add("@vchBusqueda", SqlDbType.VarChar, 255).Value = (object?)filtro.Busqueda ?? DBNull.Value;
-                cmd.Parameters.Add("@intNumPag", SqlDbType.Int).Value = filtro.NumPag;
+                cmd.Parameters.AddWithValue("@intIdUsuario", usuarioActual.IdUsuario);
+                cmd.Parameters.AddWithValue("@vchUsuario", usuarioActual.Usuario);
+                cmd.Parameters.AddWithValue("@intIdEmpresa", usuarioActual.IdEmpresa);
+                cmd.Parameters.AddWithValue("@intIdRol", usuarioActual.IdRol);
+                cmd.Parameters.AddWithValue("@vchBusqueda", (object?)filtro.Busqueda ?? DBNull.Value);
+                cmd.Parameters.AddWithValue("@intNumPag", filtro.NumPag);
 
                 await cn.OpenAsync();
 
@@ -391,15 +349,15 @@ namespace SafetyReport.DAO
         {
             try
             {
-                using SqlConnection cn = new(_dbConfig.ConnectionString);
-                using SqlCommand cmd = new("SP_Asignacion_Eliminar", cn);
+                using MySqlConnection cn = new(_dbConfig.ConnectionString);
+                using MySqlCommand cmd = new("SP_Asignacion_Eliminar", cn);
 
                 cmd.CommandType = CommandType.StoredProcedure;
-                cmd.Parameters.Add("@intIdUsuario", SqlDbType.Int).Value = usuarioActual.IdUsuario;
-                cmd.Parameters.Add("@vchUsuario", SqlDbType.VarChar, 32).Value = usuarioActual.Usuario;
-                cmd.Parameters.Add("@intIdEmpresa", SqlDbType.Int).Value = usuarioActual.IdEmpresa;
-                cmd.Parameters.Add("@intIdRol", SqlDbType.Int).Value = usuarioActual.IdRol;
-                cmd.Parameters.Add("@intIdAsignacion", SqlDbType.Int).Value = request.IdAsignacion;
+                cmd.Parameters.AddWithValue("@intIdUsuario", usuarioActual.IdUsuario);
+                cmd.Parameters.AddWithValue("@vchUsuario", usuarioActual.Usuario);
+                cmd.Parameters.AddWithValue("@intIdEmpresa", usuarioActual.IdEmpresa);
+                cmd.Parameters.AddWithValue("@intIdRol", usuarioActual.IdRol);
+                cmd.Parameters.AddWithValue("@intIdAsignacion", request.IdAsignacion);
 
                 await cn.OpenAsync();
 

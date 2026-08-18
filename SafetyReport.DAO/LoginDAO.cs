@@ -1,5 +1,5 @@
-﻿using Microsoft.Data.SqlClient;
-using Microsoft.Extensions.Logging;
+﻿using Microsoft.Extensions.Logging;
+using MySqlConnector;
 using SafetyReport.Models;
 using System.Data;
 
@@ -16,7 +16,7 @@ namespace SafetyReport.DAO
             _logger = logger;
         }
 
-        private static string? GetNullableString(SqlDataReader dr, string columna) =>
+        private static string? GetNullableString(MySqlDataReader dr, string columna) =>
             dr[columna] == DBNull.Value ? null : dr[columna].ToString();
 
         public async Task<Respuesta> AutenticarAsync(UsuarioGeneral usuarioActual)
@@ -25,17 +25,17 @@ namespace SafetyReport.DAO
 
             try
             {
-                using SqlConnection cn = new SqlConnection(_dbConfig.ConnectionString);
-                using SqlCommand cmd = new SqlCommand("SP_Usuario_Auth", cn);
+                using MySqlConnection cn = new MySqlConnection(_dbConfig.ConnectionString);
+                using MySqlCommand cmd = new MySqlCommand("SP_Usuario_Auth", cn);
 
                 cmd.CommandType = CommandType.StoredProcedure;
 
-                cmd.Parameters.Add("@vchUsuario", SqlDbType.VarChar, 32).Value = usuarioActual.Usuario;
-                cmd.Parameters.Add("@vchSub", SqlDbType.VarChar, 255).Value = usuarioActual.Sub;
+                cmd.Parameters.AddWithValue("@vchUsuario", usuarioActual.Usuario);
+                cmd.Parameters.AddWithValue("@vchSub", usuarioActual.Sub);
 
                 await cn.OpenAsync();
 
-                using SqlDataReader dr = await cmd.ExecuteReaderAsync();
+                using MySqlDataReader dr = await cmd.ExecuteReaderAsync();
 
                 if (await dr.ReadAsync())
                 {

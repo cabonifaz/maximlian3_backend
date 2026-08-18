@@ -1,7 +1,8 @@
-﻿using Microsoft.Data.SqlClient;
-using Microsoft.Extensions.Logging;
+﻿using Microsoft.Extensions.Logging;
+using MySqlConnector;
 using SafetyReport.Models;
 using System.Data;
+using System.Data.Common;
 
 namespace SafetyReport.DAO
 {
@@ -17,7 +18,7 @@ namespace SafetyReport.DAO
         }
 
         // Lee el result set 1 (siempre presente): IdTipoMensaje, Mensaje. Sin columna Result.
-        private async Task<Respuesta> LeerCabeceraAsync(SqlDataReader dr, string procedimiento)
+        private async Task<Respuesta> LeerCabeceraAsync(DbDataReader dr, string procedimiento)
         {
             var respuesta = new Respuesta();
 
@@ -39,27 +40,27 @@ namespace SafetyReport.DAO
             return respuesta;
         }
 
-        private static string? GetNullableString(SqlDataReader dr, string columna) =>
+        private static string? GetNullableString(DbDataReader dr, string columna) =>
             dr[columna] == DBNull.Value ? null : dr[columna].ToString();
 
         public async Task<Respuesta> CrearAsync(UsuarioGeneral usuarioLogueado, PedidoArchivoCrear request)
         {
             try
             {
-                using SqlConnection cn = new(_dbConfig.ConnectionString);
-                using SqlCommand cmd = new("SP_PedidoArchivo_Insertar", cn);
+                using MySqlConnection cn = new(_dbConfig.ConnectionString);
+                using MySqlCommand cmd = new("SP_PedidoArchivo_Insertar", cn);
 
                 cmd.CommandType = CommandType.StoredProcedure;
-                cmd.Parameters.Add("@intIdUsuario", SqlDbType.Int).Value = usuarioLogueado.IdUsuario;
-                cmd.Parameters.Add("@vchUsuario", SqlDbType.VarChar, 32).Value = usuarioLogueado.Usuario;
-                cmd.Parameters.Add("@intIdEmpresa", SqlDbType.Int).Value = usuarioLogueado.IdEmpresa;
-                cmd.Parameters.Add("@intIdRol", SqlDbType.Int).Value = usuarioLogueado.IdRol;
-                cmd.Parameters.Add("@intIdPedido", SqlDbType.Int).Value = request.IdPedido;
-                cmd.Parameters.Add("@vchDocumentoURL", SqlDbType.VarChar).Value = request.DocumentoURL;
-                cmd.Parameters.Add("@vchNombreDocumento", SqlDbType.VarChar, 255).Value = request.NombreDocumento;
-                cmd.Parameters.Add("@vchFormatoDocumento", SqlDbType.VarChar, 255).Value = request.FormatoDocumento;
-                cmd.Parameters.Add("@bigTamanoArchivo", SqlDbType.BigInt).Value = request.TamanoArchivo;
-                cmd.Parameters.Add("@intIdTipoArchivo", SqlDbType.Int).Value = request.IdTipoArchivo;
+                cmd.Parameters.AddWithValue("@intIdUsuario", usuarioLogueado.IdUsuario);
+                cmd.Parameters.AddWithValue("@vchUsuario", usuarioLogueado.Usuario);
+                cmd.Parameters.AddWithValue("@intIdEmpresa", usuarioLogueado.IdEmpresa);
+                cmd.Parameters.AddWithValue("@intIdRol", usuarioLogueado.IdRol);
+                cmd.Parameters.AddWithValue("@intIdPedido", request.IdPedido);
+                cmd.Parameters.AddWithValue("@vchDocumentoURL", request.DocumentoURL);
+                cmd.Parameters.AddWithValue("@vchNombreDocumento", request.NombreDocumento);
+                cmd.Parameters.AddWithValue("@vchFormatoDocumento", request.FormatoDocumento);
+                cmd.Parameters.AddWithValue("@bigTamanoArchivo", request.TamanoArchivo);
+                cmd.Parameters.AddWithValue("@intIdTipoArchivo", request.IdTipoArchivo);
 
                 await cn.OpenAsync();
 
@@ -90,21 +91,21 @@ namespace SafetyReport.DAO
         {
             try
             {
-                using SqlConnection cn = new(_dbConfig.ConnectionString);
-                using SqlCommand cmd = new("SP_PedidoArchivo_Actualizar", cn);
+                using MySqlConnection cn = new(_dbConfig.ConnectionString);
+                using MySqlCommand cmd = new("SP_PedidoArchivo_Actualizar", cn);
 
                 cmd.CommandType = CommandType.StoredProcedure;
-                cmd.Parameters.Add("@intIdUsuario", SqlDbType.Int).Value = usuarioLogueado.IdUsuario;
-                cmd.Parameters.Add("@vchUsuario", SqlDbType.VarChar, 32).Value = usuarioLogueado.Usuario;
-                cmd.Parameters.Add("@intIdEmpresa", SqlDbType.Int).Value = usuarioLogueado.IdEmpresa;
-                cmd.Parameters.Add("@intIdRol", SqlDbType.Int).Value = usuarioLogueado.IdRol;
-                cmd.Parameters.Add("@intIdPedidoArchivo", SqlDbType.Int).Value = request.IdPedidoArchivo;
-                cmd.Parameters.Add("@intIdPedido", SqlDbType.Int).Value = request.IdPedido;
-                cmd.Parameters.Add("@vchDocumentoURL", SqlDbType.VarChar).Value = request.DocumentoURL;
-                cmd.Parameters.Add("@vchNombreDocumento", SqlDbType.VarChar, 255).Value = request.NombreDocumento;
-                cmd.Parameters.Add("@vchFormatoDocumento", SqlDbType.VarChar, 255).Value = request.FormatoDocumento;
-                cmd.Parameters.Add("@bigTamanoArchivo", SqlDbType.BigInt).Value = request.TamanoArchivo;
-                cmd.Parameters.Add("@intIdEstado", SqlDbType.Int).Value = request.IdEstado;
+                cmd.Parameters.AddWithValue("@intIdUsuario", usuarioLogueado.IdUsuario);
+                cmd.Parameters.AddWithValue("@vchUsuario", usuarioLogueado.Usuario);
+                cmd.Parameters.AddWithValue("@intIdEmpresa", usuarioLogueado.IdEmpresa);
+                cmd.Parameters.AddWithValue("@intIdRol", usuarioLogueado.IdRol);
+                cmd.Parameters.AddWithValue("@intIdPedidoArchivo", request.IdPedidoArchivo);
+                cmd.Parameters.AddWithValue("@intIdPedido", request.IdPedido);
+                cmd.Parameters.AddWithValue("@vchDocumentoURL", request.DocumentoURL);
+                cmd.Parameters.AddWithValue("@vchNombreDocumento", request.NombreDocumento);
+                cmd.Parameters.AddWithValue("@vchFormatoDocumento", request.FormatoDocumento);
+                cmd.Parameters.AddWithValue("@bigTamanoArchivo", request.TamanoArchivo);
+                cmd.Parameters.AddWithValue("@intIdEstado", request.IdEstado);
 
                 await cn.OpenAsync();
 
@@ -135,16 +136,16 @@ namespace SafetyReport.DAO
         {
             try
             {
-                using SqlConnection cn = new(_dbConfig.ConnectionString);
-                using SqlCommand cmd = new("SP_PedidoArchivo_Obtener", cn);
+                using MySqlConnection cn = new(_dbConfig.ConnectionString);
+                using MySqlCommand cmd = new("SP_PedidoArchivo_Obtener", cn);
 
                 cmd.CommandType = CommandType.StoredProcedure;
-                cmd.Parameters.Add("@intIdUsuario", SqlDbType.Int).Value = usuarioLogueado.IdUsuario;
-                cmd.Parameters.Add("@vchUsuario", SqlDbType.VarChar, 32).Value = usuarioLogueado.Usuario;
-                cmd.Parameters.Add("@intIdEmpresa", SqlDbType.Int).Value = usuarioLogueado.IdEmpresa;
-                cmd.Parameters.Add("@intIdRol", SqlDbType.Int).Value = usuarioLogueado.IdRol;
-                cmd.Parameters.Add("@intIdPedidoArchivo", SqlDbType.Int).Value = request.IdPedidoArchivo;
-                cmd.Parameters.Add("@intIdPedido", SqlDbType.Int).Value = request.IdPedido;
+                cmd.Parameters.AddWithValue("@intIdUsuario", usuarioLogueado.IdUsuario);
+                cmd.Parameters.AddWithValue("@vchUsuario", usuarioLogueado.Usuario);
+                cmd.Parameters.AddWithValue("@intIdEmpresa", usuarioLogueado.IdEmpresa);
+                cmd.Parameters.AddWithValue("@intIdRol", usuarioLogueado.IdRol);
+                cmd.Parameters.AddWithValue("@intIdPedidoArchivo", request.IdPedidoArchivo);
+                cmd.Parameters.AddWithValue("@intIdPedido", request.IdPedido);
 
                 await cn.OpenAsync();
 
@@ -188,18 +189,18 @@ namespace SafetyReport.DAO
         {
             try
             {
-                using SqlConnection cn = new(_dbConfig.ConnectionString);
-                using SqlCommand cmd = new("SP_PedidoArchivo_Listar", cn);
+                using MySqlConnection cn = new(_dbConfig.ConnectionString);
+                using MySqlCommand cmd = new("SP_PedidoArchivo_Listar", cn);
 
                 cmd.CommandType = CommandType.StoredProcedure;
-                cmd.Parameters.Add("@intIdUsuario", SqlDbType.Int).Value = usuarioLogueado.IdUsuario;
-                cmd.Parameters.Add("@vchUsuario", SqlDbType.VarChar, 32).Value = usuarioLogueado.Usuario;
-                cmd.Parameters.Add("@intIdEmpresa", SqlDbType.Int).Value = usuarioLogueado.IdEmpresa;
-                cmd.Parameters.Add("@intIdRol", SqlDbType.Int).Value = usuarioLogueado.IdRol;
-                cmd.Parameters.Add("@intIdPedido", SqlDbType.Int).Value = request.idPedido;
-                cmd.Parameters.Add("@vchBusqueda", SqlDbType.VarChar, 255).Value = (object?)request.busqueda ?? DBNull.Value;
-                cmd.Parameters.Add("@intIdEstado", SqlDbType.Int).Value = (object?)request.idEstado ?? DBNull.Value;
-                cmd.Parameters.Add("@numPag", SqlDbType.Int).Value = (object?)request.numPag ?? DBNull.Value;
+                cmd.Parameters.AddWithValue("@intIdUsuario", usuarioLogueado.IdUsuario);
+                cmd.Parameters.AddWithValue("@vchUsuario", usuarioLogueado.Usuario);
+                cmd.Parameters.AddWithValue("@intIdEmpresa", usuarioLogueado.IdEmpresa);
+                cmd.Parameters.AddWithValue("@intIdRol", usuarioLogueado.IdRol);
+                cmd.Parameters.AddWithValue("@intIdPedido", request.idPedido);
+                cmd.Parameters.AddWithValue("@vchBusqueda", (object?)request.busqueda ?? DBNull.Value);
+                cmd.Parameters.AddWithValue("@intIdEstado", (object?)request.idEstado ?? DBNull.Value);
+                cmd.Parameters.AddWithValue("@numPag", (object?)request.numPag ?? DBNull.Value);
 
                 await cn.OpenAsync();
 
@@ -256,16 +257,16 @@ namespace SafetyReport.DAO
         {
             try
             {
-                using SqlConnection cn = new(_dbConfig.ConnectionString);
-                using SqlCommand cmd = new("SP_PedidoArchivo_Eliminar", cn);
+                using MySqlConnection cn = new(_dbConfig.ConnectionString);
+                using MySqlCommand cmd = new("SP_PedidoArchivo_Eliminar", cn);
 
                 cmd.CommandType = CommandType.StoredProcedure;
-                cmd.Parameters.Add("@intIdUsuario", SqlDbType.Int).Value = usuarioLogueado.IdUsuario;
-                cmd.Parameters.Add("@vchUsuario", SqlDbType.VarChar, 32).Value = usuarioLogueado.Usuario;
-                cmd.Parameters.Add("@intIdEmpresa", SqlDbType.Int).Value = usuarioLogueado.IdEmpresa;
-                cmd.Parameters.Add("@intIdRol", SqlDbType.Int).Value = usuarioLogueado.IdRol;
-                cmd.Parameters.Add("@intIdPedidoArchivo", SqlDbType.Int).Value = request.IdPedidoArchivo;
-                cmd.Parameters.Add("@intIdPedido", SqlDbType.Int).Value = request.IdPedido;
+                cmd.Parameters.AddWithValue("@intIdUsuario", usuarioLogueado.IdUsuario);
+                cmd.Parameters.AddWithValue("@vchUsuario", usuarioLogueado.Usuario);
+                cmd.Parameters.AddWithValue("@intIdEmpresa", usuarioLogueado.IdEmpresa);
+                cmd.Parameters.AddWithValue("@intIdRol", usuarioLogueado.IdRol);
+                cmd.Parameters.AddWithValue("@intIdPedidoArchivo", request.IdPedidoArchivo);
+                cmd.Parameters.AddWithValue("@intIdPedido", request.IdPedido);
 
                 await cn.OpenAsync();
 

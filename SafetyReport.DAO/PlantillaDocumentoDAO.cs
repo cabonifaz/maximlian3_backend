@@ -1,4 +1,4 @@
-using Microsoft.Data.SqlClient;
+using MySqlConnector;
 using SafetyReport.Models;
 using System.Data;
 using System.Text.Json;
@@ -16,13 +16,13 @@ namespace SafetyReport.DAO
 
         public async Task<PlantillaDocumento?> ObtenerPorIdAsync(int idPlantilla)
         {
-            using SqlConnection cn = new(_dbConfig.ConnectionString);
-            using SqlCommand cmd = new("PlantillaDocumento_Obtener", cn)
+            using MySqlConnection cn = new(_dbConfig.ConnectionString);
+            using MySqlCommand cmd = new("SP_PlantillaDocumento_Obtener", cn)
             {
                 CommandType = CommandType.StoredProcedure
             };
 
-            cmd.Parameters.Add("@intIdPlantillaDocumento", SqlDbType.Int).Value = idPlantilla;
+            cmd.Parameters.AddWithValue("@intIdPlantillaDocumento", idPlantilla);
             await cn.OpenAsync();
 
             using var dr = await cmd.ExecuteReaderAsync();

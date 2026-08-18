@@ -1,7 +1,8 @@
-using Microsoft.Data.SqlClient;
 using Microsoft.Extensions.Logging;
+using MySqlConnector;
 using SafetyReport.Models;
 using System.Data;
+using System.Data.Common;
 
 namespace SafetyReport.DAO
 {
@@ -16,19 +17,19 @@ namespace SafetyReport.DAO
             _logger = logger;
         }
 
-        private static int? GetNullableInt(SqlDataReader dr, string columnName)
+        private static int? GetNullableInt(DbDataReader dr, string columnName)
         {
             var value = dr[columnName];
             return value == DBNull.Value ? (int?)null : Convert.ToInt32(value);
         }
 
-        private static string? GetNullableString(SqlDataReader dr, string columnName)
+        private static string? GetNullableString(DbDataReader dr, string columnName)
         {
             var value = dr[columnName];
             return value == DBNull.Value ? null : value.ToString();
         }
 
-        private async Task<Respuesta> LeerCabeceraAsync(SqlDataReader dr, string procedimiento)
+        private async Task<Respuesta> LeerCabeceraAsync(DbDataReader dr, string procedimiento)
         {
             var respuesta = new Respuesta();
 
@@ -51,7 +52,7 @@ namespace SafetyReport.DAO
             return respuesta;
         }
 
-        private static async Task<List<T>> LeerIdsAsync<T>(SqlDataReader dr, string columnName, Func<int?, T> factory)
+        private static async Task<List<T>> LeerIdsAsync<T>(DbDataReader dr, string columnName, Func<int?, T> factory)
         {
             var lista = new List<T>();
 
@@ -67,30 +68,30 @@ namespace SafetyReport.DAO
         {
             try
             {
-                using SqlConnection cn = new SqlConnection(_dbConfig.ConnectionString);
-                using SqlCommand cmd = new SqlCommand("SP_Tarifario_Insertar", cn);
+                using MySqlConnection cn = new MySqlConnection(_dbConfig.ConnectionString);
+                using MySqlCommand cmd = new MySqlCommand("SP_Tarifario_Insertar", cn);
 
                 cmd.CommandType = CommandType.StoredProcedure;
 
-                cmd.Parameters.Add("@intIdUsuario", SqlDbType.Int).Value = usuarioLogueado.IdUsuario;
-                cmd.Parameters.Add("@vchUsuario", SqlDbType.VarChar, 32).Value = usuarioLogueado.Usuario;
-                cmd.Parameters.Add("@intIdEmpresa", SqlDbType.Int).Value = usuarioLogueado.IdEmpresa;
-                cmd.Parameters.Add("@intIdRol", SqlDbType.Int).Value = usuarioLogueado.IdRol;
-                cmd.Parameters.Add("@intIdCliente", SqlDbType.Int).Value = request.IdCliente;
-                cmd.Parameters.Add("@intIdProducto", SqlDbType.Int).Value = request.IdProducto;
-                cmd.Parameters.Add("@intIdTipoTramite", SqlDbType.Int).Value = request.IdTipoTramite;
-                cmd.Parameters.Add("@intIdPais", SqlDbType.Int).Value = request.IdPais;
-                cmd.Parameters.Add("@intIdMoneda", SqlDbType.Int).Value = request.IdMoneda;
-                cmd.Parameters.Add("@intDiasMax", SqlDbType.Int).Value = request.DiasMax;
-                cmd.Parameters.Add("@intDiasMin", SqlDbType.Int).Value = request.DiasMin;
+                cmd.Parameters.AddWithValue("@intIdUsuario", usuarioLogueado.IdUsuario);
+                cmd.Parameters.AddWithValue("@vchUsuario", usuarioLogueado.Usuario);
+                cmd.Parameters.AddWithValue("@intIdEmpresa", usuarioLogueado.IdEmpresa);
+                cmd.Parameters.AddWithValue("@intIdRol", usuarioLogueado.IdRol);
+                cmd.Parameters.AddWithValue("@intIdCliente", request.IdCliente);
+                cmd.Parameters.AddWithValue("@intIdProducto", request.IdProducto);
+                cmd.Parameters.AddWithValue("@intIdTipoTramite", request.IdTipoTramite);
+                cmd.Parameters.AddWithValue("@intIdPais", request.IdPais);
+                cmd.Parameters.AddWithValue("@intIdMoneda", request.IdMoneda);
+                cmd.Parameters.AddWithValue("@intDiasMax", request.DiasMax);
+                cmd.Parameters.AddWithValue("@intDiasMin", request.DiasMin);
 
-                cmd.Parameters.Add("@decPrecio", SqlDbType.Decimal).Value = request.Precio;
-                cmd.Parameters["@decPrecio"].Precision = 18;
-                cmd.Parameters["@decPrecio"].Scale = 2;
+                var decPrecio = cmd.Parameters.AddWithValue("@decPrecio", request.Precio);
+                decPrecio.Precision = 18;
+                decPrecio.Scale = 2;
 
-                cmd.Parameters.Add("@decPenalidad", SqlDbType.Decimal).Value = request.Penalidad;
-                cmd.Parameters["@decPenalidad"].Precision = 18;
-                cmd.Parameters["@decPenalidad"].Scale = 2;
+                var decPenalidad = cmd.Parameters.AddWithValue("@decPenalidad", request.Penalidad);
+                decPenalidad.Precision = 18;
+                decPenalidad.Scale = 2;
 
                 await cn.OpenAsync();
 
@@ -125,18 +126,18 @@ namespace SafetyReport.DAO
         {
             try
             {
-                using SqlConnection cn = new SqlConnection(_dbConfig.ConnectionString);
-                using SqlCommand cmd = new SqlCommand("SP_Tarifario_Listar", cn);
+                using MySqlConnection cn = new MySqlConnection(_dbConfig.ConnectionString);
+                using MySqlCommand cmd = new MySqlCommand("SP_Tarifario_Listar", cn);
 
                 cmd.CommandType = CommandType.StoredProcedure;
 
-                cmd.Parameters.Add("@intIdUsuario", SqlDbType.Int).Value = usuarioLogueado.IdUsuario;
-                cmd.Parameters.Add("@vchUsuario", SqlDbType.VarChar, 32).Value = usuarioLogueado.Usuario;
-                cmd.Parameters.Add("@intIdEmpresa", SqlDbType.Int).Value = usuarioLogueado.IdEmpresa;
-                cmd.Parameters.Add("@intIdRol", SqlDbType.Int).Value = usuarioLogueado.IdRol;
-                cmd.Parameters.Add("@intIdCliente", SqlDbType.Int).Value = request.idCliente;
-                cmd.Parameters.Add("@vchBusqueda", SqlDbType.VarChar, 255).Value = (object?)request.busqueda ?? DBNull.Value;
-                cmd.Parameters.Add("@numPag", SqlDbType.Int).Value = (object?)request.numPag ?? DBNull.Value;
+                cmd.Parameters.AddWithValue("@intIdUsuario", usuarioLogueado.IdUsuario);
+                cmd.Parameters.AddWithValue("@vchUsuario", usuarioLogueado.Usuario);
+                cmd.Parameters.AddWithValue("@intIdEmpresa", usuarioLogueado.IdEmpresa);
+                cmd.Parameters.AddWithValue("@intIdRol", usuarioLogueado.IdRol);
+                cmd.Parameters.AddWithValue("@intIdCliente", request.idCliente);
+                cmd.Parameters.AddWithValue("@vchBusqueda", (object?)request.busqueda ?? DBNull.Value);
+                cmd.Parameters.AddWithValue("@numPag", (object?)request.numPag ?? DBNull.Value);
 
                 await cn.OpenAsync();
 
@@ -197,17 +198,17 @@ namespace SafetyReport.DAO
         {
             try
             {
-                using SqlConnection cn = new SqlConnection(_dbConfig.ConnectionString);
-                using SqlCommand cmd = new SqlCommand("SP_Tarifario_Obtener", cn);
+                using MySqlConnection cn = new MySqlConnection(_dbConfig.ConnectionString);
+                using MySqlCommand cmd = new MySqlCommand("SP_Tarifario_Obtener", cn);
 
                 cmd.CommandType = CommandType.StoredProcedure;
 
-                cmd.Parameters.Add("@intIdUsuario", SqlDbType.Int).Value = usuarioLogueado.IdUsuario;
-                cmd.Parameters.Add("@vchUsuario", SqlDbType.VarChar, 32).Value = usuarioLogueado.Usuario;
-                cmd.Parameters.Add("@intIdEmpresa", SqlDbType.Int).Value = usuarioLogueado.IdEmpresa;
-                cmd.Parameters.Add("@intIdRol", SqlDbType.Int).Value = usuarioLogueado.IdRol;
-                cmd.Parameters.Add("@intIdTarifario", SqlDbType.Int).Value = request.idTarifario;
-                cmd.Parameters.Add("@intIdCliente", SqlDbType.Int).Value = request.idCliente;
+                cmd.Parameters.AddWithValue("@intIdUsuario", usuarioLogueado.IdUsuario);
+                cmd.Parameters.AddWithValue("@vchUsuario", usuarioLogueado.Usuario);
+                cmd.Parameters.AddWithValue("@intIdEmpresa", usuarioLogueado.IdEmpresa);
+                cmd.Parameters.AddWithValue("@intIdRol", usuarioLogueado.IdRol);
+                cmd.Parameters.AddWithValue("@intIdTarifario", request.idTarifario);
+                cmd.Parameters.AddWithValue("@intIdCliente", request.idCliente);
 
                 await cn.OpenAsync();
 
@@ -261,31 +262,31 @@ namespace SafetyReport.DAO
         {
             try
             {
-                using SqlConnection cn = new SqlConnection(_dbConfig.ConnectionString);
-                using SqlCommand cmd = new SqlCommand("SP_Tarifario_Actualizar", cn);
+                using MySqlConnection cn = new MySqlConnection(_dbConfig.ConnectionString);
+                using MySqlCommand cmd = new MySqlCommand("SP_Tarifario_Actualizar", cn);
 
                 cmd.CommandType = CommandType.StoredProcedure;
 
-                cmd.Parameters.Add("@intIdUsuario", SqlDbType.Int).Value = usuarioLogueado.IdUsuario;
-                cmd.Parameters.Add("@vchUsuario", SqlDbType.VarChar, 32).Value = usuarioLogueado.Usuario;
-                cmd.Parameters.Add("@intIdEmpresa", SqlDbType.Int).Value = usuarioLogueado.IdEmpresa;
-                cmd.Parameters.Add("@intIdRol", SqlDbType.Int).Value = usuarioLogueado.IdRol;
-                cmd.Parameters.Add("@intIdTarifario", SqlDbType.Int).Value = request.IdTarifario;
-                cmd.Parameters.Add("@intIdCliente", SqlDbType.Int).Value = request.IdCliente;
-                cmd.Parameters.Add("@intIdProducto", SqlDbType.Int).Value = request.IdProducto;
-                cmd.Parameters.Add("@intIdTipoTramite", SqlDbType.Int).Value = request.IdTipoTramite;
-                cmd.Parameters.Add("@intIdPais", SqlDbType.Int).Value = request.IdPais;
-                cmd.Parameters.Add("@intIdMoneda", SqlDbType.Int).Value = request.IdMoneda;
-                cmd.Parameters.Add("@intDiasMax", SqlDbType.Int).Value = request.DiasMax;
-                cmd.Parameters.Add("@intDiasMin", SqlDbType.Int).Value = request.DiasMin;
+                cmd.Parameters.AddWithValue("@intIdUsuario", usuarioLogueado.IdUsuario);
+                cmd.Parameters.AddWithValue("@vchUsuario", usuarioLogueado.Usuario);
+                cmd.Parameters.AddWithValue("@intIdEmpresa", usuarioLogueado.IdEmpresa);
+                cmd.Parameters.AddWithValue("@intIdRol", usuarioLogueado.IdRol);
+                cmd.Parameters.AddWithValue("@intIdTarifario", request.IdTarifario);
+                cmd.Parameters.AddWithValue("@intIdCliente", request.IdCliente);
+                cmd.Parameters.AddWithValue("@intIdProducto", request.IdProducto);
+                cmd.Parameters.AddWithValue("@intIdTipoTramite", request.IdTipoTramite);
+                cmd.Parameters.AddWithValue("@intIdPais", request.IdPais);
+                cmd.Parameters.AddWithValue("@intIdMoneda", request.IdMoneda);
+                cmd.Parameters.AddWithValue("@intDiasMax", request.DiasMax);
+                cmd.Parameters.AddWithValue("@intDiasMin", request.DiasMin);
 
-                cmd.Parameters.Add("@decPrecio", SqlDbType.Decimal).Value = request.Precio;
-                cmd.Parameters["@decPrecio"].Precision = 18;
-                cmd.Parameters["@decPrecio"].Scale = 2;
+                var decPrecio = cmd.Parameters.AddWithValue("@decPrecio", request.Precio);
+                decPrecio.Precision = 18;
+                decPrecio.Scale = 2;
 
-                cmd.Parameters.Add("@decPenalidad", SqlDbType.Decimal).Value = request.Penalidad;
-                cmd.Parameters["@decPenalidad"].Precision = 18;
-                cmd.Parameters["@decPenalidad"].Scale = 2;
+                var decPenalidad = cmd.Parameters.AddWithValue("@decPenalidad", request.Penalidad);
+                decPenalidad.Precision = 18;
+                decPenalidad.Scale = 2;
 
                 await cn.OpenAsync();
 
@@ -320,17 +321,17 @@ namespace SafetyReport.DAO
         {
             try
             {
-                using SqlConnection cn = new SqlConnection(_dbConfig.ConnectionString);
-                using SqlCommand cmd = new SqlCommand("SP_Tarifario_Eliminar", cn);
+                using MySqlConnection cn = new MySqlConnection(_dbConfig.ConnectionString);
+                using MySqlCommand cmd = new MySqlCommand("SP_Tarifario_Eliminar", cn);
 
                 cmd.CommandType = CommandType.StoredProcedure;
 
-                cmd.Parameters.Add("@intIdUsuario", SqlDbType.Int).Value = usuarioLogueado.IdUsuario;
-                cmd.Parameters.Add("@vchUsuario", SqlDbType.VarChar, 32).Value = usuarioLogueado.Usuario;
-                cmd.Parameters.Add("@intIdEmpresa", SqlDbType.Int).Value = usuarioLogueado.IdEmpresa;
-                cmd.Parameters.Add("@intIdRol", SqlDbType.Int).Value = usuarioLogueado.IdRol;
-                cmd.Parameters.Add("@intIdTarifario", SqlDbType.Int).Value = request.idTarifario;
-                cmd.Parameters.Add("@intIdCliente", SqlDbType.Int).Value = request.idCliente;
+                cmd.Parameters.AddWithValue("@intIdUsuario", usuarioLogueado.IdUsuario);
+                cmd.Parameters.AddWithValue("@vchUsuario", usuarioLogueado.Usuario);
+                cmd.Parameters.AddWithValue("@intIdEmpresa", usuarioLogueado.IdEmpresa);
+                cmd.Parameters.AddWithValue("@intIdRol", usuarioLogueado.IdRol);
+                cmd.Parameters.AddWithValue("@intIdTarifario", request.idTarifario);
+                cmd.Parameters.AddWithValue("@intIdCliente", request.idCliente);
 
                 await cn.OpenAsync();
 
@@ -365,19 +366,19 @@ namespace SafetyReport.DAO
         {
             try
             {
-                using SqlConnection cn = new SqlConnection(_dbConfig.ConnectionString);
-                using SqlCommand cmd = new SqlCommand("SP_Tarifario_ListaCorta", cn);
+                using MySqlConnection cn = new MySqlConnection(_dbConfig.ConnectionString);
+                using MySqlCommand cmd = new MySqlCommand("SP_Tarifario_ListaCorta", cn);
 
                 cmd.CommandType = CommandType.StoredProcedure;
 
-                cmd.Parameters.Add("@intIdUsuario", SqlDbType.Int).Value = usuarioLogueado.IdUsuario;
-                cmd.Parameters.Add("@vchUsuario", SqlDbType.VarChar, 32).Value = usuarioLogueado.Usuario;
-                cmd.Parameters.Add("@intIdEmpresa", SqlDbType.Int).Value = usuarioLogueado.IdEmpresa;
-                cmd.Parameters.Add("@intIdRol", SqlDbType.Int).Value = usuarioLogueado.IdRol;
-                cmd.Parameters.Add("@intIdCliente", SqlDbType.Int).Value = request.idCliente;
-                cmd.Parameters.Add("@intIdTipoProducto", SqlDbType.Int).Value = (object?)request.idTipoProducto ?? DBNull.Value;
-                cmd.Parameters.Add("@intIdTipoTramite", SqlDbType.Int).Value = (object?)request.idTipoTramite ?? DBNull.Value;
-                cmd.Parameters.Add("@intIdPais", SqlDbType.Int).Value = (object?)request.idPais ?? DBNull.Value;
+                cmd.Parameters.AddWithValue("@intIdUsuario", usuarioLogueado.IdUsuario);
+                cmd.Parameters.AddWithValue("@vchUsuario", usuarioLogueado.Usuario);
+                cmd.Parameters.AddWithValue("@intIdEmpresa", usuarioLogueado.IdEmpresa);
+                cmd.Parameters.AddWithValue("@intIdRol", usuarioLogueado.IdRol);
+                cmd.Parameters.AddWithValue("@intIdCliente", request.idCliente);
+                cmd.Parameters.AddWithValue("@intIdTipoProducto", (object?)request.idTipoProducto ?? DBNull.Value);
+                cmd.Parameters.AddWithValue("@intIdTipoTramite", (object?)request.idTipoTramite ?? DBNull.Value);
+                cmd.Parameters.AddWithValue("@intIdPais", (object?)request.idPais ?? DBNull.Value);
 
                 await cn.OpenAsync();
 

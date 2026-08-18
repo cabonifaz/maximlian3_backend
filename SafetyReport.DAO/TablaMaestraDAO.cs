@@ -1,7 +1,8 @@
-﻿using Microsoft.Data.SqlClient;
-using Microsoft.Extensions.Logging;
+﻿using Microsoft.Extensions.Logging;
+using MySqlConnector;
 using SafetyReport.Models;
 using System.Data;
+using System.Data.Common;
 
 namespace SafetyReport.DAO
 {
@@ -17,7 +18,7 @@ namespace SafetyReport.DAO
         }
 
         // Lee el result set 1 (siempre presente): IdTipoMensaje, Mensaje. Sin columna Result.
-        private async Task<Respuesta> LeerCabeceraAsync(SqlDataReader dr, string procedimiento)
+        private async Task<Respuesta> LeerCabeceraAsync(DbDataReader dr, string procedimiento)
         {
             var respuesta = new Respuesta();
 
@@ -39,19 +40,19 @@ namespace SafetyReport.DAO
             return respuesta;
         }
 
-        private static int? GetNullableInt(SqlDataReader dr, string columna) =>
+        private static int? GetNullableInt(DbDataReader dr, string columna) =>
             dr[columna] == DBNull.Value ? null : Convert.ToInt32(dr[columna]);
 
-        private static decimal? GetNullableDecimal(SqlDataReader dr, string columna) =>
+        private static decimal? GetNullableDecimal(DbDataReader dr, string columna) =>
             dr[columna] == DBNull.Value ? null : Convert.ToDecimal(dr[columna]);
 
-        private static DateTime? GetNullableDateTime(SqlDataReader dr, string columna) =>
+        private static DateTime? GetNullableDateTime(DbDataReader dr, string columna) =>
             dr[columna] == DBNull.Value ? null : Convert.ToDateTime(dr[columna]);
 
-        private static string? GetNullableString(SqlDataReader dr, string columna) =>
+        private static string? GetNullableString(DbDataReader dr, string columna) =>
             dr[columna] == DBNull.Value ? null : dr[columna].ToString();
 
-        private static TablaMaestraItem LeerTablaMaestraItem(SqlDataReader dr) => new()
+        private static TablaMaestraItem LeerTablaMaestraItem(DbDataReader dr) => new()
         {
             IdEmpresa = GetNullableInt(dr, "IdEmpresa"),
             IdTablaMaestra = GetNullableInt(dr, "IdTablaMaestra"),
@@ -76,17 +77,17 @@ namespace SafetyReport.DAO
         {
             try
             {
-                using SqlConnection cn = new(_dbConfig.ConnectionString);
-                using SqlCommand cmd = new("SP_TablaMaestra_Listar", cn);
+                using MySqlConnection cn = new(_dbConfig.ConnectionString);
+                using MySqlCommand cmd = new("SP_TablaMaestra_Listar", cn);
 
                 cmd.CommandType = CommandType.StoredProcedure;
-                cmd.Parameters.Add("@intIdUsuario", SqlDbType.Int).Value = usuarioLogueado.IdUsuario;
-                cmd.Parameters.Add("@vchUsuario", SqlDbType.VarChar, 32).Value = usuarioLogueado.Usuario;
-                cmd.Parameters.Add("@intIdEmpresa", SqlDbType.Int).Value = usuarioLogueado.IdEmpresa;
-                cmd.Parameters.Add("@intIdRol", SqlDbType.Int).Value = usuarioLogueado.IdRol;
-                cmd.Parameters.Add("@vchIdsMaestro", SqlDbType.VarChar, -1).Value = (object?)idsMaestro ?? DBNull.Value;
-                cmd.Parameters.Add("@vchBusqueda", SqlDbType.VarChar, 255).Value = (object?)busqueda ?? DBNull.Value;
-                cmd.Parameters.Add("@numPag", SqlDbType.Int).Value = (object?)numPag ?? DBNull.Value;
+                cmd.Parameters.AddWithValue("@intIdUsuario", usuarioLogueado.IdUsuario);
+                cmd.Parameters.AddWithValue("@vchUsuario", usuarioLogueado.Usuario);
+                cmd.Parameters.AddWithValue("@intIdEmpresa", usuarioLogueado.IdEmpresa);
+                cmd.Parameters.AddWithValue("@intIdRol", usuarioLogueado.IdRol);
+                cmd.Parameters.AddWithValue("@vchIdsMaestro", (object?)idsMaestro ?? DBNull.Value);
+                cmd.Parameters.AddWithValue("@vchBusqueda", (object?)busqueda ?? DBNull.Value);
+                cmd.Parameters.AddWithValue("@numPag", (object?)numPag ?? DBNull.Value);
 
                 await cn.OpenAsync();
 
@@ -142,15 +143,15 @@ namespace SafetyReport.DAO
         {
             try
             {
-                using SqlConnection cn = new(_dbConfig.ConnectionString);
-                using SqlCommand cmd = new("SP_InventarioMaestros_Listar", cn);
+                using MySqlConnection cn = new(_dbConfig.ConnectionString);
+                using MySqlCommand cmd = new("SP_InventarioMaestros_Listar", cn);
 
                 cmd.CommandType = CommandType.StoredProcedure;
-                cmd.Parameters.Add("@intIdUsuario", SqlDbType.Int).Value = usuarioLogueado.IdUsuario;
-                cmd.Parameters.Add("@vchUsuario", SqlDbType.VarChar, 32).Value = usuarioLogueado.Usuario;
-                cmd.Parameters.Add("@intIdEmpresa", SqlDbType.Int).Value = usuarioLogueado.IdEmpresa;
-                cmd.Parameters.Add("@intIdRol", SqlDbType.Int).Value = usuarioLogueado.IdRol;
-                cmd.Parameters.Add("@intIdMaestro", SqlDbType.Int).Value = (object?)idMaestro ?? DBNull.Value;
+                cmd.Parameters.AddWithValue("@intIdUsuario", usuarioLogueado.IdUsuario);
+                cmd.Parameters.AddWithValue("@vchUsuario", usuarioLogueado.Usuario);
+                cmd.Parameters.AddWithValue("@intIdEmpresa", usuarioLogueado.IdEmpresa);
+                cmd.Parameters.AddWithValue("@intIdRol", usuarioLogueado.IdRol);
+                cmd.Parameters.AddWithValue("@intIdMaestro", (object?)idMaestro ?? DBNull.Value);
 
                 await cn.OpenAsync();
 
@@ -198,15 +199,15 @@ namespace SafetyReport.DAO
         {
             try
             {
-                using SqlConnection cn = new(_dbConfig.ConnectionString);
-                using SqlCommand cmd = new("SP_TablaMaestra_ListaCorta", cn);
+                using MySqlConnection cn = new(_dbConfig.ConnectionString);
+                using MySqlCommand cmd = new("SP_TablaMaestra_ListaCorta", cn);
 
                 cmd.CommandType = CommandType.StoredProcedure;
-                cmd.Parameters.Add("@intIdUsuario", SqlDbType.Int).Value = usuarioLogueado.IdUsuario;
-                cmd.Parameters.Add("@vchUsuario", SqlDbType.VarChar, 32).Value = usuarioLogueado.Usuario;
-                cmd.Parameters.Add("@intIdEmpresa", SqlDbType.Int).Value = usuarioLogueado.IdEmpresa;
-                cmd.Parameters.Add("@intIdRol", SqlDbType.Int).Value = usuarioLogueado.IdRol;
-                cmd.Parameters.Add("@intIdMaestro", SqlDbType.Int).Value = idMaestro;
+                cmd.Parameters.AddWithValue("@intIdUsuario", usuarioLogueado.IdUsuario);
+                cmd.Parameters.AddWithValue("@vchUsuario", usuarioLogueado.Usuario);
+                cmd.Parameters.AddWithValue("@intIdEmpresa", usuarioLogueado.IdEmpresa);
+                cmd.Parameters.AddWithValue("@intIdRol", usuarioLogueado.IdRol);
+                cmd.Parameters.AddWithValue("@intIdMaestro", idMaestro);
 
                 await cn.OpenAsync();
 
@@ -246,37 +247,37 @@ namespace SafetyReport.DAO
         {
             try
             {
-                using SqlConnection cn = new(_dbConfig.ConnectionString);
-                using SqlCommand cmd = new("SP_TablaMaestra_Insertar", cn);
+                using MySqlConnection cn = new(_dbConfig.ConnectionString);
+                using MySqlCommand cmd = new("SP_TablaMaestra_Insertar", cn);
 
                 cmd.CommandType = CommandType.StoredProcedure;
-                cmd.Parameters.Add("@intIdUsuario", SqlDbType.Int).Value = usuarioLogueado.IdUsuario;
-                cmd.Parameters.Add("@vchUsuario", SqlDbType.VarChar, 32).Value = usuarioLogueado.Usuario;
-                cmd.Parameters.Add("@intIdEmpresa", SqlDbType.Int).Value = usuarioLogueado.IdEmpresa;
-                cmd.Parameters.Add("@intIdRol", SqlDbType.Int).Value = usuarioLogueado.IdRol;
+                cmd.Parameters.AddWithValue("@intIdUsuario", usuarioLogueado.IdUsuario);
+                cmd.Parameters.AddWithValue("@vchUsuario", usuarioLogueado.Usuario);
+                cmd.Parameters.AddWithValue("@intIdEmpresa", usuarioLogueado.IdEmpresa);
+                cmd.Parameters.AddWithValue("@intIdRol", usuarioLogueado.IdRol);
 
-                cmd.Parameters.Add("@intIdMaestro", SqlDbType.Int).Value = request.IdMaestro;
-                cmd.Parameters.Add("@vchDescripcion", SqlDbType.VarChar, 255).Value = request.Descripcion;
-                cmd.Parameters.Add("@intNum1", SqlDbType.Int).Value = (object?)request.Num1 ?? DBNull.Value;
+                cmd.Parameters.AddWithValue("@intIdMaestro", request.IdMaestro);
+                cmd.Parameters.AddWithValue("@vchDescripcion", request.Descripcion);
+                cmd.Parameters.AddWithValue("@intNum1", (object?)request.Num1 ?? DBNull.Value);
 
-                cmd.Parameters.Add("@decNum2", SqlDbType.Decimal).Value = (object?)request.Num2 ?? DBNull.Value;
-                cmd.Parameters["@decNum2"].Precision = 18;
-                cmd.Parameters["@decNum2"].Scale = 6;
+                var decNum2 = cmd.Parameters.AddWithValue("@decNum2", (object?)request.Num2 ?? DBNull.Value);
+                decNum2.Precision = 18;
+                decNum2.Scale = 6;
 
-                cmd.Parameters.Add("@decNum3", SqlDbType.Decimal).Value = (object?)request.Num3 ?? DBNull.Value;
-                cmd.Parameters["@decNum3"].Precision = 18;
-                cmd.Parameters["@decNum3"].Scale = 6;
+                var decNum3 = cmd.Parameters.AddWithValue("@decNum3", (object?)request.Num3 ?? DBNull.Value);
+                decNum3.Precision = 18;
+                decNum3.Scale = 6;
 
-                cmd.Parameters.Add("@vchString1", SqlDbType.VarChar, 255).Value = (object?)request.String1 ?? DBNull.Value;
-                cmd.Parameters.Add("@vchString2", SqlDbType.VarChar, 255).Value = (object?)request.String2 ?? DBNull.Value;
-                cmd.Parameters.Add("@vchString3", SqlDbType.NVarChar, 255).Value = (object?)request.String3 ?? DBNull.Value;
-                cmd.Parameters.Add("@vchString4", SqlDbType.VarChar, 255).Value = (object?)request.String4 ?? DBNull.Value;
-                cmd.Parameters.Add("@vchString5", SqlDbType.VarChar, 255).Value = (object?)request.String5 ?? DBNull.Value;
-                cmd.Parameters.Add("@vchString6", SqlDbType.VarChar, 255).Value = (object?)request.String6 ?? DBNull.Value;
-                cmd.Parameters.Add("@vchString7", SqlDbType.VarChar, 255).Value = (object?)request.String7 ?? DBNull.Value;
-                cmd.Parameters.Add("@dtDate1", SqlDbType.DateTime).Value = (object?)request.Date1 ?? DBNull.Value;
-                cmd.Parameters.Add("@dtDate2", SqlDbType.DateTime).Value = (object?)request.Date2 ?? DBNull.Value;
-                cmd.Parameters.Add("@dtDate3", SqlDbType.DateTime).Value = (object?)request.Date3 ?? DBNull.Value;
+                cmd.Parameters.AddWithValue("@vchString1", (object?)request.String1 ?? DBNull.Value);
+                cmd.Parameters.AddWithValue("@vchString2", (object?)request.String2 ?? DBNull.Value);
+                cmd.Parameters.AddWithValue("@vchString3", (object?)request.String3 ?? DBNull.Value);
+                cmd.Parameters.AddWithValue("@vchString4", (object?)request.String4 ?? DBNull.Value);
+                cmd.Parameters.AddWithValue("@vchString5", (object?)request.String5 ?? DBNull.Value);
+                cmd.Parameters.AddWithValue("@vchString6", (object?)request.String6 ?? DBNull.Value);
+                cmd.Parameters.AddWithValue("@vchString7", (object?)request.String7 ?? DBNull.Value);
+                cmd.Parameters.AddWithValue("@dtDate1", (object?)request.Date1 ?? DBNull.Value);
+                cmd.Parameters.AddWithValue("@dtDate2", (object?)request.Date2 ?? DBNull.Value);
+                cmd.Parameters.AddWithValue("@dtDate3", (object?)request.Date3 ?? DBNull.Value);
 
                 await cn.OpenAsync();
 
@@ -307,36 +308,36 @@ namespace SafetyReport.DAO
         {
             try
             {
-                using SqlConnection cn = new(_dbConfig.ConnectionString);
-                using SqlCommand cmd = new("SP_TablaMaestra_Actualizar", cn);
+                using MySqlConnection cn = new(_dbConfig.ConnectionString);
+                using MySqlCommand cmd = new("SP_TablaMaestra_Actualizar", cn);
 
                 cmd.CommandType = CommandType.StoredProcedure;
-                cmd.Parameters.Add("@intIdUsuario", SqlDbType.Int).Value = usuarioLogueado.IdUsuario;
-                cmd.Parameters.Add("@vchUsuario", SqlDbType.VarChar, 32).Value = usuarioLogueado.Usuario;
-                cmd.Parameters.Add("@intIdEmpresa", SqlDbType.Int).Value = usuarioLogueado.IdEmpresa;
-                cmd.Parameters.Add("@intIdRol", SqlDbType.Int).Value = usuarioLogueado.IdRol;
+                cmd.Parameters.AddWithValue("@intIdUsuario", usuarioLogueado.IdUsuario);
+                cmd.Parameters.AddWithValue("@vchUsuario", usuarioLogueado.Usuario);
+                cmd.Parameters.AddWithValue("@intIdEmpresa", usuarioLogueado.IdEmpresa);
+                cmd.Parameters.AddWithValue("@intIdRol", usuarioLogueado.IdRol);
 
-                cmd.Parameters.Add("@intIdMaestro", SqlDbType.Int).Value = request.IdMaestro;
-                cmd.Parameters.Add("@intNum1", SqlDbType.Int).Value = (object?)request.Num1 ?? DBNull.Value;
+                cmd.Parameters.AddWithValue("@intIdMaestro", request.IdMaestro);
+                cmd.Parameters.AddWithValue("@intNum1", (object?)request.Num1 ?? DBNull.Value);
 
-                cmd.Parameters.Add("@decNum2", SqlDbType.Decimal).Value = (object?)request.Num2 ?? DBNull.Value;
-                cmd.Parameters["@decNum2"].Precision = 18;
-                cmd.Parameters["@decNum2"].Scale = 6;
+                var decNum2 = cmd.Parameters.AddWithValue("@decNum2", (object?)request.Num2 ?? DBNull.Value);
+                decNum2.Precision = 18;
+                decNum2.Scale = 6;
 
-                cmd.Parameters.Add("@decNum3", SqlDbType.Decimal).Value = (object?)request.Num3 ?? DBNull.Value;
-                cmd.Parameters["@decNum3"].Precision = 18;
-                cmd.Parameters["@decNum3"].Scale = 6;
+                var decNum3 = cmd.Parameters.AddWithValue("@decNum3", (object?)request.Num3 ?? DBNull.Value);
+                decNum3.Precision = 18;
+                decNum3.Scale = 6;
 
-                cmd.Parameters.Add("@vchString1", SqlDbType.VarChar, 255).Value = (object?)request.String1 ?? DBNull.Value;
-                cmd.Parameters.Add("@vchString2", SqlDbType.VarChar, 255).Value = (object?)request.String2 ?? DBNull.Value;
-                cmd.Parameters.Add("@vchString3", SqlDbType.NVarChar, 255).Value = (object?)request.String3 ?? DBNull.Value;
-                cmd.Parameters.Add("@vchString4", SqlDbType.VarChar, 255).Value = (object?)request.String4 ?? DBNull.Value;
-                cmd.Parameters.Add("@vchString5", SqlDbType.VarChar, 255).Value = (object?)request.String5 ?? DBNull.Value;
-                cmd.Parameters.Add("@vchString6", SqlDbType.VarChar, 255).Value = (object?)request.String6 ?? DBNull.Value;
-                cmd.Parameters.Add("@vchString7", SqlDbType.VarChar, 255).Value = (object?)request.String7 ?? DBNull.Value;
-                cmd.Parameters.Add("@dtDate1", SqlDbType.DateTime).Value = (object?)request.Date1 ?? DBNull.Value;
-                cmd.Parameters.Add("@dtDate2", SqlDbType.DateTime).Value = (object?)request.Date2 ?? DBNull.Value;
-                cmd.Parameters.Add("@dtDate3", SqlDbType.DateTime).Value = (object?)request.Date3 ?? DBNull.Value;
+                cmd.Parameters.AddWithValue("@vchString1", (object?)request.String1 ?? DBNull.Value);
+                cmd.Parameters.AddWithValue("@vchString2", (object?)request.String2 ?? DBNull.Value);
+                cmd.Parameters.AddWithValue("@vchString3", (object?)request.String3 ?? DBNull.Value);
+                cmd.Parameters.AddWithValue("@vchString4", (object?)request.String4 ?? DBNull.Value);
+                cmd.Parameters.AddWithValue("@vchString5", (object?)request.String5 ?? DBNull.Value);
+                cmd.Parameters.AddWithValue("@vchString6", (object?)request.String6 ?? DBNull.Value);
+                cmd.Parameters.AddWithValue("@vchString7", (object?)request.String7 ?? DBNull.Value);
+                cmd.Parameters.AddWithValue("@dtDate1", (object?)request.Date1 ?? DBNull.Value);
+                cmd.Parameters.AddWithValue("@dtDate2", (object?)request.Date2 ?? DBNull.Value);
+                cmd.Parameters.AddWithValue("@dtDate3", (object?)request.Date3 ?? DBNull.Value);
 
                 await cn.OpenAsync();
 
@@ -367,17 +368,17 @@ namespace SafetyReport.DAO
         {
             try
             {
-                using SqlConnection cn = new(_dbConfig.ConnectionString);
-                using SqlCommand cmd = new("SP_TablaMaestra_Obtener", cn);
+                using MySqlConnection cn = new(_dbConfig.ConnectionString);
+                using MySqlCommand cmd = new("SP_TablaMaestra_Obtener", cn);
 
                 cmd.CommandType = CommandType.StoredProcedure;
-                cmd.Parameters.Add("@intIdUsuario",  SqlDbType.Int).Value         = usuarioLogueado.IdUsuario;
-                cmd.Parameters.Add("@vchUsuario",    SqlDbType.VarChar, 32).Value = usuarioLogueado.Usuario;
-                cmd.Parameters.Add("@intIdEmpresa",  SqlDbType.Int).Value         = usuarioLogueado.IdEmpresa;
-                cmd.Parameters.Add("@intIdRol",      SqlDbType.Int).Value         = usuarioLogueado.IdRol;
-                cmd.Parameters.Add("@intIdMaestro",  SqlDbType.Int).Value         = request.idMaestro;
-                cmd.Parameters.Add("@intIdBusqueda", SqlDbType.Int).Value         = (object?)request.idBusqueda ?? DBNull.Value;
-                cmd.Parameters.Add("@vchBusqueda",   SqlDbType.VarChar).Value     = (object?)request.vchBusqueda ?? DBNull.Value;
+                cmd.Parameters.AddWithValue("@intIdUsuario", usuarioLogueado.IdUsuario);
+                cmd.Parameters.AddWithValue("@vchUsuario", usuarioLogueado.Usuario);
+                cmd.Parameters.AddWithValue("@intIdEmpresa", usuarioLogueado.IdEmpresa);
+                cmd.Parameters.AddWithValue("@intIdRol", usuarioLogueado.IdRol);
+                cmd.Parameters.AddWithValue("@intIdMaestro", request.idMaestro);
+                cmd.Parameters.AddWithValue("@intIdBusqueda", (object?)request.idBusqueda ?? DBNull.Value);
+                cmd.Parameters.AddWithValue("@vchBusqueda", (object?)request.vchBusqueda ?? DBNull.Value);
 
                 await cn.OpenAsync();
 
@@ -411,15 +412,15 @@ namespace SafetyReport.DAO
         {
             try
             {
-                using SqlConnection cn = new(_dbConfig.ConnectionString);
-                using SqlCommand cmd = new("SP_TablaMaestra_Eliminar", cn);
+                using MySqlConnection cn = new(_dbConfig.ConnectionString);
+                using MySqlCommand cmd = new("SP_TablaMaestra_Eliminar", cn);
 
                 cmd.CommandType = CommandType.StoredProcedure;
-                cmd.Parameters.Add("@intIdUsuario", SqlDbType.Int).Value = usuarioLogueado.IdUsuario;
-                cmd.Parameters.Add("@vchUsuario", SqlDbType.VarChar, 32).Value = usuarioLogueado.Usuario;
-                cmd.Parameters.Add("@intIdEmpresa", SqlDbType.Int).Value = usuarioLogueado.IdEmpresa;
-                cmd.Parameters.Add("@intIdRol", SqlDbType.Int).Value = usuarioLogueado.IdRol;
-                cmd.Parameters.Add("@intIdTablaMaestra", SqlDbType.Int).Value = idTablaMaestra;
+                cmd.Parameters.AddWithValue("@intIdUsuario", usuarioLogueado.IdUsuario);
+                cmd.Parameters.AddWithValue("@vchUsuario", usuarioLogueado.Usuario);
+                cmd.Parameters.AddWithValue("@intIdEmpresa", usuarioLogueado.IdEmpresa);
+                cmd.Parameters.AddWithValue("@intIdRol", usuarioLogueado.IdRol);
+                cmd.Parameters.AddWithValue("@intIdTablaMaestra", idTablaMaestra);
 
                 await cn.OpenAsync();
 
