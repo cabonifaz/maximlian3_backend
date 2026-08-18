@@ -636,6 +636,7 @@ namespace SafetyReport.DAO
                 cmd.Parameters.Add("@intIdTipoTramite", SqlDbType.Int).Value = (object?)request.idTipoTramite ?? DBNull.Value;
                 cmd.Parameters.Add("@dtFechaInicio", SqlDbType.Date).Value = (object?)request.fechaInicio?.ToDateTime(TimeOnly.MinValue) ?? DBNull.Value;
                 cmd.Parameters.Add("@dtFechaFin", SqlDbType.Date).Value = (object?)request.fechaFin?.ToDateTime(TimeOnly.MinValue) ?? DBNull.Value;
+                cmd.Parameters.Add("@intIdDocumentoElectronico", SqlDbType.Int).Value = request.idDocumentoElectronico;
                 cmd.Parameters.Add("@numPag", SqlDbType.Int).Value = request.numPag;
 
                 await cn.OpenAsync();
