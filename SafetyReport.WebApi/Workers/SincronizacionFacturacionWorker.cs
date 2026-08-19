@@ -5,12 +5,13 @@ using SafetyReport.Models;
 namespace SafetyReport.WebApi.Workers
 {
     // Sondea EVENTOS_DOCUMENTO (vía ms-facturación) desde el checkpoint de cada empresa (TABLA_MAESTRA
-    // IdMaestro=76) y aplica a PEDIDO_FACTURA el resultado de una Comunicación de Baja — el único camino
-    // que sendBill no resuelve en la misma llamada (SP_PedidoFactura_RegistrarEnvio ya cubre Aprobado/
-    // Rechazado síncronos al emitir). Solo dos transiciones están mapeadas: ComunicacionBajaAceptada
-    // (EsAnulacion=1) → 8 Anulación Aprobada, ComunicacionBajaRechazada (EsAnulacion=1) → 9 Anulación
-    // Rechazada. ms-facturación usa este estado propio (no el genérico "Rechazado", que significa "el
-    // documento en sí fue rechazado") justamente porque una baja rechazada no invalida el documento.
+    // IdMaestro=76) y aplica a PEDIDO_FACTURA el resultado de una Comunicación de Baja o de un Resumen
+    // Diario de Baja de Boletas — el único camino que sendBill no resuelve en la misma llamada
+    // (SP_PedidoFactura_RegistrarEnvio ya cubre Aprobado/Rechazado síncronos al emitir). Transiciones
+    // mapeadas: ComunicacionBajaAceptada/ResumenBajaAceptado (EsAnulacion=1) → 8 Anulación Aprobada,
+    // ComunicacionBajaRechazada/ResumenBajaRechazado (EsAnulacion=1) → 9 Anulación Rechazada. ms-facturación
+    // usa estos estados propios (no el genérico "Rechazado", que significa "el documento en sí fue
+    // rechazado") justamente porque una baja rechazada no invalida el documento.
     public class SincronizacionFacturacionWorker(
         IServiceScopeFactory scopeFactory, ILogger<SincronizacionFacturacionWorker> logger) : BackgroundService
     {
@@ -37,6 +38,8 @@ namespace SafetyReport.WebApi.Workers
             {
                 (true, "ComunicacionBajaAceptada") => 8,  // Anulación Aprobada
                 (true, "ComunicacionBajaRechazada") => 9, // Anulación Rechazada
+                (true, "ResumenBajaAceptado") => 8,       // Anulación Aprobada (Boleta)
+                (true, "ResumenBajaRechazado") => 9,      // Anulación Rechazada (Boleta)
                 _ => null
             };
 

@@ -293,6 +293,15 @@ namespace SafetyReport.Models
         public string MotivoDescripcion { get; set; } = string.Empty;
     }
 
+    // Recorte mínimo de GET api/v1/documentos-electronicos/{id} — solo lo que PedidoFacturaHandler.
+    // AnularFacturasAsync necesita para decidir si un ítem va por Comunicación de Baja o por Resumen
+    // Diario de Baja (Boleta), sin acarrear el detalle completo (líneas/cuotas/referencia) que trae
+    // ObtenerDocumentoAsync.
+    public class FacturacionDocumentoTipoLookup
+    {
+        public string TipoDocumentoCodigo { get; set; } = string.Empty;
+    }
+
     // sendSummary nunca resuelve en la misma llamada: el resultado esperable de éxito es un ticket, no un
     // veredicto — el veredicto real llega después vía SincronizacionFacturacionWorker.
     public class FacturacionLoteDocumentoCreado

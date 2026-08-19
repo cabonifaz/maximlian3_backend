@@ -1001,10 +1001,16 @@ namespace SafetyReport.Handlers
             }
         }
 
-        // Dispara la Comunicación de Baja (sendSummary) para los documentos indicados. sendSummary nunca
-        // resuelve en la misma llamada — éxito acá es "el ticket se generó", no "SUNAT aceptó la anulación".
-        // El veredicto real llega después vía SincronizacionFacturacionWorker, que lleva los pedidos a
-        // Anulación Aprobada (8) o Anulación Rechazada (9). Acá solo se los marca Pendiente Anulación (7).
+        // Dispara la Comunicación de Baja (sendSummary) para los documentos indicados — o el Resumen Diario
+        // de Baja si son Boleta, ms-facturación exige mecanismos distintos según el tipo (ver
+        // SP_LoteDocumento_Insertar/SP_LoteResumenBajaBoleta_Insertar). Se resuelve el tipo de cada ítem
+        // primero (ObtenerTipoDocumentoAsync, en paralelo) y se despacha cada grupo a su endpoint — la
+        // mayoría de las veces request.Items trae un solo documento (la UI anula de a uno), así que en la
+        // práctica esto casi siempre termina llamando un solo endpoint, pero se resuelve por grupo para no
+        // asumirlo. sendSummary nunca resuelve en la misma llamada — éxito acá es "el ticket se generó", no
+        // "SUNAT aceptó la anulación". El veredicto real llega después vía SincronizacionFacturacionWorker,
+        // que lleva los pedidos a Anulación Aprobada (8) o Anulación Rechazada (9). Acá solo se los marca
+        // Pendiente Anulación (7), y solo los documentos cuyo grupo sí se pudo enviar.
         public async Task<Respuesta> AnularFacturasAsync(UsuarioGeneral usuarioLogueado, AnularFacturasRequest request)
         {
             try
@@ -1020,36 +1026,102 @@ namespace SafetyReport.Handlers
                     return new Respuesta { IdTipoMensaje = 1, Mensaje = "Debe indicar al menos un documento a anular." };
                 }
 
-                var facturacionRequest = new FacturacionComunicacionBajaRequest
-                {
-                    IdInquilino = usuarioLogueado.IdEmpresa,
-                    IdEmpresa = 1, // TODO: resolver desde EMPRESAS de ms-facturación (GET /api/v1/empresas?idInquilino=) en vez de fijo.
-                    FechaReferencia = request.FechaReferencia,
-                    Items = request.Items
-                        .Select(item => new FacturacionItemBaja { IdDocumentoElectronico = item.IdDocumentoElectronico, MotivoDescripcion = item.MotivoDescripcion })
-                        .ToList()
-                };
+                const int idEmpresaFacturacion = 1; // TODO: resolver desde EMPRESAS de ms-facturación (GET /api/v1/empresas?idInquilino=) en vez de fijo.
 
-                var resultado = await _facturacionService.EnviarComunicacionBajaAsync(facturacionRequest, CancellationToken.None);
-
-                if (resultado is null || resultado.IdTipoMensaje != 2 || resultado.Datos is null)
+                var tipos = await Task.WhenAll(request.Items.Select(async item =>
                 {
-                    return new Respuesta { IdTipoMensaje = resultado?.IdTipoMensaje ?? 3, Mensaje = resultado?.Mensaje ?? "No se pudo enviar la comunicación de baja." };
+                    var tipo = await _facturacionService.ObtenerTipoDocumentoAsync(usuarioLogueado.IdEmpresa, item.IdDocumentoElectronico, CancellationToken.None);
+                    return (Item: item, TipoDocumentoCodigo: tipo?.Datos?.TipoDocumentoCodigo);
+                }));
+
+                if (tipos.Any(t => t.TipoDocumentoCodigo is null))
+                {
+                    var idsFallidos = tipos.Where(t => t.TipoDocumentoCodigo is null).Select(t => t.Item.IdDocumentoElectronico);
+                    return new Respuesta { IdTipoMensaje = 3, Mensaje = $"No se pudo resolver el tipo de uno o más documentos ({string.Join(",", idsFallidos)})." };
                 }
 
-                var documentosConEstado = request.Items
-                    .Select(item => (item.IdDocumentoElectronico, IdEstadoFacturacion: 7)) // Pendiente Anulación
-                    .ToList();
+                var itemsBoleta = tipos.Where(t => t.TipoDocumentoCodigo == "03").Select(t => t.Item).ToList();
+                var itemsOtros = tipos.Where(t => t.TipoDocumentoCodigo != "03").Select(t => t.Item).ToList();
 
-                var actualizacion = await _pedidoFacturaDao.ActualizarEstadoPorDocumentoAsync(usuarioLogueado.IdEmpresa, documentosConEstado);
-                if (actualizacion.IdTipoMensaje != 2)
+                var comunicacionBajaTask = itemsOtros.Count > 0
+                    ? _facturacionService.EnviarComunicacionBajaAsync(
+                        new FacturacionComunicacionBajaRequest
+                        {
+                            IdInquilino = usuarioLogueado.IdEmpresa,
+                            IdEmpresa = idEmpresaFacturacion,
+                            FechaReferencia = request.FechaReferencia,
+                            Items = itemsOtros.Select(item => new FacturacionItemBaja { IdDocumentoElectronico = item.IdDocumentoElectronico, MotivoDescripcion = item.MotivoDescripcion }).ToList()
+                        },
+                        CancellationToken.None)
+                    : Task.FromResult<FacturacionEnvelope<FacturacionLoteDocumentoCreado>?>(null);
+
+                var resumenBajaBoletaTask = itemsBoleta.Count > 0
+                    ? _facturacionService.EnviarResumenBajaBoletaAsync(
+                        new FacturacionComunicacionBajaRequest
+                        {
+                            IdInquilino = usuarioLogueado.IdEmpresa,
+                            IdEmpresa = idEmpresaFacturacion,
+                            FechaReferencia = request.FechaReferencia,
+                            Items = itemsBoleta.Select(item => new FacturacionItemBaja { IdDocumentoElectronico = item.IdDocumentoElectronico, MotivoDescripcion = item.MotivoDescripcion }).ToList()
+                        },
+                        CancellationToken.None)
+                    : Task.FromResult<FacturacionEnvelope<FacturacionLoteDocumentoCreado>?>(null);
+
+                await Task.WhenAll(comunicacionBajaTask, resumenBajaBoletaTask);
+                var comunicacionBajaResultado = await comunicacionBajaTask;
+                var resumenBajaBoletaResultado = await resumenBajaBoletaTask;
+
+                var lotesCreados = new List<FacturacionLoteDocumentoCreado>();
+                var itemsExitosos = new List<AnularFacturaItem>();
+                var mensajesError = new List<string>();
+
+                if (itemsOtros.Count > 0)
                 {
-                    _logger.LogWarning(
-                        "No se pudo marcar Pendiente Anulación los documentos {IdDocumentos} tras enviar la comunicación de baja: {Mensaje}",
-                        string.Join(",", request.Items.Select(i => i.IdDocumentoElectronico)), actualizacion.Mensaje);
+                    if (comunicacionBajaResultado is not null && comunicacionBajaResultado.IdTipoMensaje == 2 && comunicacionBajaResultado.Datos is not null)
+                    {
+                        lotesCreados.Add(comunicacionBajaResultado.Datos);
+                        itemsExitosos.AddRange(itemsOtros);
+                    }
+                    else
+                    {
+                        mensajesError.Add(comunicacionBajaResultado?.Mensaje ?? "No se pudo enviar la comunicación de baja.");
+                    }
                 }
 
-                return new Respuesta { IdTipoMensaje = 2, Mensaje = "Comunicación de baja enviada correctamente.", Result = resultado.Datos };
+                if (itemsBoleta.Count > 0)
+                {
+                    if (resumenBajaBoletaResultado is not null && resumenBajaBoletaResultado.IdTipoMensaje == 2 && resumenBajaBoletaResultado.Datos is not null)
+                    {
+                        lotesCreados.Add(resumenBajaBoletaResultado.Datos);
+                        itemsExitosos.AddRange(itemsBoleta);
+                    }
+                    else
+                    {
+                        mensajesError.Add(resumenBajaBoletaResultado?.Mensaje ?? "No se pudo enviar el resumen de baja de boletas.");
+                    }
+                }
+
+                if (itemsExitosos.Count > 0)
+                {
+                    var documentosConEstado = itemsExitosos
+                        .Select(item => (item.IdDocumentoElectronico, IdEstadoFacturacion: 7)) // Pendiente Anulación
+                        .ToList();
+
+                    var actualizacion = await _pedidoFacturaDao.ActualizarEstadoPorDocumentoAsync(usuarioLogueado.IdEmpresa, documentosConEstado);
+                    if (actualizacion.IdTipoMensaje != 2)
+                    {
+                        _logger.LogWarning(
+                            "No se pudo marcar Pendiente Anulación los documentos {IdDocumentos} tras enviar la baja: {Mensaje}",
+                            string.Join(",", itemsExitosos.Select(i => i.IdDocumentoElectronico)), actualizacion.Mensaje);
+                    }
+                }
+
+                if (mensajesError.Count > 0)
+                {
+                    return new Respuesta { IdTipoMensaje = 1, Mensaje = string.Join(" ", mensajesError), Result = lotesCreados };
+                }
+
+                return new Respuesta { IdTipoMensaje = 2, Mensaje = "Comunicación/resumen de baja enviado correctamente.", Result = lotesCreados };
             }
             catch (Exception ex)
             {
@@ -1077,17 +1149,56 @@ namespace SafetyReport.Handlers
                     return new Respuesta { IdTipoMensaje = 1, Mensaje = "Debe indicar al menos un documento a anular." };
                 }
 
-                var resultado = await _facturacionService.PrevisualizarBajaAsync(
-                    usuarioLogueado.IdEmpresa,
-                    1, // TODO: resolver desde EMPRESAS de ms-facturación (GET /api/v1/empresas?idInquilino=) en vez de fijo.
-                    idsDocumentoElectronico, CancellationToken.None);
+                const int idEmpresaFacturacion = 1; // TODO: resolver desde EMPRESAS de ms-facturación (GET /api/v1/empresas?idInquilino=) en vez de fijo.
 
-                if (resultado is null || resultado.IdTipoMensaje != 2)
+                // Mismo criterio de despacho por tipo que AnularFacturasAsync — ver ese método para el detalle.
+                var tipos = await Task.WhenAll(idsDocumentoElectronico.Select(async id =>
                 {
-                    return new Respuesta { IdTipoMensaje = resultado?.IdTipoMensaje ?? 3, Mensaje = resultado?.Mensaje ?? "No se pudo previsualizar la comunicación de baja." };
+                    var tipo = await _facturacionService.ObtenerTipoDocumentoAsync(usuarioLogueado.IdEmpresa, id, CancellationToken.None);
+                    return (Id: id, TipoDocumentoCodigo: tipo?.Datos?.TipoDocumentoCodigo);
+                }));
+
+                if (tipos.Any(t => t.TipoDocumentoCodigo is null))
+                {
+                    var idsFallidos = tipos.Where(t => t.TipoDocumentoCodigo is null).Select(t => t.Id);
+                    return new Respuesta { IdTipoMensaje = 3, Mensaje = $"No se pudo resolver el tipo de uno o más documentos ({string.Join(",", idsFallidos)})." };
                 }
 
-                return new Respuesta { IdTipoMensaje = 2, Mensaje = "Consulta exitosa.", Result = resultado.Datos };
+                var idsBoleta = tipos.Where(t => t.TipoDocumentoCodigo == "03").Select(t => t.Id).ToList();
+                var idsOtros = tipos.Where(t => t.TipoDocumentoCodigo != "03").Select(t => t.Id).ToList();
+
+                var comunicacionBajaTask = idsOtros.Count > 0
+                    ? _facturacionService.PrevisualizarBajaAsync(usuarioLogueado.IdEmpresa, idEmpresaFacturacion, idsOtros, CancellationToken.None)
+                    : Task.FromResult<FacturacionEnvelope<List<FacturacionDocumentoBajaPreview>>?>(null);
+
+                var resumenBajaBoletaTask = idsBoleta.Count > 0
+                    ? _facturacionService.PrevisualizarResumenBajaBoletaAsync(usuarioLogueado.IdEmpresa, idEmpresaFacturacion, idsBoleta, CancellationToken.None)
+                    : Task.FromResult<FacturacionEnvelope<List<FacturacionDocumentoBajaPreview>>?>(null);
+
+                await Task.WhenAll(comunicacionBajaTask, resumenBajaBoletaTask);
+                var comunicacionBajaResultado = await comunicacionBajaTask;
+                var resumenBajaBoletaResultado = await resumenBajaBoletaTask;
+
+                var mensajesError = new List<string>();
+                if (idsOtros.Count > 0 && (comunicacionBajaResultado is null || comunicacionBajaResultado.IdTipoMensaje != 2))
+                {
+                    mensajesError.Add(comunicacionBajaResultado?.Mensaje ?? "No se pudo previsualizar la comunicación de baja.");
+                }
+                if (idsBoleta.Count > 0 && (resumenBajaBoletaResultado is null || resumenBajaBoletaResultado.IdTipoMensaje != 2))
+                {
+                    mensajesError.Add(resumenBajaBoletaResultado?.Mensaje ?? "No se pudo previsualizar el resumen de baja de boletas.");
+                }
+
+                if (mensajesError.Count > 0)
+                {
+                    return new Respuesta { IdTipoMensaje = 1, Mensaje = string.Join(" ", mensajesError) };
+                }
+
+                var preview = new List<FacturacionDocumentoBajaPreview>();
+                if (comunicacionBajaResultado?.Datos is not null) preview.AddRange(comunicacionBajaResultado.Datos);
+                if (resumenBajaBoletaResultado?.Datos is not null) preview.AddRange(resumenBajaBoletaResultado.Datos);
+
+                return new Respuesta { IdTipoMensaje = 2, Mensaje = "Consulta exitosa.", Result = preview };
             }
             catch (Exception ex)
             {
