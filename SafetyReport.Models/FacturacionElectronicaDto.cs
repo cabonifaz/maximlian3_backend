@@ -300,10 +300,20 @@ namespace SafetyReport.Models
     // Crédito/Débito vinculada a una Boleta también va por Resumen Diario de Baja, aunque su propio
     // TipoDocumentoCodigo sea 07/08 — Referencia.TipoDocumentoRelacionadoCodigo es lo único que lo revela
     // (queda grabado una sola vez al crear la Nota, ver SP_DocumentoElectronico_Insertar).
+    // TipoDocumentoCodigo va anidado bajo Cabecera (no en la raíz) — el shape real de ms-facturación es
+    // DocumentoElectronicoDetalle{Cabecera, Lineas, Referencia, Cuotas, CamposExtra}, y TipoDocumentoCodigo
+    // es propiedad de DocumentoElectronico (el tipo de Cabecera), no del detalle. Puesto en la raíz acá
+    // deserializaba siempre a "" — nunca "03" — así que ninguna Boleta se detectaba jamás, ni siquiera
+    // antes de agregar Referencia.
     public class FacturacionDocumentoTipoLookup
     {
-        public string TipoDocumentoCodigo { get; set; } = string.Empty;
+        public FacturacionCabeceraTipoLookup? Cabecera { get; set; }
         public FacturacionReferenciaTipoLookup? Referencia { get; set; }
+    }
+
+    public class FacturacionCabeceraTipoLookup
+    {
+        public string TipoDocumentoCodigo { get; set; } = string.Empty;
     }
 
     public class FacturacionReferenciaTipoLookup

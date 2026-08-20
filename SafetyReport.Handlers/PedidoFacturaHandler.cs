@@ -1170,7 +1170,7 @@ namespace SafetyReport.Handlers
                 var tipos = await Task.WhenAll(request.Items.Select(async item =>
                 {
                     var tipo = await _facturacionService.ObtenerTipoDocumentoAsync(usuarioLogueado.IdEmpresa, item.IdDocumentoElectronico, CancellationToken.None);
-                    return (Item: item, TipoDocumentoCodigo: tipo?.Datos?.TipoDocumentoCodigo, Referencia: tipo?.Datos?.Referencia);
+                    return (Item: item, TipoDocumentoCodigo: tipo?.Datos?.Cabecera?.TipoDocumentoCodigo, Referencia: tipo?.Datos?.Referencia);
                 }));
 
                 if (tipos.Any(t => t.TipoDocumentoCodigo is null))
@@ -1294,7 +1294,7 @@ namespace SafetyReport.Handlers
                 var tipos = await Task.WhenAll(idsDocumentoElectronico.Select(async id =>
                 {
                     var tipo = await _facturacionService.ObtenerTipoDocumentoAsync(usuarioLogueado.IdEmpresa, id, CancellationToken.None);
-                    return (Id: id, TipoDocumentoCodigo: tipo?.Datos?.TipoDocumentoCodigo, Referencia: tipo?.Datos?.Referencia);
+                    return (Id: id, TipoDocumentoCodigo: tipo?.Datos?.Cabecera?.TipoDocumentoCodigo, Referencia: tipo?.Datos?.Referencia);
                 }));
 
                 if (tipos.Any(t => t.TipoDocumentoCodigo is null))
