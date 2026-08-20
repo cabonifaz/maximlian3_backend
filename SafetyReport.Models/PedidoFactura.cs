@@ -287,9 +287,10 @@ namespace SafetyReport.Models
         public List<PedidoListaFacturacionConsulta> Pedidos { get; set; } = new();
     }
 
-    // Query params de SP_Pedido_ListarParaPrefactura — el rango llega por FchInicio/FchFin o por Meses (uno
-    // o varios pares Anio/Mes, no contiguos incluido), nunca los dos a la vez ni ninguno de los dos (mismo
-    // chequeo que hace el SP). Binding de [FromQuery]: Meses[0].Anio=2026&Meses[0].Mes=7&Meses[1].Anio=...
+    // Payload de POST .../listarPedidos/exportarExcel para SP_Pedido_ListarParaPrefactura — el rango llega
+    // por FchInicio/FchFin o por Meses (uno o varios pares Anio/Mes, no contiguos incluido), nunca los dos
+    // a la vez ni ninguno de los dos (mismo chequeo que hace el SP). [FromBody]: Meses es una lista JSON,
+    // no un query string — evita el formato frágil Meses[0].Anio=... que un GET hubiera necesitado.
     public class FiltroPedidoPrefactura
     {
         public int IdCliente { get; set; }
