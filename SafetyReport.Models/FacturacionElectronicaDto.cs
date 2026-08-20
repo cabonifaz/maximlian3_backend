@@ -293,13 +293,22 @@ namespace SafetyReport.Models
         public string MotivoDescripcion { get; set; } = string.Empty;
     }
 
-    // Recorte mínimo de GET api/v1/documentos-electronicos/{id} — solo lo que PedidoFacturaHandler.
-    // AnularFacturasAsync necesita para decidir si un ítem va por Comunicación de Baja o por Resumen
-    // Diario de Baja (Boleta), sin acarrear el detalle completo (líneas/cuotas/referencia) que trae
-    // ObtenerDocumentoAsync.
+    // Recorte de GET api/v1/documentos-electronicos/{id} — solo lo que PedidoFacturaHandler.
+    // AnularFacturasAsync/PrevisualizarBajaAsync necesitan para decidir si un ítem va por Comunicación de
+    // Baja o por Resumen Diario de Baja (Boleta), sin acarrear el detalle completo (líneas/cuotas) que trae
+    // ObtenerDocumentoAsync. Referencia sí se incluye (a diferencia del recorte original): una Nota de
+    // Crédito/Débito vinculada a una Boleta también va por Resumen Diario de Baja, aunque su propio
+    // TipoDocumentoCodigo sea 07/08 — Referencia.TipoDocumentoRelacionadoCodigo es lo único que lo revela
+    // (queda grabado una sola vez al crear la Nota, ver SP_DocumentoElectronico_Insertar).
     public class FacturacionDocumentoTipoLookup
     {
         public string TipoDocumentoCodigo { get; set; } = string.Empty;
+        public FacturacionReferenciaTipoLookup? Referencia { get; set; }
+    }
+
+    public class FacturacionReferenciaTipoLookup
+    {
+        public string TipoDocumentoRelacionadoCodigo { get; set; } = string.Empty;
     }
 
     // sendSummary nunca resuelve en la misma llamada: el resultado esperable de éxito es un ticket, no un

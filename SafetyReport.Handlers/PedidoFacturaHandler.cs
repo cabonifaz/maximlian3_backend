@@ -1144,6 +1144,12 @@ namespace SafetyReport.Handlers
         // "SUNAT aceptó la anulación". El veredicto real llega después vía SincronizacionFacturacionWorker,
         // que lleva los pedidos a Anulación Aprobada (8) o Anulación Rechazada (9). Acá solo se los marca
         // Pendiente Anulación (7), y solo los documentos cuyo grupo sí se pudo enviar.
+        // Boleta directa, o Nota de Crédito/Débito emitida contra una Boleta (Referencia.TipoDocumentoRelacionadoCodigo,
+        // grabado una sola vez al crear la Nota — ver SP_DocumentoElectronico_Insertar) — ambas van por Resumen
+        // Diario de Baja, nunca por Comunicación de Baja (ms-facturación la rechaza si se intenta).
+        private static bool EsBoleta(string? tipoDocumentoCodigo, FacturacionReferenciaTipoLookup? referencia) =>
+            tipoDocumentoCodigo == "03" || referencia?.TipoDocumentoRelacionadoCodigo == "03";
+
         public async Task<Respuesta> AnularFacturasAsync(UsuarioGeneral usuarioLogueado, AnularFacturasRequest request)
         {
             try
@@ -1164,7 +1170,7 @@ namespace SafetyReport.Handlers
                 var tipos = await Task.WhenAll(request.Items.Select(async item =>
                 {
                     var tipo = await _facturacionService.ObtenerTipoDocumentoAsync(usuarioLogueado.IdEmpresa, item.IdDocumentoElectronico, CancellationToken.None);
-                    return (Item: item, TipoDocumentoCodigo: tipo?.Datos?.TipoDocumentoCodigo);
+                    return (Item: item, TipoDocumentoCodigo: tipo?.Datos?.TipoDocumentoCodigo, Referencia: tipo?.Datos?.Referencia);
                 }));
 
                 if (tipos.Any(t => t.TipoDocumentoCodigo is null))
@@ -1173,8 +1179,8 @@ namespace SafetyReport.Handlers
                     return new Respuesta { IdTipoMensaje = 3, Mensaje = $"No se pudo resolver el tipo de uno o más documentos ({string.Join(",", idsFallidos)})." };
                 }
 
-                var itemsBoleta = tipos.Where(t => t.TipoDocumentoCodigo == "03").Select(t => t.Item).ToList();
-                var itemsOtros = tipos.Where(t => t.TipoDocumentoCodigo != "03").Select(t => t.Item).ToList();
+                var itemsBoleta = tipos.Where(t => EsBoleta(t.TipoDocumentoCodigo, t.Referencia)).Select(t => t.Item).ToList();
+                var itemsOtros = tipos.Where(t => !EsBoleta(t.TipoDocumentoCodigo, t.Referencia)).Select(t => t.Item).ToList();
 
                 var comunicacionBajaTask = itemsOtros.Count > 0
                     ? _facturacionService.EnviarComunicacionBajaAsync(
@@ -1288,7 +1294,7 @@ namespace SafetyReport.Handlers
                 var tipos = await Task.WhenAll(idsDocumentoElectronico.Select(async id =>
                 {
                     var tipo = await _facturacionService.ObtenerTipoDocumentoAsync(usuarioLogueado.IdEmpresa, id, CancellationToken.None);
-                    return (Id: id, TipoDocumentoCodigo: tipo?.Datos?.TipoDocumentoCodigo);
+                    return (Id: id, TipoDocumentoCodigo: tipo?.Datos?.TipoDocumentoCodigo, Referencia: tipo?.Datos?.Referencia);
                 }));
 
                 if (tipos.Any(t => t.TipoDocumentoCodigo is null))
@@ -1297,8 +1303,8 @@ namespace SafetyReport.Handlers
                     return new Respuesta { IdTipoMensaje = 3, Mensaje = $"No se pudo resolver el tipo de uno o más documentos ({string.Join(",", idsFallidos)})." };
                 }
 
-                var idsBoleta = tipos.Where(t => t.TipoDocumentoCodigo == "03").Select(t => t.Id).ToList();
-                var idsOtros = tipos.Where(t => t.TipoDocumentoCodigo != "03").Select(t => t.Id).ToList();
+                var idsBoleta = tipos.Where(t => EsBoleta(t.TipoDocumentoCodigo, t.Referencia)).Select(t => t.Id).ToList();
+                var idsOtros = tipos.Where(t => !EsBoleta(t.TipoDocumentoCodigo, t.Referencia)).Select(t => t.Id).ToList();
 
                 var comunicacionBajaTask = idsOtros.Count > 0
                     ? _facturacionService.PrevisualizarBajaAsync(usuarioLogueado.IdEmpresa, idEmpresaFacturacion, idsOtros, CancellationToken.None)
