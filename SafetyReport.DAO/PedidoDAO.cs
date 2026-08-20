@@ -723,7 +723,9 @@ namespace SafetyReport.DAO
                             TypeOfReport = dr["TYPE OF REPORT"]?.ToString() ?? string.Empty,
                             ReferenceNo = dr["REFERENCE NO."]?.ToString() ?? string.Empty,
                             Country = dr["COUNTRY"]?.ToString() ?? string.Empty,
-                            DateOfRequest = dr["DATE OF REQUEST"]?.ToString() ?? string.Empty
+                            DateOfRequest = dr["DATE OF REQUEST"]?.ToString() ?? string.Empty,
+                            Currency = dr["CURRENCY"]?.ToString() ?? string.Empty,
+                            Price = Convert.ToDecimal(dr["PRICE"])
                         });
                     }
                 }

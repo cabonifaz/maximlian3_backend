@@ -131,13 +131,14 @@ namespace SafetyReport.Handlers
                 });
 
                 sheetData.Append(CrearFilaExcelPrefactura(
-                    "CLIENT", "COMPANY", "TYPE OF REPORT", "REFERENCE NO.", "COUNTRY", "DATE OF REQUEST"
+                    "CLIENT", "COMPANY", "TYPE OF REPORT", "REFERENCE NO.", "COUNTRY", "DATE OF REQUEST", "CURRENCY", "PRICE"
                     ));
 
                 foreach (var item in items)
                 {
                     sheetData.Append(CrearFilaExcelPrefactura(
-                        item.Client, item.Company, item.TypeOfReport, item.ReferenceNo, item.Country, item.DateOfRequest
+                        item.Client, item.Company, item.TypeOfReport, item.ReferenceNo, item.Country, item.DateOfRequest,
+                        item.Currency, item.Price.ToString("F2", CultureInfo.InvariantCulture)
                         ));
                 }
 
