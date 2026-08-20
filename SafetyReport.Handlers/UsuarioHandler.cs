@@ -31,7 +31,7 @@ namespace SafetyReport.Handlers
                 if (respuesta.IdTipoMensaje != 2)
                     return respuesta;
 
-                var creado = ((List<UsuarioCreado>)respuesta.Result).FirstOrDefault();
+                var creado = respuesta.Result as UsuarioCreado;
 
                 if (creado == null)
                     return respuesta;
@@ -118,7 +118,7 @@ namespace SafetyReport.Handlers
                 if (respuesta.IdTipoMensaje != 2)
                     return respuesta;
 
-                var eliminado = ((List<EliminarUsuarioResult>)respuesta.Result).FirstOrDefault();
+                var eliminado = respuesta.Result as EliminarUsuarioResult;
 
                 if (eliminado != null && !string.IsNullOrWhiteSpace(eliminado.Usuario))
                 {

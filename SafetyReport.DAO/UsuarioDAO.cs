@@ -67,8 +67,8 @@ namespace SafetyReport.DAO
                 cmd.Parameters.AddWithValue("@vchApellidoMaterno", (object?)request.ApellidoMaterno ?? DBNull.Value);
                 cmd.Parameters.AddWithValue("@vchCorreo", request.Correo);
                 cmd.Parameters.AddWithValue("@vchUsuarioCreado", request.usuarioCreacion);
-                cmd.Parameters.AddWithValue("@lstRoles", JsonSerializer.Serialize(request.Roles ?? new List<int>()));
-                cmd.Parameters.AddWithValue("@lstIdiomas", JsonSerializer.Serialize(request.Idiomas ?? new List<int>()));
+                cmd.Parameters.AddWithValue("@lstRoles", JsonSerializer.Serialize((request.Roles ?? new List<int>()).Select(id => new { NUM1 = id })));
+                cmd.Parameters.AddWithValue("@lstIdiomas", JsonSerializer.Serialize((request.Idiomas ?? new List<int>()).Select(id => new { NUM1 = id })));
 
                 await cn.OpenAsync();
                 using MySqlDataReader dr = await cmd.ExecuteReaderAsync();
@@ -115,8 +115,8 @@ namespace SafetyReport.DAO
                 cmd.Parameters.AddWithValue("@vchApellidoPaterno", request.ApellidoPaterno);
                 cmd.Parameters.AddWithValue("@vchApellidoMaterno", (object?)request.ApellidoMaterno ?? DBNull.Value);
                 cmd.Parameters.AddWithValue("@intIdEstado", request.IdEstado);
-                cmd.Parameters.AddWithValue("@lstRoles", JsonSerializer.Serialize(request.Roles ?? new List<int>()));
-                cmd.Parameters.AddWithValue("@lstIdiomas", JsonSerializer.Serialize(request.Idiomas ?? new List<int>()));
+                cmd.Parameters.AddWithValue("@lstRoles", JsonSerializer.Serialize((request.Roles ?? new List<int>()).Select(id => new { NUM1 = id })));
+                cmd.Parameters.AddWithValue("@lstIdiomas", JsonSerializer.Serialize((request.Idiomas ?? new List<int>()).Select(id => new { NUM1 = id })));
 
                 await cn.OpenAsync();
                 using MySqlDataReader dr = await cmd.ExecuteReaderAsync();
