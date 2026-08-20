@@ -73,12 +73,17 @@ namespace SafetyReport.Handlers
             }
         }
 
-        // Por mes/año -> "July 2026"; por rango explícito -> "06 July 2026 - 15 August 2026". Solo se llega
-        // acá con IdTipoMensaje=2, así que el SP ya garantizó que exactamente uno de los dos pares vino.
+        // Por mes(es) -> "July 2026" o "July 2026, September 2026" (uno o varios, no necesariamente
+        // contiguos); por rango explícito -> "06 July 2026 - 15 August 2026". Solo se llega acá con
+        // IdTipoMensaje=2, así que el SP ya garantizó que exactamente uno de los dos vino.
         private static string ObtenerEtiquetaPeriodo(FiltroPedidoPrefactura request)
         {
-            if (request.Anio is not null && request.Mes is not null)
-                return new DateOnly(request.Anio.Value, request.Mes.Value, 1).ToString("MMMM yyyy", CultureInfo.InvariantCulture);
+            if (request.Meses is { Count: > 0 })
+            {
+                var etiquetas = request.Meses.Select(am =>
+                    new DateOnly(am.Anio, am.Mes, 1).ToString("MMMM yyyy", CultureInfo.InvariantCulture));
+                return string.Join(", ", etiquetas);
+            }
 
             var fchInicioTexto = request.FchInicio?.ToString("dd MMMM yyyy", CultureInfo.InvariantCulture) ?? string.Empty;
             var fchFinTexto = request.FchFin?.ToString("dd MMMM yyyy", CultureInfo.InvariantCulture) ?? string.Empty;

@@ -287,16 +287,21 @@ namespace SafetyReport.Models
         public List<PedidoListaFacturacionConsulta> Pedidos { get; set; } = new();
     }
 
-    // Query params de SP_Pedido_ListarParaPrefactura — los 3 son obligatorios ahí, sin default acá tampoco.
-    // Query params de SP_Pedido_ListarParaPrefactura — el rango llega por FchInicio/FchFin o por Anio/Mes,
-    // nunca los dos a la vez ni ninguno de los dos (mismo chequeo que hace el SP).
+    // Query params de SP_Pedido_ListarParaPrefactura — el rango llega por FchInicio/FchFin o por Meses (uno
+    // o varios pares Anio/Mes, no contiguos incluido), nunca los dos a la vez ni ninguno de los dos (mismo
+    // chequeo que hace el SP). Binding de [FromQuery]: Meses[0].Anio=2026&Meses[0].Mes=7&Meses[1].Anio=...
     public class FiltroPedidoPrefactura
     {
         public int IdCliente { get; set; }
         public DateOnly? FchInicio { get; set; }
         public DateOnly? FchFin { get; set; }
-        public int? Anio { get; set; }
-        public int? Mes { get; set; }
+        public List<AnioMesFiltro>? Meses { get; set; }
+    }
+
+    public class AnioMesFiltro
+    {
+        public int Anio { get; set; }
+        public int Mes { get; set; }
     }
 
     // Resultado de SP_Pedido_ListarParaPrefactura — columnas ya vienen en mayúsculas y formateadas desde el SP.

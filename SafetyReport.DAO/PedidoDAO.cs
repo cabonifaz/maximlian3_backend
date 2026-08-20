@@ -33,6 +33,21 @@ namespace SafetyReport.DAO
             return table;
         }
 
+        private static DataTable ConstruirTablaListaAnioMes(List<AnioMesFiltro>? valores)
+        {
+            var table = new DataTable();
+            table.Columns.Add("Anio", typeof(int));
+            table.Columns.Add("Mes", typeof(int));
+
+            if (valores != null)
+            {
+                foreach (var valor in valores)
+                    table.Rows.Add(valor.Anio, valor.Mes);
+            }
+
+            return table;
+        }
+
         private async Task<Respuesta> LeerRespuestaAsync<T>(SqlCommand cmd)
         {
             var respuesta = new Respuesta();
@@ -703,8 +718,10 @@ namespace SafetyReport.DAO
                 cmd.Parameters.Add("@intIdCliente", SqlDbType.Int).Value = request.IdCliente;
                 cmd.Parameters.Add("@dtFchInicio", SqlDbType.Date).Value = (object?)request.FchInicio?.ToDateTime(TimeOnly.MinValue) ?? DBNull.Value;
                 cmd.Parameters.Add("@dtFchFin", SqlDbType.Date).Value = (object?)request.FchFin?.ToDateTime(TimeOnly.MinValue) ?? DBNull.Value;
-                cmd.Parameters.Add("@intAnio", SqlDbType.Int).Value = (object?)request.Anio ?? DBNull.Value;
-                cmd.Parameters.Add("@intMes", SqlDbType.Int).Value = (object?)request.Mes ?? DBNull.Value;
+
+                var tvpAnioMes = cmd.Parameters.Add("@lstAnioMes", SqlDbType.Structured);
+                tvpAnioMes.TypeName = "LISTA_ANIO_MES";
+                tvpAnioMes.Value = ConstruirTablaListaAnioMes(request.Meses);
 
                 await cn.OpenAsync();
 
