@@ -287,6 +287,38 @@ namespace SafetyReport.Models
         public List<PedidoListaFacturacionConsulta> Pedidos { get; set; } = new();
     }
 
+    // Query params de SP_Pedido_ListarParaPrefactura — los 3 son obligatorios ahí, sin default acá tampoco.
+    // Query params de SP_Pedido_ListarParaPrefactura — el rango llega por FchInicio/FchFin o por Anio/Mes,
+    // nunca los dos a la vez ni ninguno de los dos (mismo chequeo que hace el SP).
+    public class FiltroPedidoPrefactura
+    {
+        public int IdCliente { get; set; }
+        public DateOnly? FchInicio { get; set; }
+        public DateOnly? FchFin { get; set; }
+        public int? Anio { get; set; }
+        public int? Mes { get; set; }
+    }
+
+    // Resultado de SP_Pedido_ListarParaPrefactura — columnas ya vienen en mayúsculas y formateadas desde el SP.
+    public class PedidoPrefacturaConsulta
+    {
+        public string Client { get; set; } = string.Empty;
+        public string? Company { get; set; }
+        public string TypeOfReport { get; set; } = string.Empty;
+        public string ReferenceNo { get; set; } = string.Empty;
+        public string Country { get; set; } = string.Empty;
+        public string DateOfRequest { get; set; } = string.Empty;
+        public string Currency { get; set; } = string.Empty;
+        public decimal Price { get; set; }
+    }
+
+    public class PedidoPrefacturaExportacion
+    {
+        public string NombreArchivo { get; set; } = string.Empty;
+        public string ContentType { get; set; } = string.Empty;
+        public byte[] Archivo { get; set; } = [];
+    }
+
     // TABLA_MAESTRA IdMaestro=76 — checkpoint del worker de sincronización, un registro por empresa.
     public class CheckpointSincronizacionConsulta
     {

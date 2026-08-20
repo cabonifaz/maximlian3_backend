@@ -1,7 +1,12 @@
+using DocumentFormat.OpenXml;
+using DocumentFormat.OpenXml.Packaging;
+using DocumentFormat.OpenXml.Spreadsheet;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using SafetyReport.DAO;
 using SafetyReport.Models;
+using System.Globalization;
+using System.Text;
 
 namespace SafetyReport.Handlers
 {
@@ -9,16 +14,18 @@ namespace SafetyReport.Handlers
     {
         private readonly PedidoFacturaDAO _pedidoFacturaDao;
         private readonly PedidoDAO _pedidoDao;
+        private readonly ClienteDAO _clienteDao;
         private readonly FacturacionElectronicaService _facturacionService;
         private readonly IConfiguration _configuration;
         private readonly ILogger<PedidoFacturaHandler> _logger;
 
         public PedidoFacturaHandler(
-            PedidoFacturaDAO pedidoFacturaDao, PedidoDAO pedidoDao, FacturacionElectronicaService facturacionService,
+            PedidoFacturaDAO pedidoFacturaDao, PedidoDAO pedidoDao, ClienteDAO clienteDao, FacturacionElectronicaService facturacionService,
             IConfiguration configuration, ILogger<PedidoFacturaHandler> logger)
         {
             _pedidoFacturaDao = pedidoFacturaDao;
             _pedidoDao = pedidoDao;
+            _clienteDao = clienteDao;
             _facturacionService = facturacionService;
             _configuration = configuration;
             _logger = logger;
@@ -26,6 +33,132 @@ namespace SafetyReport.Handlers
 
         public Task<Respuesta> ListarPedidosParaFacturacionAsync(UsuarioGeneral usuarioLogueado, ListarPedidosFacturacionRequest request) =>
             _pedidoDao.ListarParaFacturacionAsync(usuarioLogueado, request);
+
+        // Genera el Excel de SP_Pedido_ListarParaPrefactura. El nombre de cliente para el nombre de archivo
+        // se resuelve aparte (ClienteDAO) en vez de tomarlo de la primera fila — así el nombre del archivo
+        // no depende de que existan pedidos en el rango, y evita quedar vacío si el filtro no matchea nada.
+        public async Task<Respuesta> ExportarPedidosParaPrefacturaAsync(UsuarioGeneral usuarioLogueado, FiltroPedidoPrefactura request)
+        {
+            try
+            {
+                var respuesta = await _pedidoDao.ListarParaPrefacturaAsync(usuarioLogueado, request);
+                if (respuesta.IdTipoMensaje != 2)
+                    return respuesta;
+
+                var items = respuesta.Result as List<PedidoPrefacturaConsulta> ?? new();
+
+                var clienteResp = await _clienteDao.ObtenerClienteAsync(usuarioLogueado, request.IdCliente);
+                var nombreCliente = clienteResp.IdTipoMensaje == 2
+                    ? (clienteResp.Result as List<ClienteConsulta>)?.FirstOrDefault()?.Nombre
+                    : null;
+                nombreCliente = string.IsNullOrWhiteSpace(nombreCliente) ? "CLIENTE" : nombreCliente;
+
+                var archivo = GenerarExcelPrefactura(items);
+                var etiquetaPeriodo = ObtenerEtiquetaPeriodo(request);
+                var nombreArchivo = $"{SanitizarNombreArchivo(nombreCliente)} List of Reports {etiquetaPeriodo}.xlsx";
+
+                respuesta.Result = new PedidoPrefacturaExportacion
+                {
+                    NombreArchivo = nombreArchivo,
+                    ContentType = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                    Archivo = archivo
+                };
+                return respuesta;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error no controlado en la capa de negocio.");
+
+                return new Respuesta { IdTipoMensaje = 3, Mensaje = ex.Message, Result = null! };
+            }
+        }
+
+        // Por mes/año -> "July 2026"; por rango explícito -> "06 July 2026 - 15 August 2026". Solo se llega
+        // acá con IdTipoMensaje=2, así que el SP ya garantizó que exactamente uno de los dos pares vino.
+        private static string ObtenerEtiquetaPeriodo(FiltroPedidoPrefactura request)
+        {
+            if (request.Anio is not null && request.Mes is not null)
+                return new DateOnly(request.Anio.Value, request.Mes.Value, 1).ToString("MMMM yyyy", CultureInfo.InvariantCulture);
+
+            var fchInicioTexto = request.FchInicio?.ToString("dd MMMM yyyy", CultureInfo.InvariantCulture) ?? string.Empty;
+            var fchFinTexto = request.FchFin?.ToString("dd MMMM yyyy", CultureInfo.InvariantCulture) ?? string.Empty;
+            return $"{fchInicioTexto} - {fchFinTexto}";
+        }
+
+        // Mismos caracteres inválidos en Windows/macOS/Linux (\ / : * ? " < > |) más los de control — el
+        // nombre de cliente puede traer puntos/paréntesis (v.g. "S.A. (RAZÓN)"), esos sí son válidos.
+        // Tildes/ñ se quitan aparte (EliminarDiacriticos) — solo afecta el nombre de archivo, el contenido
+        // del Excel (columna CLIENT, etc.) sigue con el nombre tal cual viene de la base.
+        private static string SanitizarNombreArchivo(string valor)
+        {
+            var sinDiacriticos = EliminarDiacriticos(valor);
+            var caracteresInvalidos = Path.GetInvalidFileNameChars();
+            var limpio = new string(sinDiacriticos.Where(c => !caracteresInvalidos.Contains(c)).ToArray()).Trim();
+
+            return string.IsNullOrWhiteSpace(limpio) ? "CLIENTE" : limpio;
+        }
+
+        // NFD descompone "á"->"a"+´, "ñ"->"n"+~; descartar los Non-Spacing Marks deja solo la letra base.
+        // El acento suelto (´, U+00B4) no cuelga de ninguna letra, así que se quita aparte antes de normalizar.
+        private static string EliminarDiacriticos(string valor)
+        {
+            var sinAcentoSuelto = valor.Replace("´", "").Replace("`", "");
+            var normalizado = sinAcentoSuelto.Normalize(NormalizationForm.FormD);
+            var sinMarcas = normalizado.Where(c => CharUnicodeInfo.GetUnicodeCategory(c) != UnicodeCategory.NonSpacingMark);
+
+            return new string(sinMarcas.ToArray()).Normalize(NormalizationForm.FormC);
+        }
+
+        private static byte[] GenerarExcelPrefactura(List<PedidoPrefacturaConsulta> items)
+        {
+            using var stream = new MemoryStream();
+            using (var document = SpreadsheetDocument.Create(stream, SpreadsheetDocumentType.Workbook))
+            {
+                var workbookPart = document.AddWorkbookPart();
+                workbookPart.Workbook = new Workbook();
+
+                var worksheetPart = workbookPart.AddNewPart<WorksheetPart>();
+                var sheetData = new SheetData();
+                worksheetPart.Worksheet = new Worksheet();
+                worksheetPart.Worksheet.Append(sheetData);
+
+                var sheets = workbookPart.Workbook.AppendChild(new Sheets());
+                sheets.Append(new Sheet
+                {
+                    Id = workbookPart.GetIdOfPart(worksheetPart),
+                    SheetId = 1,
+                    Name = "Reports"
+                });
+
+                sheetData.Append(CrearFilaExcelPrefactura(
+                    "CLIENT", "COMPANY", "TYPE OF REPORT", "REFERENCE NO.", "COUNTRY", "DATE OF REQUEST", "CURRENCY", "PRICE"
+                    ));
+
+                foreach (var item in items)
+                {
+                    sheetData.Append(CrearFilaExcelPrefactura(
+                        item.Client, item.Company, item.TypeOfReport, item.ReferenceNo, item.Country, item.DateOfRequest,
+                        item.Currency, item.Price.ToString("F2", CultureInfo.InvariantCulture)
+                        ));
+                }
+
+                workbookPart.Workbook.Save();
+            }
+
+            return stream.ToArray();
+        }
+
+        private static Row CrearFilaExcelPrefactura(params string?[] valores)
+        {
+            var row = new Row();
+            foreach (var valor in valores)
+                row.Append(new Cell
+                {
+                    DataType = CellValues.InlineString,
+                    InlineString = new InlineString(new Text(valor ?? string.Empty))
+                });
+            return row;
+        }
 
         // Listado de facturas ya generadas — NumeroFactura/ClienteNombre/FormaPago/Estado vienen resueltos
         // por ms-facturación, este Handler solo hace de proxy con los filtros del front.
@@ -1001,10 +1134,22 @@ namespace SafetyReport.Handlers
             }
         }
 
-        // Dispara la Comunicación de Baja (sendSummary) para los documentos indicados. sendSummary nunca
-        // resuelve en la misma llamada — éxito acá es "el ticket se generó", no "SUNAT aceptó la anulación".
-        // El veredicto real llega después vía SincronizacionFacturacionWorker, que lleva los pedidos a
-        // Anulación Aprobada (8) o Anulación Rechazada (9). Acá solo se los marca Pendiente Anulación (7).
+        // Dispara la Comunicación de Baja (sendSummary) para los documentos indicados — o el Resumen Diario
+        // de Baja si son Boleta, ms-facturación exige mecanismos distintos según el tipo (ver
+        // SP_LoteDocumento_Insertar/SP_LoteResumenBajaBoleta_Insertar). Se resuelve el tipo de cada ítem
+        // primero (ObtenerTipoDocumentoAsync, en paralelo) y se despacha cada grupo a su endpoint — la
+        // mayoría de las veces request.Items trae un solo documento (la UI anula de a uno), así que en la
+        // práctica esto casi siempre termina llamando un solo endpoint, pero se resuelve por grupo para no
+        // asumirlo. sendSummary nunca resuelve en la misma llamada — éxito acá es "el ticket se generó", no
+        // "SUNAT aceptó la anulación". El veredicto real llega después vía SincronizacionFacturacionWorker,
+        // que lleva los pedidos a Anulación Aprobada (8) o Anulación Rechazada (9). Acá solo se los marca
+        // Pendiente Anulación (7), y solo los documentos cuyo grupo sí se pudo enviar.
+        // Boleta directa, o Nota de Crédito/Débito emitida contra una Boleta (Referencia.TipoDocumentoRelacionadoCodigo,
+        // grabado una sola vez al crear la Nota — ver SP_DocumentoElectronico_Insertar) — ambas van por Resumen
+        // Diario de Baja, nunca por Comunicación de Baja (ms-facturación la rechaza si se intenta).
+        private static bool EsBoleta(string? tipoDocumentoCodigo, FacturacionReferenciaTipoLookup? referencia) =>
+            tipoDocumentoCodigo == "03" || referencia?.TipoDocumentoRelacionadoCodigo == "03";
+
         public async Task<Respuesta> AnularFacturasAsync(UsuarioGeneral usuarioLogueado, AnularFacturasRequest request)
         {
             try
@@ -1020,36 +1165,102 @@ namespace SafetyReport.Handlers
                     return new Respuesta { IdTipoMensaje = 1, Mensaje = "Debe indicar al menos un documento a anular." };
                 }
 
-                var facturacionRequest = new FacturacionComunicacionBajaRequest
-                {
-                    IdInquilino = usuarioLogueado.IdEmpresa,
-                    IdEmpresa = 1, // TODO: resolver desde EMPRESAS de ms-facturación (GET /api/v1/empresas?idInquilino=) en vez de fijo.
-                    FechaReferencia = request.FechaReferencia,
-                    Items = request.Items
-                        .Select(item => new FacturacionItemBaja { IdDocumentoElectronico = item.IdDocumentoElectronico, MotivoDescripcion = item.MotivoDescripcion })
-                        .ToList()
-                };
+                const int idEmpresaFacturacion = 1; // TODO: resolver desde EMPRESAS de ms-facturación (GET /api/v1/empresas?idInquilino=) en vez de fijo.
 
-                var resultado = await _facturacionService.EnviarComunicacionBajaAsync(facturacionRequest, CancellationToken.None);
-
-                if (resultado is null || resultado.IdTipoMensaje != 2 || resultado.Datos is null)
+                var tipos = await Task.WhenAll(request.Items.Select(async item =>
                 {
-                    return new Respuesta { IdTipoMensaje = resultado?.IdTipoMensaje ?? 3, Mensaje = resultado?.Mensaje ?? "No se pudo enviar la comunicación de baja." };
+                    var tipo = await _facturacionService.ObtenerTipoDocumentoAsync(usuarioLogueado.IdEmpresa, item.IdDocumentoElectronico, CancellationToken.None);
+                    return (Item: item, TipoDocumentoCodigo: tipo?.Datos?.Cabecera?.TipoDocumentoCodigo, Referencia: tipo?.Datos?.Referencia);
+                }));
+
+                if (tipos.Any(t => t.TipoDocumentoCodigo is null))
+                {
+                    var idsFallidos = tipos.Where(t => t.TipoDocumentoCodigo is null).Select(t => t.Item.IdDocumentoElectronico);
+                    return new Respuesta { IdTipoMensaje = 3, Mensaje = $"No se pudo resolver el tipo de uno o más documentos ({string.Join(",", idsFallidos)})." };
                 }
 
-                var documentosConEstado = request.Items
-                    .Select(item => (item.IdDocumentoElectronico, IdEstadoFacturacion: 7)) // Pendiente Anulación
-                    .ToList();
+                var itemsBoleta = tipos.Where(t => EsBoleta(t.TipoDocumentoCodigo, t.Referencia)).Select(t => t.Item).ToList();
+                var itemsOtros = tipos.Where(t => !EsBoleta(t.TipoDocumentoCodigo, t.Referencia)).Select(t => t.Item).ToList();
 
-                var actualizacion = await _pedidoFacturaDao.ActualizarEstadoPorDocumentoAsync(usuarioLogueado.IdEmpresa, documentosConEstado);
-                if (actualizacion.IdTipoMensaje != 2)
+                var comunicacionBajaTask = itemsOtros.Count > 0
+                    ? _facturacionService.EnviarComunicacionBajaAsync(
+                        new FacturacionComunicacionBajaRequest
+                        {
+                            IdInquilino = usuarioLogueado.IdEmpresa,
+                            IdEmpresa = idEmpresaFacturacion,
+                            FechaReferencia = request.FechaReferencia,
+                            Items = itemsOtros.Select(item => new FacturacionItemBaja { IdDocumentoElectronico = item.IdDocumentoElectronico, MotivoDescripcion = item.MotivoDescripcion }).ToList()
+                        },
+                        CancellationToken.None)
+                    : Task.FromResult<FacturacionEnvelope<FacturacionLoteDocumentoCreado>?>(null);
+
+                var resumenBajaBoletaTask = itemsBoleta.Count > 0
+                    ? _facturacionService.EnviarResumenBajaBoletaAsync(
+                        new FacturacionComunicacionBajaRequest
+                        {
+                            IdInquilino = usuarioLogueado.IdEmpresa,
+                            IdEmpresa = idEmpresaFacturacion,
+                            FechaReferencia = request.FechaReferencia,
+                            Items = itemsBoleta.Select(item => new FacturacionItemBaja { IdDocumentoElectronico = item.IdDocumentoElectronico, MotivoDescripcion = item.MotivoDescripcion }).ToList()
+                        },
+                        CancellationToken.None)
+                    : Task.FromResult<FacturacionEnvelope<FacturacionLoteDocumentoCreado>?>(null);
+
+                await Task.WhenAll(comunicacionBajaTask, resumenBajaBoletaTask);
+                var comunicacionBajaResultado = await comunicacionBajaTask;
+                var resumenBajaBoletaResultado = await resumenBajaBoletaTask;
+
+                var lotesCreados = new List<FacturacionLoteDocumentoCreado>();
+                var itemsExitosos = new List<AnularFacturaItem>();
+                var mensajesError = new List<string>();
+
+                if (itemsOtros.Count > 0)
                 {
-                    _logger.LogWarning(
-                        "No se pudo marcar Pendiente Anulación los documentos {IdDocumentos} tras enviar la comunicación de baja: {Mensaje}",
-                        string.Join(",", request.Items.Select(i => i.IdDocumentoElectronico)), actualizacion.Mensaje);
+                    if (comunicacionBajaResultado is not null && comunicacionBajaResultado.IdTipoMensaje == 2 && comunicacionBajaResultado.Datos is not null)
+                    {
+                        lotesCreados.Add(comunicacionBajaResultado.Datos);
+                        itemsExitosos.AddRange(itemsOtros);
+                    }
+                    else
+                    {
+                        mensajesError.Add(comunicacionBajaResultado?.Mensaje ?? "No se pudo enviar la comunicación de baja.");
+                    }
                 }
 
-                return new Respuesta { IdTipoMensaje = 2, Mensaje = "Comunicación de baja enviada correctamente.", Result = resultado.Datos };
+                if (itemsBoleta.Count > 0)
+                {
+                    if (resumenBajaBoletaResultado is not null && resumenBajaBoletaResultado.IdTipoMensaje == 2 && resumenBajaBoletaResultado.Datos is not null)
+                    {
+                        lotesCreados.Add(resumenBajaBoletaResultado.Datos);
+                        itemsExitosos.AddRange(itemsBoleta);
+                    }
+                    else
+                    {
+                        mensajesError.Add(resumenBajaBoletaResultado?.Mensaje ?? "No se pudo enviar el resumen de baja de boletas.");
+                    }
+                }
+
+                if (itemsExitosos.Count > 0)
+                {
+                    var documentosConEstado = itemsExitosos
+                        .Select(item => (item.IdDocumentoElectronico, IdEstadoFacturacion: 7)) // Pendiente Anulación
+                        .ToList();
+
+                    var actualizacion = await _pedidoFacturaDao.ActualizarEstadoPorDocumentoAsync(usuarioLogueado.IdEmpresa, documentosConEstado);
+                    if (actualizacion.IdTipoMensaje != 2)
+                    {
+                        _logger.LogWarning(
+                            "No se pudo marcar Pendiente Anulación los documentos {IdDocumentos} tras enviar la baja: {Mensaje}",
+                            string.Join(",", itemsExitosos.Select(i => i.IdDocumentoElectronico)), actualizacion.Mensaje);
+                    }
+                }
+
+                if (mensajesError.Count > 0)
+                {
+                    return new Respuesta { IdTipoMensaje = 1, Mensaje = string.Join(" ", mensajesError), Result = lotesCreados };
+                }
+
+                return new Respuesta { IdTipoMensaje = 2, Mensaje = "Comunicación/resumen de baja enviado correctamente.", Result = lotesCreados };
             }
             catch (Exception ex)
             {
@@ -1077,17 +1288,56 @@ namespace SafetyReport.Handlers
                     return new Respuesta { IdTipoMensaje = 1, Mensaje = "Debe indicar al menos un documento a anular." };
                 }
 
-                var resultado = await _facturacionService.PrevisualizarBajaAsync(
-                    usuarioLogueado.IdEmpresa,
-                    1, // TODO: resolver desde EMPRESAS de ms-facturación (GET /api/v1/empresas?idInquilino=) en vez de fijo.
-                    idsDocumentoElectronico, CancellationToken.None);
+                const int idEmpresaFacturacion = 1; // TODO: resolver desde EMPRESAS de ms-facturación (GET /api/v1/empresas?idInquilino=) en vez de fijo.
 
-                if (resultado is null || resultado.IdTipoMensaje != 2)
+                // Mismo criterio de despacho por tipo que AnularFacturasAsync — ver ese método para el detalle.
+                var tipos = await Task.WhenAll(idsDocumentoElectronico.Select(async id =>
                 {
-                    return new Respuesta { IdTipoMensaje = resultado?.IdTipoMensaje ?? 3, Mensaje = resultado?.Mensaje ?? "No se pudo previsualizar la comunicación de baja." };
+                    var tipo = await _facturacionService.ObtenerTipoDocumentoAsync(usuarioLogueado.IdEmpresa, id, CancellationToken.None);
+                    return (Id: id, TipoDocumentoCodigo: tipo?.Datos?.Cabecera?.TipoDocumentoCodigo, Referencia: tipo?.Datos?.Referencia);
+                }));
+
+                if (tipos.Any(t => t.TipoDocumentoCodigo is null))
+                {
+                    var idsFallidos = tipos.Where(t => t.TipoDocumentoCodigo is null).Select(t => t.Id);
+                    return new Respuesta { IdTipoMensaje = 3, Mensaje = $"No se pudo resolver el tipo de uno o más documentos ({string.Join(",", idsFallidos)})." };
                 }
 
-                return new Respuesta { IdTipoMensaje = 2, Mensaje = "Consulta exitosa.", Result = resultado.Datos };
+                var idsBoleta = tipos.Where(t => EsBoleta(t.TipoDocumentoCodigo, t.Referencia)).Select(t => t.Id).ToList();
+                var idsOtros = tipos.Where(t => !EsBoleta(t.TipoDocumentoCodigo, t.Referencia)).Select(t => t.Id).ToList();
+
+                var comunicacionBajaTask = idsOtros.Count > 0
+                    ? _facturacionService.PrevisualizarBajaAsync(usuarioLogueado.IdEmpresa, idEmpresaFacturacion, idsOtros, CancellationToken.None)
+                    : Task.FromResult<FacturacionEnvelope<List<FacturacionDocumentoBajaPreview>>?>(null);
+
+                var resumenBajaBoletaTask = idsBoleta.Count > 0
+                    ? _facturacionService.PrevisualizarResumenBajaBoletaAsync(usuarioLogueado.IdEmpresa, idEmpresaFacturacion, idsBoleta, CancellationToken.None)
+                    : Task.FromResult<FacturacionEnvelope<List<FacturacionDocumentoBajaPreview>>?>(null);
+
+                await Task.WhenAll(comunicacionBajaTask, resumenBajaBoletaTask);
+                var comunicacionBajaResultado = await comunicacionBajaTask;
+                var resumenBajaBoletaResultado = await resumenBajaBoletaTask;
+
+                var mensajesError = new List<string>();
+                if (idsOtros.Count > 0 && (comunicacionBajaResultado is null || comunicacionBajaResultado.IdTipoMensaje != 2))
+                {
+                    mensajesError.Add(comunicacionBajaResultado?.Mensaje ?? "No se pudo previsualizar la comunicación de baja.");
+                }
+                if (idsBoleta.Count > 0 && (resumenBajaBoletaResultado is null || resumenBajaBoletaResultado.IdTipoMensaje != 2))
+                {
+                    mensajesError.Add(resumenBajaBoletaResultado?.Mensaje ?? "No se pudo previsualizar el resumen de baja de boletas.");
+                }
+
+                if (mensajesError.Count > 0)
+                {
+                    return new Respuesta { IdTipoMensaje = 1, Mensaje = string.Join(" ", mensajesError) };
+                }
+
+                var preview = new List<FacturacionDocumentoBajaPreview>();
+                if (comunicacionBajaResultado?.Datos is not null) preview.AddRange(comunicacionBajaResultado.Datos);
+                if (resumenBajaBoletaResultado?.Datos is not null) preview.AddRange(resumenBajaBoletaResultado.Datos);
+
+                return new Respuesta { IdTipoMensaje = 2, Mensaje = "Consulta exitosa.", Result = preview };
             }
             catch (Exception ex)
             {

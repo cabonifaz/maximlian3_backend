@@ -52,6 +52,21 @@ namespace SafetyReport.WebApi.Controllers
             return Ok(respuesta);
         }
 
+        [HttpGet("listarPedidos/exportarExcel")]
+        [Produces("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")]
+        public async Task<IActionResult> ExportarPedidosParaPrefactura([FromQuery] FiltroPedidoPrefactura request)
+        {
+            var respuesta = await _pedidoFacturaHandler.ExportarPedidosParaPrefacturaAsync(UsuarioLogueado, request);
+
+            if (respuesta.IdTipoMensaje != 2 || respuesta.Result is not PedidoPrefacturaExportacion exportacion)
+                return Ok(respuesta);
+
+            return File(
+                exportacion.Archivo,
+                exportacion.ContentType,
+                exportacion.NombreArchivo);
+        }
+
         [HttpGet("listarFacturas")]
         public async Task<IActionResult> ListarFacturas([FromQuery] ListarFacturasRequest request)
         {

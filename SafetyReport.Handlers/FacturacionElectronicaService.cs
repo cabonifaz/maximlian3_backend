@@ -62,6 +62,17 @@ namespace SafetyReport.Handlers
             return await respuesta.Content.ReadFromJsonAsync<FacturacionEnvelope<object>>(JsonOptions, cancellationToken);
         }
 
+        // Misma URL que ObtenerDocumentoAsync, pero recorta la deserialización a solo TipoDocumentoCodigo —
+        // usado por PedidoFacturaHandler.AnularFacturasAsync/PrevisualizarBajaAsync para decidir Comunicación
+        // de Baja vs Resumen Diario de Baja sin acarrear el detalle completo del documento.
+        public async Task<FacturacionEnvelope<FacturacionDocumentoTipoLookup>?> ObtenerTipoDocumentoAsync(
+            int idInquilino, int idDocumentoElectronico, CancellationToken cancellationToken)
+        {
+            var url = $"api/v1/documentos-electronicos/{idDocumentoElectronico}?idInquilino={idInquilino}";
+            var respuesta = await _httpClient.GetAsync(url, cancellationToken);
+            return await respuesta.Content.ReadFromJsonAsync<FacturacionEnvelope<FacturacionDocumentoTipoLookup>>(JsonOptions, cancellationToken);
+        }
+
         // Cliente + listado de productos de un documento ya emitido, sin resolver los Num1 — para prellenar
         // el receptor y listar los productos del documento afectado al armar una Nota de Crédito/Débito
         // (ver PedidoFacturaHandler.ObtenerParaNotaAsync / GenerarNotaCreditoDebitoAsync).
@@ -239,6 +250,26 @@ namespace SafetyReport.Handlers
             query.AddRange(idsDocumentoElectronico.Select(id => $"idsDocumentoElectronico={id}"));
 
             var respuesta = await _httpClient.GetAsync($"api/v1/lotes-documento/comunicacion-baja/preview?{string.Join('&', query)}", cancellationToken);
+            return await respuesta.Content.ReadFromJsonAsync<FacturacionEnvelope<List<FacturacionDocumentoBajaPreview>>>(JsonOptions, cancellationToken);
+        }
+
+        // Resumen Diario de Baja de Boletas — mismo request/response shape que EnviarComunicacionBajaAsync/
+        // PrevisualizarBajaAsync, pero para Boleta y sus Notas vinculadas (ms-facturación exige este
+        // mecanismo distinto para anularlas, no Comunicación de Baja).
+        public async Task<FacturacionEnvelope<FacturacionLoteDocumentoCreado>?> EnviarResumenBajaBoletaAsync(
+            FacturacionComunicacionBajaRequest request, CancellationToken cancellationToken)
+        {
+            var respuesta = await _httpClient.PostAsJsonAsync("api/v1/lotes-documento/resumen-baja-boleta", request, JsonOptions, cancellationToken);
+            return await respuesta.Content.ReadFromJsonAsync<FacturacionEnvelope<FacturacionLoteDocumentoCreado>>(JsonOptions, cancellationToken);
+        }
+
+        public async Task<FacturacionEnvelope<List<FacturacionDocumentoBajaPreview>>?> PrevisualizarResumenBajaBoletaAsync(
+            int idInquilino, int idEmpresa, IReadOnlyList<int> idsDocumentoElectronico, CancellationToken cancellationToken)
+        {
+            var query = new List<string> { $"idInquilino={idInquilino}", $"idEmpresa={idEmpresa}" };
+            query.AddRange(idsDocumentoElectronico.Select(id => $"idsDocumentoElectronico={id}"));
+
+            var respuesta = await _httpClient.GetAsync($"api/v1/lotes-documento/resumen-baja-boleta/preview?{string.Join('&', query)}", cancellationToken);
             return await respuesta.Content.ReadFromJsonAsync<FacturacionEnvelope<List<FacturacionDocumentoBajaPreview>>>(JsonOptions, cancellationToken);
         }
 
