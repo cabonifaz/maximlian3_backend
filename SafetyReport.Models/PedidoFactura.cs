@@ -246,7 +246,7 @@ namespace SafetyReport.Models
     public class ListarPedidosFacturacionRequest
     {
         public int idCliente { get; set; }
-        public int? idTipoTramite { get; set; }
+        public int idTipoTramite { get; set; }
         public int? anio { get; set; }
         public int? mes { get; set; }
         public int? idPais { get; set; }
