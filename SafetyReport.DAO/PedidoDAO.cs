@@ -638,19 +638,21 @@ namespace SafetyReport.DAO
         {
             try
             {
-                using SqlConnection cn = new(_dbConfig.ConnectionString);
-                using SqlCommand cmd = new("SP_Pedido_ListarParaPrefactura", cn);
+                using MySqlConnection cn = new(_dbConfig.ConnectionString);
+                using MySqlCommand cmd = new("SP_Pedido_ListarParaPrefactura", cn) { CommandType = CommandType.StoredProcedure };
 
-                cmd.CommandType = CommandType.StoredProcedure;
-                cmd.Parameters.Add("@intIdUsuario", SqlDbType.Int).Value = usuarioLogueado.IdUsuario;
-                cmd.Parameters.Add("@vchUsuario", SqlDbType.VarChar, 32).Value = usuarioLogueado.Usuario;
-                cmd.Parameters.Add("@intIdEmpresa", SqlDbType.Int).Value = usuarioLogueado.IdEmpresa;
-                cmd.Parameters.Add("@intIdRol", SqlDbType.Int).Value = usuarioLogueado.IdRol;
-                cmd.Parameters.Add("@intIdCliente", SqlDbType.Int).Value = request.IdCliente;
-                cmd.Parameters.Add("@dtFchInicio", SqlDbType.Date).Value = (object?)request.FchInicio?.ToDateTime(TimeOnly.MinValue) ?? DBNull.Value;
-                cmd.Parameters.Add("@dtFchFin", SqlDbType.Date).Value = (object?)request.FchFin?.ToDateTime(TimeOnly.MinValue) ?? DBNull.Value;
-                cmd.Parameters.Add("@intAnio", SqlDbType.Int).Value = (object?)request.Anio ?? DBNull.Value;
-                cmd.Parameters.Add("@intMes", SqlDbType.Int).Value = (object?)request.Mes ?? DBNull.Value;
+                var listaAnioMes = (request.Anio.HasValue && request.Mes.HasValue)
+                    ? new[] { new { Anio = request.Anio.Value, Mes = request.Mes.Value } }
+                    : Array.Empty<object>();
+
+                cmd.Parameters.AddWithValue("@intIdUsuario", usuarioLogueado.IdUsuario);
+                cmd.Parameters.AddWithValue("@vchUsuario", usuarioLogueado.Usuario);
+                cmd.Parameters.AddWithValue("@intIdEmpresa", usuarioLogueado.IdEmpresa);
+                cmd.Parameters.AddWithValue("@intIdRol", usuarioLogueado.IdRol);
+                cmd.Parameters.AddWithValue("@intIdCliente", request.IdCliente);
+                cmd.Parameters.AddWithValue("@dtFchInicio", (object?)request.FchInicio?.ToDateTime(TimeOnly.MinValue) ?? DBNull.Value);
+                cmd.Parameters.AddWithValue("@dtFchFin", (object?)request.FchFin?.ToDateTime(TimeOnly.MinValue) ?? DBNull.Value);
+                cmd.Parameters.AddWithValue("@jsonAnioMes", JsonSerializer.Serialize(listaAnioMes));
 
                 await cn.OpenAsync();
 
