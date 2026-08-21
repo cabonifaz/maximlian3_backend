@@ -807,7 +807,7 @@ namespace SafetyReport.Handlers
                 // Un borrador puede cubrir varios pedidos: se registra el mismo IdDocumentoElectronico
                 // en PEDIDO_FACTURA para todos los pedidos referenciados por las líneas en un solo UPDATE.
                 var registro = await _pedidoFacturaDao.RegistrarEnvioAsync(
-                    usuarioLogueado, idPedidos, insertado.Datos.IdDocumentoElectronico, idEstadoFacturacion: 10);
+                    usuarioLogueado, idPedidos, insertado.Datos.IdDocumentoElectronico);
 
                 if (registro.IdTipoMensaje != 2)
                 {
@@ -986,7 +986,7 @@ namespace SafetyReport.Handlers
                 // desvincula los que se quitaron. Ninguna de las dos falla la operación si algo sale mal
                 // acá — el documento en ms-facturación ya se guardó, solo queda desincronizado el vínculo.
                 var enlace = await _pedidoFacturaDao.RegistrarEnvioAsync(
-                    usuarioLogueado, idPedidos, idDocumentoElectronico, idEstadoFacturacion: 10);
+                    usuarioLogueado, idPedidos, idDocumentoElectronico);
                 if (enlace.IdTipoMensaje != 2)
                 {
                     _logger.LogWarning(

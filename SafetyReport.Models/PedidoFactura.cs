@@ -239,18 +239,18 @@ namespace SafetyReport.Models
         public List<PedidoParaFacturacionConsulta> Pedidos { get; set; } = new();
     }
 
-    // Query params de SP_Pedido_ListarParaFacturacion.
+    // Query params de SP_Pedido_ListarParaFacturacion. Sin paginación — devuelve todos los
+    // pedidos elegibles de una — y el filtro de fecha es por mes (anio/mes), no por rango, ya
+    // que agrupar pedidos de meses distintos en una línea no está permitido de todas formas
+    // (ver PLAN_Lineas_Facturacion.md).
     public class ListarPedidosFacturacionRequest
     {
         public int idCliente { get; set; }
         public int? idTipoTramite { get; set; }
-        public DateOnly? fechaInicio { get; set; }
-        public DateOnly? fechaFin { get; set; }
-        // Documento en edición (borrador): también trae los pedidos que siguen enlazados a este documento en
-        // Borrador Factura, aunque ese estado normalmente esté fuera del listado — cubre el caso de un pedido
-        // quitado de las líneas en el editor pero todavía no guardado (GuardarCambios). 0 = sin este filtro extra.
-        public int idDocumentoElectronico { get; set; } = 0;
-        public int numPag { get; set; } = 1;
+        public int? anio { get; set; }
+        public int? mes { get; set; }
+        public int? idPais { get; set; }
+        public int? idMoneda { get; set; }
     }
 
     // Filtros para el proxy hacia GET api/v1/documentos-electronicos/para-pedido-factura (ms-facturación).
@@ -265,25 +265,32 @@ namespace SafetyReport.Models
         public int tamanoPagina { get; set; } = 20;
     }
 
-    // Resultado de SP_Pedido_ListarParaFacturacion.
+    // Resultado de SP_Pedido_ListarParaFacturacion. IdPais/IdTipoTramite/IdTarifario/IdMoneda
+    // (además de sus etiquetas legibles) se exponen para que el front pueda anticipar la guarda
+    // de agrupamiento de SP_PedidoFacturaLinea_Crear (mismo cliente/mes/IdTarifario) antes de
+    // intentar crear la línea — la validación real sigue siendo del lado del SP.
     public class PedidoListaFacturacionConsulta
     {
         public int IdPedido { get; set; }
         public string Codigo { get; set; } = string.Empty;
         public string NumReferencia { get; set; } = string.Empty;
         public string? Investigado { get; set; }
+        public int? IdPais { get; set; }
+        public string? Pais { get; set; }
         public string? AplicaPenalidad { get; set; }
+        public int? IdTipoTramite { get; set; }
         public string? TipoTramite { get; set; }
         public DateTime Fecha { get; set; }
+        public int? IdTarifario { get; set; }
         public decimal? Penalidad { get; set; }
         public decimal? Precio { get; set; }
         public decimal? DescuentoPorcentaje { get; set; }
+        public int? IdMoneda { get; set; }
+        public string? Moneda { get; set; }
     }
 
     public class PedidoListaFacturacionResult
     {
-        public int TotalRegistros { get; set; }
-        public int TotalPaginas { get; set; }
         public List<PedidoListaFacturacionConsulta> Pedidos { get; set; } = new();
     }
 

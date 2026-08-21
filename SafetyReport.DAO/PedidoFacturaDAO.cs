@@ -163,8 +163,11 @@ namespace SafetyReport.DAO
             }
         }
 
+        // idPedidoFacturaLinea: líneas ya libres a asociar a idDocumentoElectronico (no pedidos —
+        // ver PLAN_Lineas_Facturacion.md). El SP fija IdEstadoFacturacion=1 (PendienteEnvio) él
+        // solo, ya no se pasa como parámetro.
         public async Task<Respuesta> RegistrarEnvioAsync(
-            UsuarioGeneral usuarioLogueado, List<int> idPedidos, int idDocumentoElectronico, int? idEstadoFacturacion)
+            UsuarioGeneral usuarioLogueado, List<int> idPedidoFacturaLinea, int idDocumentoElectronico)
         {
             try
             {
@@ -177,12 +180,11 @@ namespace SafetyReport.DAO
                 cmd.Parameters.Add("@intIdEmpresa", SqlDbType.Int).Value = usuarioLogueado.IdEmpresa;
                 cmd.Parameters.Add("@intIdRol", SqlDbType.Int).Value = usuarioLogueado.IdRol;
 
-                var tvpIdPedido = cmd.Parameters.AddWithValue("@lstIdPedido", ConstruirTablaListaGeneralNum(idPedidos));
-                tvpIdPedido.SqlDbType = SqlDbType.Structured;
-                tvpIdPedido.TypeName = "LISTA_GENERAL_NUM";
+                var tvpIdLinea = cmd.Parameters.AddWithValue("@lstIdPedidoFacturaLinea", ConstruirTablaListaGeneralNum(idPedidoFacturaLinea));
+                tvpIdLinea.SqlDbType = SqlDbType.Structured;
+                tvpIdLinea.TypeName = "LISTA_GENERAL_NUM";
 
                 cmd.Parameters.Add("@intIdDocumentoElectronico", SqlDbType.Int).Value = idDocumentoElectronico;
-                cmd.Parameters.Add("@intIdEstadoFacturacion", SqlDbType.Int).Value = (object?)idEstadoFacturacion ?? DBNull.Value;
 
                 await cn.OpenAsync();
                 using var dr = await cmd.ExecuteReaderAsync();
@@ -205,10 +207,12 @@ namespace SafetyReport.DAO
             }
         }
 
-        // Desvincula (IdDocumentoElectronico = NULL) los pedidos que ya no vienen en las líneas del
-        // documento (línea eliminada en un GuardarCambios).
+        // Libera (IdPedidoFacturaLinea = NULL en sus pedidos, SoftDelete=1 en la línea) toda línea
+        // que hoy esté en idDocumentoElectronico pero ya no venga en idPedidoFacturaLineaVigentes
+        // (línea quitada en un GuardarCambios) — composición de línea inmutable, ya no se opera
+        // pedido por pedido (ver PLAN_Lineas_Facturacion.md).
         public async Task<Respuesta> DesvincularAsync(
-            UsuarioGeneral usuarioLogueado, int idDocumentoElectronico, List<int> idPedidosVigentes)
+            UsuarioGeneral usuarioLogueado, int idDocumentoElectronico, List<int> idPedidoFacturaLineaVigentes)
         {
             try
             {
@@ -222,9 +226,9 @@ namespace SafetyReport.DAO
                 cmd.Parameters.Add("@intIdRol", SqlDbType.Int).Value = usuarioLogueado.IdRol;
                 cmd.Parameters.Add("@intIdDocumentoElectronico", SqlDbType.Int).Value = idDocumentoElectronico;
 
-                var tvpIdPedido = cmd.Parameters.AddWithValue("@lstIdPedido", ConstruirTablaListaGeneralNum(idPedidosVigentes));
-                tvpIdPedido.SqlDbType = SqlDbType.Structured;
-                tvpIdPedido.TypeName = "LISTA_GENERAL_NUM";
+                var tvpIdLinea = cmd.Parameters.AddWithValue("@lstIdPedidoFacturaLinea", ConstruirTablaListaGeneralNum(idPedidoFacturaLineaVigentes));
+                tvpIdLinea.SqlDbType = SqlDbType.Structured;
+                tvpIdLinea.TypeName = "LISTA_GENERAL_NUM";
 
                 await cn.OpenAsync();
                 using var dr = await cmd.ExecuteReaderAsync();
@@ -239,6 +243,76 @@ namespace SafetyReport.DAO
                     IdTipoMensaje = Convert.ToInt32(dr["IdTipoMensaje"]),
                     Mensaje = dr["Mensaje"]?.ToString() ?? string.Empty
                 };
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error no controlado en la capa de datos.");
+                return new Respuesta { IdTipoMensaje = 3, Mensaje = ex.Message };
+            }
+        }
+
+        // Agrupa idPedidos (mismo cliente/mes/tarifa, validado en el SP) bajo una línea nueva.
+        // idDocumentoElectronico es opcional: la línea puede nacer libre, sin documento todavía
+        // (se asocia después vía RegistrarEnvioAsync) — ver PLAN_Lineas_Facturacion.md.
+        public async Task<Respuesta> CrearLineaAsync(
+            UsuarioGeneral usuarioLogueado, List<int> idPedidos, string? codigo, string descripcion, int? idDocumentoElectronico)
+        {
+            try
+            {
+                using SqlConnection cn = new(_dbConfig.ConnectionString);
+                using SqlCommand cmd = new("SP_PedidoFacturaLinea_Crear", cn);
+
+                cmd.CommandType = CommandType.StoredProcedure;
+                cmd.Parameters.Add("@intIdUsuario", SqlDbType.Int).Value = usuarioLogueado.IdUsuario;
+                cmd.Parameters.Add("@vchUsuario", SqlDbType.VarChar, 32).Value = usuarioLogueado.Usuario;
+                cmd.Parameters.Add("@intIdEmpresa", SqlDbType.Int).Value = usuarioLogueado.IdEmpresa;
+                cmd.Parameters.Add("@intIdRol", SqlDbType.Int).Value = usuarioLogueado.IdRol;
+                cmd.Parameters.Add("@intIdDocumentoElectronico", SqlDbType.Int).Value = (object?)idDocumentoElectronico ?? DBNull.Value;
+                cmd.Parameters.Add("@vchCodigo", SqlDbType.VarChar, 30).Value = (object?)codigo ?? DBNull.Value;
+                cmd.Parameters.Add("@vchDescripcion", SqlDbType.VarChar, 500).Value = descripcion;
+
+                var tvpIdPedido = cmd.Parameters.AddWithValue("@lstIdPedido", ConstruirTablaListaGeneralNum(idPedidos));
+                tvpIdPedido.SqlDbType = SqlDbType.Structured;
+                tvpIdPedido.TypeName = "LISTA_GENERAL_NUM";
+
+                await cn.OpenAsync();
+
+                using var dr = await cmd.ExecuteReaderAsync();
+                var respuesta = await LeerCabeceraAsync(dr, cmd.CommandText);
+
+                if (respuesta.IdTipoMensaje == 2 && await dr.NextResultAsync() && await dr.ReadAsync())
+                {
+                    respuesta.Result = Convert.ToInt32(dr["IdPedidoFacturaLinea"]);
+                }
+
+                return respuesta;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error no controlado en la capa de datos.");
+                return new Respuesta { IdTipoMensaje = 3, Mensaje = ex.Message };
+            }
+        }
+
+        // Soft-delete de una línea + libera todos sus pedidos miembro. Sin chequeo de rol/permiso
+        // adentro a propósito (llamable también desde cascades internos sin usuario logueado real)
+        // — ver PLAN_Lineas_Facturacion.md.
+        public async Task<Respuesta> DesvincularLineaAsync(UsuarioGeneral usuarioLogueado, int idPedidoFacturaLinea)
+        {
+            try
+            {
+                using SqlConnection cn = new(_dbConfig.ConnectionString);
+                using SqlCommand cmd = new("SP_PedidoFactura_DesvincularLinea", cn);
+
+                cmd.CommandType = CommandType.StoredProcedure;
+                cmd.Parameters.Add("@intIdEmpresa", SqlDbType.Int).Value = usuarioLogueado.IdEmpresa;
+                cmd.Parameters.Add("@vchUsuario", SqlDbType.VarChar, 32).Value = usuarioLogueado.Usuario;
+                cmd.Parameters.Add("@intIdPedidoFacturaLinea", SqlDbType.Int).Value = idPedidoFacturaLinea;
+
+                await cn.OpenAsync();
+                using var dr = await cmd.ExecuteReaderAsync();
+
+                return await LeerCabeceraAsync(dr, cmd.CommandText);
             }
             catch (Exception ex)
             {

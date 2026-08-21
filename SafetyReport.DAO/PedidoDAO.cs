@@ -649,10 +649,10 @@ namespace SafetyReport.DAO
                 cmd.Parameters.Add("@intIdRol", SqlDbType.Int).Value = usuarioLogueado.IdRol;
                 cmd.Parameters.Add("@intIdCliente", SqlDbType.Int).Value = request.idCliente;
                 cmd.Parameters.Add("@intIdTipoTramite", SqlDbType.Int).Value = (object?)request.idTipoTramite ?? DBNull.Value;
-                cmd.Parameters.Add("@dtFechaInicio", SqlDbType.Date).Value = (object?)request.fechaInicio?.ToDateTime(TimeOnly.MinValue) ?? DBNull.Value;
-                cmd.Parameters.Add("@dtFechaFin", SqlDbType.Date).Value = (object?)request.fechaFin?.ToDateTime(TimeOnly.MinValue) ?? DBNull.Value;
-                cmd.Parameters.Add("@intIdDocumentoElectronico", SqlDbType.Int).Value = request.idDocumentoElectronico;
-                cmd.Parameters.Add("@numPag", SqlDbType.Int).Value = request.numPag;
+                cmd.Parameters.Add("@intAnio", SqlDbType.Int).Value = (object?)request.anio ?? DBNull.Value;
+                cmd.Parameters.Add("@intMes", SqlDbType.Int).Value = (object?)request.mes ?? DBNull.Value;
+                cmd.Parameters.Add("@intIdPais", SqlDbType.Int).Value = (object?)request.idPais ?? DBNull.Value;
+                cmd.Parameters.Add("@intIdMoneda", SqlDbType.Int).Value = (object?)request.idMoneda ?? DBNull.Value;
 
                 await cn.OpenAsync();
 
@@ -662,29 +662,26 @@ namespace SafetyReport.DAO
                 var resultado = new PedidoListaFacturacionResult();
                 if (respuesta.IdTipoMensaje == 2 && await dr.NextResultAsync())
                 {
-                    if (await dr.ReadAsync())
-                    {
-                        resultado.TotalRegistros = Convert.ToInt32(dr["TotalRegistros"]);
-                        resultado.TotalPaginas = Convert.ToInt32(dr["TotalPaginas"]);
-                    }
-
-                    if (await dr.NextResultAsync())
-                    {
-                        while (await dr.ReadAsync())
-                            resultado.Pedidos.Add(new PedidoListaFacturacionConsulta
-                            {
-                                IdPedido = Convert.ToInt32(dr["IdPedido"]),
-                                Codigo = dr["Codigo"]?.ToString() ?? string.Empty,
-                                NumReferencia = dr["NumReferencia"]?.ToString() ?? string.Empty,
-                                Investigado = GetNullableString(dr, "Investigado"),
-                                AplicaPenalidad = GetNullableString(dr, "AplicaPenalidad"),
-                                TipoTramite = GetNullableString(dr, "TipoTramite"),
-                                Fecha = Convert.ToDateTime(dr["Fecha"]),
-                                Penalidad = GetNullableDecimal(dr, "Penalidad"),
-                                Precio = GetNullableDecimal(dr, "Precio"),
-                                DescuentoPorcentaje = GetNullableDecimal(dr, "DescuentoPorcentaje")
-                            });
-                    }
+                    while (await dr.ReadAsync())
+                        resultado.Pedidos.Add(new PedidoListaFacturacionConsulta
+                        {
+                            IdPedido = Convert.ToInt32(dr["IdPedido"]),
+                            Codigo = dr["Codigo"]?.ToString() ?? string.Empty,
+                            NumReferencia = dr["NumReferencia"]?.ToString() ?? string.Empty,
+                            Investigado = GetNullableString(dr, "Investigado"),
+                            IdPais = GetNullableInt(dr, "IdPais"),
+                            Pais = GetNullableString(dr, "Pais"),
+                            AplicaPenalidad = GetNullableString(dr, "AplicaPenalidad"),
+                            IdTipoTramite = GetNullableInt(dr, "IdTipoTramite"),
+                            TipoTramite = GetNullableString(dr, "TipoTramite"),
+                            Fecha = Convert.ToDateTime(dr["Fecha"]),
+                            IdTarifario = GetNullableInt(dr, "IdTarifario"),
+                            Penalidad = GetNullableDecimal(dr, "Penalidad"),
+                            Precio = GetNullableDecimal(dr, "Precio"),
+                            DescuentoPorcentaje = GetNullableDecimal(dr, "DescuentoPorcentaje"),
+                            IdMoneda = GetNullableInt(dr, "IdMoneda"),
+                            Moneda = GetNullableString(dr, "Moneda")
+                        });
                 }
 
                 respuesta.Result = resultado;
