@@ -253,6 +253,16 @@ namespace SafetyReport.Models
         public int? idMoneda { get; set; }
     }
 
+    // Body de POST lineas — SP_PedidoFacturaLinea_Crear. idDocumentoElectronico es opcional: la
+    // línea puede nacer libre, sin documento todavía (ver PLAN_Lineas_Facturacion.md).
+    public class CrearLineaFacturacionRequest
+    {
+        public List<int> idsPedido { get; set; } = new();
+        public string? codigo { get; set; }
+        public string descripcion { get; set; } = string.Empty;
+        public int? idDocumentoElectronico { get; set; }
+    }
+
     // Filtros para el proxy hacia GET api/v1/documentos-electronicos/para-pedido-factura (ms-facturación).
     public class ListarFacturasRequest
     {

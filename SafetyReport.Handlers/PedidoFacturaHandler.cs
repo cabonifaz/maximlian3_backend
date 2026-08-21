@@ -34,6 +34,48 @@ namespace SafetyReport.Handlers
         public Task<Respuesta> ListarPedidosParaFacturacionAsync(UsuarioGeneral usuarioLogueado, ListarPedidosFacturacionRequest request) =>
             _pedidoDao.ListarParaFacturacionAsync(usuarioLogueado, request);
 
+        public async Task<Respuesta> CrearLineaFacturaAsync(UsuarioGeneral usuarioLogueado, CrearLineaFacturacionRequest request)
+        {
+            try
+            {
+                var acceso = await _pedidoFacturaDao.ValidarAccesoFacturacionAsync(usuarioLogueado, "crear una línea de facturación");
+                if (acceso.IdTipoMensaje != 2)
+                {
+                    return acceso;
+                }
+
+                return await _pedidoFacturaDao.CrearLineaAsync(
+                    usuarioLogueado, request.idsPedido, request.codigo, request.descripcion, request.idDocumentoElectronico);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error no controlado en la capa de negocio.");
+                return new Respuesta { IdTipoMensaje = 3, Mensaje = ex.Message };
+            }
+        }
+
+        // A diferencia del resto de las SPs de este módulo, SP_PedidoFactura_DesvincularLinea no valida
+        // rol/permiso adentro (también corre desde cascades internos sin usuario logueado real) — acá,
+        // en cambio, ValidarAccesoFacturacionAsync es el único chequeo de acceso real para el camino manual.
+        public async Task<Respuesta> DesvincularLineaFacturaAsync(UsuarioGeneral usuarioLogueado, int idPedidoFacturaLinea)
+        {
+            try
+            {
+                var acceso = await _pedidoFacturaDao.ValidarAccesoFacturacionAsync(usuarioLogueado, "eliminar una línea de facturación");
+                if (acceso.IdTipoMensaje != 2)
+                {
+                    return acceso;
+                }
+
+                return await _pedidoFacturaDao.DesvincularLineaAsync(usuarioLogueado, idPedidoFacturaLinea);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error no controlado en la capa de negocio.");
+                return new Respuesta { IdTipoMensaje = 3, Mensaje = ex.Message };
+            }
+        }
+
         // Genera el Excel de SP_Pedido_ListarParaPrefactura. El nombre de cliente para el nombre de archivo
         // se resuelve aparte (ClienteDAO) en vez de tomarlo de la primera fila — así el nombre del archivo
         // no depende de que existan pedidos en el rango, y evita quedar vacío si el filtro no matchea nada.
