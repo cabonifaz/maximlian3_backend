@@ -634,5 +634,63 @@ namespace SafetyReport.DAO
             }
         }
 
+        public async Task<Respuesta> ListarParaPrefacturaAsync(UsuarioGeneral usuarioLogueado, FiltroPedidoPrefactura request)
+        {
+            try
+            {
+                using SqlConnection cn = new(_dbConfig.ConnectionString);
+                using SqlCommand cmd = new("SP_Pedido_ListarParaPrefactura", cn);
+
+                cmd.CommandType = CommandType.StoredProcedure;
+                cmd.Parameters.Add("@intIdUsuario", SqlDbType.Int).Value = usuarioLogueado.IdUsuario;
+                cmd.Parameters.Add("@vchUsuario", SqlDbType.VarChar, 32).Value = usuarioLogueado.Usuario;
+                cmd.Parameters.Add("@intIdEmpresa", SqlDbType.Int).Value = usuarioLogueado.IdEmpresa;
+                cmd.Parameters.Add("@intIdRol", SqlDbType.Int).Value = usuarioLogueado.IdRol;
+                cmd.Parameters.Add("@intIdCliente", SqlDbType.Int).Value = request.IdCliente;
+                cmd.Parameters.Add("@dtFchInicio", SqlDbType.Date).Value = (object?)request.FchInicio?.ToDateTime(TimeOnly.MinValue) ?? DBNull.Value;
+                cmd.Parameters.Add("@dtFchFin", SqlDbType.Date).Value = (object?)request.FchFin?.ToDateTime(TimeOnly.MinValue) ?? DBNull.Value;
+                cmd.Parameters.Add("@intAnio", SqlDbType.Int).Value = (object?)request.Anio ?? DBNull.Value;
+                cmd.Parameters.Add("@intMes", SqlDbType.Int).Value = (object?)request.Mes ?? DBNull.Value;
+
+                await cn.OpenAsync();
+
+                using var dr = await cmd.ExecuteReaderAsync();
+                var respuesta = await LeerCabeceraAsync(dr, cmd.CommandText);
+
+                var lista = new List<PedidoPrefacturaConsulta>();
+                if (respuesta.IdTipoMensaje == 2 && await dr.NextResultAsync())
+                {
+                    while (await dr.ReadAsync())
+                    {
+                        lista.Add(new PedidoPrefacturaConsulta
+                        {
+                            Client = dr["CLIENT"]?.ToString() ?? string.Empty,
+                            Company = GetNullableString(dr, "COMPANY"),
+                            TypeOfReport = dr["TYPE OF REPORT"]?.ToString() ?? string.Empty,
+                            ReferenceNo = dr["REFERENCE NO."]?.ToString() ?? string.Empty,
+                            Country = dr["COUNTRY"]?.ToString() ?? string.Empty,
+                            DateOfRequest = dr["DATE OF REQUEST"]?.ToString() ?? string.Empty,
+                            Currency = dr["CURRENCY"]?.ToString() ?? string.Empty,
+                            Price = Convert.ToDecimal(dr["PRICE"])
+                        });
+                    }
+                }
+
+                respuesta.Result = lista;
+                return respuesta;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error no controlado en la capa de datos.");
+
+                return new Respuesta
+                {
+                    IdTipoMensaje = 3,
+                    Mensaje = ex.Message,
+                    Result = new List<PedidoPrefacturaConsulta>()
+                };
+            }
+        }
+
     }
 }
