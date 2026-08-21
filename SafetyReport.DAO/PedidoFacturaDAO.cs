@@ -282,7 +282,60 @@ namespace SafetyReport.DAO
 
                 if (respuesta.IdTipoMensaje == 2 && await dr.NextResultAsync() && await dr.ReadAsync())
                 {
-                    respuesta.Result = Convert.ToInt32(dr["IdPedidoFacturaLinea"]);
+                    respuesta.Result = new PedidoFacturaLineaConsulta
+                    {
+                        IdPedidoFacturaLinea = Convert.ToInt32(dr["IdPedidoFacturaLinea"]),
+                        Codigo = dr["Codigo"] as string,
+                        Descripcion = Convert.ToString(dr["Descripcion"]) ?? string.Empty,
+                        Cantidad = Convert.ToInt32(dr["Cantidad"]),
+                        ValorUnitario = Convert.ToDecimal(dr["ValorUnitario"]),
+                        Descuento = Convert.ToDecimal(dr["Descuento"]),
+                        DescuentoPorcentaje = dr["DescuentoPorcentaje"] as decimal?
+                    };
+                }
+
+                return respuesta;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error no controlado en la capa de datos.");
+                return new Respuesta { IdTipoMensaje = 3, Mensaje = ex.Message };
+            }
+        }
+
+        public async Task<Respuesta> ActualizarDatosLineaAsync(
+            UsuarioGeneral usuarioLogueado, int idPedidoFacturaLinea, string? codigo, string descripcion)
+        {
+            try
+            {
+                using SqlConnection cn = new(_dbConfig.ConnectionString);
+                using SqlCommand cmd = new("SP_PedidoFacturaLinea_ActualizarDatos", cn);
+
+                cmd.CommandType = CommandType.StoredProcedure;
+                cmd.Parameters.Add("@intIdUsuario", SqlDbType.Int).Value = usuarioLogueado.IdUsuario;
+                cmd.Parameters.Add("@vchUsuario", SqlDbType.VarChar, 32).Value = usuarioLogueado.Usuario;
+                cmd.Parameters.Add("@intIdEmpresa", SqlDbType.Int).Value = usuarioLogueado.IdEmpresa;
+                cmd.Parameters.Add("@intIdRol", SqlDbType.Int).Value = usuarioLogueado.IdRol;
+                cmd.Parameters.Add("@intIdPedidoFacturaLinea", SqlDbType.Int).Value = idPedidoFacturaLinea;
+                cmd.Parameters.Add("@vchCodigo", SqlDbType.VarChar, 30).Value = (object?)codigo ?? DBNull.Value;
+                cmd.Parameters.Add("@vchDescripcion", SqlDbType.VarChar, 500).Value = descripcion;
+
+                await cn.OpenAsync();
+                using var dr = await cmd.ExecuteReaderAsync();
+                var respuesta = await LeerCabeceraAsync(dr, cmd.CommandText);
+
+                if (respuesta.IdTipoMensaje == 2 && await dr.NextResultAsync() && await dr.ReadAsync())
+                {
+                    respuesta.Result = new PedidoFacturaLineaConsulta
+                    {
+                        IdPedidoFacturaLinea = Convert.ToInt32(dr["IdPedidoFacturaLinea"]),
+                        Codigo = dr["Codigo"] as string,
+                        Descripcion = Convert.ToString(dr["Descripcion"]) ?? string.Empty,
+                        Cantidad = Convert.ToInt32(dr["Cantidad"]),
+                        ValorUnitario = Convert.ToDecimal(dr["ValorUnitario"]),
+                        Descuento = Convert.ToDecimal(dr["Descuento"]),
+                        DescuentoPorcentaje = dr["DescuentoPorcentaje"] as decimal?
+                    };
                 }
 
                 return respuesta;

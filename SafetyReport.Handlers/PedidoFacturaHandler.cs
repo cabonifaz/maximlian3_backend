@@ -76,6 +76,27 @@ namespace SafetyReport.Handlers
             }
         }
 
+        public async Task<Respuesta> ActualizarDatosLineaFacturaAsync(
+            UsuarioGeneral usuarioLogueado, int idPedidoFacturaLinea, ActualizarLineaFacturacionRequest request)
+        {
+            try
+            {
+                var acceso = await _pedidoFacturaDao.ValidarAccesoFacturacionAsync(usuarioLogueado, "editar una línea de facturación");
+                if (acceso.IdTipoMensaje != 2)
+                {
+                    return acceso;
+                }
+
+                return await _pedidoFacturaDao.ActualizarDatosLineaAsync(
+                    usuarioLogueado, idPedidoFacturaLinea, request.codigo, request.descripcion);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error no controlado en la capa de negocio.");
+                return new Respuesta { IdTipoMensaje = 3, Mensaje = ex.Message };
+            }
+        }
+
         // Genera el Excel de SP_Pedido_ListarParaPrefactura. El nombre de cliente para el nombre de archivo
         // se resuelve aparte (ClienteDAO) en vez de tomarlo de la primera fila — así el nombre del archivo
         // no depende de que existan pedidos en el rango, y evita quedar vacío si el filtro no matchea nada.

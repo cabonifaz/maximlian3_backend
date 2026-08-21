@@ -263,6 +263,25 @@ namespace SafetyReport.Models
         public int? idDocumentoElectronico { get; set; }
     }
 
+    // Codigo/Descripcion son la única metadata editable de una línea existente — Cantidad,
+    // ValorUnitario, Descuento y la composición de pedidos no se tocan acá.
+    public class ActualizarLineaFacturacionRequest
+    {
+        public string? codigo { get; set; }
+        public string descripcion { get; set; } = string.Empty;
+    }
+
+    public class PedidoFacturaLineaConsulta
+    {
+        public int IdPedidoFacturaLinea { get; set; }
+        public string? Codigo { get; set; }
+        public string Descripcion { get; set; } = string.Empty;
+        public int Cantidad { get; set; }
+        public decimal ValorUnitario { get; set; }
+        public decimal Descuento { get; set; }
+        public decimal? DescuentoPorcentaje { get; set; }
+    }
+
     // Filtros para el proxy hacia GET api/v1/documentos-electronicos/para-pedido-factura (ms-facturación).
     public class ListarFacturasRequest
     {

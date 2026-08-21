@@ -66,6 +66,13 @@ namespace SafetyReport.WebApi.Controllers
             return Ok(respuesta);
         }
 
+        [HttpPut("lineas/{idPedidoFacturaLinea:int}")]
+        public async Task<IActionResult> ActualizarDatosLinea(int idPedidoFacturaLinea, [FromBody] ActualizarLineaFacturacionRequest request)
+        {
+            var respuesta = await _pedidoFacturaHandler.ActualizarDatosLineaFacturaAsync(UsuarioLogueado, idPedidoFacturaLinea, request);
+            return Ok(respuesta);
+        }
+
         // POST en vez de GET: Meses es una lista de objetos (Anio/Mes) — no hay una forma estándar de
         // codificar eso en un query string sin recurrir a algo frágil (JSON dentro de un solo param, o el
         // formato Meses[0].Anio poco usado). Con [FromBody] el JSON que ya arma el front binda directo.
