@@ -329,10 +329,6 @@ namespace SafetyReport.DAO
                             ValorUnitario = Convert.ToDecimal(dr["ValorUnitario"]),
                             Descuento = Convert.ToDecimal(dr["Descuento"])
                         });
-
-                    if (await dr.NextResultAsync())
-                        while (await dr.ReadAsync())
-                            resultado.IdPedidos.Add(Convert.ToInt32(dr["IdPedido"]));
                 }
 
                 respuesta.Result = resultado;

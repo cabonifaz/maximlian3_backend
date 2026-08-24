@@ -89,6 +89,5 @@ namespace SafetyReport.Models
     public class LineasParaBorradorConsulta
     {
         public List<PedidoFacturaLineaParaBorradorConsulta> Lineas { get; set; } = new();
-        public List<int> IdPedidos { get; set; } = new();
     }
 }

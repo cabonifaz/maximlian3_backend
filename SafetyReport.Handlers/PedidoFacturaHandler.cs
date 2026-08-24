@@ -751,22 +751,23 @@ namespace SafetyReport.Handlers
 
                 var lineasPorId = lineasData.Lineas.ToDictionary(l => l.IdPedidoFacturaLinea);
 
-                // Cliente se sigue resolviendo vía SP_Facturacion_ObtenerDatosBorrador (mismo mapeo
-                // RUC/DNI -> IdTipoDocumentoSunat de siempre); los Pedidos de su resultado ya no se
-                // usan para precio/código, eso ahora viene de PEDIDO_FACTURA_LINEA (congelado).
-                var datosBorrador = await _pedidoFacturaDao.ObtenerDatosBorradorAsync(usuarioLogueado, request.idCliente, lineasData.IdPedidos);
-                if (datosBorrador.IdTipoMensaje != 2 || datosBorrador.Result is not DatosBorradorFacturaConsulta datos)
-                {
-                    return new Respuesta { IdTipoMensaje = datosBorrador.IdTipoMensaje, Mensaje = datosBorrador.Mensaje };
-                }
+                // Cliente se resuelve directo por idCliente (SP_Cliente_Obtener) — ya trae
+                // IdTipoDocumentoSunat/NumRegistroTributario, no hace falta pasar por pedidos.
+                var clienteResp = await _clienteDao.ObtenerClienteAsync(usuarioLogueado, request.idCliente);
+                var clienteDatos = clienteResp.IdTipoMensaje == 2
+                    ? (clienteResp.Result as List<ClienteConsulta>)?.FirstOrDefault()
+                    : null;
 
-                var clienteDatos = datos.Cliente;
+                if (clienteDatos is null || clienteDatos.IdTipoDocumentoSunat is null)
+                {
+                    return new Respuesta { IdTipoMensaje = 1, Mensaje = "El cliente no tiene un tipo de documento SUNAT configurado." };
+                }
 
                 var facturacionRequest = new FacturacionInsertarDocumentoRequest
                 {
                     IdInquilino = usuarioLogueado.IdEmpresa,
                     IdEmpresa = 1, // TODO: resolver desde EMPRESAS de ms-facturación (GET /api/v1/empresas?idInquilino=) en vez de fijo.
-                    IdExterno = string.Join(",", lineasData.IdPedidos),
+                    IdExterno = string.Join(",", idsLinea),
                     NumeroReferencia = request.numeroReferencia,
                     IdTipoDocumentoMaestro = request.idTipoDocumentoMaestro,
                     IdMonedaMaestro = request.idMonedaMaestro,
@@ -786,8 +787,8 @@ namespace SafetyReport.Handlers
                     },
                     Cliente = new FacturacionCliente
                     {
-                        IdTipoDocumentoSunat = clienteDatos.IdTipoDocumentoSunat,
-                        NumeroDocumento = clienteDatos.NumeroDocumento,
+                        IdTipoDocumentoSunat = clienteDatos.IdTipoDocumentoSunat.Value,
+                        NumeroDocumento = clienteDatos.NumRegistroTributario ?? string.Empty,
                         Nombre = clienteDatos.Nombre,
                         Correo = clienteDatos.Correo,
                         Direccion = clienteDatos.Direccion,
