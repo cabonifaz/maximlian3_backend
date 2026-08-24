@@ -46,11 +46,15 @@ namespace SafetyReport.Models
     // pedidos de un único cliente (guarda de SP_PedidoFacturaLinea_Crear), así que listar sin
     // acotar por cliente no tiene un caso de uso hoy. anio/mes son opcionales, mismo criterio de
     // mes único que ListarPedidosFacturacionRequest (ver PLAN_Lineas_Facturacion.md).
+    // idDocumentoElectronico es opcional: además de las líneas libres, también trae las que ya
+    // están asociadas a ese documento — para editar un borrador existente sin perder de vista
+    // sus líneas actuales.
     public class ListarLineasFacturacionRequest
     {
         public int idCliente { get; set; }
         public int? anio { get; set; }
         public int? mes { get; set; }
+        public int? idDocumentoElectronico { get; set; }
     }
 
     // Resultado de SP_PedidoFacturaLinea_Listar. IdTipoTramite/TipoTramite/IdMoneda/Moneda se
@@ -58,6 +62,7 @@ namespace SafetyReport.Models
     public class PedidoFacturaLineaListaConsulta
     {
         public int IdPedidoFacturaLinea { get; set; }
+        public int? IdDocumentoElectronico { get; set; }
         public string? Codigo { get; set; }
         public string Descripcion { get; set; } = string.Empty;
         public int? IdTipoTramite { get; set; }

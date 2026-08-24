@@ -227,6 +227,7 @@ namespace SafetyReport.DAO
                 cmd.Parameters.Add("@intIdCliente", SqlDbType.Int).Value = request.idCliente;
                 cmd.Parameters.Add("@intAnio", SqlDbType.Int).Value = (object?)request.anio ?? DBNull.Value;
                 cmd.Parameters.Add("@intMes", SqlDbType.Int).Value = (object?)request.mes ?? DBNull.Value;
+                cmd.Parameters.Add("@intIdDocumentoElectronico", SqlDbType.Int).Value = (object?)request.idDocumentoElectronico ?? DBNull.Value;
 
                 await cn.OpenAsync();
 
@@ -240,6 +241,7 @@ namespace SafetyReport.DAO
                         resultado.Lineas.Add(new PedidoFacturaLineaListaConsulta
                         {
                             IdPedidoFacturaLinea = Convert.ToInt32(dr["IdPedidoFacturaLinea"]),
+                            IdDocumentoElectronico = GetNullableInt(dr, "IdDocumentoElectronico"),
                             Codigo = dr["Codigo"] as string,
                             Descripcion = Convert.ToString(dr["Descripcion"]) ?? string.Empty,
                             IdTipoTramite = GetNullableInt(dr, "IdTipoTramite"),
