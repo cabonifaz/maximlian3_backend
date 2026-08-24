@@ -751,6 +751,16 @@ namespace SafetyReport.Handlers
 
                 var lineasPorId = lineasData.Lineas.ToDictionary(l => l.IdPedidoFacturaLinea);
 
+                var idsLineaFaltantes = idsLinea.Where(id => !lineasPorId.ContainsKey(id)).ToList();
+                if (idsLineaFaltantes.Count > 0)
+                {
+                    return new Respuesta
+                    {
+                        IdTipoMensaje = 1,
+                        Mensaje = $"Una o más líneas no están disponibles para el borrador: {string.Join(",", idsLineaFaltantes)}."
+                    };
+                }
+
                 // Cliente se resuelve directo por idCliente (SP_Cliente_Obtener) — ya trae
                 // IdTipoDocumentoSunat/NumRegistroTributario, no hace falta pasar por pedidos.
                 var clienteResp = await _clienteDao.ObtenerClienteAsync(usuarioLogueado, request.idCliente);
