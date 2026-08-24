@@ -34,68 +34,9 @@ namespace SafetyReport.Handlers
         public Task<Respuesta> ListarPedidosParaFacturacionAsync(UsuarioGeneral usuarioLogueado, ListarPedidosFacturacionRequest request) =>
             _pedidoDao.ListarParaFacturacionAsync(usuarioLogueado, request);
 
-        public async Task<Respuesta> CrearLineaFacturaAsync(UsuarioGeneral usuarioLogueado, CrearLineaFacturacionRequest request)
-        {
-            try
-            {
-                var acceso = await _pedidoFacturaDao.ValidarAccesoFacturacionAsync(usuarioLogueado, "crear una línea de facturación");
-                if (acceso.IdTipoMensaje != 2)
-                {
-                    return acceso;
-                }
-
-                return await _pedidoFacturaDao.CrearLineaAsync(
-                    usuarioLogueado, request.idsPedido, request.codigo, request.descripcion, request.idDocumentoElectronico);
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Error no controlado en la capa de negocio.");
-                return new Respuesta { IdTipoMensaje = 3, Mensaje = ex.Message };
-            }
-        }
-
-        // A diferencia del resto de las SPs de este módulo, SP_PedidoFactura_DesvincularLinea no valida
-        // rol/permiso adentro (también corre desde cascades internos sin usuario logueado real) — acá,
-        // en cambio, ValidarAccesoFacturacionAsync es el único chequeo de acceso real para el camino manual.
-        public async Task<Respuesta> DesvincularLineaFacturaAsync(UsuarioGeneral usuarioLogueado, int idPedidoFacturaLinea)
-        {
-            try
-            {
-                var acceso = await _pedidoFacturaDao.ValidarAccesoFacturacionAsync(usuarioLogueado, "eliminar una línea de facturación");
-                if (acceso.IdTipoMensaje != 2)
-                {
-                    return acceso;
-                }
-
-                return await _pedidoFacturaDao.DesvincularLineaAsync(usuarioLogueado, idPedidoFacturaLinea);
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Error no controlado en la capa de negocio.");
-                return new Respuesta { IdTipoMensaje = 3, Mensaje = ex.Message };
-            }
-        }
-
-        public async Task<Respuesta> ActualizarDatosLineaFacturaAsync(
-            UsuarioGeneral usuarioLogueado, int idPedidoFacturaLinea, ActualizarLineaFacturacionRequest request)
-        {
-            try
-            {
-                var acceso = await _pedidoFacturaDao.ValidarAccesoFacturacionAsync(usuarioLogueado, "editar una línea de facturación");
-                if (acceso.IdTipoMensaje != 2)
-                {
-                    return acceso;
-                }
-
-                return await _pedidoFacturaDao.ActualizarDatosLineaAsync(
-                    usuarioLogueado, idPedidoFacturaLinea, request.codigo, request.descripcion);
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Error no controlado en la capa de negocio.");
-                return new Respuesta { IdTipoMensaje = 3, Mensaje = ex.Message };
-            }
-        }
+        // El CRUD de líneas (crear/editar/listar/desvincular manual) vive en PedidoFacturaLineaHandler.
+        // Acá se queda todo lo que opera sobre documentos/pedidos y solo referencia IdPedidoFacturaLinea
+        // de paso (p. ej. RegistrarEnvioAsync más abajo, que asocia líneas ya existentes a un documento).
 
         // Genera el Excel de SP_Pedido_ListarParaPrefactura. El nombre de cliente para el nombre de archivo
         // se resuelve aparte (ClienteDAO) en vez de tomarlo de la primera fila — así el nombre del archivo
@@ -548,7 +489,7 @@ namespace SafetyReport.Handlers
                 {
                     var liberacion = await _pedidoFacturaDao.ActualizarEstadoPorDocumentoAsync(
                         usuarioLogueado.IdEmpresa,
-                        resultado.Datos.Select(d => (d.IdDocumentoElectronico, IdEstadoFacturacion: 8)).ToList());
+                        resultado.Datos.Select(d => (d.IdDocumentoElectronico, IdEstadoFacturacion: 15)).ToList()); // AnuladoManualmente
                     if (liberacion.IdTipoMensaje != 2)
                     {
                         _logger.LogWarning(
@@ -1149,15 +1090,14 @@ namespace SafetyReport.Handlers
         // Confirma con SUNAT el documento ya guardado. ms-facturación recalcula FechaEmision/HoraEmision
         // a su propio reloj justo antes de enviar (ver EnviarDocumentoElectronicoASunatCasoDeUso) — no hace
         // falta que este Handler actualice nada antes de llamarlo.
-        // EstadoMaestroCodigo (ms-facturación) → PEDIDO_FACTURA.IdEstadoFacturacion (TABLA_MAESTRA IdMaestro=68).
+        // PEDIDO_FACTURA_LINEA.IdEstadoFacturacion usa el dominio SUNAT/ms-facturación directamente
+        // (EstadoMaestroCodigo, TABLA_MAESTRA IdMaestro=1) — ya no hay traducción a un dominio propio.
         // Error (8) es SUNAT rechazando el contenido del comprobante (dato inválido, no un fallo de
-        // transmisión) — antes no mapeaba y el pedido quedaba varado en Borrador Factura (10), invisible en
-        // SP_Pedido_ListarParaFacturacion. Se mapea a Error de Factura (11) para que vuelva a aparecer.
+        // transmisión) — antes no mapeaba y el pedido quedaba varado en Borrador Factura, invisible en
+        // SP_Pedido_ListarParaFacturacion. Se deja pasar para que vuelva a aparecer.
         private static int? MapearEstadoFacturacion(int estadoCodigoSunat) => estadoCodigoSunat switch
         {
-            3 or 4 => 5, // Aceptado / AceptadoConObservaciones → Aprobado
-            5 => 6,      // Rechazado → Rechazado
-            8 => 11,     // ErrorSunat → Error de Factura
+            3 or 4 or 5 or 8 => estadoCodigoSunat, // Aceptado / AceptadoConObservaciones / Rechazado / ErrorSunat
             _ => null
         };
 
@@ -1281,6 +1221,10 @@ namespace SafetyReport.Handlers
                 var lotesCreados = new List<FacturacionLoteDocumentoCreado>();
                 var itemsExitosos = new List<AnularFacturaItem>();
                 var mensajesError = new List<string>();
+                // Factura y boleta usan códigos SUNAT distintos para "solicitud de baja enviada, pendiente
+                // de respuesta" — ComunicacionBajaEnviada (6) vs. ResumenBajaEnviado (16) — así que cada
+                // rama arma su propio tramo de documentosConEstado en vez de un IdEstadoFacturacion único.
+                var documentosConEstado = new List<(int IdDocumentoElectronico, int IdEstadoFacturacion)>();
 
                 if (itemsOtros.Count > 0)
                 {
@@ -1288,6 +1232,7 @@ namespace SafetyReport.Handlers
                     {
                         lotesCreados.Add(comunicacionBajaResultado.Datos);
                         itemsExitosos.AddRange(itemsOtros);
+                        documentosConEstado.AddRange(itemsOtros.Select(item => (item.IdDocumentoElectronico, IdEstadoFacturacion: 6))); // ComunicacionBajaEnviada
                     }
                     else
                     {
@@ -1301,6 +1246,7 @@ namespace SafetyReport.Handlers
                     {
                         lotesCreados.Add(resumenBajaBoletaResultado.Datos);
                         itemsExitosos.AddRange(itemsBoleta);
+                        documentosConEstado.AddRange(itemsBoleta.Select(item => (item.IdDocumentoElectronico, IdEstadoFacturacion: 16))); // ResumenBajaEnviado
                     }
                     else
                     {
@@ -1308,18 +1254,14 @@ namespace SafetyReport.Handlers
                     }
                 }
 
-                if (itemsExitosos.Count > 0)
+                if (documentosConEstado.Count > 0)
                 {
-                    var documentosConEstado = itemsExitosos
-                        .Select(item => (item.IdDocumentoElectronico, IdEstadoFacturacion: 7)) // Pendiente Anulación
-                        .ToList();
-
                     var actualizacion = await _pedidoFacturaDao.ActualizarEstadoPorDocumentoAsync(usuarioLogueado.IdEmpresa, documentosConEstado);
                     if (actualizacion.IdTipoMensaje != 2)
                     {
                         _logger.LogWarning(
-                            "No se pudo marcar Pendiente Anulación los documentos {IdDocumentos} tras enviar la baja: {Mensaje}",
-                            string.Join(",", itemsExitosos.Select(i => i.IdDocumentoElectronico)), actualizacion.Mensaje);
+                            "No se pudo marcar la baja pendiente en los documentos {IdDocumentos} tras enviarla: {Mensaje}",
+                            string.Join(",", documentosConEstado.Select(d => d.IdDocumentoElectronico)), actualizacion.Mensaje);
                     }
                 }
 
