@@ -1,13 +1,13 @@
 namespace SafetyReport.Models
 {
-    // Body de POST — SP_PedidoFacturaLinea_Crear. idDocumentoElectronico es opcional: la línea
-    // puede nacer libre, sin documento todavía (ver PLAN_Lineas_Facturacion.md).
+    // Body de POST — SP_PedidoFacturaLinea_Crear. Toda línea nace libre (IdDocumentoElectronico
+    // NULL); la asociación a un documento pasa exclusivamente por RegistrarEnvio (ver
+    // PLAN_Lineas_Facturacion.md).
     public class CrearLineaFacturacionRequest
     {
         public List<int> idsPedido { get; set; } = new();
         public string? codigo { get; set; }
         public string descripcion { get; set; } = string.Empty;
-        public int? idDocumentoElectronico { get; set; }
     }
 
     // Codigo/Descripcion son la única metadata editable de una línea existente — Cantidad,

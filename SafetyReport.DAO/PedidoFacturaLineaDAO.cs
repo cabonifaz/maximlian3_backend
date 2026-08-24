@@ -64,10 +64,10 @@ namespace SafetyReport.DAO
             dr[columna] == DBNull.Value ? null : Convert.ToDecimal(dr[columna]);
 
         // Agrupa idPedidos (mismo cliente/mes/tarifa, validado en el SP) bajo una línea nueva.
-        // idDocumentoElectronico es opcional: la línea puede nacer libre, sin documento todavía
-        // (se asocia después vía PedidoFacturaDAO.RegistrarEnvioAsync) — ver PLAN_Lineas_Facturacion.md.
+        // La línea nace libre (IdDocumentoElectronico NULL) — se asocia después vía
+        // PedidoFacturaDAO.RegistrarEnvioAsync — ver PLAN_Lineas_Facturacion.md.
         public async Task<Respuesta> CrearAsync(
-            UsuarioGeneral usuarioLogueado, List<int> idPedidos, string? codigo, string descripcion, int? idDocumentoElectronico)
+            UsuarioGeneral usuarioLogueado, List<int> idPedidos, string? codigo, string descripcion)
         {
             try
             {
@@ -79,7 +79,6 @@ namespace SafetyReport.DAO
                 cmd.Parameters.Add("@vchUsuario", SqlDbType.VarChar, 32).Value = usuarioLogueado.Usuario;
                 cmd.Parameters.Add("@intIdEmpresa", SqlDbType.Int).Value = usuarioLogueado.IdEmpresa;
                 cmd.Parameters.Add("@intIdRol", SqlDbType.Int).Value = usuarioLogueado.IdRol;
-                cmd.Parameters.Add("@intIdDocumentoElectronico", SqlDbType.Int).Value = (object?)idDocumentoElectronico ?? DBNull.Value;
                 cmd.Parameters.Add("@vchCodigo", SqlDbType.VarChar, 30).Value = (object?)codigo ?? DBNull.Value;
                 cmd.Parameters.Add("@vchDescripcion", SqlDbType.VarChar, 500).Value = descripcion;
 

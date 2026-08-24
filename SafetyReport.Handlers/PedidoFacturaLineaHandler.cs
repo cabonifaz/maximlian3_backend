@@ -32,7 +32,7 @@ namespace SafetyReport.Handlers
                 }
 
                 return await _pedidoFacturaLineaDao.CrearAsync(
-                    usuarioLogueado, request.idsPedido, request.codigo, request.descripcion, request.idDocumentoElectronico);
+                    usuarioLogueado, request.idsPedido, request.codigo, request.descripcion);
             }
             catch (Exception ex)
             {
