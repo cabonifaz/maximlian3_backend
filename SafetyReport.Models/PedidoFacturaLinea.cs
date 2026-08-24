@@ -20,6 +20,17 @@ namespace SafetyReport.Models
         public string descripcion { get; set; } = string.Empty;
     }
 
+    // Body de PUT .../pedidos — SP_PedidoFacturaLinea_ActualizarPedidos. idsPedido es el conjunto
+    // completo deseado (no incremental): todo miembro actual que no venga en la lista se libera,
+    // todo pedido nuevo se engancha, y Cantidad/ValorUnitario/Descuento se recalculan desde cero.
+    // Si la lista queda vacía, la línea se soft-elimina. Solo aplica si la línea no tiene un
+    // estado SUNAT vigente (ver comentario del SP) — no depende de si ya tiene IdDocumentoElectronico.
+    public class ActualizarPedidosLineaFacturacionRequest
+    {
+        public int idCliente { get; set; }
+        public List<int> idsPedido { get; set; } = new();
+    }
+
     public class PedidoFacturaLineaConsulta
     {
         public int IdPedidoFacturaLinea { get; set; }

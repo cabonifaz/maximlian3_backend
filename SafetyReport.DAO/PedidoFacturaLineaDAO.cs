@@ -160,6 +160,56 @@ namespace SafetyReport.DAO
             }
         }
 
+        // Reemplaza la composición de la línea por idPedidos completo (no incremental) — ver
+        // SP_PedidoFacturaLinea_ActualizarPedidos. Si la línea queda sin miembros, el SP la
+        // soft-elimina y result set 2 no trae fila: Result queda null, no un objeto vacío.
+        public async Task<Respuesta> ActualizarPedidosAsync(
+            UsuarioGeneral usuarioLogueado, int idPedidoFacturaLinea, int idCliente, List<int> idPedidos)
+        {
+            try
+            {
+                using SqlConnection cn = new(_dbConfig.ConnectionString);
+                using SqlCommand cmd = new("SP_PedidoFacturaLinea_ActualizarPedidos", cn);
+
+                cmd.CommandType = CommandType.StoredProcedure;
+                cmd.Parameters.Add("@intIdUsuario", SqlDbType.Int).Value = usuarioLogueado.IdUsuario;
+                cmd.Parameters.Add("@vchUsuario", SqlDbType.VarChar, 32).Value = usuarioLogueado.Usuario;
+                cmd.Parameters.Add("@intIdEmpresa", SqlDbType.Int).Value = usuarioLogueado.IdEmpresa;
+                cmd.Parameters.Add("@intIdRol", SqlDbType.Int).Value = usuarioLogueado.IdRol;
+                cmd.Parameters.Add("@intIdPedidoFacturaLinea", SqlDbType.Int).Value = idPedidoFacturaLinea;
+                cmd.Parameters.Add("@intIdCliente", SqlDbType.Int).Value = idCliente;
+
+                var tvpIdPedido = cmd.Parameters.AddWithValue("@lstIdPedido", ConstruirTablaListaGeneralNum(idPedidos));
+                tvpIdPedido.SqlDbType = SqlDbType.Structured;
+                tvpIdPedido.TypeName = "LISTA_GENERAL_NUM";
+
+                await cn.OpenAsync();
+                using var dr = await cmd.ExecuteReaderAsync();
+                var respuesta = await LeerCabeceraAsync(dr, cmd.CommandText);
+
+                if (respuesta.IdTipoMensaje == 2 && await dr.NextResultAsync() && await dr.ReadAsync())
+                {
+                    respuesta.Result = new PedidoFacturaLineaConsulta
+                    {
+                        IdPedidoFacturaLinea = Convert.ToInt32(dr["IdPedidoFacturaLinea"]),
+                        Codigo = dr["Codigo"] as string,
+                        Descripcion = Convert.ToString(dr["Descripcion"]) ?? string.Empty,
+                        Cantidad = Convert.ToInt32(dr["Cantidad"]),
+                        ValorUnitario = Convert.ToDecimal(dr["ValorUnitario"]),
+                        Descuento = Convert.ToDecimal(dr["Descuento"]),
+                        DescuentoPorcentaje = dr["DescuentoPorcentaje"] as decimal?
+                    };
+                }
+
+                return respuesta;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error no controlado en la capa de datos.");
+                return new Respuesta { IdTipoMensaje = 3, Mensaje = ex.Message };
+            }
+        }
+
         // Líneas libres (sin IdDocumentoElectronico) de un cliente, listas para asociar a un
         // documento vía PedidoFacturaDAO.RegistrarEnvioAsync — ver PLAN_Lineas_Facturacion.md.
         public async Task<Respuesta> ListarAsync(UsuarioGeneral usuarioLogueado, ListarLineasFacturacionRequest request)

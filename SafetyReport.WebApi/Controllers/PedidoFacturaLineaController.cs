@@ -38,6 +38,13 @@ namespace SafetyReport.WebApi.Controllers
             return Ok(respuesta);
         }
 
+        [HttpPut("{idPedidoFacturaLinea:int}/pedidos")]
+        public async Task<IActionResult> ActualizarPedidos(int idPedidoFacturaLinea, [FromBody] ActualizarPedidosLineaFacturacionRequest request)
+        {
+            var respuesta = await _pedidoFacturaLineaHandler.ActualizarPedidosAsync(UsuarioLogueado, idPedidoFacturaLinea, request);
+            return Ok(respuesta);
+        }
+
         [HttpDelete("{idPedidoFacturaLinea:int}")]
         public async Task<IActionResult> Desvincular(int idPedidoFacturaLinea)
         {

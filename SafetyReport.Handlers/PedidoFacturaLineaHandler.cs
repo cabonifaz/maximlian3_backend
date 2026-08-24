@@ -84,6 +84,27 @@ namespace SafetyReport.Handlers
             }
         }
 
+        public async Task<Respuesta> ActualizarPedidosAsync(
+            UsuarioGeneral usuarioLogueado, int idPedidoFacturaLinea, ActualizarPedidosLineaFacturacionRequest request)
+        {
+            try
+            {
+                var acceso = await _pedidoFacturaDao.ValidarAccesoFacturacionAsync(usuarioLogueado, "editar los pedidos de una línea de facturación");
+                if (acceso.IdTipoMensaje != 2)
+                {
+                    return acceso;
+                }
+
+                return await _pedidoFacturaLineaDao.ActualizarPedidosAsync(
+                    usuarioLogueado, idPedidoFacturaLinea, request.idCliente, request.idsPedido);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error no controlado en la capa de negocio.");
+                return new Respuesta { IdTipoMensaje = 3, Mensaje = ex.Message };
+            }
+        }
+
         public async Task<Respuesta> ListarAsync(UsuarioGeneral usuarioLogueado, ListarLineasFacturacionRequest request)
         {
             try
