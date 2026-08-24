@@ -74,4 +74,21 @@ namespace SafetyReport.Models
     {
         public List<PedidoFacturaLineaListaConsulta> Lineas { get; set; } = new();
     }
+
+    // Resultado de SP_PedidoFacturaLinea_ObtenerParaBorrador (PedidoFacturaLineaDAO.ObtenerParaBorradorAsync).
+    public class PedidoFacturaLineaParaBorradorConsulta
+    {
+        public int IdPedidoFacturaLinea { get; set; }
+        public string? Codigo { get; set; }
+        public string Descripcion { get; set; } = string.Empty;
+        public int Cantidad { get; set; }
+        public decimal ValorUnitario { get; set; }
+        public decimal Descuento { get; set; }
+    }
+
+    public class LineasParaBorradorConsulta
+    {
+        public List<PedidoFacturaLineaParaBorradorConsulta> Lineas { get; set; } = new();
+        public List<int> IdPedidos { get; set; } = new();
+    }
 }

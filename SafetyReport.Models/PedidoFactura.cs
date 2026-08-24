@@ -156,17 +156,15 @@ namespace SafetyReport.Models
         public int idLineaDocumentoElectronico { get; set; }
     }
 
-    // productoCodigo/valorUnitario no vienen del front: se resuelven desde el propio Pedido
-    // (Codigo/TARIFARIO.Precio), mismo criterio que idCliente. descripcion sí es libre: si no viene, se
-    // usa el mismo fallback de siempre (NombreCliente + tipo de trámite).
+    // ProductoCodigo/Descripcion/Cantidad/ValorUnitario/MontoDescuento no vienen del front: se
+    // resuelven desde la propia PEDIDO_FACTURA_LINEA (ya congelados al crear/editar la línea, ver
+    // SP_PedidoFacturaLinea_Crear/ActualizarPedidos) — este DTO solo aporta lo que la línea no
+    // sabe: el mapeo a catálogos SUNAT del documento.
     public class GuardarBorradorFacturaLinea
     {
-        public int idPedido { get; set; }
+        public int idPedidoFacturaLinea { get; set; }
         public string? productoSunatCodigo { get; set; }
-        public string? descripcion { get; set; }
         public int idUnidadMedidaMaestro { get; set; }
-        public decimal cantidad { get; set; }
-        public decimal montoDescuento { get; set; }
         public int idAfectacionIgvMaestro { get; set; }
         public decimal porcentajeIgv { get; set; }
     }

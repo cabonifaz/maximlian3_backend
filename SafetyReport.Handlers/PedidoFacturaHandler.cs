@@ -13,6 +13,7 @@ namespace SafetyReport.Handlers
     public class PedidoFacturaHandler
     {
         private readonly PedidoFacturaDAO _pedidoFacturaDao;
+        private readonly PedidoFacturaLineaDAO _pedidoFacturaLineaDao;
         private readonly PedidoDAO _pedidoDao;
         private readonly ClienteDAO _clienteDao;
         private readonly FacturacionElectronicaService _facturacionService;
@@ -20,10 +21,11 @@ namespace SafetyReport.Handlers
         private readonly ILogger<PedidoFacturaHandler> _logger;
 
         public PedidoFacturaHandler(
-            PedidoFacturaDAO pedidoFacturaDao, PedidoDAO pedidoDao, ClienteDAO clienteDao, FacturacionElectronicaService facturacionService,
-            IConfiguration configuration, ILogger<PedidoFacturaHandler> logger)
+            PedidoFacturaDAO pedidoFacturaDao, PedidoFacturaLineaDAO pedidoFacturaLineaDao, PedidoDAO pedidoDao, ClienteDAO clienteDao,
+            FacturacionElectronicaService facturacionService, IConfiguration configuration, ILogger<PedidoFacturaHandler> logger)
         {
             _pedidoFacturaDao = pedidoFacturaDao;
+            _pedidoFacturaLineaDao = pedidoFacturaLineaDao;
             _pedidoDao = pedidoDao;
             _clienteDao = clienteDao;
             _facturacionService = facturacionService;
@@ -739,27 +741,32 @@ namespace SafetyReport.Handlers
                     return new Respuesta { IdTipoMensaje = 1, Mensaje = "La factura debe tener al menos una línea." };
                 }
 
-                var idPedidos = request.lineas.Select(l => l.idPedido).Distinct().ToList();
+                var idsLinea = request.lineas.Select(l => l.idPedidoFacturaLinea).Distinct().ToList();
 
-                var datosBorrador = await _pedidoFacturaDao.ObtenerDatosBorradorAsync(usuarioLogueado, request.idCliente, idPedidos);
+                var lineasResp = await _pedidoFacturaLineaDao.ObtenerParaBorradorAsync(usuarioLogueado, request.idCliente, idsLinea);
+                if (lineasResp.IdTipoMensaje != 2 || lineasResp.Result is not LineasParaBorradorConsulta lineasData)
+                {
+                    return new Respuesta { IdTipoMensaje = lineasResp.IdTipoMensaje, Mensaje = lineasResp.Mensaje };
+                }
+
+                var lineasPorId = lineasData.Lineas.ToDictionary(l => l.IdPedidoFacturaLinea);
+
+                // Cliente se sigue resolviendo vía SP_Facturacion_ObtenerDatosBorrador (mismo mapeo
+                // RUC/DNI -> IdTipoDocumentoSunat de siempre); los Pedidos de su resultado ya no se
+                // usan para precio/código, eso ahora viene de PEDIDO_FACTURA_LINEA (congelado).
+                var datosBorrador = await _pedidoFacturaDao.ObtenerDatosBorradorAsync(usuarioLogueado, request.idCliente, lineasData.IdPedidos);
                 if (datosBorrador.IdTipoMensaje != 2 || datosBorrador.Result is not DatosBorradorFacturaConsulta datos)
                 {
                     return new Respuesta { IdTipoMensaje = datosBorrador.IdTipoMensaje, Mensaje = datosBorrador.Mensaje };
                 }
 
                 var clienteDatos = datos.Cliente;
-                var pedidosPorId = datos.Pedidos.ToDictionary(p => p.IdPedido);
-
-                if (pedidosPorId.Values.Any(p => p.Precio is null))
-                {
-                    return new Respuesta { IdTipoMensaje = 1, Mensaje = "Uno o más pedidos no tienen un tarifario con precio configurado." };
-                }
 
                 var facturacionRequest = new FacturacionInsertarDocumentoRequest
                 {
                     IdInquilino = usuarioLogueado.IdEmpresa,
                     IdEmpresa = 1, // TODO: resolver desde EMPRESAS de ms-facturación (GET /api/v1/empresas?idInquilino=) en vez de fijo.
-                    IdExterno = string.Join(",", request.lineas.Select(l => l.idPedido)),
+                    IdExterno = string.Join(",", lineasData.IdPedidos),
                     NumeroReferencia = request.numeroReferencia,
                     IdTipoDocumentoMaestro = request.idTipoDocumentoMaestro,
                     IdMonedaMaestro = request.idMonedaMaestro,
@@ -789,13 +796,13 @@ namespace SafetyReport.Handlers
                     Items = request.lineas.Select((l, i) => new FacturacionItem
                     {
                         NumeroLinea = i + 1,
-                        ProductoCodigo = pedidosPorId[l.idPedido].Codigo,
+                        ProductoCodigo = lineasPorId[l.idPedidoFacturaLinea].Codigo ?? string.Empty,
                         ProductoSunatCodigo = l.productoSunatCodigo,
-                        Descripcion = !string.IsNullOrWhiteSpace(l.descripcion) ? l.descripcion : pedidosPorId[l.idPedido].NombreCliente ?? string.Empty,
+                        Descripcion = lineasPorId[l.idPedidoFacturaLinea].Descripcion,
                         IdUnidadMedidaMaestro = l.idUnidadMedidaMaestro,
-                        Cantidad = l.cantidad,
-                        ValorUnitario = pedidosPorId[l.idPedido].Precio.Value,
-                        MontoDescuento = l.montoDescuento,
+                        Cantidad = lineasPorId[l.idPedidoFacturaLinea].Cantidad,
+                        ValorUnitario = lineasPorId[l.idPedidoFacturaLinea].ValorUnitario,
+                        MontoDescuento = lineasPorId[l.idPedidoFacturaLinea].Descuento,
                         IdAfectacionIgvMaestro = l.idAfectacionIgvMaestro,
                         PorcentajeIgv = l.porcentajeIgv
                     }).ToList(),
@@ -808,16 +815,16 @@ namespace SafetyReport.Handlers
                     return new Respuesta { IdTipoMensaje = insertado?.IdTipoMensaje ?? 3, Mensaje = insertado?.Mensaje ?? "No se pudo crear el documento electrónico en facturación." };
                 }
 
-                // Un borrador puede cubrir varios pedidos: se registra el mismo IdDocumentoElectronico
-                // en PEDIDO_FACTURA para todos los pedidos referenciados por las líneas en un solo UPDATE.
+                // Asocia el documento a las líneas (no a los pedidos directamente) — SP_PedidoFactura_
+                // RegistrarEnvio fija IdDocumentoElectronico + IdEstadoFacturacion=1 en cada línea.
                 var registro = await _pedidoFacturaDao.RegistrarEnvioAsync(
-                    usuarioLogueado, idPedidos, insertado.Datos.IdDocumentoElectronico);
+                    usuarioLogueado, idsLinea, insertado.Datos.IdDocumentoElectronico);
 
                 if (registro.IdTipoMensaje != 2)
                 {
                     _logger.LogWarning(
-                        "No se pudo registrar el borrador de facturación para los pedidos {IdPedidos}: {Mensaje}",
-                        string.Join(",", idPedidos), registro.Mensaje);
+                        "No se pudo registrar el borrador de facturación para las líneas {IdsLinea}: {Mensaje}",
+                        string.Join(",", idsLinea), registro.Mensaje);
                 }
 
                 return ResultadoOperacionExito(insertado.Datos.IdDocumentoElectronico);

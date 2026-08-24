@@ -289,5 +289,60 @@ namespace SafetyReport.DAO
                 return new Respuesta { IdTipoMensaje = 3, Mensaje = ex.Message };
             }
         }
+
+        // Insumo de PedidoFacturaHandler.GuardarBorradorFacturaAsync: montos ya congelados de las
+        // líneas + el IdPedido de cada miembro (para IdExterno del documento) — ver
+        // SP_PedidoFacturaLinea_ObtenerParaBorrador.
+        public async Task<Respuesta> ObtenerParaBorradorAsync(UsuarioGeneral usuarioLogueado, int idCliente, List<int> idsLinea)
+        {
+            try
+            {
+                using SqlConnection cn = new(_dbConfig.ConnectionString);
+                using SqlCommand cmd = new("SP_PedidoFacturaLinea_ObtenerParaBorrador", cn);
+
+                cmd.CommandType = CommandType.StoredProcedure;
+                cmd.Parameters.Add("@intIdUsuario", SqlDbType.Int).Value = usuarioLogueado.IdUsuario;
+                cmd.Parameters.Add("@vchUsuario", SqlDbType.VarChar, 32).Value = usuarioLogueado.Usuario;
+                cmd.Parameters.Add("@intIdEmpresa", SqlDbType.Int).Value = usuarioLogueado.IdEmpresa;
+                cmd.Parameters.Add("@intIdRol", SqlDbType.Int).Value = usuarioLogueado.IdRol;
+                cmd.Parameters.Add("@intIdCliente", SqlDbType.Int).Value = idCliente;
+
+                var tvpIdLinea = cmd.Parameters.AddWithValue("@lstIdPedidoFacturaLinea", ConstruirTablaListaGeneralNum(idsLinea));
+                tvpIdLinea.SqlDbType = SqlDbType.Structured;
+                tvpIdLinea.TypeName = "LISTA_GENERAL_NUM";
+
+                await cn.OpenAsync();
+
+                using var dr = await cmd.ExecuteReaderAsync();
+                var respuesta = await LeerCabeceraAsync(dr, cmd.CommandText);
+
+                var resultado = new LineasParaBorradorConsulta();
+                if (respuesta.IdTipoMensaje == 2 && await dr.NextResultAsync())
+                {
+                    while (await dr.ReadAsync())
+                        resultado.Lineas.Add(new PedidoFacturaLineaParaBorradorConsulta
+                        {
+                            IdPedidoFacturaLinea = Convert.ToInt32(dr["IdPedidoFacturaLinea"]),
+                            Codigo = dr["Codigo"] as string,
+                            Descripcion = Convert.ToString(dr["Descripcion"]) ?? string.Empty,
+                            Cantidad = Convert.ToInt32(dr["Cantidad"]),
+                            ValorUnitario = Convert.ToDecimal(dr["ValorUnitario"]),
+                            Descuento = Convert.ToDecimal(dr["Descuento"])
+                        });
+
+                    if (await dr.NextResultAsync())
+                        while (await dr.ReadAsync())
+                            resultado.IdPedidos.Add(Convert.ToInt32(dr["IdPedido"]));
+                }
+
+                respuesta.Result = resultado;
+                return respuesta;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error no controlado en la capa de datos.");
+                return new Respuesta { IdTipoMensaje = 3, Mensaje = ex.Message, Result = new LineasParaBorradorConsulta() };
+            }
+        }
     }
 }
