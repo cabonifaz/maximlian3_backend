@@ -293,10 +293,12 @@ namespace SafetyReport.DAO
             }
         }
 
-        // Insumo de PedidoFacturaHandler.GuardarBorradorFacturaAsync: montos ya congelados de las
-        // líneas + el IdPedido de cada miembro (para IdExterno del documento) — ver
-        // SP_PedidoFacturaLinea_ObtenerParaBorrador.
-        public async Task<Respuesta> ObtenerParaBorradorAsync(UsuarioGeneral usuarioLogueado, int idCliente, List<int> idsLinea)
+        // Insumo de PedidoFacturaHandler.GuardarBorradorFacturaAsync/GuardarCambiosFacturaAsync:
+        // montos ya congelados de las líneas — ver SP_PedidoFacturaLinea_ObtenerParaBorrador.
+        // idDocumentoElectronico es opcional: además de las libres, también trae las líneas ya
+        // asociadas a ese documento (edición de un borrador existente).
+        public async Task<Respuesta> ObtenerParaBorradorAsync(
+            UsuarioGeneral usuarioLogueado, int idCliente, List<int> idsLinea, int? idDocumentoElectronico = null)
         {
             try
             {
@@ -309,6 +311,7 @@ namespace SafetyReport.DAO
                 cmd.Parameters.Add("@intIdEmpresa", SqlDbType.Int).Value = usuarioLogueado.IdEmpresa;
                 cmd.Parameters.Add("@intIdRol", SqlDbType.Int).Value = usuarioLogueado.IdRol;
                 cmd.Parameters.Add("@intIdCliente", SqlDbType.Int).Value = idCliente;
+                cmd.Parameters.Add("@intIdDocumentoElectronico", SqlDbType.Int).Value = (object?)idDocumentoElectronico ?? DBNull.Value;
 
                 var tvpIdLinea = cmd.Parameters.AddWithValue("@lstIdPedidoFacturaLinea", ConstruirTablaListaGeneralNum(idsLinea));
                 tvpIdLinea.SqlDbType = SqlDbType.Structured;
@@ -326,6 +329,7 @@ namespace SafetyReport.DAO
                         resultado.Lineas.Add(new PedidoFacturaLineaParaBorradorConsulta
                         {
                             IdPedidoFacturaLinea = Convert.ToInt32(dr["IdPedidoFacturaLinea"]),
+                            IdDocumentoElectronico = GetNullableInt(dr, "IdDocumentoElectronico"),
                             Codigo = dr["Codigo"] as string,
                             Descripcion = Convert.ToString(dr["Descripcion"]) ?? string.Empty,
                             Cantidad = Convert.ToInt32(dr["Cantidad"]),

@@ -931,26 +931,41 @@ namespace SafetyReport.Handlers
                     return new Respuesta { IdTipoMensaje = 1, Mensaje = "La factura debe tener al menos una línea." };
                 }
 
-                var idPedidos = request.lineas.Select(l => l.idPedido).Distinct().ToList();
+                var idsLinea = request.lineas.Select(l => l.idPedidoFacturaLinea).Distinct().ToList();
 
-                var datosBorrador = await _pedidoFacturaDao.ObtenerDatosBorradorAsync(usuarioLogueado, null, idPedidos);
-                if (datosBorrador.IdTipoMensaje != 2 || datosBorrador.Result is not DatosBorradorFacturaConsulta datos)
+                var clienteDocResp = await _clienteDao.ObtenerClientePorDocumentoElectronicoAsync(usuarioLogueado, idDocumentoElectronico);
+                var idCliente = clienteDocResp.IdTipoMensaje == 2
+                    ? (clienteDocResp.Result as List<ClienteConsulta>)?.FirstOrDefault()?.IdCliente
+                    : null;
+
+                if (idCliente is null)
                 {
-                    return new Respuesta { IdTipoMensaje = datosBorrador.IdTipoMensaje, Mensaje = datosBorrador.Mensaje };
+                    return new Respuesta { IdTipoMensaje = 1, Mensaje = "No se pudo resolver el cliente del documento indicado." };
                 }
 
-                var pedidosPorId = datos.Pedidos.ToDictionary(p => p.IdPedido);
-
-                if (pedidosPorId.Values.Any(p => p.Precio is null))
+                var lineasResp = await _pedidoFacturaLineaDao.ObtenerParaBorradorAsync(usuarioLogueado, idCliente.Value, idsLinea, idDocumentoElectronico);
+                if (lineasResp.IdTipoMensaje != 2 || lineasResp.Result is not LineasParaBorradorConsulta lineasData)
                 {
-                    return new Respuesta { IdTipoMensaje = 1, Mensaje = "Uno o más pedidos no tienen un tarifario con precio configurado." };
+                    return new Respuesta { IdTipoMensaje = lineasResp.IdTipoMensaje, Mensaje = lineasResp.Mensaje };
+                }
+
+                var lineasPorId = lineasData.Lineas.ToDictionary(l => l.IdPedidoFacturaLinea);
+
+                var idsLineaFaltantes = idsLinea.Where(id => !lineasPorId.ContainsKey(id)).ToList();
+                if (idsLineaFaltantes.Count > 0)
+                {
+                    return new Respuesta
+                    {
+                        IdTipoMensaje = 1,
+                        Mensaje = $"Una o más líneas no están disponibles para el documento: {string.Join(",", idsLineaFaltantes)}."
+                    };
                 }
 
                 var facturacionRequest = new FacturacionGuardarCambiosRequest
                 {
                     // Mismo cálculo que InsertarAsync — se manda de nuevo porque las líneas pudieron cambiar
                     // (IdExterno solo se llenaba al crear el documento y quedaba obsoleto después).
-                    IdExterno = string.Join(",", request.lineas.Select(l => l.idPedido)),
+                    IdExterno = string.Join(",", idsLinea),
                     IdFormaPago = request.idFormaPago,
                     NumeroReferencia = request.numeroReferencia,
                     IdMonedaMaestro = request.idMonedaMaestro,
@@ -959,13 +974,13 @@ namespace SafetyReport.Handlers
                     Lineas = request.lineas.Select((l, i) => new FacturacionLineaEdicion
                     {
                         NumeroLinea = i + 1,
-                        ProductoCodigo = pedidosPorId[l.idPedido].Codigo,
+                        ProductoCodigo = lineasPorId[l.idPedidoFacturaLinea].Codigo ?? string.Empty,
                         ProductoSunatCodigo = l.productoSunatCodigo,
-                        Descripcion = !string.IsNullOrWhiteSpace(l.descripcion) ? l.descripcion : pedidosPorId[l.idPedido].NombreCliente ?? string.Empty,
+                        Descripcion = lineasPorId[l.idPedidoFacturaLinea].Descripcion,
                         IdUnidadMedidaMaestro = l.idUnidadMedidaMaestro,
-                        Cantidad = l.cantidad,
-                        ValorUnitario = pedidosPorId[l.idPedido].Precio.Value,
-                        MontoDescuento = l.montoDescuento,
+                        Cantidad = lineasPorId[l.idPedidoFacturaLinea].Cantidad,
+                        ValorUnitario = lineasPorId[l.idPedidoFacturaLinea].ValorUnitario,
+                        MontoDescuento = lineasPorId[l.idPedidoFacturaLinea].Descuento,
                         IdAfectacionIgvMaestro = l.idAfectacionIgvMaestro,
                         PorcentajeIgv = l.porcentajeIgv,
                         IdLineaDocumentoElectronico = l.idLineaDocumentoElectronico
@@ -994,23 +1009,29 @@ namespace SafetyReport.Handlers
                     return new Respuesta { IdTipoMensaje = resultado?.IdTipoMensaje ?? 3, Mensaje = resultado?.Mensaje ?? "No se pudieron guardar los cambios en facturación." };
                 }
 
-                // Reconcilia PEDIDO_FACTURA con el nuevo set de pedidos: enlaza los que se agregaron,
-                // desvincula los que se quitaron. Ninguna de las dos falla la operación si algo sale mal
-                // acá — el documento en ms-facturación ya se guardó, solo queda desincronizado el vínculo.
-                var enlace = await _pedidoFacturaDao.RegistrarEnvioAsync(
-                    usuarioLogueado, idPedidos, idDocumentoElectronico);
-                if (enlace.IdTipoMensaje != 2)
+                // Reconcilia PEDIDO_FACTURA_LINEA con el nuevo set de líneas: enlaza las que se
+                // agregaron (las que ya tenían este mismo documento se saltan — RegistrarEnvio exige
+                // línea libre), desvincula las que se quitaron. Ninguna de las dos falla la operación
+                // si algo sale mal acá — el documento en ms-facturación ya se guardó, solo queda
+                // desincronizado el vínculo.
+                var idsLineaNuevas = idsLinea.Where(id => lineasPorId[id].IdDocumentoElectronico is null).ToList();
+                if (idsLineaNuevas.Count > 0)
                 {
-                    _logger.LogWarning(
-                        "No se pudo enlazar los pedidos {IdPedidos} al documento {IdDocumentoElectronico}: {Mensaje}",
-                        string.Join(",", idPedidos), idDocumentoElectronico, enlace.Mensaje);
+                    var enlace = await _pedidoFacturaDao.RegistrarEnvioAsync(
+                        usuarioLogueado, idsLineaNuevas, idDocumentoElectronico);
+                    if (enlace.IdTipoMensaje != 2)
+                    {
+                        _logger.LogWarning(
+                            "No se pudo enlazar las líneas {IdsLinea} al documento {IdDocumentoElectronico}: {Mensaje}",
+                            string.Join(",", idsLineaNuevas), idDocumentoElectronico, enlace.Mensaje);
+                    }
                 }
 
-                var desvinculacion = await _pedidoFacturaDao.DesvincularAsync(usuarioLogueado, idDocumentoElectronico, idPedidos);
+                var desvinculacion = await _pedidoFacturaDao.DesvincularAsync(usuarioLogueado, idDocumentoElectronico, idsLinea);
                 if (desvinculacion.IdTipoMensaje != 2)
                 {
                     _logger.LogWarning(
-                        "No se pudo desvincular los pedidos removidos del documento {IdDocumentoElectronico}: {Mensaje}",
+                        "No se pudo desvincular las líneas removidas del documento {IdDocumentoElectronico}: {Mensaje}",
                         idDocumentoElectronico, desvinculacion.Mensaje);
                 }
 

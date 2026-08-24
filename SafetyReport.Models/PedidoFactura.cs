@@ -184,20 +184,17 @@ namespace SafetyReport.Models
         public List<CampoExtraEdicionRequest>? camposExtra { get; set; }
     }
 
-    // productoCodigo no viene del front, mismo criterio que GuardarBorradorFacturaLinea. descripcion sí es
-    // libre, mismo fallback si no viene. idLineaDocumentoElectronico: 0 (u omitido) = línea nueva, >0 =
-    // actualizar una ya guardada.
+    // ProductoCodigo/Descripcion/Cantidad/ValorUnitario/MontoDescuento vienen de la propia
+    // PEDIDO_FACTURA_LINEA (congelados), mismo criterio que GuardarBorradorFacturaLinea — este
+    // DTO solo aporta el mapeo a catálogos SUNAT. idLineaDocumentoElectronico: 0 (u omitido) =
+    // línea nueva, >0 = actualizar una ya guardada.
     public class GuardarCambiosFacturaLinea
     {
-        public int idPedido { get; set; }
+        public int idPedidoFacturaLinea { get; set; }
         public string? productoSunatCodigo { get; set; }
-        public string? descripcion { get; set; }
         public int idUnidadMedidaMaestro { get; set; }
-        public decimal cantidad { get; set; }
-        public decimal montoDescuento { get; set; }
         public int idAfectacionIgvMaestro { get; set; }
         public decimal porcentajeIgv { get; set; }
-        public int numeroLinea { get; set; }
         public int idLineaDocumentoElectronico { get; set; }
     }
 
