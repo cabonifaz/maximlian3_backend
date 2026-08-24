@@ -228,6 +228,7 @@ namespace SafetyReport.DAO
                 cmd.Parameters.Add("@intAnio", SqlDbType.Int).Value = (object?)request.anio ?? DBNull.Value;
                 cmd.Parameters.Add("@intMes", SqlDbType.Int).Value = (object?)request.mes ?? DBNull.Value;
                 cmd.Parameters.Add("@intIdDocumentoElectronico", SqlDbType.Int).Value = (object?)request.idDocumentoElectronico ?? DBNull.Value;
+                cmd.Parameters.Add("@intIdMoneda", SqlDbType.Int).Value = (object?)request.idMoneda ?? DBNull.Value;
 
                 await cn.OpenAsync();
 

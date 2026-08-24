@@ -55,6 +55,7 @@ namespace SafetyReport.Models
         public int? anio { get; set; }
         public int? mes { get; set; }
         public int? idDocumentoElectronico { get; set; }
+        public int? idMoneda { get; set; }
     }
 
     // Resultado de SP_PedidoFacturaLinea_Listar. IdTipoTramite/TipoTramite/IdMoneda/Moneda se
