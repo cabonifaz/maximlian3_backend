@@ -65,9 +65,10 @@ namespace SafetyReport.DAO
 
         // Agrupa idPedidos (mismo cliente/mes/tarifa, validado en el SP) bajo una línea nueva.
         // La línea nace libre (IdDocumentoElectronico NULL) — se asocia después vía
-        // PedidoFacturaDAO.RegistrarEnvioAsync — ver PLAN_Lineas_Facturacion.md.
+        // PedidoFacturaDAO.RegistrarEnvioAsync — ver PLAN_Lineas_Facturacion.md. idCliente se
+        // valida en el SP contra cada pedido de idPedidos, no solo entre sí.
         public async Task<Respuesta> CrearAsync(
-            UsuarioGeneral usuarioLogueado, List<int> idPedidos, string? codigo, string descripcion)
+            UsuarioGeneral usuarioLogueado, int idCliente, List<int> idPedidos, string? codigo, string descripcion)
         {
             try
             {
@@ -79,6 +80,7 @@ namespace SafetyReport.DAO
                 cmd.Parameters.Add("@vchUsuario", SqlDbType.VarChar, 32).Value = usuarioLogueado.Usuario;
                 cmd.Parameters.Add("@intIdEmpresa", SqlDbType.Int).Value = usuarioLogueado.IdEmpresa;
                 cmd.Parameters.Add("@intIdRol", SqlDbType.Int).Value = usuarioLogueado.IdRol;
+                cmd.Parameters.Add("@intIdCliente", SqlDbType.Int).Value = idCliente;
                 cmd.Parameters.Add("@vchCodigo", SqlDbType.VarChar, 30).Value = (object?)codigo ?? DBNull.Value;
                 cmd.Parameters.Add("@vchDescripcion", SqlDbType.VarChar, 500).Value = descripcion;
 

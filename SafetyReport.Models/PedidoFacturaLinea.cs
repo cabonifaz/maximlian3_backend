@@ -2,9 +2,11 @@ namespace SafetyReport.Models
 {
     // Body de POST — SP_PedidoFacturaLinea_Crear. Toda línea nace libre (IdDocumentoElectronico
     // NULL); la asociación a un documento pasa exclusivamente por RegistrarEnvio (ver
-    // PLAN_Lineas_Facturacion.md).
+    // PLAN_Lineas_Facturacion.md). idCliente es explícito: el SP valida que todo pedido de
+    // idsPedido pertenezca a ese cliente, no solo que sean mutuamente consistentes entre sí.
     public class CrearLineaFacturacionRequest
     {
+        public int idCliente { get; set; }
         public List<int> idsPedido { get; set; } = new();
         public string? codigo { get; set; }
         public string descripcion { get; set; } = string.Empty;
