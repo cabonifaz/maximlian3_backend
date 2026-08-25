@@ -62,11 +62,7 @@ namespace SafetyReport.Handlers
                     : null;
                 nombreCliente = string.IsNullOrWhiteSpace(nombreCliente) ? "CLIENTE" : nombreCliente;
 
-                var headers = new List<string>(resultado.Headers);
-                if (!string.IsNullOrWhiteSpace(resultado.Moneda) && IndicePrecio < headers.Count)
-                    headers[IndicePrecio] = $"{headers[IndicePrecio]} {resultado.Moneda}";
-
-                var archivo = GenerarExcelPrefactura(headers, resultado.Items);
+                var archivo = GenerarExcelPrefactura(resultado.Headers, resultado.Items);
                 var etiquetaPeriodo = ObtenerEtiquetaPeriodo(request);
                 var nombreArchivo = $"{SanitizarNombreArchivo(nombreCliente)} List of Reports {etiquetaPeriodo}.xlsx";
 
@@ -127,10 +123,10 @@ namespace SafetyReport.Handlers
             return new string(sinMarcas.ToArray()).Normalize(NormalizationForm.FormC);
         }
 
-        // Índice 0-based de la columna PRICE dentro de las 9 columnas de SP_Pedido_ListarParaPrefactura
-        // (Company/TypeOfReport/ReferenceNumber/Country/DateOfRequest/ApprovedOn/TypeOfService/Price/
-        // Observation) — la única columna numérica, el resto son texto tal cual vino del SP.
-        private const int IndicePrecio = 7;
+        // Índice 0-based de la columna PRICE dentro de las 10 columnas de SP_Pedido_ListarParaPrefactura
+        // (Company/TypeOfReport/ReferenceNumber/Country/DateOfRequest/ApprovedOn/TypeOfService/Currency/
+        // Price/Observation) — la única columna numérica, el resto son texto tal cual vino del SP.
+        private const int IndicePrecio = 8;
 
         // Encabezados en negrita con relleno gris y bordes, filtro (flechas desplegables) en la fila de
         // encabezado, bordes en todas las celdas de datos y PRICE como número real (no texto) — mismo
@@ -167,7 +163,7 @@ namespace SafetyReport.Handlers
                     filaValores[i] = new List<object?>
                     {
                         it.Company, it.TypeOfReport, it.ReferenceNumber, it.Country, it.DateOfRequest,
-                        it.ApprovedOn, it.TypeOfService, it.Price, it.Observation
+                        it.ApprovedOn, it.TypeOfService, it.Currency, it.Price, it.Observation
                     };
                 }
 

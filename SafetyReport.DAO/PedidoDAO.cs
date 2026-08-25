@@ -829,16 +829,8 @@ namespace SafetyReport.DAO
                 var resultado = new PedidoPrefacturaResult();
                 if (respuesta.IdTipoMensaje == 2 && await dr.NextResultAsync())
                 {
-                    // Result set 2: moneda de facturación del cliente (CLIENTE.IdMoneda) — PRICE/
-                    // PRECIO viene sin sufijo en result set 3, este valor arma el encabezado dinámico.
-                    if (await dr.ReadAsync())
-                        resultado.Moneda = dr["Moneda"]?.ToString() ?? string.Empty;
-                }
-
-                if (respuesta.IdTipoMensaje == 2 && await dr.NextResultAsync())
-                {
                     // Por posición, no por nombre: el SP bifurca por idioma y devuelve encabezados
-                    // distintos (inglés/español) en el mismo orden de 9 columnas — ver comentario en
+                    // distintos (inglés/español) en el mismo orden de 10 columnas — ver comentario en
                     // PedidoPrefacturaConsulta. Los encabezados reales se toman del esquema del reader.
                     for (var i = 0; i < dr.FieldCount; i++)
                         resultado.Headers.Add(dr.GetName(i));
@@ -854,8 +846,9 @@ namespace SafetyReport.DAO
                             DateOfRequest = dr[4]?.ToString() ?? string.Empty,
                             ApprovedOn = dr[5]?.ToString() ?? string.Empty,
                             TypeOfService = dr[6]?.ToString() ?? string.Empty,
-                            Price = Convert.ToDecimal(dr[7]),
-                            Observation = dr[8]?.ToString() ?? string.Empty
+                            Currency = dr[7]?.ToString() ?? string.Empty,
+                            Price = Convert.ToDecimal(dr[8]),
+                            Observation = dr[9]?.ToString() ?? string.Empty
                         });
                     }
                 }

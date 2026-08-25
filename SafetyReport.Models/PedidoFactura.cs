@@ -328,7 +328,7 @@ namespace SafetyReport.Models
         public int Mes { get; set; }
     }
 
-    // Resultado de SP_Pedido_ListarParaPrefactura — mismas 9 columnas en ambos idiomas (ver
+    // Resultado de SP_Pedido_ListarParaPrefactura — mismas 10 columnas en ambos idiomas (ver
     // 13_SP_Pedido_ListarParaPrefactura.sql), leídas por posición: el SP bifurca por
     // c.IdIdiomaFacturacion y devuelve encabezados en inglés o español, así que la DAO no puede
     // leer por nombre de columna (dr["COMPANY"] no existe en la rama en español). Los encabezados
@@ -342,13 +342,13 @@ namespace SafetyReport.Models
         public string DateOfRequest { get; set; } = string.Empty;
         public string ApprovedOn { get; set; } = string.Empty;
         public string TypeOfService { get; set; } = string.Empty;
+        public string Currency { get; set; } = string.Empty;
         public decimal Price { get; set; }
         public string Observation { get; set; } = string.Empty;
     }
 
     public class PedidoPrefacturaResult
     {
-        public string Moneda { get; set; } = string.Empty;
         public List<string> Headers { get; set; } = new();
         public List<PedidoPrefacturaConsulta> Items { get; set; } = new();
     }
