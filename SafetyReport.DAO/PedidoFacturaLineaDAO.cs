@@ -103,7 +103,6 @@ namespace SafetyReport.DAO
                         Cantidad = Convert.ToInt32(dr["Cantidad"]),
                         ValorUnitario = Convert.ToDecimal(dr["ValorUnitario"]),
                         Descuento = Convert.ToDecimal(dr["Descuento"]),
-                        DescuentoPorcentaje = dr["DescuentoPorcentaje"] as decimal?
                     };
                 }
 
@@ -147,7 +146,6 @@ namespace SafetyReport.DAO
                         Cantidad = Convert.ToInt32(dr["Cantidad"]),
                         ValorUnitario = Convert.ToDecimal(dr["ValorUnitario"]),
                         Descuento = Convert.ToDecimal(dr["Descuento"]),
-                        DescuentoPorcentaje = dr["DescuentoPorcentaje"] as decimal?
                     };
                 }
 
@@ -197,7 +195,6 @@ namespace SafetyReport.DAO
                         Cantidad = Convert.ToInt32(dr["Cantidad"]),
                         ValorUnitario = Convert.ToDecimal(dr["ValorUnitario"]),
                         Descuento = Convert.ToDecimal(dr["Descuento"]),
-                        DescuentoPorcentaje = dr["DescuentoPorcentaje"] as decimal?
                     };
                 }
 
@@ -251,8 +248,7 @@ namespace SafetyReport.DAO
                             Moneda = GetNullableString(dr, "Moneda"),
                             Cantidad = Convert.ToInt32(dr["Cantidad"]),
                             ValorUnitario = Convert.ToDecimal(dr["ValorUnitario"]),
-                            Descuento = Convert.ToDecimal(dr["Descuento"]),
-                            DescuentoPorcentaje = GetNullableDecimal(dr, "DescuentoPorcentaje")
+                            Descuento = Convert.ToDecimal(dr["Descuento"])
                         });
                 }
 

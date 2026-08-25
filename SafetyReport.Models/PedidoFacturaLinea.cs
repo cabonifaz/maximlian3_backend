@@ -39,7 +39,6 @@ namespace SafetyReport.Models
         public int Cantidad { get; set; }
         public decimal ValorUnitario { get; set; }
         public decimal Descuento { get; set; }
-        public decimal? DescuentoPorcentaje { get; set; }
     }
 
     // Query params de SP_PedidoFacturaLinea_Listar. idCliente es obligatorio — una línea agrupa
@@ -73,7 +72,6 @@ namespace SafetyReport.Models
         public int Cantidad { get; set; }
         public decimal ValorUnitario { get; set; }
         public decimal Descuento { get; set; }
-        public decimal? DescuentoPorcentaje { get; set; }
     }
 
     public class PedidoFacturaLineaListaResult
