@@ -244,7 +244,7 @@ namespace SafetyReport.Models
         public int idTipoTramite { get; set; }
         public int? anio { get; set; }
         public int? mes { get; set; }
-        public int? idPais { get; set; }
+        public List<int>? idsPais { get; set; }
         public int? idMoneda { get; set; }
     }
 
