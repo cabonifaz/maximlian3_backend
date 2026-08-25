@@ -750,6 +750,57 @@ namespace SafetyReport.DAO
             }
         }
 
+        // Variante sin usuario logueado (flujo público por token, ver PedidoFacturaHandler.
+        // ListarPedidosPorTokenPublicoAsync) — SP_Pedido_ListarPorDocumentoElectronicoPublico no valida
+        // rol, solo toma idEmpresa/idDocumentoElectronico ya resueltos desde ms-facturación.
+        public async Task<Respuesta> ListarPorDocumentoElectronicoPublicoAsync(int idEmpresa, int idDocumentoElectronico)
+        {
+            try
+            {
+                using SqlConnection cn = new(_dbConfig.ConnectionString);
+                using SqlCommand cmd = new("SP_Pedido_ListarPorDocumentoElectronicoPublico", cn);
+
+                cmd.CommandType = CommandType.StoredProcedure;
+                cmd.Parameters.Add("@intIdEmpresa", SqlDbType.Int).Value = idEmpresa;
+                cmd.Parameters.Add("@intIdDocumentoElectronico", SqlDbType.Int).Value = idDocumentoElectronico;
+
+                await cn.OpenAsync();
+
+                using var dr = await cmd.ExecuteReaderAsync();
+                var respuesta = await LeerCabeceraAsync(dr, cmd.CommandText);
+
+                var resultado = new PedidoPorDocumentoElectronicoResult();
+                if (respuesta.IdTipoMensaje == 2 && await dr.NextResultAsync())
+                {
+                    while (await dr.ReadAsync())
+                        resultado.Pedidos.Add(new PedidoPorDocumentoElectronicoConsulta
+                        {
+                            Codigo = dr["Codigo"]?.ToString() ?? string.Empty,
+                            NumReferencia = dr["NumReferencia"]?.ToString() ?? string.Empty,
+                            Investigado = GetNullableString(dr, "Investigado"),
+                            TipoTramite = dr["TipoTramite"]?.ToString() ?? string.Empty,
+                            Pais = dr["Pais"]?.ToString() ?? string.Empty,
+                            ValorUnitario = dr["ValorUnitario"]?.ToString() ?? string.Empty,
+                            Descuento = dr["Descuento"]?.ToString() ?? string.Empty
+                        });
+                }
+
+                respuesta.Result = resultado;
+                return respuesta;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error no controlado en la capa de datos.");
+
+                return new Respuesta
+                {
+                    IdTipoMensaje = 3,
+                    Mensaje = ex.Message,
+                    Result = new PedidoPorDocumentoElectronicoResult()
+                };
+            }
+        }
+
         public async Task<Respuesta> ListarParaPrefacturaAsync(UsuarioGeneral usuarioLogueado, FiltroPedidoPrefactura request)
         {
             try

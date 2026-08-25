@@ -173,6 +173,14 @@ namespace SafetyReport.Models
         public DateTime FechaCreacion { get; set; }
     }
 
+    // Respuesta de GET .../token/{token}/id — solo lo mínimo para armar la consulta de pedidos del
+    // documento contra maximlian3 (IdInquilino equivale a IdEmpresa acá).
+    public class FacturacionIdentificadorPorToken
+    {
+        public int IdDocumentoElectronico { get; set; }
+        public int IdInquilino { get; set; }
+    }
+
     public class FacturacionResultadoEnvioSunat
     {
         public int EstadoCodigo { get; set; } // EstadoMaestroCodigo: 3=Aceptado, 4=AceptadoConObservaciones, 5=Rechazado, 8=Error

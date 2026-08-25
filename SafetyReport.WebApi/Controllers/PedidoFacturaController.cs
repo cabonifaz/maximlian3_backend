@@ -91,6 +91,16 @@ namespace SafetyReport.WebApi.Controllers
             return Ok(respuesta);
         }
 
+        // Flujo público por token (verificación, sin login) — mismo criterio de exposición anónima
+        // que ms-facturación's token/{token} (ver ObtenerDocumentoPorTokenAsync).
+        [AllowAnonymous]
+        [HttpGet("token/{token}/pedidos")]
+        public async Task<IActionResult> ListarPedidosPorTokenPublico(string token, CancellationToken cancellationToken)
+        {
+            var respuesta = await _pedidoFacturaHandler.ListarPedidosPorTokenPublicoAsync(token, cancellationToken);
+            return Ok(respuesta);
+        }
+
         [HttpGet("facturaPorId/{idDocumentoElectronico:int}/paraNota")]
         public async Task<IActionResult> ObtenerParaNota(int idDocumentoElectronico)
         {
