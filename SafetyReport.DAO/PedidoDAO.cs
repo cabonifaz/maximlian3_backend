@@ -651,7 +651,7 @@ namespace SafetyReport.DAO
                 cmd.Parameters.Add("@intIdTipoTramite", SqlDbType.Int).Value = request.idTipoTramite;
                 cmd.Parameters.Add("@intAnio", SqlDbType.Int).Value = (object?)request.anio ?? DBNull.Value;
                 cmd.Parameters.Add("@intMes", SqlDbType.Int).Value = (object?)request.mes ?? DBNull.Value;
-                cmd.Parameters.Add("@vchIdPais", SqlDbType.VarChar, 200).Value = (object?)request.idsPais is { Count: > 0 } idsPais ? string.Join(",", idsPais) : DBNull.Value;
+                cmd.Parameters.Add("@vchIdPais", SqlDbType.VarChar, 200).Value = request.idsPais is { Count: > 0 } idsPais ? (object)string.Join(",", idsPais) : DBNull.Value;
                 cmd.Parameters.Add("@intIdMoneda", SqlDbType.Int).Value = (object?)request.idMoneda ?? DBNull.Value;
 
                 await cn.OpenAsync();
