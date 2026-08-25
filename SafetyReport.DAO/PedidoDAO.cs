@@ -678,7 +678,6 @@ namespace SafetyReport.DAO
                             IdTarifario = GetNullableInt(dr, "IdTarifario"),
                             Penalidad = GetNullableDecimal(dr, "Penalidad"),
                             Precio = GetNullableDecimal(dr, "Precio"),
-                            DescuentoPorcentaje = GetNullableDecimal(dr, "DescuentoPorcentaje"),
                             IdMoneda = GetNullableInt(dr, "IdMoneda"),
                             Moneda = GetNullableString(dr, "Moneda")
                         });

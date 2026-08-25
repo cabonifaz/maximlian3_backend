@@ -281,7 +281,6 @@ namespace SafetyReport.Models
         public int? IdTarifario { get; set; }
         public decimal? Penalidad { get; set; }
         public decimal? Precio { get; set; }
-        public decimal? DescuentoPorcentaje { get; set; }
         public int? IdMoneda { get; set; }
         public string? Moneda { get; set; }
     }
