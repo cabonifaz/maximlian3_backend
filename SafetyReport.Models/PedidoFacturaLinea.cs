@@ -18,6 +18,8 @@ namespace SafetyReport.Models
     {
         public string? codigo { get; set; }
         public string descripcion { get; set; } = string.Empty;
+        public decimal valorUnitario { get; set; }
+        public decimal descuento { get; set; }
     }
 
     // Body de PUT .../pedidos — SP_PedidoFacturaLinea_ActualizarPedidos. idsPedido es el conjunto

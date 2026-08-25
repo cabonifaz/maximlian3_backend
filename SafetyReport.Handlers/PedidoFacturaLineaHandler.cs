@@ -75,7 +75,8 @@ namespace SafetyReport.Handlers
                 }
 
                 return await _pedidoFacturaLineaDao.ActualizarDatosAsync(
-                    usuarioLogueado, idPedidoFacturaLinea, request.codigo, request.descripcion);
+                    usuarioLogueado, idPedidoFacturaLinea, request.codigo, request.descripcion,
+                    request.valorUnitario, request.descuento);
             }
             catch (Exception ex)
             {

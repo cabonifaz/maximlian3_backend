@@ -116,7 +116,8 @@ namespace SafetyReport.DAO
         }
 
         public async Task<Respuesta> ActualizarDatosAsync(
-            UsuarioGeneral usuarioLogueado, int idPedidoFacturaLinea, string? codigo, string descripcion)
+            UsuarioGeneral usuarioLogueado, int idPedidoFacturaLinea, string? codigo, string descripcion,
+            decimal valorUnitario, decimal descuento)
         {
             try
             {
@@ -131,6 +132,8 @@ namespace SafetyReport.DAO
                 cmd.Parameters.Add("@intIdPedidoFacturaLinea", SqlDbType.Int).Value = idPedidoFacturaLinea;
                 cmd.Parameters.Add("@vchCodigo", SqlDbType.VarChar, 30).Value = (object?)codigo ?? DBNull.Value;
                 cmd.Parameters.Add("@vchDescripcion", SqlDbType.VarChar, 500).Value = descripcion;
+                cmd.Parameters.Add("@decValorUnitario", SqlDbType.Decimal).Value = valorUnitario;
+                cmd.Parameters.Add("@decDescuento", SqlDbType.Decimal).Value = descuento;
 
                 await cn.OpenAsync();
                 using var dr = await cmd.ExecuteReaderAsync();
