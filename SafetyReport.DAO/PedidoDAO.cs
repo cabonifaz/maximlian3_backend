@@ -699,6 +699,57 @@ namespace SafetyReport.DAO
             }
         }
 
+        public async Task<Respuesta> ListarPorDocumentoElectronicoAsync(UsuarioGeneral usuarioLogueado, int idDocumentoElectronico)
+        {
+            try
+            {
+                using SqlConnection cn = new(_dbConfig.ConnectionString);
+                using SqlCommand cmd = new("SP_Pedido_ListarPorDocumentoElectronico", cn);
+
+                cmd.CommandType = CommandType.StoredProcedure;
+                cmd.Parameters.Add("@intIdUsuario", SqlDbType.Int).Value = usuarioLogueado.IdUsuario;
+                cmd.Parameters.Add("@vchUsuario", SqlDbType.VarChar, 32).Value = usuarioLogueado.Usuario;
+                cmd.Parameters.Add("@intIdEmpresa", SqlDbType.Int).Value = usuarioLogueado.IdEmpresa;
+                cmd.Parameters.Add("@intIdRol", SqlDbType.Int).Value = usuarioLogueado.IdRol;
+                cmd.Parameters.Add("@intIdDocumentoElectronico", SqlDbType.Int).Value = idDocumentoElectronico;
+
+                await cn.OpenAsync();
+
+                using var dr = await cmd.ExecuteReaderAsync();
+                var respuesta = await LeerCabeceraAsync(dr, cmd.CommandText);
+
+                var resultado = new PedidoPorDocumentoElectronicoResult();
+                if (respuesta.IdTipoMensaje == 2 && await dr.NextResultAsync())
+                {
+                    while (await dr.ReadAsync())
+                        resultado.Pedidos.Add(new PedidoPorDocumentoElectronicoConsulta
+                        {
+                            IdPedido = Convert.ToInt32(dr["IdPedido"]),
+                            Codigo = dr["Codigo"]?.ToString() ?? string.Empty,
+                            NumReferencia = dr["NumReferencia"]?.ToString() ?? string.Empty,
+                            Investigado = GetNullableString(dr, "Investigado"),
+                            IdPedidoFacturaLinea = Convert.ToInt32(dr["IdPedidoFacturaLinea"]),
+                            ValorUnitario = Convert.ToDecimal(dr["ValorUnitario"]),
+                            Descuento = Convert.ToDecimal(dr["Descuento"])
+                        });
+                }
+
+                respuesta.Result = resultado;
+                return respuesta;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error no controlado en la capa de datos.");
+
+                return new Respuesta
+                {
+                    IdTipoMensaje = 3,
+                    Mensaje = ex.Message,
+                    Result = new PedidoPorDocumentoElectronicoResult()
+                };
+            }
+        }
+
         public async Task<Respuesta> ListarParaPrefacturaAsync(UsuarioGeneral usuarioLogueado, FiltroPedidoPrefactura request)
         {
             try

@@ -36,6 +36,9 @@ namespace SafetyReport.Handlers
         public Task<Respuesta> ListarPedidosParaFacturacionAsync(UsuarioGeneral usuarioLogueado, ListarPedidosFacturacionRequest request) =>
             _pedidoDao.ListarParaFacturacionAsync(usuarioLogueado, request);
 
+        public Task<Respuesta> ListarPedidosPorDocumentoElectronicoAsync(UsuarioGeneral usuarioLogueado, int idDocumentoElectronico) =>
+            _pedidoDao.ListarPorDocumentoElectronicoAsync(usuarioLogueado, idDocumentoElectronico);
+
         // El CRUD de líneas (crear/editar/listar/desvincular manual) vive en PedidoFacturaLineaHandler.
         // Acá se queda todo lo que opera sobre documentos/pedidos y solo referencia IdPedidoFacturaLinea
         // de paso (p. ej. RegistrarEnvioAsync más abajo, que asocia líneas ya existentes a un documento).

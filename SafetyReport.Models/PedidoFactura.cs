@@ -290,6 +290,25 @@ namespace SafetyReport.Models
         public List<PedidoListaFacturacionConsulta> Pedidos { get; set; } = new();
     }
 
+    // Resultado de SP_Pedido_ListarPorDocumentoElectronico. ValorUnitario/Descuento salen de
+    // PEDIDO_FACTURA_LINEA (montos congelados, ver PedidoFacturaLineaConsulta), no de TARIFARIO —
+    // el mismo valor se repite en cada pedido de una misma línea.
+    public class PedidoPorDocumentoElectronicoConsulta
+    {
+        public int IdPedido { get; set; }
+        public string Codigo { get; set; } = string.Empty;
+        public string NumReferencia { get; set; } = string.Empty;
+        public string? Investigado { get; set; }
+        public int IdPedidoFacturaLinea { get; set; }
+        public decimal ValorUnitario { get; set; }
+        public decimal Descuento { get; set; }
+    }
+
+    public class PedidoPorDocumentoElectronicoResult
+    {
+        public List<PedidoPorDocumentoElectronicoConsulta> Pedidos { get; set; } = new();
+    }
+
     // Payload de POST .../listarPedidos/exportarExcel para SP_Pedido_ListarParaPrefactura — el rango llega
     // por FchInicio/FchFin o por Meses (uno o varios pares Anio/Mes, no contiguos incluido), nunca los dos
     // a la vez ni ninguno de los dos (mismo chequeo que hace el SP). [FromBody]: Meses es una lista JSON,
