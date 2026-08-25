@@ -826,26 +826,41 @@ namespace SafetyReport.DAO
                 using var dr = await cmd.ExecuteReaderAsync();
                 var respuesta = await LeerCabeceraAsync(dr, cmd.CommandText);
 
-                var lista = new List<PedidoPrefacturaConsulta>();
+                var resultado = new PedidoPrefacturaResult();
                 if (respuesta.IdTipoMensaje == 2 && await dr.NextResultAsync())
                 {
+                    // Result set 2: moneda de facturación del cliente (CLIENTE.IdMoneda) — PRICE/
+                    // PRECIO viene sin sufijo en result set 3, este valor arma el encabezado dinámico.
+                    if (await dr.ReadAsync())
+                        resultado.Moneda = dr["Moneda"]?.ToString() ?? string.Empty;
+                }
+
+                if (respuesta.IdTipoMensaje == 2 && await dr.NextResultAsync())
+                {
+                    // Por posición, no por nombre: el SP bifurca por idioma y devuelve encabezados
+                    // distintos (inglés/español) en el mismo orden de 9 columnas — ver comentario en
+                    // PedidoPrefacturaConsulta. Los encabezados reales se toman del esquema del reader.
+                    for (var i = 0; i < dr.FieldCount; i++)
+                        resultado.Headers.Add(dr.GetName(i));
+
                     while (await dr.ReadAsync())
                     {
-                        lista.Add(new PedidoPrefacturaConsulta
+                        resultado.Items.Add(new PedidoPrefacturaConsulta
                         {
-                            Client = dr["CLIENT"]?.ToString() ?? string.Empty,
-                            Company = GetNullableString(dr, "COMPANY"),
-                            TypeOfReport = dr["TYPE OF REPORT"]?.ToString() ?? string.Empty,
-                            ReferenceNo = dr["REFERENCE NO."]?.ToString() ?? string.Empty,
-                            Country = dr["COUNTRY"]?.ToString() ?? string.Empty,
-                            DateOfRequest = dr["DATE OF REQUEST"]?.ToString() ?? string.Empty,
-                            Currency = dr["CURRENCY"]?.ToString() ?? string.Empty,
-                            Price = Convert.ToDecimal(dr["PRICE"])
+                            Company = dr[0]?.ToString() ?? string.Empty,
+                            TypeOfReport = dr[1]?.ToString() ?? string.Empty,
+                            ReferenceNumber = dr[2]?.ToString() ?? string.Empty,
+                            Country = dr[3]?.ToString() ?? string.Empty,
+                            DateOfRequest = dr[4]?.ToString() ?? string.Empty,
+                            ApprovedOn = dr[5]?.ToString() ?? string.Empty,
+                            TypeOfService = dr[6]?.ToString() ?? string.Empty,
+                            Price = Convert.ToDecimal(dr[7]),
+                            Observation = dr[8]?.ToString() ?? string.Empty
                         });
                     }
                 }
 
-                respuesta.Result = lista;
+                respuesta.Result = resultado;
                 return respuesta;
             }
             catch (Exception ex)
@@ -856,7 +871,7 @@ namespace SafetyReport.DAO
                 {
                     IdTipoMensaje = 3,
                     Mensaje = ex.Message,
-                    Result = new List<PedidoPrefacturaConsulta>()
+                    Result = new PedidoPrefacturaResult()
                 };
             }
         }

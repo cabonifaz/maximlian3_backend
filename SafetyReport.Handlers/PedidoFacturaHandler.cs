@@ -54,7 +54,7 @@ namespace SafetyReport.Handlers
                 if (respuesta.IdTipoMensaje != 2)
                     return respuesta;
 
-                var items = respuesta.Result as List<PedidoPrefacturaConsulta> ?? new();
+                var resultado = respuesta.Result as PedidoPrefacturaResult ?? new PedidoPrefacturaResult();
 
                 var clienteResp = await _clienteDao.ObtenerClienteAsync(usuarioLogueado, request.IdCliente);
                 var nombreCliente = clienteResp.IdTipoMensaje == 2
@@ -62,7 +62,11 @@ namespace SafetyReport.Handlers
                     : null;
                 nombreCliente = string.IsNullOrWhiteSpace(nombreCliente) ? "CLIENTE" : nombreCliente;
 
-                var archivo = GenerarExcelPrefactura(items);
+                var headers = new List<string>(resultado.Headers);
+                if (!string.IsNullOrWhiteSpace(resultado.Moneda) && IndicePrecio < headers.Count)
+                    headers[IndicePrecio] = $"{headers[IndicePrecio]} {resultado.Moneda}";
+
+                var archivo = GenerarExcelPrefactura(headers, resultado.Items);
                 var etiquetaPeriodo = ObtenerEtiquetaPeriodo(request);
                 var nombreArchivo = $"{SanitizarNombreArchivo(nombreCliente)} List of Reports {etiquetaPeriodo}.xlsx";
 
@@ -123,13 +127,23 @@ namespace SafetyReport.Handlers
             return new string(sinMarcas.ToArray()).Normalize(NormalizationForm.FormC);
         }
 
-        private static byte[] GenerarExcelPrefactura(List<PedidoPrefacturaConsulta> items)
+        // Índice 0-based de la columna PRICE dentro de las 9 columnas de SP_Pedido_ListarParaPrefactura
+        // (Company/TypeOfReport/ReferenceNumber/Country/DateOfRequest/ApprovedOn/TypeOfService/Price/
+        // Observation) — la única columna numérica, el resto son texto tal cual vino del SP.
+        private const int IndicePrecio = 7;
+
+        // Encabezados en negrita con relleno gris y bordes, filtro (flechas desplegables) en la fila de
+        // encabezado, bordes en todas las celdas de datos y PRICE como número real (no texto) — mismo
+        // aspecto que la plantilla Excel del cliente. headers viene tal cual lo devolvió el SP (inglés o
+        // español según CLIENTE.IdIdiomaFacturacion, ver PedidoPrefacturaConsulta).
+        private static byte[] GenerarExcelPrefactura(List<string> headers, List<PedidoPrefacturaConsulta> items)
         {
             using var stream = new MemoryStream();
             using (var document = SpreadsheetDocument.Create(stream, SpreadsheetDocumentType.Workbook))
             {
                 var workbookPart = document.AddWorkbookPart();
                 workbookPart.Workbook = new Workbook();
+                workbookPart.AddNewPart<WorkbookStylesPart>().Stylesheet = CrearStylesheetPrefactura();
 
                 var worksheetPart = workbookPart.AddNewPart<WorksheetPart>();
                 var sheetData = new SheetData();
@@ -144,16 +158,28 @@ namespace SafetyReport.Handlers
                     Name = "Reports"
                 });
 
-                sheetData.Append(CrearFilaExcelPrefactura(
-                    "CLIENT", "COMPANY", "TYPE OF REPORT", "REFERENCE NO.", "COUNTRY", "DATE OF REQUEST", "CURRENCY", "PRICE"
-                    ));
+                sheetData.Append(CrearFilaEncabezadoExcel(headers));
 
-                foreach (var item in items)
+                var filaValores = new List<object?>[items.Count];
+                for (var i = 0; i < items.Count; i++)
                 {
-                    sheetData.Append(CrearFilaExcelPrefactura(
-                        item.Client, item.Company, item.TypeOfReport, item.ReferenceNo, item.Country, item.DateOfRequest,
-                        item.Currency, item.Price.ToString("F2", CultureInfo.InvariantCulture)
-                        ));
+                    var it = items[i];
+                    filaValores[i] = new List<object?>
+                    {
+                        it.Company, it.TypeOfReport, it.ReferenceNumber, it.Country, it.DateOfRequest,
+                        it.ApprovedOn, it.TypeOfService, it.Price, it.Observation
+                    };
+                }
+
+                foreach (var valores in filaValores)
+                    sheetData.Append(CrearFilaDatosExcel(valores));
+
+                if (headers.Count > 0)
+                {
+                    var ultimaColumna = ObtenerLetraColumna(headers.Count - 1);
+                    var ultimaFila = items.Count + 1;
+                    worksheetPart.Worksheet.InsertAfter(
+                        new AutoFilter { Reference = $"A1:{ultimaColumna}{ultimaFila}" }, sheetData);
                 }
 
                 workbookPart.Workbook.Save();
@@ -162,16 +188,86 @@ namespace SafetyReport.Handlers
             return stream.ToArray();
         }
 
-        private static Row CrearFilaExcelPrefactura(params string?[] valores)
+        private static Row CrearFilaEncabezadoExcel(List<string> headers)
         {
             var row = new Row();
-            foreach (var valor in valores)
+            foreach (var texto in headers)
                 row.Append(new Cell
                 {
+                    StyleIndex = 1, // header: negrita + relleno + borde
                     DataType = CellValues.InlineString,
-                    InlineString = new InlineString(new Text(valor ?? string.Empty))
+                    InlineString = new InlineString(new Text(texto))
                 });
             return row;
+        }
+
+        private static Row CrearFilaDatosExcel(List<object?> valores)
+        {
+            var row = new Row();
+            for (var i = 0; i < valores.Count; i++)
+            {
+                if (i == IndicePrecio && valores[i] is decimal precio)
+                {
+                    row.Append(new Cell
+                    {
+                        StyleIndex = 3, // número con borde, formato 0.00
+                        DataType = CellValues.Number,
+                        CellValue = new CellValue(precio.ToString(CultureInfo.InvariantCulture))
+                    });
+                    continue;
+                }
+
+                row.Append(new Cell
+                {
+                    StyleIndex = 2, // texto con borde
+                    DataType = CellValues.InlineString,
+                    InlineString = new InlineString(new Text(valores[i]?.ToString() ?? string.Empty))
+                });
+            }
+            return row;
+        }
+
+        // A, B, ..., Z, AA, AB, ... — de sobra para las 9 columnas fijas de este export, pero genérico
+        // por si el SP alguna vez agrega una columna más.
+        private static string ObtenerLetraColumna(int indiceCero)
+        {
+            var letras = string.Empty;
+            var n = indiceCero;
+            do
+            {
+                letras = (char)('A' + n % 26) + letras;
+                n = n / 26 - 1;
+            } while (n >= 0);
+            return letras;
+        }
+
+        private static Stylesheet CrearStylesheetPrefactura()
+        {
+            var fuentes = new Fonts(
+                new Font(new FontSize { Val = 11 }, new FontName { Val = "Calibri" }),
+                new Font(new Bold(), new FontSize { Val = 11 }, new FontName { Val = "Calibri" }));
+
+            var rellenos = new Fills(
+                new Fill(new PatternFill { PatternType = PatternValues.None }),
+                new Fill(new PatternFill { PatternType = PatternValues.Gray125 }),
+                new Fill(new PatternFill(new ForegroundColor { Rgb = "FFD9D9D9" }) { PatternType = PatternValues.Solid }));
+
+            var bordeFino = new Border(
+                new LeftBorder(new Color { Rgb = "FFBFBFBF" }) { Style = BorderStyleValues.Thin },
+                new RightBorder(new Color { Rgb = "FFBFBFBF" }) { Style = BorderStyleValues.Thin },
+                new TopBorder(new Color { Rgb = "FFBFBFBF" }) { Style = BorderStyleValues.Thin },
+                new BottomBorder(new Color { Rgb = "FFBFBFBF" }) { Style = BorderStyleValues.Thin },
+                new DiagonalBorder());
+
+            var bordes = new Borders(new Border(new LeftBorder(), new RightBorder(), new TopBorder(), new BottomBorder(), new DiagonalBorder()), bordeFino);
+
+            var formatosCelda = new CellFormats(
+                new CellFormat(), // 0: default
+                new CellFormat { FontId = 1, FillId = 2, BorderId = 1, ApplyFont = true, ApplyFill = true, ApplyBorder = true }, // 1: header
+                new CellFormat { FontId = 0, BorderId = 1, ApplyBorder = true }, // 2: texto con borde
+                new CellFormat { FontId = 0, BorderId = 1, NumberFormatId = 4, ApplyBorder = true, ApplyNumberFormat = true }); // 3: número (0.00) con borde
+
+            return new Stylesheet(fuentes, rellenos, bordes, formatosCelda);
         }
 
         // Listado de facturas ya generadas — NumeroFactura/ClienteNombre/FormaPago/Estado vienen resueltos

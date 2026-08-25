@@ -328,17 +328,29 @@ namespace SafetyReport.Models
         public int Mes { get; set; }
     }
 
-    // Resultado de SP_Pedido_ListarParaPrefactura — columnas ya vienen en mayúsculas y formateadas desde el SP.
+    // Resultado de SP_Pedido_ListarParaPrefactura — mismas 9 columnas en ambos idiomas (ver
+    // 13_SP_Pedido_ListarParaPrefactura.sql), leídas por posición: el SP bifurca por
+    // c.IdIdiomaFacturacion y devuelve encabezados en inglés o español, así que la DAO no puede
+    // leer por nombre de columna (dr["COMPANY"] no existe en la rama en español). Los encabezados
+    // reales para el Excel salen de PedidoPrefacturaResult.Headers, tal cual los devolvió el SP.
     public class PedidoPrefacturaConsulta
     {
-        public string Client { get; set; } = string.Empty;
-        public string? Company { get; set; }
+        public string Company { get; set; } = string.Empty;
         public string TypeOfReport { get; set; } = string.Empty;
-        public string ReferenceNo { get; set; } = string.Empty;
+        public string ReferenceNumber { get; set; } = string.Empty;
         public string Country { get; set; } = string.Empty;
         public string DateOfRequest { get; set; } = string.Empty;
-        public string Currency { get; set; } = string.Empty;
+        public string ApprovedOn { get; set; } = string.Empty;
+        public string TypeOfService { get; set; } = string.Empty;
         public decimal Price { get; set; }
+        public string Observation { get; set; } = string.Empty;
+    }
+
+    public class PedidoPrefacturaResult
+    {
+        public string Moneda { get; set; } = string.Empty;
+        public List<string> Headers { get; set; } = new();
+        public List<PedidoPrefacturaConsulta> Items { get; set; } = new();
     }
 
     public class PedidoPrefacturaExportacion
