@@ -39,29 +39,6 @@ namespace SafetyReport.Handlers
         public Task<Respuesta> ListarPedidosPorDocumentoElectronicoAsync(UsuarioGeneral usuarioLogueado, int idDocumentoElectronico) =>
             _pedidoDao.ListarPorDocumentoElectronicoAsync(usuarioLogueado, idDocumentoElectronico);
 
-        // Flujo público por token (verificación, sin login): resuelve el token contra ms-facturación
-        // (Id/IdInquilino, este último equivale a IdEmpresa en maximlian3) y con eso consulta
-        // SP_Pedido_ListarPorDocumentoElectronicoPublico, que no valida usuario/rol.
-        public async Task<Respuesta> ListarPedidosPorTokenPublicoAsync(string token, CancellationToken cancellationToken)
-        {
-            try
-            {
-                var identificado = await _facturacionService.ObtenerIdDocumentoPorTokenAsync(token, cancellationToken);
-                if (identificado is null || identificado.IdTipoMensaje != 2 || identificado.Datos is null)
-                {
-                    return new Respuesta { IdTipoMensaje = identificado?.IdTipoMensaje ?? 3, Mensaje = identificado?.Mensaje ?? "Token de verificación inválido." };
-                }
-
-                return await _pedidoDao.ListarPorDocumentoElectronicoPublicoAsync(
-                    identificado.Datos.IdInquilino, identificado.Datos.IdDocumentoElectronico);
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Error no controlado en la capa de negocio.");
-                return new Respuesta { IdTipoMensaje = 3, Mensaje = ex.Message };
-            }
-        }
-
         // El CRUD de líneas (crear/editar/listar/desvincular manual) vive en PedidoFacturaLineaHandler.
         // Acá se queda todo lo que opera sobre documentos/pedidos y solo referencia IdPedidoFacturaLinea
         // de paso (p. ej. RegistrarEnvioAsync más abajo, que asocia líneas ya existentes a un documento).
