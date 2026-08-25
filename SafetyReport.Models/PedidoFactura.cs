@@ -156,17 +156,15 @@ namespace SafetyReport.Models
         public int idLineaDocumentoElectronico { get; set; }
     }
 
-    // productoCodigo/valorUnitario no vienen del front: se resuelven desde el propio Pedido
-    // (Codigo/TARIFARIO.Precio), mismo criterio que idCliente. descripcion sí es libre: si no viene, se
-    // usa el mismo fallback de siempre (NombreCliente + tipo de trámite).
+    // ProductoCodigo/Descripcion/Cantidad/ValorUnitario/MontoDescuento no vienen del front: se
+    // resuelven desde la propia PEDIDO_FACTURA_LINEA (ya congelados al crear/editar la línea, ver
+    // SP_PedidoFacturaLinea_Crear/ActualizarPedidos) — este DTO solo aporta lo que la línea no
+    // sabe: el mapeo a catálogos SUNAT del documento.
     public class GuardarBorradorFacturaLinea
     {
-        public int idPedido { get; set; }
+        public int idPedidoFacturaLinea { get; set; }
         public string? productoSunatCodigo { get; set; }
-        public string? descripcion { get; set; }
         public int idUnidadMedidaMaestro { get; set; }
-        public decimal cantidad { get; set; }
-        public decimal montoDescuento { get; set; }
         public int idAfectacionIgvMaestro { get; set; }
         public decimal porcentajeIgv { get; set; }
     }
@@ -186,20 +184,17 @@ namespace SafetyReport.Models
         public List<CampoExtraEdicionRequest>? camposExtra { get; set; }
     }
 
-    // productoCodigo no viene del front, mismo criterio que GuardarBorradorFacturaLinea. descripcion sí es
-    // libre, mismo fallback si no viene. idLineaDocumentoElectronico: 0 (u omitido) = línea nueva, >0 =
-    // actualizar una ya guardada.
+    // ProductoCodigo/Descripcion/Cantidad/ValorUnitario/MontoDescuento vienen de la propia
+    // PEDIDO_FACTURA_LINEA (congelados), mismo criterio que GuardarBorradorFacturaLinea — este
+    // DTO solo aporta el mapeo a catálogos SUNAT. idLineaDocumentoElectronico: 0 (u omitido) =
+    // línea nueva, >0 = actualizar una ya guardada.
     public class GuardarCambiosFacturaLinea
     {
-        public int idPedido { get; set; }
+        public int idPedidoFacturaLinea { get; set; }
         public string? productoSunatCodigo { get; set; }
-        public string? descripcion { get; set; }
         public int idUnidadMedidaMaestro { get; set; }
-        public decimal cantidad { get; set; }
-        public decimal montoDescuento { get; set; }
         public int idAfectacionIgvMaestro { get; set; }
         public decimal porcentajeIgv { get; set; }
-        public int numeroLinea { get; set; }
         public int idLineaDocumentoElectronico { get; set; }
     }
 
@@ -239,19 +234,21 @@ namespace SafetyReport.Models
         public List<PedidoParaFacturacionConsulta> Pedidos { get; set; } = new();
     }
 
-    // Query params de SP_Pedido_ListarParaFacturacion.
+    // Query params de SP_Pedido_ListarParaFacturacion. Sin paginación — devuelve todos los
+    // pedidos elegibles de una — y el filtro de fecha es por mes (anio/mes), no por rango, ya
+    // que agrupar pedidos de meses distintos en una línea no está permitido de todas formas
+    // (ver PLAN_Lineas_Facturacion.md).
     public class ListarPedidosFacturacionRequest
     {
         public int idCliente { get; set; }
-        public int? idTipoTramite { get; set; }
-        public DateOnly? fechaInicio { get; set; }
-        public DateOnly? fechaFin { get; set; }
-        // Documento en edición (borrador): también trae los pedidos que siguen enlazados a este documento en
-        // Borrador Factura, aunque ese estado normalmente esté fuera del listado — cubre el caso de un pedido
-        // quitado de las líneas en el editor pero todavía no guardado (GuardarCambios). 0 = sin este filtro extra.
-        public int idDocumentoElectronico { get; set; } = 0;
-        public int numPag { get; set; } = 1;
+        public int idTipoTramite { get; set; }
+        public int? anio { get; set; }
+        public int? mes { get; set; }
+        public List<int>? idsPais { get; set; }
+        public int? idMoneda { get; set; }
     }
+
+    // El request/DTO del CRUD de líneas vive en PedidoFacturaLinea.cs.
 
     // Filtros para el proxy hacia GET api/v1/documentos-electronicos/para-pedido-factura (ms-facturación).
     public class ListarFacturasRequest
@@ -265,38 +262,70 @@ namespace SafetyReport.Models
         public int tamanoPagina { get; set; } = 20;
     }
 
-    // Resultado de SP_Pedido_ListarParaFacturacion.
+    // Resultado de SP_Pedido_ListarParaFacturacion. IdPais/IdTipoTramite/IdTarifario/IdMoneda
+    // (además de sus etiquetas legibles) se exponen para que el front pueda anticipar la guarda
+    // de agrupamiento de SP_PedidoFacturaLinea_Crear (mismo cliente/mes/IdTarifario) antes de
+    // intentar crear la línea — la validación real sigue siendo del lado del SP.
     public class PedidoListaFacturacionConsulta
     {
         public int IdPedido { get; set; }
         public string Codigo { get; set; } = string.Empty;
         public string NumReferencia { get; set; } = string.Empty;
         public string? Investigado { get; set; }
+        public int? IdPais { get; set; }
+        public string? Pais { get; set; }
         public string? AplicaPenalidad { get; set; }
+        public int? IdTipoTramite { get; set; }
         public string? TipoTramite { get; set; }
         public DateTime Fecha { get; set; }
+        public int? IdTarifario { get; set; }
         public decimal? Penalidad { get; set; }
         public decimal? Precio { get; set; }
-        public decimal? DescuentoPorcentaje { get; set; }
+        public int? IdMoneda { get; set; }
+        public string? Moneda { get; set; }
     }
 
     public class PedidoListaFacturacionResult
     {
-        public int TotalRegistros { get; set; }
-        public int TotalPaginas { get; set; }
         public List<PedidoListaFacturacionConsulta> Pedidos { get; set; } = new();
     }
 
-    // Query params de SP_Pedido_ListarParaPrefactura — los 3 son obligatorios ahí, sin default acá tampoco.
-    // Query params de SP_Pedido_ListarParaPrefactura — el rango llega por FchInicio/FchFin o por Anio/Mes,
-    // nunca los dos a la vez ni ninguno de los dos (mismo chequeo que hace el SP).
+    // Resultado de SP_Pedido_ListarPorDocumentoElectronico. Sin ids (no hacen falta) — Codigo es
+    // el identificador visible del pedido. ValorUnitario/Descuento son los montos congelados de
+    // PEDIDO_FACTURA_LINEA (no de TARIFARIO, ver PedidoFacturaLineaConsulta), ya concatenados con
+    // el código de Moneda del lado del SP — se devuelven como string, no decimal.
+    public class PedidoPorDocumentoElectronicoConsulta
+    {
+        public string Codigo { get; set; } = string.Empty;
+        public string NumReferencia { get; set; } = string.Empty;
+        public string? Investigado { get; set; }
+        public string TipoTramite { get; set; } = string.Empty;
+        public string Pais { get; set; } = string.Empty;
+        public string ValorUnitario { get; set; } = string.Empty;
+        public string Descuento { get; set; } = string.Empty;
+    }
+
+    public class PedidoPorDocumentoElectronicoResult
+    {
+        public List<PedidoPorDocumentoElectronicoConsulta> Pedidos { get; set; } = new();
+    }
+
+    // Payload de POST .../listarPedidos/exportarExcel para SP_Pedido_ListarParaPrefactura — el rango llega
+    // por FchInicio/FchFin o por Meses (uno o varios pares Anio/Mes, no contiguos incluido), nunca los dos
+    // a la vez ni ninguno de los dos (mismo chequeo que hace el SP). [FromBody]: Meses es una lista JSON,
+    // no un query string — evita el formato frágil Meses[0].Anio=... que un GET hubiera necesitado.
     public class FiltroPedidoPrefactura
     {
         public int IdCliente { get; set; }
         public DateOnly? FchInicio { get; set; }
         public DateOnly? FchFin { get; set; }
-        public int? Anio { get; set; }
-        public int? Mes { get; set; }
+        public List<AnioMesFiltro>? Meses { get; set; }
+    }
+
+    public class AnioMesFiltro
+    {
+        public int Anio { get; set; }
+        public int Mes { get; set; }
     }
 
     // Resultado de SP_Pedido_ListarParaPrefactura — columnas ya vienen en mayúsculas y formateadas desde el SP.

@@ -7,10 +7,11 @@ namespace SafetyReport.WebApi.Workers
     // Sondea EVENTOS_DOCUMENTO (vía ms-facturación) desde el checkpoint de cada empresa (TABLA_MAESTRA
     // IdMaestro=76) y aplica a PEDIDO_FACTURA el resultado de una Comunicación de Baja o de un Resumen
     // Diario de Baja de Boletas — el único camino que sendBill no resuelve en la misma llamada
-    // (SP_PedidoFactura_RegistrarEnvio ya cubre Aprobado/Rechazado síncronos al emitir). Transiciones
-    // mapeadas: ComunicacionBajaAceptada/ResumenBajaAceptado (EsAnulacion=1) → 8 Anulación Aprobada,
-    // ComunicacionBajaRechazada/ResumenBajaRechazado (EsAnulacion=1) → 9 Anulación Rechazada. ms-facturación
-    // usa estos estados propios (no el genérico "Rechazado", que significa "el documento en sí fue
+    // (SP_PedidoFactura_RegistrarEnvio ya cubre Aprobado/Rechazado síncronos al emitir). PEDIDO_FACTURA_LINEA.
+    // IdEstadoFacturacion usa el dominio SUNAT/ms-facturación directamente (EstadoMaestroCodigo), así que
+    // el mapeo solo resuelve el código numérico del evento reportado por texto: ComunicacionBajaAceptada→7,
+    // ComunicacionBajaRechazada→13, ResumenBajaAceptado→17, ResumenBajaRechazado→18. ms-facturación usa
+    // estados de baja propios (no el genérico "Rechazado", que significa "el documento en sí fue
     // rechazado") justamente porque una baja rechazada no invalida el documento.
     public class SincronizacionFacturacionWorker(
         IServiceScopeFactory scopeFactory, ILogger<SincronizacionFacturacionWorker> logger) : BackgroundService
@@ -36,10 +37,10 @@ namespace SafetyReport.WebApi.Workers
         private static int? MapearEstadoFacturacion(FacturacionEventoDocumento evento) =>
             (evento.EsAnulacion, evento.EstadoCodigo) switch
             {
-                (true, "ComunicacionBajaAceptada") => 8,  // Anulación Aprobada
-                (true, "ComunicacionBajaRechazada") => 9, // Anulación Rechazada
-                (true, "ResumenBajaAceptado") => 8,       // Anulación Aprobada (Boleta)
-                (true, "ResumenBajaRechazado") => 9,      // Anulación Rechazada (Boleta)
+                (true, "ComunicacionBajaAceptada") => 7,   // ComunicacionBajaAceptada
+                (true, "ComunicacionBajaRechazada") => 13, // ComunicacionBajaRechazada
+                (true, "ResumenBajaAceptado") => 17,       // ResumenBajaAceptado (Boleta)
+                (true, "ResumenBajaRechazado") => 18,      // ResumenBajaRechazado (Boleta)
                 _ => null
             };
 

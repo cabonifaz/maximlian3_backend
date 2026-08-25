@@ -103,10 +103,10 @@ namespace SafetyReport.Models
     public class FacturacionGuardarCambiosRequest
     {
         // IdExterno solo se llenaba al crear el documento y quedaba obsoleto en cuanto las líneas cambiaban.
-        // Se recalcula igual que en FacturacionInsertarDocumentoRequest.IdExterno: join de los IdPedido de
-        // las líneas actuales para Factura/Boleta (GuardarCambiosFacturaAsync), o el id del documento
-        // afectado para Nota de Crédito/Débito (EditarNotaCreditoDebitoAsync, ese id nunca cambia pero
-        // igual se recalcula desde el mismo campo que Insertar, no se asume).
+        // Se recalcula igual que en FacturacionInsertarDocumentoRequest.IdExterno: join de los
+        // IdPedidoFacturaLinea actuales para Factura/Boleta (GuardarCambiosFacturaAsync), o el id del
+        // documento afectado para Nota de Crédito/Débito (EditarNotaCreditoDebitoAsync, ese id nunca
+        // cambia pero igual se recalcula desde el mismo campo que Insertar, no se asume).
         public string IdExterno { get; set; } = string.Empty;
         // Null en Nota de Crédito/Débito, mismo criterio que FacturacionInsertarDocumentoRequest.FormaPago.
         public int? IdFormaPago { get; set; }
@@ -171,6 +171,14 @@ namespace SafetyReport.Models
         public int Correlativo { get; set; }
         public string EstadoCodigo { get; set; } = string.Empty;
         public DateTime FechaCreacion { get; set; }
+    }
+
+    // Respuesta de GET .../token/{token}/id — solo lo mínimo para armar la consulta de pedidos del
+    // documento contra maximlian3 (IdInquilino equivale a IdEmpresa acá).
+    public class FacturacionIdentificadorPorToken
+    {
+        public int IdDocumentoElectronico { get; set; }
+        public int IdInquilino { get; set; }
     }
 
     public class FacturacionResultadoEnvioSunat
