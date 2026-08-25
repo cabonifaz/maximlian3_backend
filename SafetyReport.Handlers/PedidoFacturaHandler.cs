@@ -170,6 +170,12 @@ namespace SafetyReport.Handlers
                 foreach (var valores in filaValores)
                     sheetData.Append(CrearFilaDatosExcel(valores));
 
+                // Ancho de columna calculado del contenido más largo (encabezado o dato) en vez del
+                // ancho default de Excel — OpenXML no tiene un "autofit al abrir" real, así que se fija
+                // el ancho acá para que el contenido no quede cortado sin que el usuario expanda a mano.
+                if (headers.Count > 0)
+                    worksheetPart.Worksheet.InsertBefore(CrearColumnasAnchoAjustado(headers, filaValores), sheetData);
+
                 if (headers.Count > 0)
                 {
                     var ultimaColumna = ObtenerLetraColumna(headers.Count - 1);
@@ -235,6 +241,39 @@ namespace SafetyReport.Handlers
                 n = n / 26 - 1;
             } while (n >= 0);
             return letras;
+        }
+
+        // Ancho ≈ caracteres del contenido más largo de la columna (encabezado o dato) + relleno, con
+        // un piso y un techo razonables para que ni una columna vacía quede angosta ni una con texto
+        // largo se dispare. PRICE se mide con el mismo formato "F2" que termina viéndose en la celda.
+        private static Columns CrearColumnasAnchoAjustado(List<string> headers, List<object?>[] filaValores)
+        {
+            const double anchoMinimo = 8;
+            const double anchoMaximo = 60;
+            const double relleno = 2;
+
+            var columnas = new Columns();
+            for (var i = 0; i < headers.Count; i++)
+            {
+                var largoMaximo = headers[i]?.Length ?? 0;
+                foreach (var fila in filaValores)
+                {
+                    var texto = fila[i] is decimal precio ? precio.ToString("F2", CultureInfo.InvariantCulture) : fila[i]?.ToString();
+                    largoMaximo = Math.Max(largoMaximo, texto?.Length ?? 0);
+                }
+
+                var ancho = Math.Clamp(largoMaximo + relleno, anchoMinimo, anchoMaximo);
+                var indiceColumna = (uint)(i + 1);
+                columnas.Append(new Column
+                {
+                    Min = indiceColumna,
+                    Max = indiceColumna,
+                    Width = ancho,
+                    CustomWidth = true
+                });
+            }
+
+            return columnas;
         }
 
         private static Stylesheet CrearStylesheetPrefactura()
