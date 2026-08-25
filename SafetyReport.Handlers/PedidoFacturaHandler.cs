@@ -1446,5 +1446,90 @@ namespace SafetyReport.Handlers
                 return new Respuesta { IdTipoMensaje = 3, Mensaje = ex.Message };
             }
         }
+
+        private static readonly string[] MesesAbreviados =
+            ["Ene", "Feb", "Mar", "Abr", "May", "Jun", "Jul", "Ago", "Sep", "Oct", "Nov", "Dic"];
+
+        // Sección "Facturación Analítica" del dashboard de Gerente — indicadores, desglose por
+        // trámite/país/estado. SP_Facturacion_ResumenAnalitico valida el rol 6 adentro (mismo patrón
+        // que SP_Usuario_Resumen/SP_Cliente_Resumen) — no hace falta un paso previo de acceso acá.
+        public async Task<Respuesta> ObtenerResumenAnaliticoAsync(UsuarioGeneral usuarioLogueado, FiltroFacturacionAnaliticaRequest filtro)
+        {
+            try
+            {
+                if (filtro.fechaDesde is not null && filtro.fechaHasta is not null && filtro.fechaDesde > filtro.fechaHasta)
+                {
+                    return new Respuesta { IdTipoMensaje = 1, Mensaje = "La fecha desde no puede ser mayor a la fecha hasta." };
+                }
+
+                return await _pedidoFacturaDao.ObtenerResumenAnaliticoAsync(usuarioLogueado, filtro);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error no controlado en la capa de negocio.");
+                return new Respuesta { IdTipoMensaje = 3, Mensaje = ex.Message };
+            }
+        }
+
+        // Serie temporal de "Facturación Analítica". SP_Facturacion_EvolucionAnalitica valida el rol 6
+        // adentro, mismo criterio que ObtenerResumenAnaliticoAsync. Etiqueta se arma acá (no en el SP,
+        // ni en el frontend) para no depender de que el collation/idioma de SQL Server resuelva nombres
+        // de mes en español — el SP solo entrega Periodo crudo ("2026-01-08" | "2026-W03" | "2026-01" | "2026").
+        public async Task<Respuesta> ObtenerEvolucionAnaliticaAsync(UsuarioGeneral usuarioLogueado, EvolucionFacturacionRequest filtro)
+        {
+            try
+            {
+                if (filtro.granularidad is < 1 or > 4)
+                {
+                    return new Respuesta { IdTipoMensaje = 1, Mensaje = "La granularidad debe ser 1 (Día), 2 (Semana), 3 (Mes) o 4 (Año)." };
+                }
+
+                if (filtro.fechaDesde is not null && filtro.fechaHasta is not null && filtro.fechaDesde > filtro.fechaHasta)
+                {
+                    return new Respuesta { IdTipoMensaje = 1, Mensaje = "La fecha desde no puede ser mayor a la fecha hasta." };
+                }
+
+                var respuesta = await _pedidoFacturaDao.ObtenerEvolucionAnaliticaAsync(usuarioLogueado, filtro);
+                if (respuesta.IdTipoMensaje != 2 || respuesta.Result is not List<EvolucionFacturacionConsulta> serie)
+                {
+                    return respuesta;
+                }
+
+                foreach (var punto in serie)
+                {
+                    punto.Etiqueta = FormatearEtiquetaPeriodo(punto.Periodo, filtro.granularidad);
+                }
+
+                return respuesta;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error no controlado en la capa de negocio.");
+                return new Respuesta { IdTipoMensaje = 3, Mensaje = ex.Message };
+            }
+        }
+
+        // granularidad: 1=Dia, 2=Semana, 3=Mes, 4=Ano — mismo mapeo numérico que SP_Facturacion_EvolucionAnalitica.
+        private static string FormatearEtiquetaPeriodo(string periodo, int granularidad) =>
+            granularidad switch
+            {
+                1 when DateOnly.TryParse(periodo, out var fecha) => $"{fecha.Day:00} {MesesAbreviados[fecha.Month - 1]} {fecha.Year}",
+                3 when DateTime.TryParse(periodo + "-01", out var mes) => $"{MesesAbreviados[mes.Month - 1]} {mes.Year}",
+                2 when periodo.Contains('-') => $"Semana {periodo.Split('-')[1].TrimStart('W').TrimStart('0')} - {periodo.Split('-')[0]}",
+                _ => periodo // 4=Ano, o cualquier valor que no matcheó el formato esperado
+            };
+
+        public async Task<Respuesta> ObtenerResumenClientesGlobalAsync(UsuarioGeneral usuarioLogueado)
+        {
+            try
+            {
+                return await _pedidoFacturaDao.ObtenerResumenClientesGlobalAsync(usuarioLogueado);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error no controlado en la capa de negocio.");
+                return new Respuesta { IdTipoMensaje = 3, Mensaje = ex.Message };
+            }
+        }
     }
 }
