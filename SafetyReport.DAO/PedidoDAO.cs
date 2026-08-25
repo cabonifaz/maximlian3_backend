@@ -724,13 +724,13 @@ namespace SafetyReport.DAO
                     while (await dr.ReadAsync())
                         resultado.Pedidos.Add(new PedidoPorDocumentoElectronicoConsulta
                         {
-                            IdPedido = Convert.ToInt32(dr["IdPedido"]),
                             Codigo = dr["Codigo"]?.ToString() ?? string.Empty,
                             NumReferencia = dr["NumReferencia"]?.ToString() ?? string.Empty,
                             Investigado = GetNullableString(dr, "Investigado"),
-                            IdPedidoFacturaLinea = Convert.ToInt32(dr["IdPedidoFacturaLinea"]),
-                            ValorUnitario = Convert.ToDecimal(dr["ValorUnitario"]),
-                            Descuento = Convert.ToDecimal(dr["Descuento"])
+                            TipoTramite = dr["TipoTramite"]?.ToString() ?? string.Empty,
+                            Pais = dr["Pais"]?.ToString() ?? string.Empty,
+                            ValorUnitario = dr["ValorUnitario"]?.ToString() ?? string.Empty,
+                            Descuento = dr["Descuento"]?.ToString() ?? string.Empty
                         });
                 }
 

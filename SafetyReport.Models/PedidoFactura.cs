@@ -290,18 +290,19 @@ namespace SafetyReport.Models
         public List<PedidoListaFacturacionConsulta> Pedidos { get; set; } = new();
     }
 
-    // Resultado de SP_Pedido_ListarPorDocumentoElectronico. ValorUnitario/Descuento salen de
-    // PEDIDO_FACTURA_LINEA (montos congelados, ver PedidoFacturaLineaConsulta), no de TARIFARIO —
-    // el mismo valor se repite en cada pedido de una misma línea.
+    // Resultado de SP_Pedido_ListarPorDocumentoElectronico. Sin ids (no hacen falta) — Codigo es
+    // el identificador visible del pedido. ValorUnitario/Descuento son los montos congelados de
+    // PEDIDO_FACTURA_LINEA (no de TARIFARIO, ver PedidoFacturaLineaConsulta), ya concatenados con
+    // el código de Moneda del lado del SP — se devuelven como string, no decimal.
     public class PedidoPorDocumentoElectronicoConsulta
     {
-        public int IdPedido { get; set; }
         public string Codigo { get; set; } = string.Empty;
         public string NumReferencia { get; set; } = string.Empty;
         public string? Investigado { get; set; }
-        public int IdPedidoFacturaLinea { get; set; }
-        public decimal ValorUnitario { get; set; }
-        public decimal Descuento { get; set; }
+        public string TipoTramite { get; set; } = string.Empty;
+        public string Pais { get; set; } = string.Empty;
+        public string ValorUnitario { get; set; } = string.Empty;
+        public string Descuento { get; set; } = string.Empty;
     }
 
     public class PedidoPorDocumentoElectronicoResult
