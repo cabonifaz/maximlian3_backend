@@ -1450,6 +1450,11 @@ namespace SafetyReport.Handlers
         // Sección "Facturación Analítica" del dashboard de Gerente — indicadores, desglose por
         // trámite/país/estado. SP_Facturacion_ResumenAnalitico valida el rol 6 adentro (mismo patrón
         // que SP_Usuario_Resumen/SP_Cliente_Resumen) — no hace falta un paso previo de acceso acá.
+        //
+        // Cambio de arquitectura: TotalFacturado/TotalNotasCredito/TotalNotasDebito/desglosePorEstado
+        // ya no salen del SP local — vienen por HTTP de ms-facturacion (sin cross-database entre las
+        // dos bases, decisión del equipo). Acá se combinan las dos fuentes, sin calcular nada — mismo
+        // patrón de dos pasos que ya usa ObtenerResumenDashboardAsync.
         public async Task<Respuesta> ObtenerResumenAnaliticoAsync(UsuarioGeneral usuarioLogueado, FiltroFacturacionAnaliticaRequest filtro)
         {
             try
@@ -1459,7 +1464,49 @@ namespace SafetyReport.Handlers
                     return new Respuesta { IdTipoMensaje = 1, Mensaje = "La fecha desde no puede ser mayor a la fecha hasta." };
                 }
 
-                return await _pedidoFacturaDao.ObtenerResumenAnaliticoAsync(usuarioLogueado, filtro);
+                var local = await _pedidoFacturaDao.ObtenerResumenAnaliticoAsync(usuarioLogueado, filtro);
+                if (local.IdTipoMensaje != 2 || local.Result is not ResumenAnaliticoFacturacionConsulta resultado)
+                {
+                    return local;
+                }
+
+                var montosTask = _facturacionService.ObtenerMontosFacturacionAsync(
+                    usuarioLogueado.IdEmpresa, // IdInquilino en ms-facturación = IdEmpresa acá
+                    1, // TODO: resolver desde EMPRESAS de ms-facturación, mismo TODO que ObtenerResumenDashboardAsync.
+                    filtro.fechaDesde, filtro.fechaHasta, CancellationToken.None);
+                var desgloseEstadoTask = _facturacionService.ObtenerDesgloseEstadoFacturacionAsync(
+                    usuarioLogueado.IdEmpresa, 1, filtro.fechaDesde, filtro.fechaHasta, filtro.idTipoDocumentoMaestro, CancellationToken.None);
+
+                await Task.WhenAll(montosTask, desgloseEstadoTask);
+                var montos = await montosTask;
+                var desgloseEstado = await desgloseEstadoTask;
+
+                if (montos is null || montos.IdTipoMensaje != 2 || montos.Datos is null)
+                {
+                    return new Respuesta { IdTipoMensaje = montos?.IdTipoMensaje ?? 3, Mensaje = montos?.Mensaje ?? "No se pudieron obtener los montos de facturación." };
+                }
+
+                if (desgloseEstado is null || desgloseEstado.IdTipoMensaje != 2 || desgloseEstado.Datos is null)
+                {
+                    return new Respuesta { IdTipoMensaje = desgloseEstado?.IdTipoMensaje ?? 3, Mensaje = desgloseEstado?.Mensaje ?? "No se pudo obtener el desglose por estado." };
+                }
+
+                resultado.Indicadores.TotalFacturado = montos.Datos.TotalFacturado;
+                resultado.Indicadores.TotalNotasCredito = montos.Datos.TotalNotasCredito;
+                resultado.Indicadores.TotalNotasDebito = montos.Datos.TotalNotasDebito;
+                resultado.Indicadores.MonedaIcono = montos.Datos.MonedaIcono;
+
+                resultado.DesglosePorEstado = desgloseEstado.Datos
+                    .Select(d => new DesgloseEstadoConsulta
+                    {
+                        IdEstadoMaestro = d.IdEstadoMaestro,
+                        Estado = d.Estado,
+                        CantidadFacturas = d.CantidadFacturas,
+                        MontoFacturado = d.MontoFacturado
+                    })
+                    .ToList();
+
+                return local;
             }
             catch (Exception ex)
             {
@@ -1468,9 +1515,6 @@ namespace SafetyReport.Handlers
             }
         }
 
-        // Serie temporal de "Facturación Analítica". SP_Facturacion_EvolucionAnalitica valida el rol 6
-        // adentro, mismo criterio que ObtenerResumenAnaliticoAsync. Etiqueta viene ya armada del SP
-        // (no en C#, no en el frontend) — mismo criterio "SP = lógica" del resto del módulo.
         public async Task<Respuesta> ObtenerEvolucionAnaliticaAsync(UsuarioGeneral usuarioLogueado, EvolucionFacturacionRequest filtro)
         {
             try
@@ -1485,7 +1529,25 @@ namespace SafetyReport.Handlers
                     return new Respuesta { IdTipoMensaje = 1, Mensaje = "La fecha desde no puede ser mayor a la fecha hasta." };
                 }
 
-                return await _pedidoFacturaDao.ObtenerEvolucionAnaliticaAsync(usuarioLogueado, filtro);
+                var resultado = await _facturacionService.ObtenerEvolucionFacturacionAsync(
+                    usuarioLogueado.IdEmpresa, 1, filtro.fechaDesde, filtro.fechaHasta, filtro.granularidad, CancellationToken.None);
+
+                if (resultado is null || resultado.IdTipoMensaje != 2 || resultado.Datos is null)
+                {
+                    return new Respuesta { IdTipoMensaje = resultado?.IdTipoMensaje ?? 3, Mensaje = resultado?.Mensaje ?? "No se pudo obtener la evolución de facturación." };
+                }
+
+                var serie = resultado.Datos
+                    .Select(d => new EvolucionFacturacionConsulta
+                    {
+                        Periodo = d.Periodo,
+                        Etiqueta = d.Etiqueta,
+                        CantidadPedidos = d.CantidadPedidos,
+                        MontoFacturado = d.MontoFacturado
+                    })
+                    .ToList();
+
+                return new Respuesta { IdTipoMensaje = 2, Mensaje = resultado.Mensaje ?? "Consulta exitosa.", Result = serie };
             }
             catch (Exception ex)
             {

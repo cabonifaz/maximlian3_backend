@@ -480,13 +480,9 @@ namespace SafetyReport.DAO
                 cmd.Parameters.Add("@vchUsuario", SqlDbType.VarChar, 32).Value = usuarioLogueado.Usuario;
                 cmd.Parameters.Add("@intIdEmpresa", SqlDbType.Int).Value = usuarioLogueado.IdEmpresa;
                 cmd.Parameters.Add("@intIdRol", SqlDbType.Int).Value = usuarioLogueado.IdRol;
-                cmd.Parameters.Add("@dtFechaDesde", SqlDbType.Date).Value = (object?)filtro.fechaDesde?.ToDateTime(TimeOnly.MinValue) ?? DBNull.Value;
-                cmd.Parameters.Add("@dtFechaHasta", SqlDbType.Date).Value = (object?)filtro.fechaHasta?.ToDateTime(TimeOnly.MinValue) ?? DBNull.Value;
                 cmd.Parameters.Add("@intIdCliente", SqlDbType.Int).Value = (object?)filtro.idCliente ?? DBNull.Value;
                 cmd.Parameters.Add("@intIdPais", SqlDbType.Int).Value = (object?)filtro.idPais ?? DBNull.Value;
                 cmd.Parameters.Add("@intIdTipoTramite", SqlDbType.Int).Value = (object?)filtro.idTipoTramite ?? DBNull.Value;
-                cmd.Parameters.Add("@intIdEstadoMaestro", SqlDbType.Int).Value = (object?)filtro.idEstadoMaestro ?? DBNull.Value;
-                cmd.Parameters.Add("@intIdTipoDocumentoMaestro", SqlDbType.Int).Value = (object?)filtro.idTipoDocumentoMaestro ?? DBNull.Value;
 
                 await cn.OpenAsync();
 
@@ -506,10 +502,7 @@ namespace SafetyReport.DAO
                     {
                         CantidadPedidosPendientes = Convert.ToInt32(dr["CantidadPedidosPendientes"]),
                         MontoPendienteFacturar = GetNullableDecimal(dr, "MontoPendienteFacturar") ?? 0m,
-                        CantidadPedidosFacturados = Convert.ToInt32(dr["CantidadPedidosFacturados"]),
-                        TotalFacturado = GetNullableDecimal(dr, "TotalFacturado") ?? 0m,
-                        TotalNotasCredito = GetNullableDecimal(dr, "TotalNotasCredito") ?? 0m,
-                        TotalNotasDebito = GetNullableDecimal(dr, "TotalNotasDebito") ?? 0m
+                        CantidadPedidosFacturados = Convert.ToInt32(dr["CantidadPedidosFacturados"])
                     };
                 }
 
@@ -537,71 +530,7 @@ namespace SafetyReport.DAO
                         });
                 }
 
-                if (await dr.NextResultAsync())
-                {
-                    while (await dr.ReadAsync())
-                        resultado.DesglosePorEstado.Add(new DesgloseEstadoConsulta
-                        {
-                            IdEstadoMaestro = GetNullableInt(dr, "IdEstadoMaestro"),
-                            Estado = dr["Estado"]?.ToString() ?? string.Empty,
-                            CantidadFacturas = Convert.ToInt32(dr["CantidadFacturas"]),
-                            MontoFacturado = Convert.ToDecimal(dr["MontoFacturado"])
-                        });
-                }
-
                 respuesta.Result = resultado;
-                return respuesta;
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Error no controlado en la capa de datos.");
-                return new Respuesta { IdTipoMensaje = 3, Mensaje = ex.Message };
-            }
-        }
-
-        public async Task<Respuesta> ObtenerEvolucionAnaliticaAsync(UsuarioGeneral usuarioLogueado, EvolucionFacturacionRequest filtro)
-        {
-            try
-            {
-                using SqlConnection cn = new(_dbConfig.ConnectionString);
-                using SqlCommand cmd = new("SP_Facturacion_EvolucionAnalitica", cn);
-
-                cmd.CommandType = CommandType.StoredProcedure;
-                cmd.Parameters.Add("@intIdUsuario", SqlDbType.Int).Value = usuarioLogueado.IdUsuario;
-                cmd.Parameters.Add("@vchUsuario", SqlDbType.VarChar, 32).Value = usuarioLogueado.Usuario;
-                cmd.Parameters.Add("@intIdEmpresa", SqlDbType.Int).Value = usuarioLogueado.IdEmpresa;
-                cmd.Parameters.Add("@intIdRol", SqlDbType.Int).Value = usuarioLogueado.IdRol;
-                cmd.Parameters.Add("@dtFechaDesde", SqlDbType.Date).Value = (object?)filtro.fechaDesde?.ToDateTime(TimeOnly.MinValue) ?? DBNull.Value;
-                cmd.Parameters.Add("@dtFechaHasta", SqlDbType.Date).Value = (object?)filtro.fechaHasta?.ToDateTime(TimeOnly.MinValue) ?? DBNull.Value;
-                cmd.Parameters.Add("@intIdCliente", SqlDbType.Int).Value = (object?)filtro.idCliente ?? DBNull.Value;
-                cmd.Parameters.Add("@intIdPais", SqlDbType.Int).Value = (object?)filtro.idPais ?? DBNull.Value;
-                cmd.Parameters.Add("@intIdTipoTramite", SqlDbType.Int).Value = (object?)filtro.idTipoTramite ?? DBNull.Value;
-                cmd.Parameters.Add("@intGranularidad", SqlDbType.Int).Value = filtro.granularidad;
-
-                await cn.OpenAsync();
-
-                using var dr = await cmd.ExecuteReaderAsync();
-                var respuesta = await LeerCabeceraAsync(dr, cmd.CommandText);
-
-                if (respuesta.IdTipoMensaje != 2)
-                {
-                    return respuesta;
-                }
-
-                var serie = new List<EvolucionFacturacionConsulta>();
-                if (await dr.NextResultAsync())
-                {
-                    while (await dr.ReadAsync())
-                        serie.Add(new EvolucionFacturacionConsulta
-                        {
-                            Periodo = dr["Periodo"]?.ToString() ?? string.Empty,
-                            Etiqueta = dr["Etiqueta"]?.ToString() ?? string.Empty,
-                            CantidadPedidos = Convert.ToInt32(dr["CantidadPedidos"]),
-                            MontoFacturado = Convert.ToDecimal(dr["MontoFacturado"])
-                        });
-                }
-
-                respuesta.Result = serie;
                 return respuesta;
             }
             catch (Exception ex)

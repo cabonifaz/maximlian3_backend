@@ -7,10 +7,10 @@ namespace SafetyReport.Models
         public int? idCliente { get; set; }
         public int? idPais { get; set; }
         public int? idTipoTramite { get; set; }
-        // TABLA_MAESTRA IdMaestro=77 (local), Num1 1..19 — mismo código real que IdEstadoMaestro en
-        // DOCUMENTOS_ELECTRONICOS. Sin bucket propio: el desglose usa los estados reales (top 5 + Otros).
-        public int? idEstadoMaestro { get; set; }
         // 1=Factura, 3=Boleta de venta, 7=Nota de crédito, 8=Nota de débito (TABLA_MAESTRA IdMaestro=6
+        // de maximilian_facturacion_staging) — filtra el desglose por estado (HTTP). Ya no hay filtro
+        // de estado en sí: eso vive como dimensión del desglose, no como parámetro (ver
+        // SP_Facturacion_ObtenerDesgloseEstado, sin ese parámetro tras el cambio a HTTP).
         public int? idTipoDocumentoMaestro { get; set; }
     }
 
@@ -18,9 +18,6 @@ namespace SafetyReport.Models
     {
         public DateOnly? fechaDesde { get; set; }
         public DateOnly? fechaHasta { get; set; }
-        public int? idCliente { get; set; }
-        public int? idPais { get; set; }
-        public int? idTipoTramite { get; set; }
         public int granularidad { get; set; } // 1=Dia, 2=Semana, 3=Mes, 4=Ano
     }
 
@@ -32,6 +29,7 @@ namespace SafetyReport.Models
         public decimal TotalFacturado { get; set; }
         public decimal TotalNotasCredito { get; set; }
         public decimal TotalNotasDebito { get; set; }
+        public string MonedaIcono { get; set; } = string.Empty;
     }
 
     public class DesgloseTramiteConsulta
@@ -50,6 +48,7 @@ namespace SafetyReport.Models
         public decimal MontoFacturado { get; set; }
     }
 
+    // Ahora viene por HTTP (ms-facturacion, SP_Facturacion_ObtenerDesgloseEstado) — ya no del SP local.
     public class DesgloseEstadoConsulta
     {
         public int? IdEstadoMaestro { get; set; }
