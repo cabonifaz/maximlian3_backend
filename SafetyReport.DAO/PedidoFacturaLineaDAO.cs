@@ -115,8 +115,10 @@ namespace SafetyReport.DAO
             }
         }
 
-        // Versión en lote de CrearAsync — agrupa idPedidos internamente, una fila por línea creada.
-        public async Task<Respuesta> CrearLoteAsync(UsuarioGeneral usuarioLogueado, int idCliente, List<int> idPedidos)
+        // Versión en lote de CrearAsync — el llamador arma los grupos (idsPedido + los 5 campos de
+        // la línea por grupo), una PEDIDO_FACTURA_LINEA por grupo. IdGrupo (1-based, orden de la
+        // lista) une @tvpLineas con @lstIdPedido — ver SP_PedidoFacturaLinea_CrearLote.
+        public async Task<Respuesta> CrearLoteAsync(UsuarioGeneral usuarioLogueado, int idCliente, List<GrupoLineaLoteRequest> grupos)
         {
             try
             {
@@ -130,7 +132,32 @@ namespace SafetyReport.DAO
                 cmd.Parameters.Add("@intIdRol", SqlDbType.Int).Value = usuarioLogueado.IdRol;
                 cmd.Parameters.Add("@intIdCliente", SqlDbType.Int).Value = idCliente;
 
-                var tvpIdPedido = cmd.Parameters.AddWithValue("@lstIdPedido", ConstruirTablaListaGeneralNum(idPedidos));
+                var tablaLineas = new DataTable();
+                tablaLineas.Columns.Add("IdGrupo", typeof(int));
+                tablaLineas.Columns.Add("Codigo", typeof(string));
+                tablaLineas.Columns.Add("Descripcion", typeof(string));
+                tablaLineas.Columns.Add("Cantidad", typeof(int));
+                tablaLineas.Columns.Add("ValorUnitario", typeof(decimal));
+                tablaLineas.Columns.Add("Descuento", typeof(decimal));
+
+                var tablaPedidos = new DataTable();
+                tablaPedidos.Columns.Add("ID", typeof(int));
+                tablaPedidos.Columns.Add("NUM1", typeof(int));
+
+                var idGrupo = 1;
+                foreach (var grupo in grupos)
+                {
+                    tablaLineas.Rows.Add(idGrupo, (object?)grupo.codigo ?? DBNull.Value, grupo.descripcion, grupo.cantidad, grupo.valorUnitario, grupo.descuento);
+                    foreach (var idPedido in grupo.idsPedido)
+                        tablaPedidos.Rows.Add(idGrupo, idPedido);
+                    idGrupo++;
+                }
+
+                var tvpLineas = cmd.Parameters.AddWithValue("@tvpLineas", tablaLineas);
+                tvpLineas.SqlDbType = SqlDbType.Structured;
+                tvpLineas.TypeName = "LISTA_LINEA_LOTE";
+
+                var tvpIdPedido = cmd.Parameters.AddWithValue("@lstIdPedido", tablaPedidos);
                 tvpIdPedido.SqlDbType = SqlDbType.Structured;
                 tvpIdPedido.TypeName = "LISTA_GENERAL_NUM";
 

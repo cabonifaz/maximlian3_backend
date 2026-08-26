@@ -12,11 +12,23 @@ namespace SafetyReport.Models
         public string descripcion { get; set; } = string.Empty;
     }
 
-    // Body de POST .../lote — idsPedido puede mezclar pedidos de varios grupos, el SP los separa.
+    // Body de POST .../lote — SP_PedidoFacturaLinea_CrearLote. Cada elemento de grupos se vuelve
+    // una PEDIDO_FACTURA_LINEA: el llamador arma los grupos y manda los 5 campos propios de la
+    // línea (codigo/descripcion/cantidad/valorUnitario/descuento) por grupo, no autocalculados.
+    public class GrupoLineaLoteRequest
+    {
+        public List<int> idsPedido { get; set; } = new();
+        public string? codigo { get; set; }
+        public string descripcion { get; set; } = string.Empty;
+        public int cantidad { get; set; }
+        public decimal valorUnitario { get; set; }
+        public decimal descuento { get; set; }
+    }
+
     public class CrearLineaFacturacionLoteRequest
     {
         public int idCliente { get; set; }
-        public List<int> idsPedido { get; set; } = new();
+        public List<GrupoLineaLoteRequest> grupos { get; set; } = new();
     }
 
     // Codigo/Descripcion son la única metadata editable de una línea existente — Cantidad,

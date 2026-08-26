@@ -51,7 +51,7 @@ namespace SafetyReport.Handlers
                     return acceso;
                 }
 
-                return await _pedidoFacturaLineaDao.CrearLoteAsync(usuarioLogueado, request.idCliente, request.idsPedido);
+                return await _pedidoFacturaLineaDao.CrearLoteAsync(usuarioLogueado, request.idCliente, request.grupos);
             }
             catch (Exception ex)
             {
