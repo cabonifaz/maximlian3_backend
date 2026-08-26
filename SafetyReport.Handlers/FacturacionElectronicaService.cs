@@ -105,6 +105,16 @@ namespace SafetyReport.Handlers
             return await respuesta.Content.ReadFromJsonAsync<FacturacionEnvelope<object>>(JsonOptions, cancellationToken);
         }
 
+        // Variante mínima de ObtenerDocumentoPorTokenAsync: solo Id/IdInquilino, para armar la
+        // consulta de pedidos del documento contra maximlian3 (SP_Pedido_ListarPorDocumentoElectronicoPublico).
+        public async Task<FacturacionEnvelope<FacturacionIdentificadorPorToken>?> ObtenerIdDocumentoPorTokenAsync(
+            string token, CancellationToken cancellationToken)
+        {
+            var url = $"api/v1/documentos-electronicos/token/{Uri.EscapeDataString(token)}/id";
+            var respuesta = await _httpClient.GetAsync(url, cancellationToken);
+            return await respuesta.Content.ReadFromJsonAsync<FacturacionEnvelope<FacturacionIdentificadorPorToken>>(JsonOptions, cancellationToken);
+        }
+
         // tipoArchivo: "Xml" o "Pdf". Mismo criterio que ObtenerDocumentoPorTokenAsync.
         public async Task<FacturacionEnvelope<string>?> ObtenerUrlDescargaPorTokenAsync(
             string token, string tipoArchivo, CancellationToken cancellationToken)

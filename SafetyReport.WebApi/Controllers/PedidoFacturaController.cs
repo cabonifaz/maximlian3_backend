@@ -73,6 +73,16 @@ namespace SafetyReport.WebApi.Controllers
             return Ok(respuesta);
         }
 
+        // Endpoint nuevo, separado de listarPedidos (que sigue apuntando a
+        // SP_Pedido_ListarParaFacturacion, la versión desplegada que queda como fallback) — agrega la
+        // previsualización de grupos (GroupId) para crear varias líneas de una.
+        [HttpGet("listarPedidosConGrupos")]
+        public async Task<IActionResult> ListarPedidosConGrupos([FromQuery] ListarPedidosFacturacionConGruposRequest request)
+        {
+            var respuesta = await _pedidoFacturaHandler.ListarPedidosParaFacturacionConGruposAsync(UsuarioLogueado, request);
+            return Ok(respuesta);
+        }
+
         // POST en vez de GET: Meses es una lista de objetos (Anio/Mes) — no hay una forma estándar de
         // codificar eso en un query string sin recurrir a algo frágil (JSON dentro de un solo param, o el
         // formato Meses[0].Anio poco usado). Con [FromBody] el JSON que ya arma el front binda directo.
@@ -102,6 +112,13 @@ namespace SafetyReport.WebApi.Controllers
         public async Task<IActionResult> ObtenerFacturaPorId(int idDocumentoElectronico)
         {
             var respuesta = await _pedidoFacturaHandler.ObtenerFacturaPorIdAsync(UsuarioLogueado, idDocumentoElectronico);
+            return Ok(respuesta);
+        }
+
+        [HttpGet("facturaPorId/{idDocumentoElectronico:int}/pedidos")]
+        public async Task<IActionResult> ListarPedidosPorDocumentoElectronico(int idDocumentoElectronico)
+        {
+            var respuesta = await _pedidoFacturaHandler.ListarPedidosPorDocumentoElectronicoAsync(UsuarioLogueado, idDocumentoElectronico);
             return Ok(respuesta);
         }
 

@@ -24,6 +24,13 @@ namespace SafetyReport.WebApi.Controllers
             return Ok(respuesta);
         }
 
+        [HttpGet("{token}/pedidos")]
+        public async Task<IActionResult> ListarPedidosPorToken(string token)
+        {
+            var respuesta = await _verificacionFacturaHandler.ListarPedidosPorTokenAsync(token);
+            return Ok(respuesta);
+        }
+
         [HttpGet("{token}/urlDescarga")]
         public async Task<IActionResult> ObtenerUrlDescargaPorToken(string token, [FromQuery] string tipoArchivo)
         {

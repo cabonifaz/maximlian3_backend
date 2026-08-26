@@ -290,6 +290,62 @@ namespace SafetyReport.Models
         public List<PedidoListaFacturacionConsulta> Pedidos { get; set; } = new();
     }
 
+    // Query params de SP_Pedido_ListarParaFacturacionConGrupos — endpoint nuevo, separado del que
+    // usa SP_Pedido_ListarParaFacturacion (que queda desplegado tal cual, como fallback). A
+    // diferencia de ese, acá el filtro de fecha es un rango (no un mes único) e idTipoTramite es
+    // opcional.
+    public class ListarPedidosFacturacionConGruposRequest
+    {
+        public int idCliente { get; set; }
+        public DateOnly fchInicio { get; set; }
+        public DateOnly fchFin { get; set; }
+        public int? idTipoTramite { get; set; }
+        public List<int>? idsPais { get; set; }
+        public int? idMoneda { get; set; }
+        public bool? finalizadoEnFecha { get; set; }
+    }
+
+    // Resultado de SP_Pedido_ListarParaFacturacionConGrupos. GroupId (en ambos result sets)
+    // correlaciona un pedido con el grupo/línea al que pertenece.
+    public class PedidoListaFacturacionConGruposConsulta : PedidoListaFacturacionConsulta
+    {
+        public int GroupId { get; set; }
+    }
+
+    public class GrupoFacturacionConsulta
+    {
+        public int GroupId { get; set; }
+        public string Codigo { get; set; } = string.Empty;
+        public string Descripcion { get; set; } = string.Empty;
+        public decimal Precio { get; set; }
+        public decimal Descuento { get; set; }
+        public int Cantidad { get; set; }
+    }
+
+    public class PedidoListaFacturacionConGruposResult
+    {
+        public List<PedidoListaFacturacionConGruposConsulta> Pedidos { get; set; } = new();
+        public List<GrupoFacturacionConsulta> Grupos { get; set; } = new();
+    }
+
+    // Resultado de SP_Pedido_ListarPorDocumentoElectronico. Sin ids. ValorUnitario/Descuento ya
+    // vienen concatenados con la Moneda del lado del SP — se devuelven como string, no decimal.
+    public class PedidoPorDocumentoElectronicoConsulta
+    {
+        public string Codigo { get; set; } = string.Empty;
+        public string NumReferencia { get; set; } = string.Empty;
+        public string? Investigado { get; set; }
+        public string TipoTramite { get; set; } = string.Empty;
+        public string Pais { get; set; } = string.Empty;
+        public string ValorUnitario { get; set; } = string.Empty;
+        public string Descuento { get; set; } = string.Empty;
+    }
+
+    public class PedidoPorDocumentoElectronicoResult
+    {
+        public List<PedidoPorDocumentoElectronicoConsulta> Pedidos { get; set; } = new();
+    }
+
     // Payload de POST .../listarPedidos/exportarExcel para SP_Pedido_ListarParaPrefactura — el rango llega
     // por FchInicio/FchFin o por Meses (uno o varios pares Anio/Mes, no contiguos incluido), nunca los dos
     // a la vez ni ninguno de los dos (mismo chequeo que hace el SP). [FromBody]: Meses es una lista JSON,
@@ -308,17 +364,26 @@ namespace SafetyReport.Models
         public int Mes { get; set; }
     }
 
-    // Resultado de SP_Pedido_ListarParaPrefactura — columnas ya vienen en mayúsculas y formateadas desde el SP.
+    // Resultado de SP_Pedido_ListarParaPrefactura, leído por posición (no por nombre): el SP
+    // bifurca por idioma y devuelve encabezados distintos — ver PedidoPrefacturaResult.Headers.
     public class PedidoPrefacturaConsulta
     {
-        public string Client { get; set; } = string.Empty;
-        public string? Company { get; set; }
+        public string Company { get; set; } = string.Empty;
         public string TypeOfReport { get; set; } = string.Empty;
-        public string ReferenceNo { get; set; } = string.Empty;
+        public string ReferenceNumber { get; set; } = string.Empty;
         public string Country { get; set; } = string.Empty;
         public string DateOfRequest { get; set; } = string.Empty;
+        public string ApprovedOn { get; set; } = string.Empty;
+        public string TypeOfService { get; set; } = string.Empty;
         public string Currency { get; set; } = string.Empty;
         public decimal Price { get; set; }
+        public string Observation { get; set; } = string.Empty;
+    }
+
+    public class PedidoPrefacturaResult
+    {
+        public List<string> Headers { get; set; } = new();
+        public List<PedidoPrefacturaConsulta> Items { get; set; } = new();
     }
 
     public class PedidoPrefacturaExportacion

@@ -609,7 +609,7 @@ namespace SafetyReport.DAO
             }
         }
 
-        public async Task<Respuesta> ListarClientesFacturacionAsync(UsuarioGeneral usuarioLogueado, string? busqueda, int? numPag, int? emitirPrefactura, int? idIdiomaFacturacion, int? estadoFacturacion)
+        public async Task<Respuesta> ListarClientesFacturacionAsync(UsuarioGeneral usuarioLogueado, string? busqueda, int? numPag, int? emitirPrefactura, int? idIdiomaFacturacion)
         {
             try
             {
@@ -625,7 +625,6 @@ namespace SafetyReport.DAO
                 cmd.Parameters.Add("@numPag", SqlDbType.Int).Value = (object?)numPag ?? DBNull.Value;
                 cmd.Parameters.Add("@intEmitirPrefactura", SqlDbType.Int).Value = (object?)emitirPrefactura ?? DBNull.Value;
                 cmd.Parameters.Add("@intIdIdiomaFacturacion", SqlDbType.Int).Value = (object?)idIdiomaFacturacion ?? DBNull.Value;
-                cmd.Parameters.Add("@intEstadoFacturacion", SqlDbType.Int).Value = (object?)estadoFacturacion ?? DBNull.Value;
 
                 await cn.OpenAsync();
 
@@ -653,10 +652,7 @@ namespace SafetyReport.DAO
                                 EmitirPrefactura = GetNullableString(dr, "EmitirPrefactura"),
                                 TotalPedidos = Convert.ToInt32(dr["TotalPedidos"]),
                                 PedidosFacturados = Convert.ToInt32(dr["PedidosFacturados"]),
-                                IdIdiomaFacturacion = GetNullableString(dr, "IdIdiomaFacturacion"),
-                                EstadoFacturacion = GetNullableString(dr, "EstadoFacturacion"),
-                                ColorTexto = GetNullableString(dr, "ColorTexto"),
-                                ColorFondo = GetNullableString(dr, "ColorFondo")
+                                IdIdiomaFacturacion = GetNullableString(dr, "IdIdiomaFacturacion")
                             });
                         }
                     }

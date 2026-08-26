@@ -76,7 +76,7 @@ namespace SafetyReport.WebApi.Controllers
         [HttpGet("listarFacturacion")]
         public async Task<IActionResult> ListarFacturacion([FromQuery] FiltroClienteFacturacion request)
         {
-            var respuesta = await _clienteHandler.ListarClientesFacturacionAsync(UsuarioLogueado, request?.busqueda, request?.numPag, request?.emitirPrefactura, request?.idIdiomaFacturacion, request?.estadoFacturacion);
+            var respuesta = await _clienteHandler.ListarClientesFacturacionAsync(UsuarioLogueado, request?.busqueda, request?.numPag, request?.emitirPrefactura, request?.idIdiomaFacturacion);
             return Ok(respuesta);
         }
 

@@ -12,12 +12,33 @@ namespace SafetyReport.Models
         public string descripcion { get; set; } = string.Empty;
     }
 
+    // Body de POST .../lote — SP_PedidoFacturaLinea_CrearLote. Cada elemento de grupos se vuelve
+    // una PEDIDO_FACTURA_LINEA: el llamador arma los grupos y manda codigo/descripcion/
+    // valorUnitario/descuento por grupo (no autocalculados) — Cantidad la calcula el SP como
+    // COUNT(idsPedido).
+    public class GrupoLineaLoteRequest
+    {
+        public List<int> idsPedido { get; set; } = new();
+        public string? codigo { get; set; }
+        public string descripcion { get; set; } = string.Empty;
+        public decimal valorUnitario { get; set; }
+        public decimal descuento { get; set; }
+    }
+
+    public class CrearLineaFacturacionLoteRequest
+    {
+        public int idCliente { get; set; }
+        public List<GrupoLineaLoteRequest> grupos { get; set; } = new();
+    }
+
     // Codigo/Descripcion son la única metadata editable de una línea existente — Cantidad,
     // ValorUnitario, Descuento y la composición de pedidos no se tocan acá.
     public class ActualizarLineaFacturacionRequest
     {
         public string? codigo { get; set; }
         public string descripcion { get; set; } = string.Empty;
+        public decimal valorUnitario { get; set; }
+        public decimal descuento { get; set; }
     }
 
     // Body de PUT .../pedidos — SP_PedidoFacturaLinea_ActualizarPedidos. idsPedido es el conjunto

@@ -115,8 +115,84 @@ namespace SafetyReport.DAO
             }
         }
 
+        // Versión en lote de CrearAsync — el llamador arma los grupos (idsPedido + los 5 campos de
+        // la línea por grupo), una PEDIDO_FACTURA_LINEA por grupo. IdGrupo (1-based, orden de la
+        // lista) une @tvpLineas con @lstIdPedido — ver SP_PedidoFacturaLinea_CrearLote.
+        public async Task<Respuesta> CrearLoteAsync(UsuarioGeneral usuarioLogueado, int idCliente, List<GrupoLineaLoteRequest> grupos)
+        {
+            try
+            {
+                using SqlConnection cn = new(_dbConfig.ConnectionString);
+                using SqlCommand cmd = new("SP_PedidoFacturaLinea_CrearLote", cn);
+
+                cmd.CommandType = CommandType.StoredProcedure;
+                cmd.Parameters.Add("@intIdUsuario", SqlDbType.Int).Value = usuarioLogueado.IdUsuario;
+                cmd.Parameters.Add("@vchUsuario", SqlDbType.VarChar, 32).Value = usuarioLogueado.Usuario;
+                cmd.Parameters.Add("@intIdEmpresa", SqlDbType.Int).Value = usuarioLogueado.IdEmpresa;
+                cmd.Parameters.Add("@intIdRol", SqlDbType.Int).Value = usuarioLogueado.IdRol;
+                cmd.Parameters.Add("@intIdCliente", SqlDbType.Int).Value = idCliente;
+
+                var tablaLineas = new DataTable();
+                tablaLineas.Columns.Add("IdGrupo", typeof(int));
+                tablaLineas.Columns.Add("Codigo", typeof(string));
+                tablaLineas.Columns.Add("Descripcion", typeof(string));
+                tablaLineas.Columns.Add("ValorUnitario", typeof(decimal));
+                tablaLineas.Columns.Add("Descuento", typeof(decimal));
+
+                var tablaPedidos = new DataTable();
+                tablaPedidos.Columns.Add("ID", typeof(int));
+                tablaPedidos.Columns.Add("NUM1", typeof(int));
+
+                var idGrupo = 1;
+                foreach (var grupo in grupos)
+                {
+                    tablaLineas.Rows.Add(idGrupo, (object?)grupo.codigo ?? DBNull.Value, grupo.descripcion, grupo.valorUnitario, grupo.descuento);
+                    foreach (var idPedido in grupo.idsPedido)
+                        tablaPedidos.Rows.Add(idGrupo, idPedido);
+                    idGrupo++;
+                }
+
+                var tvpLineas = cmd.Parameters.AddWithValue("@tvpLineas", tablaLineas);
+                tvpLineas.SqlDbType = SqlDbType.Structured;
+                tvpLineas.TypeName = "LISTA_LINEA_LOTE";
+
+                var tvpIdPedido = cmd.Parameters.AddWithValue("@lstIdPedido", tablaPedidos);
+                tvpIdPedido.SqlDbType = SqlDbType.Structured;
+                tvpIdPedido.TypeName = "LISTA_GENERAL_NUM";
+
+                await cn.OpenAsync();
+
+                using var dr = await cmd.ExecuteReaderAsync();
+                var respuesta = await LeerCabeceraAsync(dr, cmd.CommandText);
+
+                var lineas = new List<PedidoFacturaLineaConsulta>();
+                if (respuesta.IdTipoMensaje == 2 && await dr.NextResultAsync())
+                {
+                    while (await dr.ReadAsync())
+                        lineas.Add(new PedidoFacturaLineaConsulta
+                        {
+                            IdPedidoFacturaLinea = Convert.ToInt32(dr["IdPedidoFacturaLinea"]),
+                            Codigo = dr["Codigo"] as string,
+                            Descripcion = Convert.ToString(dr["Descripcion"]) ?? string.Empty,
+                            Cantidad = Convert.ToInt32(dr["Cantidad"]),
+                            ValorUnitario = Convert.ToDecimal(dr["ValorUnitario"]),
+                            Descuento = Convert.ToDecimal(dr["Descuento"]),
+                        });
+                }
+
+                respuesta.Result = lineas;
+                return respuesta;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error no controlado en la capa de datos.");
+                return new Respuesta { IdTipoMensaje = 3, Mensaje = ex.Message, Result = new List<PedidoFacturaLineaConsulta>() };
+            }
+        }
+
         public async Task<Respuesta> ActualizarDatosAsync(
-            UsuarioGeneral usuarioLogueado, int idPedidoFacturaLinea, string? codigo, string descripcion)
+            UsuarioGeneral usuarioLogueado, int idPedidoFacturaLinea, string? codigo, string descripcion,
+            decimal valorUnitario, decimal descuento)
         {
             try
             {
@@ -131,6 +207,8 @@ namespace SafetyReport.DAO
                 cmd.Parameters.Add("@intIdPedidoFacturaLinea", SqlDbType.Int).Value = idPedidoFacturaLinea;
                 cmd.Parameters.Add("@vchCodigo", SqlDbType.VarChar, 30).Value = (object?)codigo ?? DBNull.Value;
                 cmd.Parameters.Add("@vchDescripcion", SqlDbType.VarChar, 500).Value = descripcion;
+                cmd.Parameters.Add("@decValorUnitario", SqlDbType.Decimal).Value = valorUnitario;
+                cmd.Parameters.Add("@decDescuento", SqlDbType.Decimal).Value = descuento;
 
                 await cn.OpenAsync();
                 using var dr = await cmd.ExecuteReaderAsync();
