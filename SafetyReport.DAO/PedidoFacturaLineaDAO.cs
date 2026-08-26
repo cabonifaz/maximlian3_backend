@@ -115,6 +115,57 @@ namespace SafetyReport.DAO
             }
         }
 
+        // Versión en lote de CrearAsync — agrupa idPedidos internamente (no exige mismo mes/tarifa
+        // entre todos, a diferencia de CrearAsync) y crea una línea por grupo, ver
+        // SP_PedidoFacturaLinea_CrearLote. Result set 2 trae una fila por línea creada.
+        public async Task<Respuesta> CrearLoteAsync(UsuarioGeneral usuarioLogueado, int idCliente, List<int> idPedidos)
+        {
+            try
+            {
+                using SqlConnection cn = new(_dbConfig.ConnectionString);
+                using SqlCommand cmd = new("SP_PedidoFacturaLinea_CrearLote", cn);
+
+                cmd.CommandType = CommandType.StoredProcedure;
+                cmd.Parameters.Add("@intIdUsuario", SqlDbType.Int).Value = usuarioLogueado.IdUsuario;
+                cmd.Parameters.Add("@vchUsuario", SqlDbType.VarChar, 32).Value = usuarioLogueado.Usuario;
+                cmd.Parameters.Add("@intIdEmpresa", SqlDbType.Int).Value = usuarioLogueado.IdEmpresa;
+                cmd.Parameters.Add("@intIdRol", SqlDbType.Int).Value = usuarioLogueado.IdRol;
+                cmd.Parameters.Add("@intIdCliente", SqlDbType.Int).Value = idCliente;
+
+                var tvpIdPedido = cmd.Parameters.AddWithValue("@lstIdPedido", ConstruirTablaListaGeneralNum(idPedidos));
+                tvpIdPedido.SqlDbType = SqlDbType.Structured;
+                tvpIdPedido.TypeName = "LISTA_GENERAL_NUM";
+
+                await cn.OpenAsync();
+
+                using var dr = await cmd.ExecuteReaderAsync();
+                var respuesta = await LeerCabeceraAsync(dr, cmd.CommandText);
+
+                var lineas = new List<PedidoFacturaLineaConsulta>();
+                if (respuesta.IdTipoMensaje == 2 && await dr.NextResultAsync())
+                {
+                    while (await dr.ReadAsync())
+                        lineas.Add(new PedidoFacturaLineaConsulta
+                        {
+                            IdPedidoFacturaLinea = Convert.ToInt32(dr["IdPedidoFacturaLinea"]),
+                            Codigo = dr["Codigo"] as string,
+                            Descripcion = Convert.ToString(dr["Descripcion"]) ?? string.Empty,
+                            Cantidad = Convert.ToInt32(dr["Cantidad"]),
+                            ValorUnitario = Convert.ToDecimal(dr["ValorUnitario"]),
+                            Descuento = Convert.ToDecimal(dr["Descuento"]),
+                        });
+                }
+
+                respuesta.Result = lineas;
+                return respuesta;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error no controlado en la capa de datos.");
+                return new Respuesta { IdTipoMensaje = 3, Mensaje = ex.Message, Result = new List<PedidoFacturaLineaConsulta>() };
+            }
+        }
+
         public async Task<Respuesta> ActualizarDatosAsync(
             UsuarioGeneral usuarioLogueado, int idPedidoFacturaLinea, string? codigo, string descripcion,
             decimal valorUnitario, decimal descuento)

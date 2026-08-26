@@ -31,6 +31,13 @@ namespace SafetyReport.WebApi.Controllers
             return Ok(respuesta);
         }
 
+        [HttpPost("lote")]
+        public async Task<IActionResult> CrearLote([FromBody] CrearLineaFacturacionLoteRequest request)
+        {
+            var respuesta = await _pedidoFacturaLineaHandler.CrearLoteAsync(UsuarioLogueado, request);
+            return Ok(respuesta);
+        }
+
         [HttpPut("{idPedidoFacturaLinea:int}")]
         public async Task<IActionResult> ActualizarDatos(int idPedidoFacturaLinea, [FromBody] ActualizarLineaFacturacionRequest request)
         {

@@ -699,6 +699,88 @@ namespace SafetyReport.DAO
             }
         }
 
+        // Endpoint nuevo, separado de ListarParaFacturacionAsync (que sigue apuntando a
+        // SP_Pedido_ListarParaFacturacion, la versión desplegada que queda como fallback).
+        public async Task<Respuesta> ListarParaFacturacionConGruposAsync(UsuarioGeneral usuarioLogueado, ListarPedidosFacturacionConGruposRequest request)
+        {
+            try
+            {
+                using SqlConnection cn = new(_dbConfig.ConnectionString);
+                using SqlCommand cmd = new("SP_Pedido_ListarParaFacturacionConGrupos", cn);
+
+                cmd.CommandType = CommandType.StoredProcedure;
+                cmd.Parameters.Add("@intIdUsuario", SqlDbType.Int).Value = usuarioLogueado.IdUsuario;
+                cmd.Parameters.Add("@vchUsuario", SqlDbType.VarChar, 32).Value = usuarioLogueado.Usuario;
+                cmd.Parameters.Add("@intIdEmpresa", SqlDbType.Int).Value = usuarioLogueado.IdEmpresa;
+                cmd.Parameters.Add("@intIdRol", SqlDbType.Int).Value = usuarioLogueado.IdRol;
+                cmd.Parameters.Add("@intIdCliente", SqlDbType.Int).Value = request.idCliente;
+                cmd.Parameters.Add("@dtFchInicio", SqlDbType.Date).Value = request.fchInicio.ToDateTime(TimeOnly.MinValue);
+                cmd.Parameters.Add("@dtFchFin", SqlDbType.Date).Value = request.fchFin.ToDateTime(TimeOnly.MinValue);
+                cmd.Parameters.Add("@intIdTipoTramite", SqlDbType.Int).Value = (object?)request.idTipoTramite ?? DBNull.Value;
+                cmd.Parameters.Add("@vchIdPais", SqlDbType.VarChar, 200).Value = request.idsPais is { Count: > 0 } idsPais ? (object)string.Join(",", idsPais) : DBNull.Value;
+                cmd.Parameters.Add("@intIdMoneda", SqlDbType.Int).Value = (object?)request.idMoneda ?? DBNull.Value;
+                cmd.Parameters.Add("@bitFinalizadoEnFecha", SqlDbType.Bit).Value = (object?)request.finalizadoEnFecha ?? DBNull.Value;
+
+                await cn.OpenAsync();
+
+                using var dr = await cmd.ExecuteReaderAsync();
+                var respuesta = await LeerCabeceraAsync(dr, cmd.CommandText);
+
+                var resultado = new PedidoListaFacturacionConGruposResult();
+                if (respuesta.IdTipoMensaje == 2 && await dr.NextResultAsync())
+                {
+                    while (await dr.ReadAsync())
+                        resultado.Pedidos.Add(new PedidoListaFacturacionConGruposConsulta
+                        {
+                            IdPedido = Convert.ToInt32(dr["IdPedido"]),
+                            Codigo = dr["Codigo"]?.ToString() ?? string.Empty,
+                            NumReferencia = dr["NumReferencia"]?.ToString() ?? string.Empty,
+                            Investigado = GetNullableString(dr, "Investigado"),
+                            IdPais = GetNullableInt(dr, "IdPais"),
+                            Pais = GetNullableString(dr, "Pais"),
+                            AplicaPenalidad = GetNullableString(dr, "AplicaPenalidad"),
+                            IdTipoTramite = GetNullableInt(dr, "IdTipoTramite"),
+                            TipoTramite = GetNullableString(dr, "TipoTramite"),
+                            Fecha = Convert.ToDateTime(dr["Fecha"]),
+                            IdTarifario = GetNullableInt(dr, "IdTarifario"),
+                            Penalidad = GetNullableDecimal(dr, "Penalidad"),
+                            Precio = GetNullableDecimal(dr, "Precio"),
+                            IdMoneda = GetNullableInt(dr, "IdMoneda"),
+                            Moneda = GetNullableString(dr, "Moneda"),
+                            GroupId = Convert.ToInt32(dr["GroupId"])
+                        });
+                }
+
+                if (respuesta.IdTipoMensaje == 2 && await dr.NextResultAsync())
+                {
+                    while (await dr.ReadAsync())
+                        resultado.Grupos.Add(new GrupoFacturacionConsulta
+                        {
+                            GroupId = Convert.ToInt32(dr["GroupId"]),
+                            Codigo = dr["Codigo"]?.ToString() ?? string.Empty,
+                            Descripcion = dr["Descripcion"]?.ToString() ?? string.Empty,
+                            Precio = Convert.ToDecimal(dr["Precio"]),
+                            Descuento = Convert.ToDecimal(dr["Descuento"]),
+                            Cantidad = Convert.ToInt32(dr["Cantidad"])
+                        });
+                }
+
+                respuesta.Result = resultado;
+                return respuesta;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error no controlado en la capa de datos.");
+
+                return new Respuesta
+                {
+                    IdTipoMensaje = 3,
+                    Mensaje = ex.Message,
+                    Result = new PedidoListaFacturacionConGruposResult()
+                };
+            }
+        }
+
         public async Task<Respuesta> ListarPorDocumentoElectronicoAsync(UsuarioGeneral usuarioLogueado, int idDocumentoElectronico)
         {
             try

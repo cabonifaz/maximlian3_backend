@@ -12,6 +12,15 @@ namespace SafetyReport.Models
         public string descripcion { get; set; } = string.Empty;
     }
 
+    // Body de POST .../lote — SP_PedidoFacturaLinea_CrearLote. A diferencia de
+    // CrearLineaFacturacionRequest, idsPedido puede mezclar pedidos de varios meses/tarifas: el SP
+    // los agrupa internamente y crea una línea por grupo — sin codigo/descripcion (autogenerados).
+    public class CrearLineaFacturacionLoteRequest
+    {
+        public int idCliente { get; set; }
+        public List<int> idsPedido { get; set; } = new();
+    }
+
     // Codigo/Descripcion son la única metadata editable de una línea existente — Cantidad,
     // ValorUnitario, Descuento y la composición de pedidos no se tocan acá.
     public class ActualizarLineaFacturacionRequest

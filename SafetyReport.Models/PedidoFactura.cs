@@ -290,6 +290,46 @@ namespace SafetyReport.Models
         public List<PedidoListaFacturacionConsulta> Pedidos { get; set; } = new();
     }
 
+    // Query params de SP_Pedido_ListarParaFacturacionConGrupos — endpoint nuevo, separado del que
+    // usa SP_Pedido_ListarParaFacturacion (que queda desplegado tal cual, como fallback). A
+    // diferencia de ese, acá el filtro de fecha es un rango (no un mes único) e idTipoTramite es
+    // opcional.
+    public class ListarPedidosFacturacionConGruposRequest
+    {
+        public int idCliente { get; set; }
+        public DateOnly fchInicio { get; set; }
+        public DateOnly fchFin { get; set; }
+        public int? idTipoTramite { get; set; }
+        public List<int>? idsPais { get; set; }
+        public int? idMoneda { get; set; }
+        public bool? finalizadoEnFecha { get; set; }
+    }
+
+    // Resultado de SP_Pedido_ListarParaFacturacionConGrupos. GroupId (en ambos result sets) es el
+    // criterio de agrupamiento ya resuelto del lado del SP — mismo que exige
+    // SP_PedidoFacturaLinea_Crear (Año/Mes de FchMod, TipoTramite, Precio, Penalidad, Moneda) — el
+    // front arma cada llamada de creación de línea con los IdPedido que comparten un GroupId.
+    public class PedidoListaFacturacionConGruposConsulta : PedidoListaFacturacionConsulta
+    {
+        public int GroupId { get; set; }
+    }
+
+    public class GrupoFacturacionConsulta
+    {
+        public int GroupId { get; set; }
+        public string Codigo { get; set; } = string.Empty;
+        public string Descripcion { get; set; } = string.Empty;
+        public decimal Precio { get; set; }
+        public decimal Descuento { get; set; }
+        public int Cantidad { get; set; }
+    }
+
+    public class PedidoListaFacturacionConGruposResult
+    {
+        public List<PedidoListaFacturacionConGruposConsulta> Pedidos { get; set; } = new();
+        public List<GrupoFacturacionConsulta> Grupos { get; set; } = new();
+    }
+
     // Resultado de SP_Pedido_ListarPorDocumentoElectronico. Sin ids (no hacen falta) — Codigo es
     // el identificador visible del pedido. ValorUnitario/Descuento son los montos congelados de
     // PEDIDO_FACTURA_LINEA (no de TARIFARIO, ver PedidoFacturaLineaConsulta), ya concatenados con
