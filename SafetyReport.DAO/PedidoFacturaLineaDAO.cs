@@ -136,7 +136,6 @@ namespace SafetyReport.DAO
                 tablaLineas.Columns.Add("IdGrupo", typeof(int));
                 tablaLineas.Columns.Add("Codigo", typeof(string));
                 tablaLineas.Columns.Add("Descripcion", typeof(string));
-                tablaLineas.Columns.Add("Cantidad", typeof(int));
                 tablaLineas.Columns.Add("ValorUnitario", typeof(decimal));
                 tablaLineas.Columns.Add("Descuento", typeof(decimal));
 
@@ -147,7 +146,7 @@ namespace SafetyReport.DAO
                 var idGrupo = 1;
                 foreach (var grupo in grupos)
                 {
-                    tablaLineas.Rows.Add(idGrupo, (object?)grupo.codigo ?? DBNull.Value, grupo.descripcion, grupo.cantidad, grupo.valorUnitario, grupo.descuento);
+                    tablaLineas.Rows.Add(idGrupo, (object?)grupo.codigo ?? DBNull.Value, grupo.descripcion, grupo.valorUnitario, grupo.descuento);
                     foreach (var idPedido in grupo.idsPedido)
                         tablaPedidos.Rows.Add(idGrupo, idPedido);
                     idGrupo++;

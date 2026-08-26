@@ -13,14 +13,14 @@ namespace SafetyReport.Models
     }
 
     // Body de POST .../lote — SP_PedidoFacturaLinea_CrearLote. Cada elemento de grupos se vuelve
-    // una PEDIDO_FACTURA_LINEA: el llamador arma los grupos y manda los 5 campos propios de la
-    // línea (codigo/descripcion/cantidad/valorUnitario/descuento) por grupo, no autocalculados.
+    // una PEDIDO_FACTURA_LINEA: el llamador arma los grupos y manda codigo/descripcion/
+    // valorUnitario/descuento por grupo (no autocalculados) — Cantidad la calcula el SP como
+    // COUNT(idsPedido).
     public class GrupoLineaLoteRequest
     {
         public List<int> idsPedido { get; set; } = new();
         public string? codigo { get; set; }
         public string descripcion { get; set; } = string.Empty;
-        public int cantidad { get; set; }
         public decimal valorUnitario { get; set; }
         public decimal descuento { get; set; }
     }
