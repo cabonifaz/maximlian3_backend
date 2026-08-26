@@ -115,6 +115,15 @@
         public string Correo { get; set; } = string.Empty;
     }
 
+    // Resultado de SP_Usuario_ListaCortaDashboard — IdUsuario en vez de Correo.
+    public class UsuarioListaCortaDashboardItem
+    {
+        public int IdUsuario { get; set; }
+        public string Nombres { get; set; } = string.Empty;
+        public string ApellidoPaterno { get; set; } = string.Empty;
+        public string? ApellidoMaterno { get; set; }
+    }
+
     public class UsuarioAsignacionListaCortaItem
     {
         public int IdUsuario { get; set; }
