@@ -41,6 +41,25 @@ namespace SafetyReport.Handlers
             }
         }
 
+        public async Task<Respuesta> CrearLoteAsync(UsuarioGeneral usuarioLogueado, CrearLineaFacturacionLoteRequest request)
+        {
+            try
+            {
+                var acceso = await _pedidoFacturaDao.ValidarAccesoFacturacionAsync(usuarioLogueado, "crear líneas de facturación en lote");
+                if (acceso.IdTipoMensaje != 2)
+                {
+                    return acceso;
+                }
+
+                return await _pedidoFacturaLineaDao.CrearLoteAsync(usuarioLogueado, request.idCliente, request.grupos);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error no controlado en la capa de negocio.");
+                return new Respuesta { IdTipoMensaje = 3, Mensaje = ex.Message };
+            }
+        }
+
         // A diferencia del resto de las SPs de este módulo, SP_PedidoFactura_DesvincularLinea no valida
         // rol/permiso adentro (también corre desde cascades internos sin usuario logueado real) — acá,
         // en cambio, ValidarAccesoFacturacionAsync es el único chequeo de acceso real para el camino manual.
