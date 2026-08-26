@@ -485,7 +485,7 @@ namespace SafetyReport.DAO
                 cmd.Parameters.Add("@intIdCliente", SqlDbType.Int).Value = (object?)filtro.idCliente ?? DBNull.Value;
                 cmd.Parameters.Add("@intIdPais", SqlDbType.Int).Value = (object?)filtro.idPais ?? DBNull.Value;
                 cmd.Parameters.Add("@intIdTipoTramite", SqlDbType.Int).Value = (object?)filtro.idTipoTramite ?? DBNull.Value;
-                cmd.Parameters.Add("@intIdEstadoBucket", SqlDbType.Int).Value = (object?)filtro.idEstadoBucket ?? DBNull.Value;
+                cmd.Parameters.Add("@intIdEstadoMaestro", SqlDbType.Int).Value = (object?)filtro.idEstadoMaestro ?? DBNull.Value;
                 cmd.Parameters.Add("@intIdTipoDocumentoMaestro", SqlDbType.Int).Value = (object?)filtro.idTipoDocumentoMaestro ?? DBNull.Value;
 
                 await cn.OpenAsync();
@@ -542,8 +542,8 @@ namespace SafetyReport.DAO
                     while (await dr.ReadAsync())
                         resultado.DesglosePorEstado.Add(new DesgloseEstadoConsulta
                         {
-                            IdEstadoBucket = Convert.ToInt32(dr["IdEstadoBucket"]),
-                            EstadoBucket = dr["EstadoBucket"]?.ToString() ?? string.Empty,
+                            IdEstadoMaestro = GetNullableInt(dr, "IdEstadoMaestro"),
+                            Estado = dr["Estado"]?.ToString() ?? string.Empty,
                             CantidadFacturas = Convert.ToInt32(dr["CantidadFacturas"]),
                             MontoFacturado = Convert.ToDecimal(dr["MontoFacturado"])
                         });
