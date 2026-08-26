@@ -71,6 +71,39 @@ namespace SafetyReport.Models
         public string MonedaIcono { get; set; } = string.Empty;
     }
 
+    // Respuesta de GET .../resumen-facturacion-analitica — dashboard de Facturación Analítica del
+    // Gerente. A diferencia de FacturacionResumenFacturacion (que netea todo en MontoTotalPEN), acá
+    // los 3 montos van separados: 3 tarjetas del dashboard. TotalNotasCredito es negativo (pérdida).
+    // Ver SP_Facturacion_ObtenerMontosFacturacion.
+    public class FacturacionMontosFacturacion
+    {
+        public decimal TotalFacturado { get; set; }
+        public decimal TotalNotasCredito { get; set; }
+        public decimal TotalNotasDebito { get; set; }
+        public string MonedaIcono { get; set; } = string.Empty;
+    }
+
+    // Fila de GET .../desglose-estado-facturacion-analitica — top 5 estados (por cantidad) + "Otros".
+    // IdEstadoMaestro es NULL en la fila "Otros". Ver SP_Facturacion_ObtenerDesgloseEstado.
+    public class FacturacionDesgloseEstado
+    {
+        public int? IdEstadoMaestro { get; set; }
+        public string Estado { get; set; } = string.Empty;
+        public int CantidadFacturas { get; set; }
+        public decimal MontoFacturado { get; set; }
+    }
+
+    // Fila de GET .../evolucion-facturacion-analitica — serie temporal (solo Factura/Boleta). Etiqueta
+    // ya viene formateada del SP (dd/mm | Sem 01 | Mes Año | Año, según granularidad). Ver
+    // SP_Facturacion_ObtenerEvolucion.
+    public class FacturacionEvolucion
+    {
+        public string Periodo { get; set; } = string.Empty;
+        public string Etiqueta { get; set; } = string.Empty;
+        public int CantidadPedidos { get; set; }
+        public decimal MontoFacturado { get; set; }
+    }
+
     // Solo el código de producto de cada línea del documento — referencia para el usuario, no se copia
     // cantidad/precio/IGV.
     public class FacturacionProductoResumen

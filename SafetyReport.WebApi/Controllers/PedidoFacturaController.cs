@@ -45,6 +45,27 @@ namespace SafetyReport.WebApi.Controllers
             return Ok(respuesta);
         }
 
+        [HttpGet("resumenAnalitico")]
+        public async Task<IActionResult> ObtenerResumenAnalitico([FromQuery] FiltroFacturacionAnaliticaRequest request)
+        {
+            var respuesta = await _pedidoFacturaHandler.ObtenerResumenAnaliticoAsync(UsuarioLogueado, request);
+            return Ok(respuesta);
+        }
+
+        [HttpGet("evolucionAnalitica")]
+        public async Task<IActionResult> ObtenerEvolucionAnalitica([FromQuery] EvolucionFacturacionRequest request)
+        {
+            var respuesta = await _pedidoFacturaHandler.ObtenerEvolucionAnaliticaAsync(UsuarioLogueado, request);
+            return Ok(respuesta);
+        }
+
+        [HttpGet("resumenClientesGlobal")]
+        public async Task<IActionResult> ObtenerResumenClientesGlobal()
+        {
+            var respuesta = await _pedidoFacturaHandler.ObtenerResumenClientesGlobalAsync(UsuarioLogueado);
+            return Ok(respuesta);
+        }
+
         [HttpGet("listarPedidos")]
         public async Task<IActionResult> ListarPedidos([FromQuery] ListarPedidosFacturacionRequest request)
         {
