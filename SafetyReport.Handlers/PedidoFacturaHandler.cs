@@ -1447,9 +1447,6 @@ namespace SafetyReport.Handlers
             }
         }
 
-        private static readonly string[] MesesAbreviados =
-            ["Ene", "Feb", "Mar", "Abr", "May", "Jun", "Jul", "Ago", "Sep", "Oct", "Nov", "Dic"];
-
         // Sección "Facturación Analítica" del dashboard de Gerente — indicadores, desglose por
         // trámite/país/estado. SP_Facturacion_ResumenAnalitico valida el rol 6 adentro (mismo patrón
         // que SP_Usuario_Resumen/SP_Cliente_Resumen) — no hace falta un paso previo de acceso acá.
@@ -1472,9 +1469,8 @@ namespace SafetyReport.Handlers
         }
 
         // Serie temporal de "Facturación Analítica". SP_Facturacion_EvolucionAnalitica valida el rol 6
-        // adentro, mismo criterio que ObtenerResumenAnaliticoAsync. Etiqueta se arma acá (no en el SP,
-        // ni en el frontend) para no depender de que el collation/idioma de SQL Server resuelva nombres
-        // de mes en español — el SP solo entrega Periodo crudo ("2026-01-08" | "2026-W03" | "2026-01" | "2026").
+        // adentro, mismo criterio que ObtenerResumenAnaliticoAsync. Etiqueta viene ya armada del SP
+        // (no en C#, no en el frontend) — mismo criterio "SP = lógica" del resto del módulo.
         public async Task<Respuesta> ObtenerEvolucionAnaliticaAsync(UsuarioGeneral usuarioLogueado, EvolucionFacturacionRequest filtro)
         {
             try
@@ -1489,18 +1485,7 @@ namespace SafetyReport.Handlers
                     return new Respuesta { IdTipoMensaje = 1, Mensaje = "La fecha desde no puede ser mayor a la fecha hasta." };
                 }
 
-                var respuesta = await _pedidoFacturaDao.ObtenerEvolucionAnaliticaAsync(usuarioLogueado, filtro);
-                if (respuesta.IdTipoMensaje != 2 || respuesta.Result is not List<EvolucionFacturacionConsulta> serie)
-                {
-                    return respuesta;
-                }
-
-                foreach (var punto in serie)
-                {
-                    punto.Etiqueta = FormatearEtiquetaPeriodo(punto.Periodo, filtro.granularidad);
-                }
-
-                return respuesta;
+                return await _pedidoFacturaDao.ObtenerEvolucionAnaliticaAsync(usuarioLogueado, filtro);
             }
             catch (Exception ex)
             {
@@ -1508,16 +1493,6 @@ namespace SafetyReport.Handlers
                 return new Respuesta { IdTipoMensaje = 3, Mensaje = ex.Message };
             }
         }
-
-        // granularidad: 1=Dia, 2=Semana, 3=Mes, 4=Ano — mismo mapeo numérico que SP_Facturacion_EvolucionAnalitica.
-        private static string FormatearEtiquetaPeriodo(string periodo, int granularidad) =>
-            granularidad switch
-            {
-                1 when DateOnly.TryParse(periodo, out var fecha) => $"{fecha.Day:00}/{fecha.Month:00}", // sin año, dd/mm
-                3 when DateTime.TryParse(periodo + "-01", out var mes) => $"{MesesAbreviados[mes.Month - 1]} {mes.Year}",
-                2 when periodo.Contains('-') => $"Sem {periodo.Split('-')[1].TrimStart('W')}", // sin año, ej. "Sem 01"
-                _ => periodo // 4=Ano, o cualquier valor que no matcheó el formato esperado
-            };
 
         public async Task<Respuesta> ObtenerResumenClientesGlobalAsync(UsuarioGeneral usuarioLogueado)
         {

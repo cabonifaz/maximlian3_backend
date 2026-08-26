@@ -595,6 +595,7 @@ namespace SafetyReport.DAO
                         serie.Add(new EvolucionFacturacionConsulta
                         {
                             Periodo = dr["Periodo"]?.ToString() ?? string.Empty,
+                            Etiqueta = dr["Etiqueta"]?.ToString() ?? string.Empty,
                             CantidadPedidos = Convert.ToInt32(dr["CantidadPedidos"]),
                             MontoFacturado = Convert.ToDecimal(dr["MontoFacturado"])
                         });
