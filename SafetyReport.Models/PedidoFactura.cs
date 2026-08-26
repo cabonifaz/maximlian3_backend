@@ -305,10 +305,8 @@ namespace SafetyReport.Models
         public bool? finalizadoEnFecha { get; set; }
     }
 
-    // Resultado de SP_Pedido_ListarParaFacturacionConGrupos. GroupId (en ambos result sets) es el
-    // criterio de agrupamiento ya resuelto del lado del SP — mismo que exige
-    // SP_PedidoFacturaLinea_Crear (Año/Mes de FchMod, TipoTramite, Precio, Penalidad, Moneda) — el
-    // front arma cada llamada de creación de línea con los IdPedido que comparten un GroupId.
+    // Resultado de SP_Pedido_ListarParaFacturacionConGrupos. GroupId (en ambos result sets)
+    // correlaciona un pedido con el grupo/línea al que pertenece.
     public class PedidoListaFacturacionConGruposConsulta : PedidoListaFacturacionConsulta
     {
         public int GroupId { get; set; }
@@ -330,10 +328,8 @@ namespace SafetyReport.Models
         public List<GrupoFacturacionConsulta> Grupos { get; set; } = new();
     }
 
-    // Resultado de SP_Pedido_ListarPorDocumentoElectronico. Sin ids (no hacen falta) — Codigo es
-    // el identificador visible del pedido. ValorUnitario/Descuento son los montos congelados de
-    // PEDIDO_FACTURA_LINEA (no de TARIFARIO, ver PedidoFacturaLineaConsulta), ya concatenados con
-    // el código de Moneda del lado del SP — se devuelven como string, no decimal.
+    // Resultado de SP_Pedido_ListarPorDocumentoElectronico. Sin ids. ValorUnitario/Descuento ya
+    // vienen concatenados con la Moneda del lado del SP — se devuelven como string, no decimal.
     public class PedidoPorDocumentoElectronicoConsulta
     {
         public string Codigo { get; set; } = string.Empty;
@@ -368,11 +364,8 @@ namespace SafetyReport.Models
         public int Mes { get; set; }
     }
 
-    // Resultado de SP_Pedido_ListarParaPrefactura — mismas 10 columnas en ambos idiomas (ver
-    // 13_SP_Pedido_ListarParaPrefactura.sql), leídas por posición: el SP bifurca por
-    // c.IdIdiomaFacturacion y devuelve encabezados en inglés o español, así que la DAO no puede
-    // leer por nombre de columna (dr["COMPANY"] no existe en la rama en español). Los encabezados
-    // reales para el Excel salen de PedidoPrefacturaResult.Headers, tal cual los devolvió el SP.
+    // Resultado de SP_Pedido_ListarParaPrefactura, leído por posición (no por nombre): el SP
+    // bifurca por idioma y devuelve encabezados distintos — ver PedidoPrefacturaResult.Headers.
     public class PedidoPrefacturaConsulta
     {
         public string Company { get; set; } = string.Empty;

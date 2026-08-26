@@ -911,9 +911,7 @@ namespace SafetyReport.DAO
                 var resultado = new PedidoPrefacturaResult();
                 if (respuesta.IdTipoMensaje == 2 && await dr.NextResultAsync())
                 {
-                    // Por posición, no por nombre: el SP bifurca por idioma y devuelve encabezados
-                    // distintos (inglés/español) en el mismo orden de 10 columnas — ver comentario en
-                    // PedidoPrefacturaConsulta. Los encabezados reales se toman del esquema del reader.
+                    // Por posición, no por nombre: el SP bifurca por idioma (headers distintos).
                     for (var i = 0; i < dr.FieldCount; i++)
                         resultado.Headers.Add(dr.GetName(i));
 

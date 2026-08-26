@@ -115,9 +115,7 @@ namespace SafetyReport.DAO
             }
         }
 
-        // Versión en lote de CrearAsync — agrupa idPedidos internamente (no exige mismo mes/tarifa
-        // entre todos, a diferencia de CrearAsync) y crea una línea por grupo, ver
-        // SP_PedidoFacturaLinea_CrearLote. Result set 2 trae una fila por línea creada.
+        // Versión en lote de CrearAsync — agrupa idPedidos internamente, una fila por línea creada.
         public async Task<Respuesta> CrearLoteAsync(UsuarioGeneral usuarioLogueado, int idCliente, List<int> idPedidos)
         {
             try

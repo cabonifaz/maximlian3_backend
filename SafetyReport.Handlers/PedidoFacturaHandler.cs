@@ -126,15 +126,10 @@ namespace SafetyReport.Handlers
             return new string(sinMarcas.ToArray()).Normalize(NormalizationForm.FormC);
         }
 
-        // Índice 0-based de la columna PRICE dentro de las 10 columnas de SP_Pedido_ListarParaPrefactura
-        // (Company/TypeOfReport/ReferenceNumber/Country/DateOfRequest/ApprovedOn/TypeOfService/Currency/
-        // Price/Observation) — la única columna numérica, el resto son texto tal cual vino del SP.
+        // Índice 0-based de PRICE (única columna numérica) dentro de las 10 columnas del SP.
         private const int IndicePrecio = 8;
 
-        // Encabezados en negrita con relleno gris y bordes, filtro (flechas desplegables) en la fila de
-        // encabezado, bordes en todas las celdas de datos y PRICE como número real (no texto) — mismo
-        // aspecto que la plantilla Excel del cliente. headers viene tal cual lo devolvió el SP (inglés o
-        // español según CLIENTE.IdIdiomaFacturacion, ver PedidoPrefacturaConsulta).
+        // headers viene tal cual lo devolvió el SP (inglés o español según IdIdiomaFacturacion).
         private static byte[] GenerarExcelPrefactura(List<string> headers, List<PedidoPrefacturaConsulta> items)
         {
             using var stream = new MemoryStream();
@@ -173,9 +168,6 @@ namespace SafetyReport.Handlers
                 foreach (var valores in filaValores)
                     sheetData.Append(CrearFilaDatosExcel(valores));
 
-                // Ancho de columna calculado del contenido más largo (encabezado o dato) en vez del
-                // ancho default de Excel — OpenXML no tiene un "autofit al abrir" real, así que se fija
-                // el ancho acá para que el contenido no quede cortado sin que el usuario expanda a mano.
                 if (headers.Count > 0)
                     worksheetPart.Worksheet.InsertBefore(CrearColumnasAnchoAjustado(headers, filaValores), sheetData);
 
@@ -232,8 +224,6 @@ namespace SafetyReport.Handlers
             return row;
         }
 
-        // A, B, ..., Z, AA, AB, ... — de sobra para las 9 columnas fijas de este export, pero genérico
-        // por si el SP alguna vez agrega una columna más.
         private static string ObtenerLetraColumna(int indiceCero)
         {
             var letras = string.Empty;
@@ -246,9 +236,6 @@ namespace SafetyReport.Handlers
             return letras;
         }
 
-        // Ancho ≈ caracteres del contenido más largo de la columna (encabezado o dato) + relleno, con
-        // un piso y un techo razonables para que ni una columna vacía quede angosta ni una con texto
-        // largo se dispare. PRICE se mide con el mismo formato "F2" que termina viéndose en la celda.
         private static Columns CrearColumnasAnchoAjustado(List<string> headers, List<object?>[] filaValores)
         {
             const double anchoMinimo = 8;
