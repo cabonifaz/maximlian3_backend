@@ -1513,9 +1513,9 @@ namespace SafetyReport.Handlers
         private static string FormatearEtiquetaPeriodo(string periodo, int granularidad) =>
             granularidad switch
             {
-                1 when DateOnly.TryParse(periodo, out var fecha) => $"{fecha.Day:00} {MesesAbreviados[fecha.Month - 1]} {fecha.Year}",
+                1 when DateOnly.TryParse(periodo, out var fecha) => $"{fecha.Day:00}/{fecha.Month:00}", // sin año, dd/mm
                 3 when DateTime.TryParse(periodo + "-01", out var mes) => $"{MesesAbreviados[mes.Month - 1]} {mes.Year}",
-                2 when periodo.Contains('-') => $"Semana {periodo.Split('-')[1].TrimStart('W').TrimStart('0')} - {periodo.Split('-')[0]}",
+                2 when periodo.Contains('-') => $"Sem {periodo.Split('-')[1].TrimStart('W')}", // sin año, ej. "Sem 01"
                 _ => periodo // 4=Ano, o cualquier valor que no matcheó el formato esperado
             };
 
