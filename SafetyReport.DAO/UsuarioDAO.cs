@@ -574,11 +574,10 @@ namespace SafetyReport.DAO
                 cmd.Parameters.Add("@vchUsuario", SqlDbType.VarChar, 32).Value = usuarioLogueado.Usuario;
                 cmd.Parameters.Add("@intIdEmpresa", SqlDbType.Int).Value = usuarioLogueado.IdEmpresa;
                 cmd.Parameters.Add("@intIdRol", SqlDbType.Int).Value = usuarioLogueado.IdRol;
-                cmd.Parameters.Add("@vchBusqueda", SqlDbType.VarChar, 255).Value = (object?)filtro.busqueda ?? DBNull.Value;
-                cmd.Parameters.Add("@intIdRolAsignado", SqlDbType.Int).Value = (object?)filtro.idRolAsignado ?? DBNull.Value;
                 cmd.Parameters.Add("@dtFchDesde", SqlDbType.Date).Value = (object?)filtro.fchDesde ?? DBNull.Value;
                 cmd.Parameters.Add("@dtFchHasta", SqlDbType.Date).Value = (object?)filtro.fchHasta ?? DBNull.Value;
-                cmd.Parameters.Add("@vchIdEficiencia", SqlDbType.VarChar, 255).Value = (object?)filtro.idEficiencia ?? DBNull.Value;
+                cmd.Parameters.Add("@intIdColaborador", SqlDbType.Int).Value = (object?)filtro.idColaborador ?? DBNull.Value;
+                cmd.Parameters.Add("@intIdRolAsignado", SqlDbType.Int).Value = (object?)filtro.idRolAsignado ?? DBNull.Value;
                 cmd.Parameters.Add("@numPag", SqlDbType.Int).Value = (object?)filtro.numPag ?? DBNull.Value;
 
                 await cn.OpenAsync();
@@ -593,8 +592,6 @@ namespace SafetyReport.DAO
                     {
                         resultado.TotalRegistros = Convert.ToInt32(dr["TotalRegistros"]);
                         resultado.TotalPaginas = Convert.ToInt32(dr["TotalPaginas"]);
-                        resultado.PorcentajeEntregados = GetNullableDecimal(dr, "PorcentajeEntregados");
-                        resultado.PorcentajeAtrasados = GetNullableDecimal(dr, "PorcentajeAtrasados");
                     }
 
                     if (await dr.NextResultAsync())
@@ -603,17 +600,17 @@ namespace SafetyReport.DAO
                         {
                             resultado.lstUsuarios.Add(new UsuarioCumplimientoItem
                             {
-                                IdUsuario = Convert.ToInt32(dr["IdUsuario"]),
+                                IdColaborador = Convert.ToInt32(dr["IdColaborador"]),
                                 NombreCompleto = dr["NombreCompleto"]?.ToString() ?? string.Empty,
                                 Iniciales = GetNullableString(dr, "Iniciales"),
+                                IdRol = Convert.ToInt32(dr["IdRol"]),
                                 DescripcionRol = GetNullableString(dr, "DescripcionRol"),
-                                Ordenes = Convert.ToInt32(dr["Ordenes"]),
-                                ATiempo = Convert.ToInt32(dr["ATiempo"]),
-                                Cumplimiento = GetNullableDecimal(dr, "Cumplimiento") ?? 0,
-                                IdEficiencia = Convert.ToInt32(dr["IdEficiencia"]),
-                                DescripcionEficiencia = GetNullableString(dr, "DescripcionEficiencia"),
-                                ColorLetra = GetNullableString(dr, "ColorLetra"),
-                                ColorFondo = GetNullableString(dr, "ColorFondo")
+                                CantidadOrdenes = Convert.ToInt32(dr["CantidadOrdenes"]),
+                                CantidadInformes = Convert.ToInt32(dr["CantidadInformes"]),
+                                CantidadTardios = GetNullableInt(dr, "CantidadTardios"),
+                                CantidadObservados = Convert.ToInt32(dr["CantidadObservados"]),
+                                CantidadConInformacionFinanciera = Convert.ToInt32(dr["CantidadConInformacionFinanciera"]),
+                                PorcentajeCumplimiento = GetNullableDecimal(dr, "PorcentajeCumplimiento") ?? 0
                             });
                         }
                     }

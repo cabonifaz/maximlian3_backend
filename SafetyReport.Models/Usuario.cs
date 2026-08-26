@@ -144,27 +144,26 @@
 
     public class FiltroUsuarioResumen
     {
-        public string? busqueda { get; set; }
-        public int? idRolAsignado { get; set; }
         public DateTime? fchDesde { get; set; }
         public DateTime? fchHasta { get; set; }
-        public string? idEficiencia { get; set; }
+        public int? idColaborador { get; set; }
+        public int? idRolAsignado { get; set; }
         public int? numPag { get; set; }
     }
 
     public class UsuarioCumplimientoItem
     {
-        public int IdUsuario { get; set; }
+        public int IdColaborador { get; set; }
         public string NombreCompleto { get; set; } = string.Empty;
         public string? Iniciales { get; set; }
+        public int IdRol { get; set; }
         public string? DescripcionRol { get; set; }
-        public int Ordenes { get; set; }
-        public int ATiempo { get; set; }
-        public decimal Cumplimiento { get; set; }
-        public int IdEficiencia { get; set; }
-        public string? DescripcionEficiencia { get; set; }
-        public string? ColorLetra { get; set; }
-        public string? ColorFondo { get; set; }
+        public int CantidadOrdenes { get; set; }
+        public int CantidadInformes { get; set; }
+        public int? CantidadTardios { get; set; }
+        public int CantidadObservados { get; set; }
+        public int CantidadConInformacionFinanciera { get; set; }
+        public decimal PorcentajeCumplimiento { get; set; }
     }
 
     public class UsuarioCumplimientoResult
@@ -172,7 +171,5 @@
         public List<UsuarioCumplimientoItem> lstUsuarios { get; set; } = new();
         public int TotalRegistros { get; set; }
         public int TotalPaginas { get; set; }
-        public decimal? PorcentajeEntregados { get; set; }
-        public decimal? PorcentajeAtrasados { get; set; }
     }
 }
