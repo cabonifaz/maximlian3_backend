@@ -147,5 +147,12 @@ namespace SafetyReport.WebApi.Controllers
             return Ok(respuesta);
         }
 
+        [HttpGet("resumen")]
+        public async Task<IActionResult> ObtenerEvolucion([FromQuery] EvolucionInformesRequest request)
+        {
+            var respuesta = await _informeHandler.ObtenerEvolucionAsync(UsuarioLogueado, request);
+            return Ok(respuesta);
+        }
+
     }
 }
