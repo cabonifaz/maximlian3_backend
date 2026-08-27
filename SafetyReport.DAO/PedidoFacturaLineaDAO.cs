@@ -369,10 +369,11 @@ namespace SafetyReport.DAO
 
         // Insumo de PedidoFacturaHandler.GuardarBorradorFacturaAsync/GuardarCambiosFacturaAsync:
         // montos ya congelados de las líneas — ver SP_PedidoFacturaLinea_ObtenerParaBorrador.
-        // idDocumentoElectronico es opcional: además de las libres, también trae las líneas ya
-        // asociadas a ese documento (edición de un borrador existente).
+        // idMoneda es la moneda a facturar (request.idMonedaMaestro del payload) — el SP la valida
+        // contra la de cada línea. idDocumentoElectronico es opcional: además de las libres, también
+        // trae las líneas ya asociadas a ese documento (edición de un borrador existente).
         public async Task<Respuesta> ObtenerParaBorradorAsync(
-            UsuarioGeneral usuarioLogueado, int idCliente, List<int> idsLinea, int? idDocumentoElectronico = null)
+            UsuarioGeneral usuarioLogueado, int idCliente, int idMoneda, List<int> idsLinea, int? idDocumentoElectronico = null)
         {
             try
             {
@@ -385,6 +386,7 @@ namespace SafetyReport.DAO
                 cmd.Parameters.Add("@intIdEmpresa", SqlDbType.Int).Value = usuarioLogueado.IdEmpresa;
                 cmd.Parameters.Add("@intIdRol", SqlDbType.Int).Value = usuarioLogueado.IdRol;
                 cmd.Parameters.Add("@intIdCliente", SqlDbType.Int).Value = idCliente;
+                cmd.Parameters.Add("@intIdMoneda", SqlDbType.Int).Value = idMoneda;
                 cmd.Parameters.Add("@intIdDocumentoElectronico", SqlDbType.Int).Value = (object?)idDocumentoElectronico ?? DBNull.Value;
 
                 var tvpIdLinea = cmd.Parameters.AddWithValue("@lstIdPedidoFacturaLinea", ConstruirTablaListaGeneralNum(idsLinea));
