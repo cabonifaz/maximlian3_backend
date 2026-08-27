@@ -131,6 +131,25 @@ namespace SafetyReport.Handlers
             }
         }
 
+        public async Task<Respuesta> ActivarDesactivarClienteAsync(UsuarioGeneral usuarioLogueado, ClienteEstadoRequest request)
+        {
+            try
+            {
+                return await _dao.ActivarDesactivarClienteAsync(usuarioLogueado, request.idCliente, request.idEstado);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error no controlado en la capa de negocio.");
+
+                return new Respuesta
+                {
+                    IdTipoMensaje = 3,
+                    Mensaje = ex.Message,
+                    Result = new List<ClienteEstadoActualizado>()
+                };
+            }
+        }
+
         public async Task<Respuesta> ListarClienteShortAsync(UsuarioGeneral usuarioLogueado, string? correoBusqueda)
         {
             try
