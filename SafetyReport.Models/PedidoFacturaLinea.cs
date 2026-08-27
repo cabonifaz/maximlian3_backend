@@ -78,16 +78,14 @@ namespace SafetyReport.Models
         public int? idMoneda { get; set; }
     }
 
-    // Resultado de SP_PedidoFacturaLinea_Listar. IdTipoTramite/TipoTramite/IdMoneda/Moneda se
-    // resuelven vía el TARIFARIO de un pedido miembro (todos comparten el mismo IdTarifario).
+    // Resultado de SP_PedidoFacturaLinea_Listar. IdMoneda/Moneda se resuelven vía el TARIFARIO
+    // de un pedido miembro (todos comparten el mismo IdTarifario).
     public class PedidoFacturaLineaListaConsulta
     {
         public int IdPedidoFacturaLinea { get; set; }
         public int? IdDocumentoElectronico { get; set; }
         public string? Codigo { get; set; }
         public string Descripcion { get; set; } = string.Empty;
-        public int? IdTipoTramite { get; set; }
-        public string? TipoTramite { get; set; }
         public int? IdMoneda { get; set; }
         public string? Moneda { get; set; }
         public int Cantidad { get; set; }
