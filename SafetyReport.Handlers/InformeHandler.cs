@@ -1128,5 +1128,28 @@ namespace SafetyReport.Handlers
                 : valor.ToString();
         }
 
+        public async Task<Respuesta> ObtenerEvolucionAsync(UsuarioGeneral usuarioLogueado, EvolucionInformesRequest filtro)
+        {
+            try
+            {
+                if (filtro.granularidad is < 1 or > 4)
+                {
+                    return new Respuesta { IdTipoMensaje = 1, Mensaje = "La granularidad debe ser 1 (Día), 2 (Semana), 3 (Mes) o 4 (Año)." };
+                }
+
+                if (filtro.fechaDesde is not null && filtro.fechaHasta is not null && filtro.fechaDesde > filtro.fechaHasta)
+                {
+                    return new Respuesta { IdTipoMensaje = 1, Mensaje = "La fecha desde no puede ser mayor a la fecha hasta." };
+                }
+
+                return await _dao.ObtenerEvolucionAsync(usuarioLogueado, filtro);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error no controlado en la capa de negocio.");
+                return new Respuesta { IdTipoMensaje = 3, Mensaje = ex.Message };
+            }
+        }
+
     }
 }

@@ -410,6 +410,63 @@ namespace SafetyReport.DAO
             }
         }
 
+        // Separado de ListarCortaAsync (SP_Usuario_Listar_Corta, sigue igual) — este llama a
+        // SP_Usuario_ListaCortaDashboard, que acepta varios roles a la vez.
+        public async Task<Respuesta> ListarCortaDashboardAsync(UsuarioGeneral usuarioActual, List<int>? idsRolFiltro)
+        {
+            try
+            {
+                using SqlConnection cn = new(_dbConfig.ConnectionString);
+                using SqlCommand cmd = new("SP_Usuario_ListaCortaDashboard", cn);
+
+                cmd.CommandType = CommandType.StoredProcedure;
+                cmd.Parameters.Add("@intIdUsuario", SqlDbType.Int).Value = usuarioActual.IdUsuario;
+                cmd.Parameters.Add("@vchUsuario", SqlDbType.VarChar, 32).Value = usuarioActual.Usuario;
+                cmd.Parameters.Add("@intIdEmpresa", SqlDbType.Int).Value = usuarioActual.IdEmpresa;
+                cmd.Parameters.Add("@intIdRol", SqlDbType.Int).Value = usuarioActual.IdRol;
+                cmd.Parameters.Add("@vchIdRolFiltro", SqlDbType.VarChar, 200).Value =
+                    idsRolFiltro is { Count: > 0 } ? (object)string.Join(",", idsRolFiltro) : DBNull.Value;
+
+                await cn.OpenAsync();
+                using SqlDataReader dr = await cmd.ExecuteReaderAsync();
+
+                var respuesta = await LeerCabeceraAsync(dr, cmd.CommandText);
+
+                if (respuesta.IdTipoMensaje == 2)
+                {
+                    var lista = new List<UsuarioListaCortaDashboardItem>();
+
+                    if (await dr.NextResultAsync())
+                    {
+                        while (await dr.ReadAsync())
+                        {
+                            lista.Add(new UsuarioListaCortaDashboardItem
+                            {
+                                IdUsuario = Convert.ToInt32(dr["IdUsuario"]),
+                                Nombres = dr["Nombres"]?.ToString() ?? string.Empty,
+                                ApellidoPaterno = dr["ApellidoPaterno"]?.ToString() ?? string.Empty,
+                                ApellidoMaterno = GetNullableString(dr, "ApellidoMaterno")
+                            });
+                        }
+                    }
+
+                    respuesta.Result = lista;
+                }
+
+                return respuesta;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error no controlado en la capa de datos.");
+
+                return new Respuesta
+                {
+                    IdTipoMensaje = 3,
+                    Mensaje = ex.Message
+                };
+            }
+        }
+
         public async Task<Respuesta> ListarCortaAsignacionAsync(UsuarioGeneral usuarioActual, int idRolFiltro, string? filtro, bool esTraductor, List<int>? idiomasPedido)
         {
             try
@@ -517,11 +574,10 @@ namespace SafetyReport.DAO
                 cmd.Parameters.Add("@vchUsuario", SqlDbType.VarChar, 32).Value = usuarioLogueado.Usuario;
                 cmd.Parameters.Add("@intIdEmpresa", SqlDbType.Int).Value = usuarioLogueado.IdEmpresa;
                 cmd.Parameters.Add("@intIdRol", SqlDbType.Int).Value = usuarioLogueado.IdRol;
-                cmd.Parameters.Add("@vchBusqueda", SqlDbType.VarChar, 255).Value = (object?)filtro.busqueda ?? DBNull.Value;
-                cmd.Parameters.Add("@intIdRolAsignado", SqlDbType.Int).Value = (object?)filtro.idRolAsignado ?? DBNull.Value;
                 cmd.Parameters.Add("@dtFchDesde", SqlDbType.Date).Value = (object?)filtro.fchDesde ?? DBNull.Value;
                 cmd.Parameters.Add("@dtFchHasta", SqlDbType.Date).Value = (object?)filtro.fchHasta ?? DBNull.Value;
-                cmd.Parameters.Add("@vchIdEficiencia", SqlDbType.VarChar, 255).Value = (object?)filtro.idEficiencia ?? DBNull.Value;
+                cmd.Parameters.Add("@intIdColaborador", SqlDbType.Int).Value = (object?)filtro.idColaborador ?? DBNull.Value;
+                cmd.Parameters.Add("@intIdRolAsignado", SqlDbType.Int).Value = (object?)filtro.idRolAsignado ?? DBNull.Value;
                 cmd.Parameters.Add("@numPag", SqlDbType.Int).Value = (object?)filtro.numPag ?? DBNull.Value;
 
                 await cn.OpenAsync();
@@ -536,8 +592,6 @@ namespace SafetyReport.DAO
                     {
                         resultado.TotalRegistros = Convert.ToInt32(dr["TotalRegistros"]);
                         resultado.TotalPaginas = Convert.ToInt32(dr["TotalPaginas"]);
-                        resultado.PorcentajeEntregados = GetNullableDecimal(dr, "PorcentajeEntregados");
-                        resultado.PorcentajeAtrasados = GetNullableDecimal(dr, "PorcentajeAtrasados");
                     }
 
                     if (await dr.NextResultAsync())
@@ -546,17 +600,17 @@ namespace SafetyReport.DAO
                         {
                             resultado.lstUsuarios.Add(new UsuarioCumplimientoItem
                             {
-                                IdUsuario = Convert.ToInt32(dr["IdUsuario"]),
+                                IdColaborador = Convert.ToInt32(dr["IdColaborador"]),
                                 NombreCompleto = dr["NombreCompleto"]?.ToString() ?? string.Empty,
                                 Iniciales = GetNullableString(dr, "Iniciales"),
+                                IdRol = Convert.ToInt32(dr["IdRol"]),
                                 DescripcionRol = GetNullableString(dr, "DescripcionRol"),
-                                Ordenes = Convert.ToInt32(dr["Ordenes"]),
-                                ATiempo = Convert.ToInt32(dr["ATiempo"]),
-                                Cumplimiento = GetNullableDecimal(dr, "Cumplimiento") ?? 0,
-                                IdEficiencia = Convert.ToInt32(dr["IdEficiencia"]),
-                                DescripcionEficiencia = GetNullableString(dr, "DescripcionEficiencia"),
-                                ColorLetra = GetNullableString(dr, "ColorLetra"),
-                                ColorFondo = GetNullableString(dr, "ColorFondo")
+                                CantidadOrdenes = Convert.ToInt32(dr["CantidadOrdenes"]),
+                                CantidadInformes = Convert.ToInt32(dr["CantidadInformes"]),
+                                CantidadTardios = GetNullableInt(dr, "CantidadTardios"),
+                                CantidadObservados = Convert.ToInt32(dr["CantidadObservados"]),
+                                CantidadConInformacionFinanciera = Convert.ToInt32(dr["CantidadConInformacionFinanciera"]),
+                                PorcentajeCumplimiento = GetNullableDecimal(dr, "PorcentajeCumplimiento") ?? 0
                             });
                         }
                     }

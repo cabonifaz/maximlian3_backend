@@ -105,6 +105,16 @@ namespace SafetyReport.Handlers
             return await respuesta.Content.ReadFromJsonAsync<FacturacionEnvelope<object>>(JsonOptions, cancellationToken);
         }
 
+        // Variante mínima de ObtenerDocumentoPorTokenAsync: solo Id/IdInquilino, para armar la
+        // consulta de pedidos del documento contra maximlian3 (SP_Pedido_ListarPorDocumentoElectronicoPublico).
+        public async Task<FacturacionEnvelope<FacturacionIdentificadorPorToken>?> ObtenerIdDocumentoPorTokenAsync(
+            string token, CancellationToken cancellationToken)
+        {
+            var url = $"api/v1/documentos-electronicos/token/{Uri.EscapeDataString(token)}/id";
+            var respuesta = await _httpClient.GetAsync(url, cancellationToken);
+            return await respuesta.Content.ReadFromJsonAsync<FacturacionEnvelope<FacturacionIdentificadorPorToken>>(JsonOptions, cancellationToken);
+        }
+
         // tipoArchivo: "Xml" o "Pdf". Mismo criterio que ObtenerDocumentoPorTokenAsync.
         public async Task<FacturacionEnvelope<string>?> ObtenerUrlDescargaPorTokenAsync(
             string token, string tipoArchivo, CancellationToken cancellationToken)
@@ -303,6 +313,49 @@ namespace SafetyReport.Handlers
             var url = $"api/v1/documentos-electronicos/resumen?{string.Join('&', query)}";
             var respuesta = await _httpClient.GetAsync(url, cancellationToken);
             return await respuesta.Content.ReadFromJsonAsync<FacturacionEnvelope<FacturacionResumenFacturacion>>(JsonOptions, cancellationToken);
+        }
+
+        // Dashboard de Facturación Analítica (Gerente) — SP_Facturacion_ObtenerMontosFacturacion.
+        public async Task<FacturacionEnvelope<FacturacionMontosFacturacion>?> ObtenerMontosFacturacionAsync(
+            int idInquilino, int idEmpresa, DateOnly? fechaDesde, DateOnly? fechaHasta, CancellationToken cancellationToken)
+        {
+            var query = new List<string> { $"idInquilino={idInquilino}", $"idEmpresa={idEmpresa}" };
+            if (fechaDesde is not null) query.Add($"fechaDesde={fechaDesde:yyyy-MM-dd}");
+            if (fechaHasta is not null) query.Add($"fechaHasta={fechaHasta:yyyy-MM-dd}");
+
+            var url = $"api/v1/documentos-electronicos/resumen-facturacion-analitica?{string.Join('&', query)}";
+            var respuesta = await _httpClient.GetAsync(url, cancellationToken);
+            return await respuesta.Content.ReadFromJsonAsync<FacturacionEnvelope<FacturacionMontosFacturacion>>(JsonOptions, cancellationToken);
+        }
+
+        // Dashboard de Facturación Analítica (Gerente) — SP_Facturacion_ObtenerDesgloseEstado (top 5 + Otros).
+        public async Task<FacturacionEnvelope<List<FacturacionDesgloseEstado>>?> ObtenerDesgloseEstadoFacturacionAsync(
+            int idInquilino, int idEmpresa, DateOnly? fechaDesde, DateOnly? fechaHasta, int? idTipoDocumentoMaestro,
+            CancellationToken cancellationToken)
+        {
+            var query = new List<string> { $"idInquilino={idInquilino}", $"idEmpresa={idEmpresa}" };
+            if (fechaDesde is not null) query.Add($"fechaDesde={fechaDesde:yyyy-MM-dd}");
+            if (fechaHasta is not null) query.Add($"fechaHasta={fechaHasta:yyyy-MM-dd}");
+            if (idTipoDocumentoMaestro is not null) query.Add($"idTipoDocumentoMaestro={idTipoDocumentoMaestro}");
+
+            var url = $"api/v1/documentos-electronicos/desglose-estado-facturacion-analitica?{string.Join('&', query)}";
+            var respuesta = await _httpClient.GetAsync(url, cancellationToken);
+            return await respuesta.Content.ReadFromJsonAsync<FacturacionEnvelope<List<FacturacionDesgloseEstado>>>(JsonOptions, cancellationToken);
+        }
+
+        // Dashboard de Facturación Analítica (Gerente) — SP_Facturacion_ObtenerEvolucion.
+        // granularidad: 1=Día, 2=Semana, 3=Mes, 4=Año.
+        public async Task<FacturacionEnvelope<List<FacturacionEvolucion>>?> ObtenerEvolucionFacturacionAsync(
+            int idInquilino, int idEmpresa, DateOnly? fechaDesde, DateOnly? fechaHasta, int granularidad,
+            CancellationToken cancellationToken)
+        {
+            var query = new List<string> { $"idInquilino={idInquilino}", $"idEmpresa={idEmpresa}", $"granularidad={granularidad}" };
+            if (fechaDesde is not null) query.Add($"fechaDesde={fechaDesde:yyyy-MM-dd}");
+            if (fechaHasta is not null) query.Add($"fechaHasta={fechaHasta:yyyy-MM-dd}");
+
+            var url = $"api/v1/documentos-electronicos/evolucion-facturacion-analitica?{string.Join('&', query)}";
+            var respuesta = await _httpClient.GetAsync(url, cancellationToken);
+            return await respuesta.Content.ReadFromJsonAsync<FacturacionEnvelope<List<FacturacionEvolucion>>>(JsonOptions, cancellationToken);
         }
     }
 }

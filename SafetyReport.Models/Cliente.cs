@@ -161,7 +161,6 @@
         public string? busqueda { get; set; }
         public int? emitirPrefactura { get; set; }
         public int? idIdiomaFacturacion { get; set; }
-        public int? estadoFacturacion { get; set; }
     }
 
     public class ClienteListaFacturacionResult
@@ -179,9 +178,6 @@
         public int TotalPedidos { get; set; }
         public int PedidosFacturados { get; set; }
         public string? IdIdiomaFacturacion { get; set; }
-        public string? EstadoFacturacion { get; set; }
-        public string? ColorTexto { get; set; }
-        public string? ColorFondo { get; set; }
     }
 
     public class FiltroClientePedidosFacturacion
