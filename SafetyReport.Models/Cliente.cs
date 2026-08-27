@@ -79,6 +79,12 @@
         public int IdCliente { get; set; }
     }
 
+    public class ClienteEstadoActualizado
+    {
+        public int IdCliente { get; set; }
+        public int IdEstado { get; set; }
+    }
+
 
     public class ClienteConsulta
     {
@@ -139,6 +145,11 @@
     public class ClienteIdRequest
     {
         public int idCliente { get; set; }
+    }
+    public class ClienteEstadoRequest
+    {
+        public int idCliente { get; set; }
+        public int idEstado { get; set; }
     }
     public class ClienteListaCortaItem
     {
