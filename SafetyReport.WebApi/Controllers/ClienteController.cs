@@ -66,6 +66,13 @@ namespace SafetyReport.WebApi.Controllers
             return Ok(respuesta);
         }
 
+        [HttpPost("activarDesactivar")]
+        public async Task<IActionResult> ActivarDesactivar([FromBody] ClienteEstadoRequest request)
+        {
+            var respuesta = await _clienteHandler.ActivarDesactivarClienteAsync(UsuarioLogueado, request);
+            return Ok(respuesta);
+        }
+
         [HttpGet("listaCorta")]
         public async Task<IActionResult> ListaCorta([FromQuery] string? correoBusqueda)
         {
