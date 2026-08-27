@@ -320,8 +320,6 @@ namespace SafetyReport.DAO
                             IdDocumentoElectronico = GetNullableInt(dr, "IdDocumentoElectronico"),
                             Codigo = dr["Codigo"] as string,
                             Descripcion = Convert.ToString(dr["Descripcion"]) ?? string.Empty,
-                            IdTipoTramite = GetNullableInt(dr, "IdTipoTramite"),
-                            TipoTramite = GetNullableString(dr, "TipoTramite"),
                             IdMoneda = GetNullableInt(dr, "IdMoneda"),
                             Moneda = GetNullableString(dr, "Moneda"),
                             Cantidad = Convert.ToInt32(dr["Cantidad"]),
