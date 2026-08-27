@@ -309,7 +309,8 @@ namespace SafetyReport.DAO
                             FchHasta = GetNullableDateTime(dr, "FchHasta"),
                             Comentario = GetNullableString(dr, "Comentario"),
                             IdEstado = Convert.ToInt32(dr["IdEstado"]),
-                            ImprimeLogoSafety = Convert.ToBoolean(dr["ImprimeLogoSafety"])
+                            ImprimeLogoSafety = Convert.ToBoolean(dr["ImprimeLogoSafety"]),
+                            IdEmpresaAtencion = Convert.ToInt32(dr["IdEmpresaAtencion"])
                         });
                 }
 
