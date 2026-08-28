@@ -306,9 +306,26 @@ namespace SafetyReport.Models
     }
 
     // Resultado de SP_Pedido_ListarParaFacturacionConGrupos. GroupId (en ambos result sets)
-    // correlaciona un pedido con el grupo/línea al que pertenece.
-    public class PedidoListaFacturacionConGruposConsulta : PedidoListaFacturacionConsulta
+    // correlaciona un pedido con el grupo/línea al que pertenece. No hereda de
+    // PedidoListaFacturacionConsulta: ese SP mantiene AplicaPenalidad (columna del fallback), este
+    // la reemplaza por Vigencia (0 = fuera de plazo, 1 = dentro de plazo).
+    public class PedidoListaFacturacionConGruposConsulta
     {
+        public int IdPedido { get; set; }
+        public string Codigo { get; set; } = string.Empty;
+        public string NumReferencia { get; set; } = string.Empty;
+        public string? Investigado { get; set; }
+        public int? IdPais { get; set; }
+        public string? Pais { get; set; }
+        public int? IdTipoTramite { get; set; }
+        public string? TipoTramite { get; set; }
+        public DateTime Fecha { get; set; }
+        public int? IdTarifario { get; set; }
+        public decimal? Penalidad { get; set; }
+        public decimal? Precio { get; set; }
+        public int? IdMoneda { get; set; }
+        public string? Moneda { get; set; }
+        public bool? Vigencia { get; set; }
         public int GroupId { get; set; }
     }
 
