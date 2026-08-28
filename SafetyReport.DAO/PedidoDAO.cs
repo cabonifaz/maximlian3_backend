@@ -739,7 +739,6 @@ namespace SafetyReport.DAO
                             Investigado = GetNullableString(dr, "Investigado"),
                             IdPais = GetNullableInt(dr, "IdPais"),
                             Pais = GetNullableString(dr, "Pais"),
-                            AplicaPenalidad = GetNullableString(dr, "AplicaPenalidad"),
                             IdTipoTramite = GetNullableInt(dr, "IdTipoTramite"),
                             TipoTramite = GetNullableString(dr, "TipoTramite"),
                             Fecha = Convert.ToDateTime(dr["Fecha"]),
@@ -748,6 +747,7 @@ namespace SafetyReport.DAO
                             Precio = GetNullableDecimal(dr, "Precio"),
                             IdMoneda = GetNullableInt(dr, "IdMoneda"),
                             Moneda = GetNullableString(dr, "Moneda"),
+                            Vigencia = GetNullableBool(dr, "Vigencia"),
                             GroupId = Convert.ToInt32(dr["GroupId"])
                         });
                 }
