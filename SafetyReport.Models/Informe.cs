@@ -464,6 +464,16 @@ namespace SafetyReport.Models
         public int IdEstadoInforme { get; set; }
     }
 
+    public class NotificacionInformeDatosConsulta
+    {
+        public string? Correo { get; set; }
+        public int IdPedido { get; set; }
+        public string CodigoPedido { get; set; } = string.Empty;
+        public string Asunto { get; set; } = string.Empty;
+        public string CuerpoHtml { get; set; } = string.Empty;
+        public List<string> Formatos { get; set; } = new();
+    }
+
     public class InformeBalanceTotalizadoCalcularRequest
     {
         public decimal? TotalActivoCorriente { get; set; }

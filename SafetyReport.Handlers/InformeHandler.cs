@@ -19,10 +19,11 @@ namespace SafetyReport.Handlers
         private readonly N8nConfig _n8nConfig;
         private readonly DocxGeneratorService _docxGenerator;
         private readonly PdfGeneratorService _pdfGenerator;
+        private readonly IEmailService _emailService;
         private readonly int _s3ExpirationMinutes;
         private readonly ILogger<InformeHandler> _logger;
 
-        public InformeHandler(InformeDAO dao, InformeLocalImagenDAO localImagenDAO, PedidoDAO pedidoDAO, PlantillaDocumentoDAO plantillaDAO, IS3UploadService s3, N8nService n8n, N8nConfig n8nConfig, DocxGeneratorService docxGenerator, PdfGeneratorService pdfGenerator, IConfiguration configuration, ILogger<InformeHandler> logger)
+        public InformeHandler(InformeDAO dao, InformeLocalImagenDAO localImagenDAO, PedidoDAO pedidoDAO, PlantillaDocumentoDAO plantillaDAO, IS3UploadService s3, N8nService n8n, N8nConfig n8nConfig, DocxGeneratorService docxGenerator, PdfGeneratorService pdfGenerator, IEmailService emailService, IConfiguration configuration, ILogger<InformeHandler> logger)
         {
             _dao = dao;
             _localImagenDAO = localImagenDAO;
@@ -33,6 +34,7 @@ namespace SafetyReport.Handlers
             _n8nConfig = n8nConfig;
             _docxGenerator = docxGenerator;
             _pdfGenerator = pdfGenerator;
+            _emailService = emailService;
             _s3ExpirationMinutes = int.TryParse(configuration["AWS:S3ExpirationTime"], out var exp) ? exp : 15;
             _logger = logger;
         }
@@ -348,51 +350,115 @@ namespace SafetyReport.Handlers
             }
         }
 
+        public async Task<Respuesta> EnviarNotificacionInformeAsync(UsuarioGeneral usuarioLogueado, InformeIdRequest request)
+        {
+            try
+            {
+                var respuesta = await _dao.ObtenerDatosNotificacionInformeAsync(usuarioLogueado, request.IdInforme);
+                if (respuesta.IdTipoMensaje != 2) return respuesta;
+
+                var datos = (respuesta.Result as List<NotificacionInformeDatosConsulta>)?.FirstOrDefault();
+                if (datos == null || string.IsNullOrWhiteSpace(datos.Correo))
+                {
+                    respuesta.Mensaje = "El informe no cumple las condiciones para enviar la notificación.";
+                    respuesta.Result = new List<object>();
+                    return respuesta;
+                }
+
+                var adjuntos = new List<EmailAdjunto>();
+                foreach (var formatoLabel in datos.Formatos)
+                {
+                    var extension = MapearExtensionFormato(formatoLabel);
+                    if (extension == null)
+                    {
+                        _logger.LogWarning("Formato de documento '{Formato}' no soportado por el generador de documentos; se omite el adjunto para el informe {IdInforme}.", formatoLabel, request.IdInforme);
+                        continue;
+                    }
+
+                    var adjunto = await ObtenerAdjuntoDocumentoAsync(usuarioLogueado, request.IdInforme, datos.IdPedido, extension);
+                    if (adjunto != null) adjuntos.Add(adjunto);
+                }
+
+                await _emailService.EnviarNotificacionInformeAsync(datos.Correo, new NotificacionInformeEmailDetalle
+                {
+                    CodigoPedido = datos.CodigoPedido,
+                    Asunto = datos.Asunto,
+                    CuerpoHtml = datos.CuerpoHtml,
+                    Adjuntos = adjuntos
+                });
+
+                var respuestaRegistro = await _dao.RegistrarEnvioInformeAsync(usuarioLogueado, request.IdInforme, datos.IdPedido);
+                if (respuestaRegistro.IdTipoMensaje != 2)
+                    _logger.LogError("El correo de notificacion se envio pero no se pudo registrar en INFORME_ENVIO para el informe {IdInforme}: {Mensaje}", request.IdInforme, respuestaRegistro.Mensaje);
+
+                respuesta.Result = new List<object>();
+                return respuesta;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "No se pudo enviar el correo de notificacion para el informe {IdInforme}.", request.IdInforme);
+
+                return new Respuesta { IdTipoMensaje = 3, Mensaje = ex.Message, Result = new List<object>() };
+            }
+        }
+
+        // TABLA_MAESTRA IdMaestro=11: 1=Word, 2=Excel, 3=PDF, 4=XML, 5=JSON.
+        // Solo Word/PDF/XML tienen generador de documento hoy (ver ResolverDocumentoAsync);
+        // Excel y JSON no son formatos soportados por DocxGeneratorService/PdfGeneratorService.
+        private static string? MapearExtensionFormato(string formatoLabel) => formatoLabel switch
+        {
+            "Word" => ".docx",
+            "PDF" => ".pdf",
+            "XML" => ".xml",
+            _ => null
+        };
+
+        private static string MapearContentType(string formato) => formato switch
+        {
+            ".docx" => "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+            ".pdf" => "application/pdf",
+            ".xml" => "application/xml",
+            _ => "application/octet-stream"
+        };
+
+        private async Task<EmailAdjunto?> ObtenerAdjuntoDocumentoAsync(UsuarioGeneral usuarioLogueado, int idInforme, int idPedido, string formato)
+        {
+            var (respuesta, s3Key, nombreDescarga) = await ResolverDocumentoAsync(usuarioLogueado, new FiltroGenerarDocumento
+            {
+                IdInforme = idInforme,
+                IdPedido = idPedido,
+                Formato = formato
+            });
+
+            if (respuesta.IdTipoMensaje != 2 || s3Key == null || nombreDescarga == null)
+            {
+                _logger.LogWarning("No se pudo resolver el documento {Formato} para el informe {IdInforme}: {Mensaje}", formato, idInforme, respuesta.Mensaje);
+                return null;
+            }
+
+            var bytes = await _s3.DescargarBytesAsync(s3Key);
+            if (bytes == null)
+            {
+                _logger.LogWarning("No se pudo descargar de S3 el documento {S3Key} para el informe {IdInforme}.", s3Key, idInforme);
+                return null;
+            }
+
+            return new EmailAdjunto
+            {
+                Nombre = nombreDescarga,
+                ContentType = MapearContentType(formato),
+                ContenidoBytes = bytes
+            };
+        }
+
         public async Task<Respuesta> ObtenerDocumentoAsync(UsuarioGeneral usuarioLogueado, FiltroGenerarDocumento request)
         {
             try
             {
-                var formato = string.IsNullOrWhiteSpace(request.Formato) ? ".pdf" : request.Formato;
+                var (respuesta, s3Key, nombreDescarga) = await ResolverDocumentoAsync(usuarioLogueado, request);
+                if (respuesta.IdTipoMensaje != 2) return respuesta;
 
-                var respuestaRuta = await _dao.ObtenerRutaDocumentoAsync(usuarioLogueado, request.IdInforme, request.IdPedido);
-
-                string? ruta = null;
-                JsonArray? formatos = null;
-
-                if (respuestaRuta.IdTipoMensaje == 2 && respuestaRuta.Result is string urlDocumento && !string.IsNullOrWhiteSpace(urlDocumento))
-                {
-                    try
-                    {
-                        var docJson = JsonNode.Parse(urlDocumento);
-                        ruta = docJson?["ruta"]?.GetValue<string>();
-                        formatos = docJson?["formatos"]?.AsArray();
-                    }
-                    catch { }
-                }
-
-                var tieneFormato = formatos?.Any(f => f?.GetValue<string>() == formato) == true;
-
-                if (ruta == null || formatos == null || formatos.Count == 0 || !tieneFormato)
-                {
-                    var generado = formato == ".xml"
-                        ? await GenerarDocumentoXmlAsync(usuarioLogueado, request)
-                        : formato == ".docx"
-                            ? await GenerarDocumentoDocxAsync(usuarioLogueado, request)
-                            : await GenerarDocumentoPdfAsync(usuarioLogueado, request);
-                    if (generado.IdTipoMensaje != 2) return generado;
-
-                    respuestaRuta = await _dao.ObtenerRutaDocumentoAsync(usuarioLogueado, request.IdInforme, request.IdPedido);
-                    if (respuestaRuta.IdTipoMensaje != 2 || respuestaRuta.Result is not string urlGenerado || string.IsNullOrWhiteSpace(urlGenerado))
-                        return new Respuesta { IdTipoMensaje = 1, Mensaje = "Error al obtener el documento generado.", Result = null };
-
-                    var docJson = JsonNode.Parse(urlGenerado);
-                    ruta = docJson?["ruta"]?.GetValue<string>();
-                }
-
-                var nombreBase = ruta!.Split('/').Last();
-                var s3Key = ruta + formato;
-                var nombreDescarga = nombreBase + formato;
-                var downloadUrl = _s3.GenerarDownloadUrl(s3Key, nombreDescarga);
+                var downloadUrl = _s3.GenerarDownloadUrl(s3Key!, nombreDescarga!);
 
                 return new Respuesta
                 {
@@ -407,6 +473,55 @@ namespace SafetyReport.Handlers
 
                 return new Respuesta { IdTipoMensaje = 3, Mensaje = ex.Message, Result = null };
             }
+        }
+
+        // Resuelve la ruta S3 del documento (reutilizando el generado si ya existe en el formato
+        // pedido, o generandolo si no) sin decidir que hacer con ella. La usan ObtenerDocumentoAsync
+        // (arma una URL de descarga) y el envio de notificacion por correo (arma un adjunto).
+        private async Task<(Respuesta respuesta, string? s3Key, string? nombreDescarga)> ResolverDocumentoAsync(UsuarioGeneral usuarioLogueado, FiltroGenerarDocumento request)
+        {
+            var formato = string.IsNullOrWhiteSpace(request.Formato) ? ".pdf" : request.Formato;
+
+            var respuestaRuta = await _dao.ObtenerRutaDocumentoAsync(usuarioLogueado, request.IdInforme, request.IdPedido);
+
+            string? ruta = null;
+            JsonArray? formatos = null;
+
+            if (respuestaRuta.IdTipoMensaje == 2 && respuestaRuta.Result is string urlDocumento && !string.IsNullOrWhiteSpace(urlDocumento))
+            {
+                try
+                {
+                    var docJson = JsonNode.Parse(urlDocumento);
+                    ruta = docJson?["ruta"]?.GetValue<string>();
+                    formatos = docJson?["formatos"]?.AsArray();
+                }
+                catch { }
+            }
+
+            var tieneFormato = formatos?.Any(f => f?.GetValue<string>() == formato) == true;
+
+            if (ruta == null || formatos == null || formatos.Count == 0 || !tieneFormato)
+            {
+                var generado = formato == ".xml"
+                    ? await GenerarDocumentoXmlAsync(usuarioLogueado, request)
+                    : formato == ".docx"
+                        ? await GenerarDocumentoDocxAsync(usuarioLogueado, request)
+                        : await GenerarDocumentoPdfAsync(usuarioLogueado, request);
+                if (generado.IdTipoMensaje != 2) return (generado, null, null);
+
+                respuestaRuta = await _dao.ObtenerRutaDocumentoAsync(usuarioLogueado, request.IdInforme, request.IdPedido);
+                if (respuestaRuta.IdTipoMensaje != 2 || respuestaRuta.Result is not string urlGenerado || string.IsNullOrWhiteSpace(urlGenerado))
+                    return (new Respuesta { IdTipoMensaje = 1, Mensaje = "Error al obtener el documento generado.", Result = null }, null, null);
+
+                var docJson = JsonNode.Parse(urlGenerado);
+                ruta = docJson?["ruta"]?.GetValue<string>();
+            }
+
+            var nombreBase = ruta!.Split('/').Last();
+            var s3Key = ruta + formato;
+            var nombreDescarga = nombreBase + formato;
+
+            return (new Respuesta { IdTipoMensaje = 2 }, s3Key, nombreDescarga);
         }
 
         public async Task<Respuesta> AutocompletarAsync(InformeAutocompletar request)
@@ -503,7 +618,7 @@ namespace SafetyReport.Handlers
         {
             try
             {
-                var (respuesta, nombreInforme) = await _dao.GenerarDocumentoAsync(usuarioLogueado, request.IdInforme, request.IdPedido);
+                var (respuesta, nombreInforme, requiereTraduccion, cantidadEnvios, formatosCliente) = await _dao.GenerarDocumentoAsync(usuarioLogueado, request.IdInforme, request.IdPedido);
                 if (respuesta.IdTipoMensaje != 2 || respuesta.Result is not string jsonStr || string.IsNullOrWhiteSpace(jsonStr))
                     return new Respuesta { IdTipoMensaje = respuesta.IdTipoMensaje, Mensaje = respuesta.Mensaje, Result = null };
 
@@ -526,11 +641,15 @@ namespace SafetyReport.Handlers
                     estructura!.AsObject().Remove("assets");
                 }
 
+                var formatosClienteLista = formatosCliente
+                    .Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+                    .ToList();
+
                 return new Respuesta
                 {
                     IdTipoMensaje = 2,
                     Mensaje       = "Documento generado correctamente.",
-                    Result        = new { documento = estructura, nombreInforme }
+                    Result        = new { documento = estructura, nombreInforme, requiereTraduccion, cantidadEnvios, formatosCliente = formatosClienteLista }
                 };
             }
             catch (Exception ex)
@@ -581,7 +700,7 @@ namespace SafetyReport.Handlers
                 var docExistente = await ObtenerDocumentoExistente(usuarioLogueado, request, ".docx");
                 if (docExistente != null) return docExistente;
 
-                var (respuesta, nombreInforme) = await _dao.GenerarDocumentoAsync(usuarioLogueado, request.IdInforme, request.IdPedido);
+                var (respuesta, nombreInforme, _, _, _) = await _dao.GenerarDocumentoAsync(usuarioLogueado, request.IdInforme, request.IdPedido);
                 if (respuesta.IdTipoMensaje != 2 || respuesta.Result is not string jsonStr || string.IsNullOrWhiteSpace(jsonStr))
                     return new Respuesta { IdTipoMensaje = respuesta.IdTipoMensaje, Mensaje = respuesta.Mensaje, Result = null };
 
@@ -622,7 +741,7 @@ namespace SafetyReport.Handlers
                 var docExistente = await ObtenerDocumentoExistente(usuarioLogueado, request, ".pdf");
                 if (docExistente != null) return docExistente;
 
-                var (respuesta, nombreInforme) = await _dao.GenerarDocumentoAsync(usuarioLogueado, request.IdInforme, request.IdPedido);
+                var (respuesta, nombreInforme, _, _, _) = await _dao.GenerarDocumentoAsync(usuarioLogueado, request.IdInforme, request.IdPedido);
                 if (respuesta.IdTipoMensaje != 2 || respuesta.Result is not string jsonStr || string.IsNullOrWhiteSpace(jsonStr))
                     return new Respuesta { IdTipoMensaje = respuesta.IdTipoMensaje, Mensaje = respuesta.Mensaje, Result = null };
 

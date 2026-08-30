@@ -260,6 +260,11 @@ builder.Services.AddHttpClient<N8nService>(client =>
     client.Timeout = TimeSpan.FromSeconds(300);
 });
 
+var emailConfig = builder.Configuration.GetSection("Email").Get<EmailConfig>()
+    ?? throw new Exception("Falta configuración Email");
+builder.Services.AddSingleton(emailConfig);
+builder.Services.AddSingleton<IEmailService, EmailService>();
+
 var facturacionElectronicaConfig = builder.Configuration.GetSection("FacturacionElectronica").Get<FacturacionElectronicaConfig>()
     ?? throw new Exception("Falta configuración FacturacionElectronica");
 builder.Services.AddSingleton(facturacionElectronicaConfig);
