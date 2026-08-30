@@ -387,7 +387,7 @@ namespace SafetyReport.Handlers
                     Adjuntos = adjuntos
                 });
 
-                var respuestaRegistro = await _dao.RegistrarEnvioInformeAsync(usuarioLogueado, request.IdInforme);
+                var respuestaRegistro = await _dao.RegistrarEnvioInformeAsync(usuarioLogueado, request.IdInforme, datos.IdPedido);
                 if (respuestaRegistro.IdTipoMensaje != 2)
                     _logger.LogError("El correo de notificacion se envio pero no se pudo registrar en INFORME_ENVIO para el informe {IdInforme}: {Mensaje}", request.IdInforme, respuestaRegistro.Mensaje);
 

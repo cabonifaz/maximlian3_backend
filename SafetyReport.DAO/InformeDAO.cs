@@ -1580,7 +1580,7 @@ namespace SafetyReport.DAO
             }
         }
 
-        public async Task<Respuesta> RegistrarEnvioInformeAsync(UsuarioGeneral u, int idInforme)
+        public async Task<Respuesta> RegistrarEnvioInformeAsync(UsuarioGeneral u, int idInforme, int idPedido)
         {
             try
             {
@@ -1588,6 +1588,7 @@ namespace SafetyReport.DAO
                 using SqlCommand cmd = new("SP_InformeEnvio_Registrar", cn) { CommandType = CommandType.StoredProcedure };
                 AgregarParametrosAuditoria(cmd, u);
                 cmd.Parameters.Add("@intIdInforme", SqlDbType.Int).Value = idInforme;
+                cmd.Parameters.Add("@intIdPedido", SqlDbType.Int).Value = idPedido;
                 await cn.OpenAsync();
 
                 using var dr = await cmd.ExecuteReaderAsync();
