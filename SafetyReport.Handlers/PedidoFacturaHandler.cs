@@ -126,8 +126,10 @@ namespace SafetyReport.Handlers
             return new string(sinMarcas.ToArray()).Normalize(NormalizationForm.FormC);
         }
 
-        // Índice 0-based de PRICE (única columna numérica) dentro de las 10 columnas del SP.
-        private const int IndicePrecio = 8;
+        // Índices 0-based de columnas con formato particular dentro de las 10 columnas del SP.
+        private const int IndiceNr = 0;
+        private const int IndiceCompany = 2;
+        private const int IndicePrecio = 5;
 
         // headers viene tal cual lo devolvió el SP (inglés o español según IdIdiomaFacturacion).
         private static byte[] GenerarExcelPrefactura(List<string> headers, List<PedidoPrefacturaConsulta> items)
@@ -160,8 +162,8 @@ namespace SafetyReport.Handlers
                     var it = items[i];
                     filaValores[i] = new List<object?>
                     {
-                        it.Company, it.TypeOfReport, it.ReferenceNumber, it.Country, it.DateOfRequest,
-                        it.ApprovedOn, it.TypeOfService, it.Currency, it.Price, it.Observation
+                        it.Nr, it.ReferenceNumber, it.Company, it.DateOfRequest, it.DeliveryDate,
+                        it.Amount, it.Currency, it.Status, it.Country, it.Observation
                     };
                 }
 
@@ -214,6 +216,28 @@ namespace SafetyReport.Handlers
                     continue;
                 }
 
+                if (i == IndiceNr && valores[i] is int nr)
+                {
+                    row.Append(new Cell
+                    {
+                        StyleIndex = 4, // NR: negrita con borde, formato general (sin decimales)
+                        DataType = CellValues.Number,
+                        CellValue = new CellValue(nr.ToString(CultureInfo.InvariantCulture))
+                    });
+                    continue;
+                }
+
+                if (i == IndiceCompany)
+                {
+                    row.Append(new Cell
+                    {
+                        StyleIndex = 5, // COMPANY NAME: texto con borde, alineado a la izquierda
+                        DataType = CellValues.InlineString,
+                        InlineString = new InlineString(new Text(valores[i]?.ToString() ?? string.Empty))
+                    });
+                    continue;
+                }
+
                 row.Append(new Cell
                 {
                     StyleIndex = 2, // texto con borde
@@ -236,23 +260,17 @@ namespace SafetyReport.Handlers
             return letras;
         }
 
+        // Anchos fijos (unidades de ancho de columna de Excel) calcados de la referencia de la imagen:
+        // NR/REF CODE/COMPANY NAME/REQUEST DATE/DELIVERY DATE/AMOUNT/CURRENCY/STATUS/COUNTRY.
+        // OBSERVATION no aparece en la imagen; se le da un ancho razonable acorde al resto.
+        private static readonly double[] AnchosColumna = { 6, 20, 45, 14, 14, 10, 10, 10, 12, 25 };
+
         private static Columns CrearColumnasAnchoAjustado(List<string> headers, List<object?>[] filaValores)
         {
-            const double anchoMinimo = 8;
-            const double anchoMaximo = 60;
-            const double relleno = 2;
-
             var columnas = new Columns();
             for (var i = 0; i < headers.Count; i++)
             {
-                var largoMaximo = headers[i]?.Length ?? 0;
-                foreach (var fila in filaValores)
-                {
-                    var texto = fila[i] is decimal precio ? precio.ToString("F2", CultureInfo.InvariantCulture) : fila[i]?.ToString();
-                    largoMaximo = Math.Max(largoMaximo, texto?.Length ?? 0);
-                }
-
-                var ancho = Math.Clamp(largoMaximo + relleno, anchoMinimo, anchoMaximo);
+                var ancho = i < AnchosColumna.Length ? AnchosColumna[i] : 20;
                 var indiceColumna = (uint)(i + 1);
                 columnas.Append(new Column
                 {
@@ -270,12 +288,13 @@ namespace SafetyReport.Handlers
         {
             var fuentes = new Fonts(
                 new Font(new FontSize { Val = 11 }, new FontName { Val = "Calibri" }),
+                new Font(new Bold(), new Color { Rgb = "FFFFFFFF" }, new FontSize { Val = 11 }, new FontName { Val = "Calibri" }),
                 new Font(new Bold(), new FontSize { Val = 11 }, new FontName { Val = "Calibri" }));
 
             var rellenos = new Fills(
                 new Fill(new PatternFill { PatternType = PatternValues.None }),
                 new Fill(new PatternFill { PatternType = PatternValues.Gray125 }),
-                new Fill(new PatternFill(new ForegroundColor { Rgb = "FFD9D9D9" }) { PatternType = PatternValues.Solid }));
+                new Fill(new PatternFill(new ForegroundColor { Rgb = "FF790303" }) { PatternType = PatternValues.Solid }));
 
             var bordeFino = new Border(
                 new LeftBorder(new Color { Rgb = "FFBFBFBF" }) { Style = BorderStyleValues.Thin },
@@ -286,11 +305,18 @@ namespace SafetyReport.Handlers
 
             var bordes = new Borders(new Border(new LeftBorder(), new RightBorder(), new TopBorder(), new BottomBorder(), new DiagonalBorder()), bordeFino);
 
+            // Cada CellFormat necesita su propia instancia de Alignment (los elementos OpenXML no se
+            // pueden compartir entre nodos padre distintos).
+            static Alignment Centrado() => new() { Horizontal = HorizontalAlignmentValues.Center };
+            static Alignment Izquierda() => new() { Horizontal = HorizontalAlignmentValues.Left };
+
             var formatosCelda = new CellFormats(
                 new CellFormat(), // 0: default
-                new CellFormat { FontId = 1, FillId = 2, BorderId = 1, ApplyFont = true, ApplyFill = true, ApplyBorder = true }, // 1: header
-                new CellFormat { FontId = 0, BorderId = 1, ApplyBorder = true }, // 2: texto con borde
-                new CellFormat { FontId = 0, BorderId = 1, NumberFormatId = 4, ApplyBorder = true, ApplyNumberFormat = true }); // 3: número (0.00) con borde
+                new CellFormat { FontId = 1, FillId = 2, BorderId = 1, Alignment = Centrado(), ApplyFont = true, ApplyFill = true, ApplyBorder = true, ApplyAlignment = true }, // 1: header (blanco negrita sobre rojo #790303)
+                new CellFormat { FontId = 0, BorderId = 1, Alignment = Centrado(), ApplyBorder = true, ApplyAlignment = true }, // 2: texto con borde
+                new CellFormat { FontId = 0, BorderId = 1, NumberFormatId = 4, Alignment = Centrado(), ApplyBorder = true, ApplyNumberFormat = true, ApplyAlignment = true }, // 3: número (0.00) con borde
+                new CellFormat { FontId = 2, BorderId = 1, Alignment = Centrado(), ApplyFont = true, ApplyBorder = true, ApplyAlignment = true }, // 4: NR — negrita con borde
+                new CellFormat { FontId = 0, BorderId = 1, Alignment = Izquierda(), ApplyBorder = true, ApplyAlignment = true }); // 5: COMPANY NAME — texto con borde, izquierda
 
             return new Stylesheet(fuentes, rellenos, bordes, formatosCelda);
         }

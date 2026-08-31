@@ -920,15 +920,15 @@ namespace SafetyReport.DAO
                     {
                         resultado.Items.Add(new PedidoPrefacturaConsulta
                         {
-                            Company = dr[0]?.ToString() ?? string.Empty,
-                            TypeOfReport = dr[1]?.ToString() ?? string.Empty,
-                            ReferenceNumber = dr[2]?.ToString() ?? string.Empty,
-                            Country = dr[3]?.ToString() ?? string.Empty,
-                            DateOfRequest = dr[4]?.ToString() ?? string.Empty,
-                            ApprovedOn = dr[5]?.ToString() ?? string.Empty,
-                            TypeOfService = dr[6]?.ToString() ?? string.Empty,
-                            Currency = dr[7]?.ToString() ?? string.Empty,
-                            Price = Convert.ToDecimal(dr[8]),
+                            Nr = Convert.ToInt32(dr[0]),
+                            ReferenceNumber = dr[1]?.ToString() ?? string.Empty,
+                            Company = dr[2]?.ToString() ?? string.Empty,
+                            DateOfRequest = dr[3]?.ToString() ?? string.Empty,
+                            DeliveryDate = dr[4]?.ToString() ?? string.Empty,
+                            Amount = Convert.ToDecimal(dr[5]),
+                            Currency = dr[6]?.ToString() ?? string.Empty,
+                            Status = dr[7]?.ToString() ?? string.Empty,
+                            Country = dr[8]?.ToString() ?? string.Empty,
                             Observation = dr[9]?.ToString() ?? string.Empty
                         });
                     }

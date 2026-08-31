@@ -383,17 +383,19 @@ namespace SafetyReport.Models
 
     // Resultado de SP_Pedido_ListarParaPrefactura, leído por posición (no por nombre): el SP
     // bifurca por idioma y devuelve encabezados distintos — ver PedidoPrefacturaResult.Headers.
+    // Orden de propiedades = orden de columnas del SP (NR/REF CODE/COMPANY NAME/REQUEST DATE/
+    // DELIVERY DATE/AMOUNT/CURRENCY/STATUS/COUNTRY/OBSERVATION).
     public class PedidoPrefacturaConsulta
     {
-        public string Company { get; set; } = string.Empty;
-        public string TypeOfReport { get; set; } = string.Empty;
+        public int Nr { get; set; }
         public string ReferenceNumber { get; set; } = string.Empty;
-        public string Country { get; set; } = string.Empty;
+        public string Company { get; set; } = string.Empty;
         public string DateOfRequest { get; set; } = string.Empty;
-        public string ApprovedOn { get; set; } = string.Empty;
-        public string TypeOfService { get; set; } = string.Empty;
+        public string DeliveryDate { get; set; } = string.Empty;
+        public decimal Amount { get; set; }
         public string Currency { get; set; } = string.Empty;
-        public decimal Price { get; set; }
+        public string Status { get; set; } = string.Empty;
+        public string Country { get; set; } = string.Empty;
         public string Observation { get; set; } = string.Empty;
     }
 
