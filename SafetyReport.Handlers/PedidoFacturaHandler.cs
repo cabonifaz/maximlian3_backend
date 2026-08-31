@@ -263,7 +263,8 @@ namespace SafetyReport.Handlers
         // Anchos fijos (unidades de ancho de columna de Excel) calcados de la referencia de la imagen:
         // NR/REF CODE/COMPANY NAME/REQUEST DATE/DELIVERY DATE/AMOUNT/CURRENCY/STATUS/COUNTRY.
         // OBSERVATION no aparece en la imagen; se le da un ancho razonable acorde al resto.
-        private static readonly double[] AnchosColumna = { 6, 20, 45, 14, 14, 10, 10, 10, 12, 25 };
+        // REF CODE/COMPANY NAME/REQUEST DATE/DELIVERY DATE/COUNTRY/OBSERVATION ensanchadas a pedido.
+        private static readonly double[] AnchosColumna = { 6, 26, 70, 18, 18, 10, 10, 10, 20, 35 };
 
         private static Columns CrearColumnasAnchoAjustado(List<string> headers, List<object?>[] filaValores)
         {
