@@ -92,7 +92,6 @@
     {
         public int IdCliente { get; set; }
         public int? IdTipoDocumentoSunat { get; set; }
-        public List<int> LstIdFormatoDocumento { get; set; } = new();
         public List<PedidoFacturaLineaParaBorradorConsulta> Lineas { get; set; } = new();
     }
 
