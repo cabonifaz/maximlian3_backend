@@ -1393,7 +1393,7 @@ namespace SafetyReport.DAO
             }
         }
 
-        public async Task<(Respuesta respuesta, string? nombreInforme)> GenerarDocumentoAsync(UsuarioGeneral u, int idInforme, int idPedido)
+        public async Task<(Respuesta respuesta, string? nombreInforme, bool requiereTraduccion, int cantidadEnvios, string formatosCliente)> GenerarDocumentoAsync(UsuarioGeneral u, int idInforme, int idPedido)
         {
             try
             {
@@ -1406,6 +1406,9 @@ namespace SafetyReport.DAO
 
                 var respuesta = new Respuesta();
                 string? nombreInforme = null;
+                var requiereTraduccion = false;
+                var cantidadEnvios = 0;
+                var formatosCliente = string.Empty;
                 using var dr = await cmd.ExecuteReaderAsync();
                 if (await dr.ReadAsync())
                 {
@@ -1413,6 +1416,9 @@ namespace SafetyReport.DAO
                     respuesta.Mensaje = dr["Mensaje"]?.ToString() ?? string.Empty;
                     respuesta.Result = dr["Result"]?.ToString();
                     nombreInforme = dr["NombreInforme"]?.ToString();
+                    requiereTraduccion = dr["RequiereTraduccion"] != DBNull.Value && Convert.ToBoolean(dr["RequiereTraduccion"]);
+                    cantidadEnvios = dr["CantidadEnvios"] != DBNull.Value ? Convert.ToInt32(dr["CantidadEnvios"]) : 0;
+                    formatosCliente = dr["FormatosCliente"]?.ToString() ?? string.Empty;
                 }
                 else
                 {
@@ -1421,13 +1427,13 @@ namespace SafetyReport.DAO
                     respuesta.IdTipoMensaje = 3;
                     respuesta.Mensaje = "No se obtuvo respuesta del procedimiento.";
                 }
-                return (respuesta, nombreInforme);
+                return (respuesta, nombreInforme, requiereTraduccion, cantidadEnvios, formatosCliente);
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error no controlado en la capa de datos.");
 
-                return (new Respuesta { IdTipoMensaje = 3, Mensaje = ex.Message }, null);
+                return (new Respuesta { IdTipoMensaje = 3, Mensaje = ex.Message }, null, false, 0, string.Empty);
             }
         }
 
@@ -1513,6 +1519,76 @@ namespace SafetyReport.DAO
                 AgregarParametrosAuditoria(cmd, u);
                 cmd.Parameters.Add("@intIdInforme", SqlDbType.Int).Value = idInforme;
                 cmd.Parameters.Add("@intIdEstadoInforme", SqlDbType.Int).Value = idEstadoInforme;
+                await cn.OpenAsync();
+
+                using var dr = await cmd.ExecuteReaderAsync();
+                return await LeerCabeceraAsync(dr, cmd.CommandText);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error no controlado en la capa de datos.");
+
+                return new Respuesta { IdTipoMensaje = 3, Mensaje = ex.Message, Result = new List<object>() };
+            }
+        }
+
+        public async Task<Respuesta> ObtenerDatosNotificacionInformeAsync(UsuarioGeneral u, int idInforme)
+        {
+            try
+            {
+                using SqlConnection cn = new(_dbConfig.ConnectionString);
+                using SqlCommand cmd = new("SP_Informe_ObtenerDatosNotificacionInforme", cn) { CommandType = CommandType.StoredProcedure };
+                AgregarParametrosAuditoria(cmd, u);
+                cmd.Parameters.Add("@intIdInforme", SqlDbType.Int).Value = idInforme;
+                cmd.Parameters.Add("@intIdEstadoInforme", SqlDbType.Int).Value = 4;
+                await cn.OpenAsync();
+
+                using var dr = await cmd.ExecuteReaderAsync();
+                var respuesta = await LeerCabeceraAsync(dr, cmd.CommandText);
+
+                var lista = new List<NotificacionInformeDatosConsulta>();
+                if (respuesta.IdTipoMensaje == 2 && await dr.NextResultAsync())
+                {
+                    while (await dr.ReadAsync())
+                    {
+                        lista.Add(new NotificacionInformeDatosConsulta
+                        {
+                            Correo = GetNullableString(dr, "Correo"),
+                            IdPedido = Convert.ToInt32(dr["IdPedido"]),
+                            CodigoPedido = dr["CodigoPedido"]?.ToString() ?? string.Empty,
+                            Asunto = dr["Asunto"]?.ToString() ?? string.Empty,
+                            CuerpoHtml = dr["CuerpoHtml"]?.ToString() ?? string.Empty
+                        });
+                    }
+                }
+
+                var datos = lista.FirstOrDefault();
+                if (datos != null && await dr.NextResultAsync())
+                {
+                    while (await dr.ReadAsync())
+                        datos.Formatos.Add(dr["Formato"]?.ToString() ?? string.Empty);
+                }
+
+                respuesta.Result = lista;
+                return respuesta;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error no controlado en la capa de datos.");
+
+                return new Respuesta { IdTipoMensaje = 3, Mensaje = ex.Message, Result = new List<NotificacionInformeDatosConsulta>() };
+            }
+        }
+
+        public async Task<Respuesta> RegistrarEnvioInformeAsync(UsuarioGeneral u, int idInforme, int idPedido)
+        {
+            try
+            {
+                using SqlConnection cn = new(_dbConfig.ConnectionString);
+                using SqlCommand cmd = new("SP_InformeEnvio_Registrar", cn) { CommandType = CommandType.StoredProcedure };
+                AgregarParametrosAuditoria(cmd, u);
+                cmd.Parameters.Add("@intIdInforme", SqlDbType.Int).Value = idInforme;
+                cmd.Parameters.Add("@intIdPedido", SqlDbType.Int).Value = idPedido;
                 await cn.OpenAsync();
 
                 using var dr = await cmd.ExecuteReaderAsync();
