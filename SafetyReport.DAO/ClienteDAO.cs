@@ -405,18 +405,6 @@ namespace SafetyReport.DAO
                     {
                         while (await dr.ReadAsync())
                         {
-                            var id = GetNullableInt(dr, "IdFormatoDocumento");
-                            if (id.HasValue)
-                            {
-                                cliente.LstIdFormatoDocumento.Add(id.Value);
-                            }
-                        }
-                    }
-
-                    if (await dr.NextResultAsync())
-                    {
-                        while (await dr.ReadAsync())
-                        {
                             cliente.Lineas.Add(new PedidoFacturaLineaParaBorradorConsulta
                             {
                                 IdPedidoFacturaLinea = Convert.ToInt32(dr["IdPedidoFacturaLinea"]),
