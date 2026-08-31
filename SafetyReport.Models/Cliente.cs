@@ -85,6 +85,16 @@
         public int IdEstado { get; set; }
     }
 
+    // Resultado de SP_Cliente_ObtenerConLineasPorDocumentoElectronico — payload reducido de
+    // ClienteConsulta (solo lo necesario para reabrir un borrador) más las líneas vivas del
+    // documento (PedidoFacturaLineaParaBorradorConsulta, mismo shape que ObtenerParaBorrador).
+    public class ClienteConLineasConsulta
+    {
+        public int IdCliente { get; set; }
+        public int? IdTipoDocumentoSunat { get; set; }
+        public List<int> LstIdFormatoDocumento { get; set; } = new();
+        public List<PedidoFacturaLineaParaBorradorConsulta> Lineas { get; set; } = new();
+    }
 
     public class ClienteConsulta
     {
