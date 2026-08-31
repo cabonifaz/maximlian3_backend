@@ -372,6 +372,82 @@ namespace SafetyReport.DAO
             }
         }
 
+        // Payload reducido de ObtenerClientePorDocumentoElectronicoAsync + las líneas vivas del documento
+        // (PEDIDO_FACTURA_LINEA, no el snapshot ya persistido en ms-facturación) — insumo para reabrir un
+        // borrador mostrando el estado actual — ver SP_Cliente_ObtenerConLineasPorDocumentoElectronico.
+        public async Task<Respuesta> ObtenerConLineasPorDocumentoElectronicoAsync(UsuarioGeneral usuarioLogueado, int idDocumentoElectronico)
+        {
+            try
+            {
+                using SqlConnection cn = new(_dbConfig.ConnectionString);
+                using SqlCommand cmd = new("SP_Cliente_ObtenerConLineasPorDocumentoElectronico", cn);
+
+                cmd.CommandType = CommandType.StoredProcedure;
+                cmd.Parameters.Add("@intIdUsuario", SqlDbType.Int).Value = usuarioLogueado.IdUsuario;
+                cmd.Parameters.Add("@vchUsuario", SqlDbType.VarChar, 32).Value = usuarioLogueado.Usuario;
+                cmd.Parameters.Add("@intIdEmpresa", SqlDbType.Int).Value = usuarioLogueado.IdEmpresa;
+                cmd.Parameters.Add("@intIdRol", SqlDbType.Int).Value = usuarioLogueado.IdRol;
+                cmd.Parameters.Add("@intIdDocumentoElectronico", SqlDbType.Int).Value = idDocumentoElectronico;
+
+                await cn.OpenAsync();
+                using var dr = await cmd.ExecuteReaderAsync();
+                var respuesta = await LeerCabeceraAsync(dr, cmd.CommandText);
+
+                if (respuesta.IdTipoMensaje == 2 && await dr.NextResultAsync() && await dr.ReadAsync())
+                {
+                    var cliente = new ClienteConLineasConsulta
+                    {
+                        IdCliente = Convert.ToInt32(dr["IdCliente"]),
+                        IdTipoDocumentoSunat = dr["IdTipoDocumentoSunat"] is DBNull ? null : Convert.ToInt32(dr["IdTipoDocumentoSunat"])
+                    };
+
+                    if (await dr.NextResultAsync())
+                    {
+                        while (await dr.ReadAsync())
+                        {
+                            var id = GetNullableInt(dr, "IdFormatoDocumento");
+                            if (id.HasValue)
+                            {
+                                cliente.LstIdFormatoDocumento.Add(id.Value);
+                            }
+                        }
+                    }
+
+                    if (await dr.NextResultAsync())
+                    {
+                        while (await dr.ReadAsync())
+                        {
+                            cliente.Lineas.Add(new PedidoFacturaLineaParaBorradorConsulta
+                            {
+                                IdPedidoFacturaLinea = Convert.ToInt32(dr["IdPedidoFacturaLinea"]),
+                                IdDocumentoElectronico = GetNullableInt(dr, "IdDocumentoElectronico"),
+                                Codigo = dr["Codigo"] as string,
+                                Descripcion = Convert.ToString(dr["Descripcion"]) ?? string.Empty,
+                                Cantidad = Convert.ToInt32(dr["Cantidad"]),
+                                ValorUnitario = Convert.ToDecimal(dr["ValorUnitario"]),
+                                Descuento = Convert.ToDecimal(dr["Descuento"])
+                            });
+                        }
+                    }
+
+                    respuesta.Result = cliente;
+                }
+
+                return respuesta;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error no controlado en la capa de datos.");
+
+                return new Respuesta
+                {
+                    IdTipoMensaje = 3,
+                    Mensaje = ex.Message,
+                    Result = new ClienteConLineasConsulta()
+                };
+            }
+        }
+
         // Lectura compartida por ObtenerClienteAsync/ObtenerClientePorDocumentoElectronicoAsync — ambos SPs
         // devuelven exactamente el mismo shape (cabecera, cliente, formatos de documento), solo cambia cómo
         // se resuelve el cliente del lado del SP.

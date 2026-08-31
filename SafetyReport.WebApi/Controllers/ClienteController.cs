@@ -52,6 +52,13 @@ namespace SafetyReport.WebApi.Controllers
             return Ok(respuesta);
         }
 
+        [HttpGet("obtenerConLineasPorDocumentoElectronico")]
+        public async Task<IActionResult> ObtenerConLineasPorDocumentoElectronico([FromQuery] int idDocumentoElectronico)
+        {
+            var respuesta = await _clienteHandler.ObtenerClienteConLineasPorDocumentoElectronicoAsync(UsuarioLogueado, idDocumentoElectronico);
+            return Ok(respuesta);
+        }
+
         [HttpGet("listar")]
         public async Task<IActionResult> Listar([FromQuery] FiltroCliente request)
         {

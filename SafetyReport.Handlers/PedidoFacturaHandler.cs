@@ -264,7 +264,7 @@ namespace SafetyReport.Handlers
         // NR/REF CODE/COMPANY NAME/REQUEST DATE/DELIVERY DATE/AMOUNT/CURRENCY/STATUS/COUNTRY.
         // OBSERVATION no aparece en la imagen; se le da un ancho razonable acorde al resto.
         // REF CODE/COMPANY NAME/REQUEST DATE/DELIVERY DATE/COUNTRY/OBSERVATION ensanchadas a pedido.
-        private static readonly double[] AnchosColumna = { 6, 26, 70, 18, 18, 10, 10, 10, 20, 35 };
+        private static readonly double[] AnchosColumna = { 6, 26, 70, 18, 18, 20, 15, 15, 45, 60 };
 
         private static Columns CrearColumnasAnchoAjustado(List<string> headers, List<object?>[] filaValores)
         {
