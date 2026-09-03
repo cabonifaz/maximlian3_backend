@@ -538,11 +538,10 @@ namespace SafetyReport.DAO
                 cmd.Parameters.AddWithValue("@vchUsuario", usuarioLogueado.Usuario);
                 cmd.Parameters.AddWithValue("@intIdEmpresa", usuarioLogueado.IdEmpresa);
                 cmd.Parameters.AddWithValue("@intIdRol", usuarioLogueado.IdRol);
-                cmd.Parameters.AddWithValue("@vchBusqueda", (object?)filtro.busqueda ?? DBNull.Value);
-                cmd.Parameters.AddWithValue("@intIdRolAsignado", (object?)filtro.idRolAsignado ?? DBNull.Value);
                 cmd.Parameters.AddWithValue("@dtFchDesde", (object?)filtro.fchDesde ?? DBNull.Value);
                 cmd.Parameters.AddWithValue("@dtFchHasta", (object?)filtro.fchHasta ?? DBNull.Value);
-                cmd.Parameters.AddWithValue("@vchIdEficiencia", (object?)filtro.idEficiencia ?? DBNull.Value);
+                cmd.Parameters.AddWithValue("@intIdColaborador", (object?)filtro.idColaborador ?? DBNull.Value);
+                cmd.Parameters.AddWithValue("@intIdRolAsignado", (object?)filtro.idRolAsignado ?? DBNull.Value);
                 cmd.Parameters.AddWithValue("@numPag", (object?)filtro.numPag ?? DBNull.Value);
 
                 await cn.OpenAsync();
