@@ -89,6 +89,7 @@ namespace SafetyReport.Models
         public string? Comentario { get; set; }
         public int IdEstado { get; set; }
         public bool ImprimeLogoSafety { get; set; }
+        public int IdEmpresaAtencion { get; set; }
     }
 
     public class PedidoCreado

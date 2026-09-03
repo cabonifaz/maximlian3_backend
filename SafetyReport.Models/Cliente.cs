@@ -79,6 +79,21 @@
         public int IdCliente { get; set; }
     }
 
+    public class ClienteEstadoActualizado
+    {
+        public int IdCliente { get; set; }
+        public int IdEstado { get; set; }
+    }
+
+    // Resultado de SP_Cliente_ObtenerConLineasPorDocumentoElectronico — payload reducido de
+    // ClienteConsulta (solo lo necesario para reabrir un borrador) más las líneas vivas del
+    // documento (PedidoFacturaLineaParaBorradorConsulta, mismo shape que ObtenerParaBorrador).
+    public class ClienteConLineasConsulta
+    {
+        public int IdCliente { get; set; }
+        public int? IdTipoDocumentoSunat { get; set; }
+        public List<PedidoFacturaLineaParaBorradorConsulta> Lineas { get; set; } = new();
+    }
 
     public class ClienteConsulta
     {
@@ -140,6 +155,11 @@
     {
         public int idCliente { get; set; }
     }
+    public class ClienteEstadoRequest
+    {
+        public int idCliente { get; set; }
+        public int idEstado { get; set; }
+    }
     public class ClienteListaCortaItem
     {
         public int IdCliente { get; set; }
@@ -161,7 +181,6 @@
         public string? busqueda { get; set; }
         public int? emitirPrefactura { get; set; }
         public int? idIdiomaFacturacion { get; set; }
-        public int? estadoFacturacion { get; set; }
     }
 
     public class ClienteListaFacturacionResult
@@ -179,9 +198,6 @@
         public int TotalPedidos { get; set; }
         public int PedidosFacturados { get; set; }
         public string? IdIdiomaFacturacion { get; set; }
-        public string? EstadoFacturacion { get; set; }
-        public string? ColorTexto { get; set; }
-        public string? ColorFondo { get; set; }
     }
 
     public class FiltroClientePedidosFacturacion

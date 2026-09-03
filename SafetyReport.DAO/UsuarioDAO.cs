@@ -378,6 +378,63 @@ namespace SafetyReport.DAO
             }
         }
 
+        // Separado de ListarCortaAsync (SP_Usuario_Listar_Corta, sigue igual) — este llama a
+        // SP_Usuario_ListaCortaDashboard, que acepta varios roles a la vez.
+        public async Task<Respuesta> ListarCortaDashboardAsync(UsuarioGeneral usuarioActual, List<int>? idsRolFiltro)
+        {
+            try
+            {
+                using MySqlConnection cn = new(_dbConfig.ConnectionString);
+                using MySqlCommand cmd = new("SP_Usuario_ListaCortaDashboard", cn);
+
+                cmd.CommandType = CommandType.StoredProcedure;
+                cmd.Parameters.AddWithValue("@intIdUsuario", usuarioActual.IdUsuario);
+                cmd.Parameters.AddWithValue("@vchUsuario", usuarioActual.Usuario);
+                cmd.Parameters.AddWithValue("@intIdEmpresa", usuarioActual.IdEmpresa);
+                cmd.Parameters.AddWithValue("@intIdRol", usuarioActual.IdRol);
+                cmd.Parameters.AddWithValue("@vchIdRolFiltro",
+                    idsRolFiltro is { Count: > 0 } ? (object)string.Join(",", idsRolFiltro) : DBNull.Value);
+
+                await cn.OpenAsync();
+                using MySqlDataReader dr = await cmd.ExecuteReaderAsync();
+
+                var respuesta = await LeerCabeceraAsync(dr, cmd.CommandText);
+
+                if (respuesta.IdTipoMensaje == 2)
+                {
+                    var lista = new List<UsuarioListaCortaDashboardItem>();
+
+                    if (await dr.NextResultAsync())
+                    {
+                        while (await dr.ReadAsync())
+                        {
+                            lista.Add(new UsuarioListaCortaDashboardItem
+                            {
+                                IdUsuario = Convert.ToInt32(dr["IdUsuario"]),
+                                Nombres = dr["Nombres"]?.ToString() ?? string.Empty,
+                                ApellidoPaterno = dr["ApellidoPaterno"]?.ToString() ?? string.Empty,
+                                ApellidoMaterno = GetNullableString(dr, "ApellidoMaterno")
+                            });
+                        }
+                    }
+
+                    respuesta.Result = lista;
+                }
+
+                return respuesta;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error no controlado en la capa de datos.");
+
+                return new Respuesta
+                {
+                    IdTipoMensaje = 3,
+                    Mensaje = ex.Message
+                };
+            }
+        }
+
         public async Task<Respuesta> ListarCortaAsignacionAsync(UsuarioGeneral usuarioActual, int idRolFiltro, string? filtro, bool esTraductor, List<int>? idiomasPedido)
         {
             try
@@ -500,8 +557,6 @@ namespace SafetyReport.DAO
                     {
                         resultado.TotalRegistros = Convert.ToInt32(dr["TotalRegistros"]);
                         resultado.TotalPaginas = Convert.ToInt32(dr["TotalPaginas"]);
-                        resultado.PorcentajeEntregados = GetNullableDecimal(dr, "PorcentajeEntregados");
-                        resultado.PorcentajeAtrasados = GetNullableDecimal(dr, "PorcentajeAtrasados");
                     }
 
                     if (await dr.NextResultAsync())
@@ -510,17 +565,17 @@ namespace SafetyReport.DAO
                         {
                             resultado.lstUsuarios.Add(new UsuarioCumplimientoItem
                             {
-                                IdUsuario = Convert.ToInt32(dr["IdUsuario"]),
+                                IdColaborador = Convert.ToInt32(dr["IdColaborador"]),
                                 NombreCompleto = dr["NombreCompleto"]?.ToString() ?? string.Empty,
                                 Iniciales = GetNullableString(dr, "Iniciales"),
+                                IdRol = Convert.ToInt32(dr["IdRol"]),
                                 DescripcionRol = GetNullableString(dr, "DescripcionRol"),
-                                Ordenes = Convert.ToInt32(dr["Ordenes"]),
-                                ATiempo = Convert.ToInt32(dr["ATiempo"]),
-                                Cumplimiento = GetNullableDecimal(dr, "Cumplimiento") ?? 0,
-                                IdEficiencia = Convert.ToInt32(dr["IdEficiencia"]),
-                                DescripcionEficiencia = GetNullableString(dr, "DescripcionEficiencia"),
-                                ColorLetra = GetNullableString(dr, "ColorLetra"),
-                                ColorFondo = GetNullableString(dr, "ColorFondo")
+                                CantidadOrdenes = Convert.ToInt32(dr["CantidadOrdenes"]),
+                                CantidadInformes = Convert.ToInt32(dr["CantidadInformes"]),
+                                CantidadTardios = GetNullableInt(dr, "CantidadTardios"),
+                                CantidadObservados = Convert.ToInt32(dr["CantidadObservados"]),
+                                CantidadConInformacionFinanciera = Convert.ToInt32(dr["CantidadConInformacionFinanciera"]),
+                                PorcentajeCumplimiento = GetNullableDecimal(dr, "PorcentajeCumplimiento") ?? 0
                             });
                         }
                     }

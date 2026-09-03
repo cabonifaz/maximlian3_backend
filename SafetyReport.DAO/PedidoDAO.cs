@@ -18,7 +18,6 @@ namespace SafetyReport.DAO
             _logger = logger;
         }
 
-
         // Lee el result set 1 (siempre presente): IdTipoMensaje, Mensaje. Sin columna Result.
         private async Task<Respuesta> LeerCabeceraAsync(DbDataReader dr, string procedimiento)
         {
@@ -241,7 +240,8 @@ namespace SafetyReport.DAO
                             FchHasta = GetNullableDateTime(dr, "FchHasta"),
                             Comentario = GetNullableString(dr, "Comentario"),
                             IdEstado = Convert.ToInt32(dr["IdEstado"]),
-                            ImprimeLogoSafety = Convert.ToBoolean(dr["ImprimeLogoSafety"])
+                            ImprimeLogoSafety = Convert.ToBoolean(dr["ImprimeLogoSafety"]),
+                            IdEmpresaAtencion = Convert.ToInt32(dr["IdEmpresaAtencion"])
                         });
                 }
 
@@ -574,16 +574,17 @@ namespace SafetyReport.DAO
                 using MySqlConnection cn = new(_dbConfig.ConnectionString);
                 using MySqlCommand cmd = new("SP_Pedido_ListarParaFacturacion", cn);
 
+                cmd.CommandType = CommandType.StoredProcedure;
                 cmd.Parameters.AddWithValue("@intIdUsuario", usuarioLogueado.IdUsuario);
                 cmd.Parameters.AddWithValue("@vchUsuario", usuarioLogueado.Usuario);
                 cmd.Parameters.AddWithValue("@intIdEmpresa", usuarioLogueado.IdEmpresa);
                 cmd.Parameters.AddWithValue("@intIdRol", usuarioLogueado.IdRol);
                 cmd.Parameters.AddWithValue("@intIdCliente", request.idCliente);
-                cmd.Parameters.AddWithValue("@intIdTipoTramite", (object?)request.idTipoTramite ?? DBNull.Value);
-                cmd.Parameters.AddWithValue("@dtFechaInicio", (object?)request.fechaInicio?.ToDateTime(TimeOnly.MinValue) ?? DBNull.Value);
-                cmd.Parameters.AddWithValue("@dtFechaFin", (object?)request.fechaFin?.ToDateTime(TimeOnly.MinValue) ?? DBNull.Value);
-                cmd.Parameters.AddWithValue("@intIdDocumentoElectronico", request.idDocumentoElectronico);
-                cmd.Parameters.AddWithValue("@numPag", request.numPag);
+                cmd.Parameters.AddWithValue("@intIdTipoTramite", request.idTipoTramite);
+                cmd.Parameters.AddWithValue("@intAnio", (object?)request.anio ?? DBNull.Value);
+                cmd.Parameters.AddWithValue("@intMes", (object?)request.mes ?? DBNull.Value);
+                cmd.Parameters.AddWithValue("@vchIdPais", request.idsPais is { Count: > 0 } idsPais ? (object)string.Join(",", idsPais) : DBNull.Value);
+                cmd.Parameters.AddWithValue("@intIdMoneda", (object?)request.idMoneda ?? DBNull.Value);
 
                 await cn.OpenAsync();
 
@@ -593,29 +594,25 @@ namespace SafetyReport.DAO
                 var resultado = new PedidoListaFacturacionResult();
                 if (respuesta.IdTipoMensaje == 2 && await dr.NextResultAsync())
                 {
-                    if (await dr.ReadAsync())
-                    {
-                        resultado.TotalRegistros = Convert.ToInt32(dr["TotalRegistros"]);
-                        resultado.TotalPaginas = Convert.ToInt32(dr["TotalPaginas"]);
-                    }
-
-                    if (await dr.NextResultAsync())
-                    {
-                        while (await dr.ReadAsync())
-                            resultado.Pedidos.Add(new PedidoListaFacturacionConsulta
-                            {
-                                IdPedido = Convert.ToInt32(dr["IdPedido"]),
-                                Codigo = dr["Codigo"]?.ToString() ?? string.Empty,
-                                NumReferencia = dr["NumReferencia"]?.ToString() ?? string.Empty,
-                                Investigado = GetNullableString(dr, "Investigado"),
-                                AplicaPenalidad = GetNullableString(dr, "AplicaPenalidad"),
-                                TipoTramite = GetNullableString(dr, "TipoTramite"),
-                                Fecha = Convert.ToDateTime(dr["Fecha"]),
-                                Penalidad = GetNullableDecimal(dr, "Penalidad"),
-                                Precio = GetNullableDecimal(dr, "Precio"),
-                                DescuentoPorcentaje = GetNullableDecimal(dr, "DescuentoPorcentaje")
-                            });
-                    }
+                    while (await dr.ReadAsync())
+                        resultado.Pedidos.Add(new PedidoListaFacturacionConsulta
+                        {
+                            IdPedido = Convert.ToInt32(dr["IdPedido"]),
+                            Codigo = dr["Codigo"]?.ToString() ?? string.Empty,
+                            NumReferencia = dr["NumReferencia"]?.ToString() ?? string.Empty,
+                            Investigado = GetNullableString(dr, "Investigado"),
+                            IdPais = GetNullableInt(dr, "IdPais"),
+                            Pais = GetNullableString(dr, "Pais"),
+                            AplicaPenalidad = GetNullableString(dr, "AplicaPenalidad"),
+                            IdTipoTramite = GetNullableInt(dr, "IdTipoTramite"),
+                            TipoTramite = GetNullableString(dr, "TipoTramite"),
+                            Fecha = Convert.ToDateTime(dr["Fecha"]),
+                            IdTarifario = GetNullableInt(dr, "IdTarifario"),
+                            Penalidad = GetNullableDecimal(dr, "Penalidad"),
+                            Precio = GetNullableDecimal(dr, "Precio"),
+                            IdMoneda = GetNullableInt(dr, "IdMoneda"),
+                            Moneda = GetNullableString(dr, "Moneda")
+                        });
                 }
 
                 respuesta.Result = resultado;
@@ -634,51 +631,73 @@ namespace SafetyReport.DAO
             }
         }
 
-        public async Task<Respuesta> ListarParaPrefacturaAsync(UsuarioGeneral usuarioLogueado, FiltroPedidoPrefactura request)
+        // Endpoint nuevo, separado de ListarParaFacturacionAsync (que sigue apuntando a
+        // SP_Pedido_ListarParaFacturacion, la versión desplegada que queda como fallback).
+        public async Task<Respuesta> ListarParaFacturacionConGruposAsync(UsuarioGeneral usuarioLogueado, ListarPedidosFacturacionConGruposRequest request)
         {
             try
             {
                 using MySqlConnection cn = new(_dbConfig.ConnectionString);
-                using MySqlCommand cmd = new("SP_Pedido_ListarParaPrefactura", cn) { CommandType = CommandType.StoredProcedure };
+                using MySqlCommand cmd = new("SP_Pedido_ListarParaFacturacionConGrupos", cn);
 
-                var listaAnioMes = (request.Anio.HasValue && request.Mes.HasValue)
-                    ? new[] { new { Anio = request.Anio.Value, Mes = request.Mes.Value } }
-                    : Array.Empty<object>();
-
+                cmd.CommandType = CommandType.StoredProcedure;
                 cmd.Parameters.AddWithValue("@intIdUsuario", usuarioLogueado.IdUsuario);
                 cmd.Parameters.AddWithValue("@vchUsuario", usuarioLogueado.Usuario);
                 cmd.Parameters.AddWithValue("@intIdEmpresa", usuarioLogueado.IdEmpresa);
                 cmd.Parameters.AddWithValue("@intIdRol", usuarioLogueado.IdRol);
-                cmd.Parameters.AddWithValue("@intIdCliente", request.IdCliente);
-                cmd.Parameters.AddWithValue("@dtFchInicio", (object?)request.FchInicio?.ToDateTime(TimeOnly.MinValue) ?? DBNull.Value);
-                cmd.Parameters.AddWithValue("@dtFchFin", (object?)request.FchFin?.ToDateTime(TimeOnly.MinValue) ?? DBNull.Value);
-                cmd.Parameters.AddWithValue("@jsonAnioMes", JsonSerializer.Serialize(listaAnioMes));
+                cmd.Parameters.AddWithValue("@intIdCliente", request.idCliente);
+                cmd.Parameters.AddWithValue("@dtFchInicio", request.fchInicio.ToDateTime(TimeOnly.MinValue));
+                cmd.Parameters.AddWithValue("@dtFchFin", request.fchFin.ToDateTime(TimeOnly.MinValue));
+                cmd.Parameters.AddWithValue("@intIdTipoTramite", (object?)request.idTipoTramite ?? DBNull.Value);
+                cmd.Parameters.AddWithValue("@vchIdPais", request.idsPais is { Count: > 0 } idsPais ? (object)string.Join(",", idsPais) : DBNull.Value);
+                cmd.Parameters.AddWithValue("@intIdMoneda", (object?)request.idMoneda ?? DBNull.Value);
+                cmd.Parameters.AddWithValue("@bitFinalizadoEnFecha", (object?)request.finalizadoEnFecha ?? DBNull.Value);
 
                 await cn.OpenAsync();
 
                 using var dr = await cmd.ExecuteReaderAsync();
                 var respuesta = await LeerCabeceraAsync(dr, cmd.CommandText);
 
-                var lista = new List<PedidoPrefacturaConsulta>();
+                var resultado = new PedidoListaFacturacionConGruposResult();
                 if (respuesta.IdTipoMensaje == 2 && await dr.NextResultAsync())
                 {
                     while (await dr.ReadAsync())
-                    {
-                        lista.Add(new PedidoPrefacturaConsulta
+                        resultado.Pedidos.Add(new PedidoListaFacturacionConGruposConsulta
                         {
-                            Client = dr["CLIENT"]?.ToString() ?? string.Empty,
-                            Company = GetNullableString(dr, "COMPANY"),
-                            TypeOfReport = dr["TYPE OF REPORT"]?.ToString() ?? string.Empty,
-                            ReferenceNo = dr["REFERENCE NO."]?.ToString() ?? string.Empty,
-                            Country = dr["COUNTRY"]?.ToString() ?? string.Empty,
-                            DateOfRequest = dr["DATE OF REQUEST"]?.ToString() ?? string.Empty,
-                            Currency = dr["CURRENCY"]?.ToString() ?? string.Empty,
-                            Price = Convert.ToDecimal(dr["PRICE"])
+                            IdPedido = Convert.ToInt32(dr["IdPedido"]),
+                            Codigo = dr["Codigo"]?.ToString() ?? string.Empty,
+                            NumReferencia = dr["NumReferencia"]?.ToString() ?? string.Empty,
+                            Investigado = GetNullableString(dr, "Investigado"),
+                            IdPais = GetNullableInt(dr, "IdPais"),
+                            Pais = GetNullableString(dr, "Pais"),
+                            IdTipoTramite = GetNullableInt(dr, "IdTipoTramite"),
+                            TipoTramite = GetNullableString(dr, "TipoTramite"),
+                            Fecha = Convert.ToDateTime(dr["Fecha"]),
+                            IdTarifario = GetNullableInt(dr, "IdTarifario"),
+                            Penalidad = GetNullableDecimal(dr, "Penalidad"),
+                            Precio = GetNullableDecimal(dr, "Precio"),
+                            IdMoneda = GetNullableInt(dr, "IdMoneda"),
+                            Moneda = GetNullableString(dr, "Moneda"),
+                            Vigencia = GetNullableBool(dr, "Vigencia"),
+                            GroupId = Convert.ToInt32(dr["GroupId"])
                         });
-                    }
                 }
 
-                respuesta.Result = lista;
+                if (respuesta.IdTipoMensaje == 2 && await dr.NextResultAsync())
+                {
+                    while (await dr.ReadAsync())
+                        resultado.Grupos.Add(new GrupoFacturacionConsulta
+                        {
+                            GroupId = Convert.ToInt32(dr["GroupId"]),
+                            Codigo = dr["Codigo"]?.ToString() ?? string.Empty,
+                            Descripcion = dr["Descripcion"]?.ToString() ?? string.Empty,
+                            Precio = Convert.ToDecimal(dr["Precio"]),
+                            Descuento = Convert.ToDecimal(dr["Descuento"]),
+                            Cantidad = Convert.ToInt32(dr["Cantidad"])
+                        });
+                }
+
+                respuesta.Result = resultado;
                 return respuesta;
             }
             catch (Exception ex)
@@ -689,7 +708,171 @@ namespace SafetyReport.DAO
                 {
                     IdTipoMensaje = 3,
                     Mensaje = ex.Message,
-                    Result = new List<PedidoPrefacturaConsulta>()
+                    Result = new PedidoListaFacturacionConGruposResult()
+                };
+            }
+        }
+
+        public async Task<Respuesta> ListarPorDocumentoElectronicoAsync(UsuarioGeneral usuarioLogueado, int idDocumentoElectronico)
+        {
+            try
+            {
+                using MySqlConnection cn = new(_dbConfig.ConnectionString);
+                using MySqlCommand cmd = new("SP_Pedido_ListarPorDocumentoElectronico", cn);
+
+                cmd.CommandType = CommandType.StoredProcedure;
+                cmd.Parameters.AddWithValue("@intIdUsuario", usuarioLogueado.IdUsuario);
+                cmd.Parameters.AddWithValue("@vchUsuario", usuarioLogueado.Usuario);
+                cmd.Parameters.AddWithValue("@intIdEmpresa", usuarioLogueado.IdEmpresa);
+                cmd.Parameters.AddWithValue("@intIdRol", usuarioLogueado.IdRol);
+                cmd.Parameters.AddWithValue("@intIdDocumentoElectronico", idDocumentoElectronico);
+
+                await cn.OpenAsync();
+
+                using var dr = await cmd.ExecuteReaderAsync();
+                var respuesta = await LeerCabeceraAsync(dr, cmd.CommandText);
+
+                var resultado = new PedidoPorDocumentoElectronicoResult();
+                if (respuesta.IdTipoMensaje == 2 && await dr.NextResultAsync())
+                {
+                    while (await dr.ReadAsync())
+                        resultado.Pedidos.Add(new PedidoPorDocumentoElectronicoConsulta
+                        {
+                            Codigo = dr["Codigo"]?.ToString() ?? string.Empty,
+                            NumReferencia = dr["NumReferencia"]?.ToString() ?? string.Empty,
+                            Investigado = GetNullableString(dr, "Investigado"),
+                            TipoTramite = dr["TipoTramite"]?.ToString() ?? string.Empty,
+                            Pais = dr["Pais"]?.ToString() ?? string.Empty,
+                            ValorUnitario = dr["ValorUnitario"]?.ToString() ?? string.Empty,
+                            Descuento = dr["Descuento"]?.ToString() ?? string.Empty
+                        });
+                }
+
+                respuesta.Result = resultado;
+                return respuesta;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error no controlado en la capa de datos.");
+
+                return new Respuesta
+                {
+                    IdTipoMensaje = 3,
+                    Mensaje = ex.Message,
+                    Result = new PedidoPorDocumentoElectronicoResult()
+                };
+            }
+        }
+
+        // Variante sin usuario logueado (flujo público por token, ver PedidoFacturaHandler.
+        // ListarPedidosPorTokenPublicoAsync) — SP_Pedido_ListarPorDocumentoElectronicoPublico no valida
+        // rol, solo toma idEmpresa/idDocumentoElectronico ya resueltos desde ms-facturación.
+        public async Task<Respuesta> ListarPorDocumentoElectronicoPublicoAsync(int idEmpresa, int idDocumentoElectronico)
+        {
+            try
+            {
+                using MySqlConnection cn = new(_dbConfig.ConnectionString);
+                using MySqlCommand cmd = new("SP_Pedido_ListarPorDocumentoElectronicoPublico", cn);
+
+                cmd.CommandType = CommandType.StoredProcedure;
+                cmd.Parameters.AddWithValue("@intIdEmpresa", idEmpresa);
+                cmd.Parameters.AddWithValue("@intIdDocumentoElectronico", idDocumentoElectronico);
+
+                await cn.OpenAsync();
+
+                using var dr = await cmd.ExecuteReaderAsync();
+                var respuesta = await LeerCabeceraAsync(dr, cmd.CommandText);
+
+                var resultado = new PedidoPorDocumentoElectronicoResult();
+                if (respuesta.IdTipoMensaje == 2 && await dr.NextResultAsync())
+                {
+                    while (await dr.ReadAsync())
+                        resultado.Pedidos.Add(new PedidoPorDocumentoElectronicoConsulta
+                        {
+                            Codigo = dr["Codigo"]?.ToString() ?? string.Empty,
+                            NumReferencia = dr["NumReferencia"]?.ToString() ?? string.Empty,
+                            Investigado = GetNullableString(dr, "Investigado"),
+                            TipoTramite = dr["TipoTramite"]?.ToString() ?? string.Empty,
+                            Pais = dr["Pais"]?.ToString() ?? string.Empty,
+                            ValorUnitario = dr["ValorUnitario"]?.ToString() ?? string.Empty,
+                            Descuento = dr["Descuento"]?.ToString() ?? string.Empty
+                        });
+                }
+
+                respuesta.Result = resultado;
+                return respuesta;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error no controlado en la capa de datos.");
+
+                return new Respuesta
+                {
+                    IdTipoMensaje = 3,
+                    Mensaje = ex.Message,
+                    Result = new PedidoPorDocumentoElectronicoResult()
+                };
+            }
+        }
+
+        public async Task<Respuesta> ListarParaPrefacturaAsync(UsuarioGeneral usuarioLogueado, FiltroPedidoPrefactura request)
+        {
+            try
+            {
+                using MySqlConnection cn = new(_dbConfig.ConnectionString);
+                using MySqlCommand cmd = new("SP_Pedido_ListarParaPrefactura", cn) { CommandType = CommandType.StoredProcedure };
+
+                cmd.Parameters.AddWithValue("@intIdUsuario", usuarioLogueado.IdUsuario);
+                cmd.Parameters.AddWithValue("@vchUsuario", usuarioLogueado.Usuario);
+                cmd.Parameters.AddWithValue("@intIdEmpresa", usuarioLogueado.IdEmpresa);
+                cmd.Parameters.AddWithValue("@intIdRol", usuarioLogueado.IdRol);
+                cmd.Parameters.AddWithValue("@intIdCliente", request.IdCliente);
+                cmd.Parameters.AddWithValue("@dtFchInicio", (object?)request.FchInicio?.ToDateTime(TimeOnly.MinValue) ?? DBNull.Value);
+                cmd.Parameters.AddWithValue("@dtFchFin", (object?)request.FchFin?.ToDateTime(TimeOnly.MinValue) ?? DBNull.Value);
+                cmd.Parameters.AddWithValue("@jsonAnioMes", JsonSerializer.Serialize(request.Meses ?? new List<AnioMesFiltro>()));
+
+                await cn.OpenAsync();
+
+                using var dr = await cmd.ExecuteReaderAsync();
+                var respuesta = await LeerCabeceraAsync(dr, cmd.CommandText);
+
+                var resultado = new PedidoPrefacturaResult();
+                if (respuesta.IdTipoMensaje == 2 && await dr.NextResultAsync())
+                {
+                    // Por posición, no por nombre: el SP bifurca por idioma (headers distintos).
+                    for (var i = 0; i < dr.FieldCount; i++)
+                        resultado.Headers.Add(dr.GetName(i));
+
+                    while (await dr.ReadAsync())
+                    {
+                        resultado.Items.Add(new PedidoPrefacturaConsulta
+                        {
+                            Nr = Convert.ToInt32(dr[0]),
+                            ReferenceNumber = dr[1]?.ToString() ?? string.Empty,
+                            Company = dr[2]?.ToString() ?? string.Empty,
+                            DateOfRequest = dr[3]?.ToString() ?? string.Empty,
+                            DeliveryDate = dr[4]?.ToString() ?? string.Empty,
+                            Amount = Convert.ToDecimal(dr[5]),
+                            Currency = dr[6]?.ToString() ?? string.Empty,
+                            Status = dr[7]?.ToString() ?? string.Empty,
+                            Country = dr[8]?.ToString() ?? string.Empty,
+                            Observation = dr[9]?.ToString() ?? string.Empty
+                        });
+                    }
+                }
+
+                respuesta.Result = resultado;
+                return respuesta;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error no controlado en la capa de datos.");
+
+                return new Respuesta
+                {
+                    IdTipoMensaje = 3,
+                    Mensaje = ex.Message,
+                    Result = new PedidoPrefacturaResult()
                 };
             }
         }

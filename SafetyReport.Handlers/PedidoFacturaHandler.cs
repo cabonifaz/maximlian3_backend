@@ -13,6 +13,7 @@ namespace SafetyReport.Handlers
     public class PedidoFacturaHandler
     {
         private readonly PedidoFacturaDAO _pedidoFacturaDao;
+        private readonly PedidoFacturaLineaDAO _pedidoFacturaLineaDao;
         private readonly PedidoDAO _pedidoDao;
         private readonly ClienteDAO _clienteDao;
         private readonly FacturacionElectronicaService _facturacionService;
@@ -20,10 +21,11 @@ namespace SafetyReport.Handlers
         private readonly ILogger<PedidoFacturaHandler> _logger;
 
         public PedidoFacturaHandler(
-            PedidoFacturaDAO pedidoFacturaDao, PedidoDAO pedidoDao, ClienteDAO clienteDao, FacturacionElectronicaService facturacionService,
-            IConfiguration configuration, ILogger<PedidoFacturaHandler> logger)
+            PedidoFacturaDAO pedidoFacturaDao, PedidoFacturaLineaDAO pedidoFacturaLineaDao, PedidoDAO pedidoDao, ClienteDAO clienteDao,
+            FacturacionElectronicaService facturacionService, IConfiguration configuration, ILogger<PedidoFacturaHandler> logger)
         {
             _pedidoFacturaDao = pedidoFacturaDao;
+            _pedidoFacturaLineaDao = pedidoFacturaLineaDao;
             _pedidoDao = pedidoDao;
             _clienteDao = clienteDao;
             _facturacionService = facturacionService;
@@ -33,6 +35,16 @@ namespace SafetyReport.Handlers
 
         public Task<Respuesta> ListarPedidosParaFacturacionAsync(UsuarioGeneral usuarioLogueado, ListarPedidosFacturacionRequest request) =>
             _pedidoDao.ListarParaFacturacionAsync(usuarioLogueado, request);
+
+        public Task<Respuesta> ListarPedidosParaFacturacionConGruposAsync(UsuarioGeneral usuarioLogueado, ListarPedidosFacturacionConGruposRequest request) =>
+            _pedidoDao.ListarParaFacturacionConGruposAsync(usuarioLogueado, request);
+
+        public Task<Respuesta> ListarPedidosPorDocumentoElectronicoAsync(UsuarioGeneral usuarioLogueado, int idDocumentoElectronico) =>
+            _pedidoDao.ListarPorDocumentoElectronicoAsync(usuarioLogueado, idDocumentoElectronico);
+
+        // El CRUD de líneas (crear/editar/listar/desvincular manual) vive en PedidoFacturaLineaHandler.
+        // Acá se queda todo lo que opera sobre documentos/pedidos y solo referencia IdPedidoFacturaLinea
+        // de paso (p. ej. RegistrarEnvioAsync más abajo, que asocia líneas ya existentes a un documento).
 
         // Genera el Excel de SP_Pedido_ListarParaPrefactura. El nombre de cliente para el nombre de archivo
         // se resuelve aparte (ClienteDAO) en vez de tomarlo de la primera fila — así el nombre del archivo
@@ -45,7 +57,7 @@ namespace SafetyReport.Handlers
                 if (respuesta.IdTipoMensaje != 2)
                     return respuesta;
 
-                var items = respuesta.Result as List<PedidoPrefacturaConsulta> ?? new();
+                var resultado = respuesta.Result as PedidoPrefacturaResult ?? new PedidoPrefacturaResult();
 
                 var clienteResp = await _clienteDao.ObtenerClienteAsync(usuarioLogueado, request.IdCliente);
                 var nombreCliente = clienteResp.IdTipoMensaje == 2
@@ -53,7 +65,7 @@ namespace SafetyReport.Handlers
                     : null;
                 nombreCliente = string.IsNullOrWhiteSpace(nombreCliente) ? "CLIENTE" : nombreCliente;
 
-                var archivo = GenerarExcelPrefactura(items);
+                var archivo = GenerarExcelPrefactura(resultado.Headers, resultado.Items);
                 var etiquetaPeriodo = ObtenerEtiquetaPeriodo(request);
                 var nombreArchivo = $"{SanitizarNombreArchivo(nombreCliente)} List of Reports {etiquetaPeriodo}.xlsx";
 
@@ -73,12 +85,17 @@ namespace SafetyReport.Handlers
             }
         }
 
-        // Por mes/año -> "July 2026"; por rango explícito -> "06 July 2026 - 15 August 2026". Solo se llega
-        // acá con IdTipoMensaje=2, así que el SP ya garantizó que exactamente uno de los dos pares vino.
+        // Por mes(es) -> "July 2026" o "July 2026, September 2026" (uno o varios, no necesariamente
+        // contiguos); por rango explícito -> "06 July 2026 - 15 August 2026". Solo se llega acá con
+        // IdTipoMensaje=2, así que el SP ya garantizó que exactamente uno de los dos vino.
         private static string ObtenerEtiquetaPeriodo(FiltroPedidoPrefactura request)
         {
-            if (request.Anio is not null && request.Mes is not null)
-                return new DateOnly(request.Anio.Value, request.Mes.Value, 1).ToString("MMMM yyyy", CultureInfo.InvariantCulture);
+            if (request.Meses is { Count: > 0 })
+            {
+                var etiquetas = request.Meses.Select(am =>
+                    new DateOnly(am.Anio, am.Mes, 1).ToString("MMMM yyyy", CultureInfo.InvariantCulture));
+                return string.Join(", ", etiquetas);
+            }
 
             var fchInicioTexto = request.FchInicio?.ToString("dd MMMM yyyy", CultureInfo.InvariantCulture) ?? string.Empty;
             var fchFinTexto = request.FchFin?.ToString("dd MMMM yyyy", CultureInfo.InvariantCulture) ?? string.Empty;
@@ -109,13 +126,20 @@ namespace SafetyReport.Handlers
             return new string(sinMarcas.ToArray()).Normalize(NormalizationForm.FormC);
         }
 
-        private static byte[] GenerarExcelPrefactura(List<PedidoPrefacturaConsulta> items)
+        // Índices 0-based de columnas con formato particular dentro de las 10 columnas del SP.
+        private const int IndiceNr = 0;
+        private const int IndiceCompany = 2;
+        private const int IndicePrecio = 5;
+
+        // headers viene tal cual lo devolvió el SP (inglés o español según IdIdiomaFacturacion).
+        private static byte[] GenerarExcelPrefactura(List<string> headers, List<PedidoPrefacturaConsulta> items)
         {
             using var stream = new MemoryStream();
             using (var document = SpreadsheetDocument.Create(stream, SpreadsheetDocumentType.Workbook))
             {
                 var workbookPart = document.AddWorkbookPart();
                 workbookPart.Workbook = new Workbook();
+                workbookPart.AddNewPart<WorkbookStylesPart>().Stylesheet = CrearStylesheetPrefactura();
 
                 var worksheetPart = workbookPart.AddNewPart<WorksheetPart>();
                 var sheetData = new SheetData();
@@ -130,16 +154,31 @@ namespace SafetyReport.Handlers
                     Name = "Reports"
                 });
 
-                sheetData.Append(CrearFilaExcelPrefactura(
-                    "CLIENT", "COMPANY", "TYPE OF REPORT", "REFERENCE NO.", "COUNTRY", "DATE OF REQUEST", "CURRENCY", "PRICE"
-                    ));
+                sheetData.Append(CrearFilaEncabezadoExcel(headers));
 
-                foreach (var item in items)
+                var filaValores = new List<object?>[items.Count];
+                for (var i = 0; i < items.Count; i++)
                 {
-                    sheetData.Append(CrearFilaExcelPrefactura(
-                        item.Client, item.Company, item.TypeOfReport, item.ReferenceNo, item.Country, item.DateOfRequest,
-                        item.Currency, item.Price.ToString("F2", CultureInfo.InvariantCulture)
-                        ));
+                    var it = items[i];
+                    filaValores[i] = new List<object?>
+                    {
+                        it.Nr, it.ReferenceNumber, it.Company, it.DateOfRequest, it.DeliveryDate,
+                        it.Amount, it.Currency, it.Status, it.Country, it.Observation
+                    };
+                }
+
+                foreach (var valores in filaValores)
+                    sheetData.Append(CrearFilaDatosExcel(valores));
+
+                if (headers.Count > 0)
+                    worksheetPart.Worksheet.InsertBefore(CrearColumnasAnchoAjustado(headers, filaValores), sheetData);
+
+                if (headers.Count > 0)
+                {
+                    var ultimaColumna = ObtenerLetraColumna(headers.Count - 1);
+                    var ultimaFila = items.Count + 1;
+                    worksheetPart.Worksheet.InsertAfter(
+                        new AutoFilter { Reference = $"A1:{ultimaColumna}{ultimaFila}" }, sheetData);
                 }
 
                 workbookPart.Workbook.Save();
@@ -148,16 +187,139 @@ namespace SafetyReport.Handlers
             return stream.ToArray();
         }
 
-        private static Row CrearFilaExcelPrefactura(params string?[] valores)
+        private static Row CrearFilaEncabezadoExcel(List<string> headers)
         {
             var row = new Row();
-            foreach (var valor in valores)
+            foreach (var texto in headers)
                 row.Append(new Cell
                 {
+                    StyleIndex = 1, // header: negrita + relleno + borde
                     DataType = CellValues.InlineString,
-                    InlineString = new InlineString(new Text(valor ?? string.Empty))
+                    InlineString = new InlineString(new Text(texto))
                 });
             return row;
+        }
+
+        private static Row CrearFilaDatosExcel(List<object?> valores)
+        {
+            var row = new Row();
+            for (var i = 0; i < valores.Count; i++)
+            {
+                if (i == IndicePrecio && valores[i] is decimal precio)
+                {
+                    row.Append(new Cell
+                    {
+                        StyleIndex = 3, // número con borde, formato 0.00
+                        DataType = CellValues.Number,
+                        CellValue = new CellValue(precio.ToString(CultureInfo.InvariantCulture))
+                    });
+                    continue;
+                }
+
+                if (i == IndiceNr && valores[i] is int nr)
+                {
+                    row.Append(new Cell
+                    {
+                        StyleIndex = 4, // NR: negrita con borde, formato general (sin decimales)
+                        DataType = CellValues.Number,
+                        CellValue = new CellValue(nr.ToString(CultureInfo.InvariantCulture))
+                    });
+                    continue;
+                }
+
+                if (i == IndiceCompany)
+                {
+                    row.Append(new Cell
+                    {
+                        StyleIndex = 5, // COMPANY NAME: texto con borde, alineado a la izquierda
+                        DataType = CellValues.InlineString,
+                        InlineString = new InlineString(new Text(valores[i]?.ToString() ?? string.Empty))
+                    });
+                    continue;
+                }
+
+                row.Append(new Cell
+                {
+                    StyleIndex = 2, // texto con borde
+                    DataType = CellValues.InlineString,
+                    InlineString = new InlineString(new Text(valores[i]?.ToString() ?? string.Empty))
+                });
+            }
+            return row;
+        }
+
+        private static string ObtenerLetraColumna(int indiceCero)
+        {
+            var letras = string.Empty;
+            var n = indiceCero;
+            do
+            {
+                letras = (char)('A' + n % 26) + letras;
+                n = n / 26 - 1;
+            } while (n >= 0);
+            return letras;
+        }
+
+        // Anchos fijos (unidades de ancho de columna de Excel) calcados de la referencia de la imagen:
+        // NR/REF CODE/COMPANY NAME/REQUEST DATE/DELIVERY DATE/AMOUNT/CURRENCY/STATUS/COUNTRY.
+        // OBSERVATION no aparece en la imagen; se le da un ancho razonable acorde al resto.
+        // REF CODE/COMPANY NAME/REQUEST DATE/DELIVERY DATE/COUNTRY/OBSERVATION ensanchadas a pedido.
+        private static readonly double[] AnchosColumna = { 6, 26, 70, 18, 18, 20, 15, 15, 45, 60 };
+
+        private static Columns CrearColumnasAnchoAjustado(List<string> headers, List<object?>[] filaValores)
+        {
+            var columnas = new Columns();
+            for (var i = 0; i < headers.Count; i++)
+            {
+                var ancho = i < AnchosColumna.Length ? AnchosColumna[i] : 20;
+                var indiceColumna = (uint)(i + 1);
+                columnas.Append(new Column
+                {
+                    Min = indiceColumna,
+                    Max = indiceColumna,
+                    Width = ancho,
+                    CustomWidth = true
+                });
+            }
+
+            return columnas;
+        }
+
+        private static Stylesheet CrearStylesheetPrefactura()
+        {
+            var fuentes = new Fonts(
+                new Font(new FontSize { Val = 11 }, new FontName { Val = "Calibri" }),
+                new Font(new Bold(), new Color { Rgb = "FFFFFFFF" }, new FontSize { Val = 11 }, new FontName { Val = "Calibri" }),
+                new Font(new Bold(), new FontSize { Val = 11 }, new FontName { Val = "Calibri" }));
+
+            var rellenos = new Fills(
+                new Fill(new PatternFill { PatternType = PatternValues.None }),
+                new Fill(new PatternFill { PatternType = PatternValues.Gray125 }),
+                new Fill(new PatternFill(new ForegroundColor { Rgb = "FF790303" }) { PatternType = PatternValues.Solid }));
+
+            var bordeFino = new Border(
+                new LeftBorder(new Color { Rgb = "FFBFBFBF" }) { Style = BorderStyleValues.Thin },
+                new RightBorder(new Color { Rgb = "FFBFBFBF" }) { Style = BorderStyleValues.Thin },
+                new TopBorder(new Color { Rgb = "FFBFBFBF" }) { Style = BorderStyleValues.Thin },
+                new BottomBorder(new Color { Rgb = "FFBFBFBF" }) { Style = BorderStyleValues.Thin },
+                new DiagonalBorder());
+
+            var bordes = new Borders(new Border(new LeftBorder(), new RightBorder(), new TopBorder(), new BottomBorder(), new DiagonalBorder()), bordeFino);
+
+            // Cada CellFormat necesita su propia instancia de Alignment (los elementos OpenXML no se
+            // pueden compartir entre nodos padre distintos).
+            static Alignment Centrado() => new() { Horizontal = HorizontalAlignmentValues.Center };
+            static Alignment Izquierda() => new() { Horizontal = HorizontalAlignmentValues.Left };
+
+            var formatosCelda = new CellFormats(
+                new CellFormat(), // 0: default
+                new CellFormat { FontId = 1, FillId = 2, BorderId = 1, Alignment = Centrado(), ApplyFont = true, ApplyFill = true, ApplyBorder = true, ApplyAlignment = true }, // 1: header (blanco negrita sobre rojo #790303)
+                new CellFormat { FontId = 0, BorderId = 1, Alignment = Centrado(), ApplyBorder = true, ApplyAlignment = true }, // 2: texto con borde
+                new CellFormat { FontId = 0, BorderId = 1, NumberFormatId = 4, Alignment = Centrado(), ApplyBorder = true, ApplyNumberFormat = true, ApplyAlignment = true }, // 3: número (0.00) con borde
+                new CellFormat { FontId = 2, BorderId = 1, Alignment = Centrado(), ApplyFont = true, ApplyBorder = true, ApplyAlignment = true }, // 4: NR — negrita con borde
+                new CellFormat { FontId = 0, BorderId = 1, Alignment = Izquierda(), ApplyBorder = true, ApplyAlignment = true }); // 5: COMPANY NAME — texto con borde, izquierda
+
+            return new Stylesheet(fuentes, rellenos, bordes, formatosCelda);
         }
 
         // Listado de facturas ya generadas — NumeroFactura/ClienteNombre/FormaPago/Estado vienen resueltos
@@ -480,7 +642,7 @@ namespace SafetyReport.Handlers
                 {
                     var liberacion = await _pedidoFacturaDao.ActualizarEstadoPorDocumentoAsync(
                         usuarioLogueado.IdEmpresa,
-                        resultado.Datos.Select(d => (d.IdDocumentoElectronico, IdEstadoFacturacion: 8)).ToList());
+                        resultado.Datos.Select(d => (d.IdDocumentoElectronico, IdEstadoFacturacion: 15)).ToList()); // AnuladoManualmente
                     if (liberacion.IdTipoMensaje != 2)
                     {
                         _logger.LogWarning(
@@ -730,27 +892,33 @@ namespace SafetyReport.Handlers
                     return new Respuesta { IdTipoMensaje = 1, Mensaje = "La factura debe tener al menos una línea." };
                 }
 
-                var idPedidos = request.lineas.Select(l => l.idPedido).Distinct().ToList();
+                var idsLinea = request.lineas.Select(l => l.idPedidoFacturaLinea).Distinct().ToList();
 
-                var datosBorrador = await _pedidoFacturaDao.ObtenerDatosBorradorAsync(usuarioLogueado, request.idCliente, idPedidos);
-                if (datosBorrador.IdTipoMensaje != 2 || datosBorrador.Result is not DatosBorradorFacturaConsulta datos)
+                var lineasResp = await _pedidoFacturaLineaDao.ObtenerParaBorradorAsync(usuarioLogueado, request.idCliente, request.idMonedaMaestro, idsLinea);
+                if (lineasResp.IdTipoMensaje != 2 || lineasResp.Result is not LineasParaBorradorConsulta lineasData)
                 {
-                    return new Respuesta { IdTipoMensaje = datosBorrador.IdTipoMensaje, Mensaje = datosBorrador.Mensaje };
+                    return new Respuesta { IdTipoMensaje = lineasResp.IdTipoMensaje, Mensaje = lineasResp.Mensaje };
                 }
 
-                var clienteDatos = datos.Cliente;
-                var pedidosPorId = datos.Pedidos.ToDictionary(p => p.IdPedido);
+                var lineasPorId = lineasData.Lineas.ToDictionary(l => l.IdPedidoFacturaLinea);
 
-                if (pedidosPorId.Values.Any(p => p.Precio is null))
+                // Cliente se resuelve directo por idCliente (SP_Cliente_Obtener) — ya trae
+                // IdTipoDocumentoSunat/NumRegistroTributario, no hace falta pasar por pedidos.
+                var clienteResp = await _clienteDao.ObtenerClienteAsync(usuarioLogueado, request.idCliente);
+                var clienteDatos = clienteResp.IdTipoMensaje == 2
+                    ? (clienteResp.Result as List<ClienteConsulta>)?.FirstOrDefault()
+                    : null;
+
+                if (clienteDatos is null || clienteDatos.IdTipoDocumentoSunat is null)
                 {
-                    return new Respuesta { IdTipoMensaje = 1, Mensaje = "Uno o más pedidos no tienen un tarifario con precio configurado." };
+                    return new Respuesta { IdTipoMensaje = 1, Mensaje = "El cliente no tiene un tipo de documento SUNAT configurado." };
                 }
 
                 var facturacionRequest = new FacturacionInsertarDocumentoRequest
                 {
                     IdInquilino = usuarioLogueado.IdEmpresa,
                     IdEmpresa = 1, // TODO: resolver desde EMPRESAS de ms-facturación (GET /api/v1/empresas?idInquilino=) en vez de fijo.
-                    IdExterno = string.Join(",", request.lineas.Select(l => l.idPedido)),
+                    IdExterno = string.Join(",", idsLinea),
                     NumeroReferencia = request.numeroReferencia,
                     IdTipoDocumentoMaestro = request.idTipoDocumentoMaestro,
                     IdMonedaMaestro = request.idMonedaMaestro,
@@ -770,8 +938,8 @@ namespace SafetyReport.Handlers
                     },
                     Cliente = new FacturacionCliente
                     {
-                        IdTipoDocumentoSunat = clienteDatos.IdTipoDocumentoSunat,
-                        NumeroDocumento = clienteDatos.NumeroDocumento,
+                        IdTipoDocumentoSunat = clienteDatos.IdTipoDocumentoSunat.Value,
+                        NumeroDocumento = clienteDatos.NumRegistroTributario ?? string.Empty,
                         Nombre = clienteDatos.Nombre,
                         Correo = clienteDatos.Correo,
                         Direccion = clienteDatos.Direccion,
@@ -780,13 +948,13 @@ namespace SafetyReport.Handlers
                     Items = request.lineas.Select((l, i) => new FacturacionItem
                     {
                         NumeroLinea = i + 1,
-                        ProductoCodigo = pedidosPorId[l.idPedido].Codigo,
+                        ProductoCodigo = lineasPorId[l.idPedidoFacturaLinea].Codigo ?? string.Empty,
                         ProductoSunatCodigo = l.productoSunatCodigo,
-                        Descripcion = !string.IsNullOrWhiteSpace(l.descripcion) ? l.descripcion : pedidosPorId[l.idPedido].NombreCliente ?? string.Empty,
+                        Descripcion = lineasPorId[l.idPedidoFacturaLinea].Descripcion,
                         IdUnidadMedidaMaestro = l.idUnidadMedidaMaestro,
-                        Cantidad = l.cantidad,
-                        ValorUnitario = pedidosPorId[l.idPedido].Precio.Value,
-                        MontoDescuento = l.montoDescuento,
+                        Cantidad = lineasPorId[l.idPedidoFacturaLinea].Cantidad,
+                        ValorUnitario = lineasPorId[l.idPedidoFacturaLinea].ValorUnitario,
+                        MontoDescuento = lineasPorId[l.idPedidoFacturaLinea].Descuento,
                         IdAfectacionIgvMaestro = l.idAfectacionIgvMaestro,
                         PorcentajeIgv = l.porcentajeIgv
                     }).ToList(),
@@ -799,16 +967,16 @@ namespace SafetyReport.Handlers
                     return new Respuesta { IdTipoMensaje = insertado?.IdTipoMensaje ?? 3, Mensaje = insertado?.Mensaje ?? "No se pudo crear el documento electrónico en facturación." };
                 }
 
-                // Un borrador puede cubrir varios pedidos: se registra el mismo IdDocumentoElectronico
-                // en PEDIDO_FACTURA para todos los pedidos referenciados por las líneas en un solo UPDATE.
+                // Asocia el documento a las líneas (no a los pedidos directamente) — SP_PedidoFactura_
+                // RegistrarEnvio fija IdDocumentoElectronico + IdEstadoFacturacion=1 en cada línea.
                 var registro = await _pedidoFacturaDao.RegistrarEnvioAsync(
-                    usuarioLogueado, idPedidos, insertado.Datos.IdDocumentoElectronico, idEstadoFacturacion: 10);
+                    usuarioLogueado, idsLinea, insertado.Datos.IdDocumentoElectronico);
 
                 if (registro.IdTipoMensaje != 2)
                 {
                     _logger.LogWarning(
-                        "No se pudo registrar el borrador de facturación para los pedidos {IdPedidos}: {Mensaje}",
-                        string.Join(",", idPedidos), registro.Mensaje);
+                        "No se pudo registrar el borrador de facturación para las líneas {IdsLinea}: {Mensaje}",
+                        string.Join(",", idsLinea), registro.Mensaje);
                 }
 
                 return ResultadoOperacionExito(insertado.Datos.IdDocumentoElectronico);
@@ -914,26 +1082,41 @@ namespace SafetyReport.Handlers
                     return new Respuesta { IdTipoMensaje = 1, Mensaje = "La factura debe tener al menos una línea." };
                 }
 
-                var idPedidos = request.lineas.Select(l => l.idPedido).Distinct().ToList();
+                var idsLinea = request.lineas.Select(l => l.idPedidoFacturaLinea).Distinct().ToList();
 
-                var datosBorrador = await _pedidoFacturaDao.ObtenerDatosBorradorAsync(usuarioLogueado, null, idPedidos);
-                if (datosBorrador.IdTipoMensaje != 2 || datosBorrador.Result is not DatosBorradorFacturaConsulta datos)
+                var clienteDocResp = await _clienteDao.ObtenerClientePorDocumentoElectronicoAsync(usuarioLogueado, idDocumentoElectronico);
+                var idCliente = clienteDocResp.IdTipoMensaje == 2
+                    ? (clienteDocResp.Result as List<ClienteConsulta>)?.FirstOrDefault()?.IdCliente
+                    : null;
+
+                if (idCliente is null)
                 {
-                    return new Respuesta { IdTipoMensaje = datosBorrador.IdTipoMensaje, Mensaje = datosBorrador.Mensaje };
+                    return new Respuesta { IdTipoMensaje = 1, Mensaje = "No se pudo resolver el cliente del documento indicado." };
                 }
 
-                var pedidosPorId = datos.Pedidos.ToDictionary(p => p.IdPedido);
-
-                if (pedidosPorId.Values.Any(p => p.Precio is null))
+                var lineasResp = await _pedidoFacturaLineaDao.ObtenerParaBorradorAsync(usuarioLogueado, idCliente.Value, request.idMonedaMaestro, idsLinea, idDocumentoElectronico);
+                if (lineasResp.IdTipoMensaje != 2 || lineasResp.Result is not LineasParaBorradorConsulta lineasData)
                 {
-                    return new Respuesta { IdTipoMensaje = 1, Mensaje = "Uno o más pedidos no tienen un tarifario con precio configurado." };
+                    return new Respuesta { IdTipoMensaje = lineasResp.IdTipoMensaje, Mensaje = lineasResp.Mensaje };
+                }
+
+                var lineasPorId = lineasData.Lineas.ToDictionary(l => l.IdPedidoFacturaLinea);
+
+                var idsLineaFaltantes = idsLinea.Where(id => !lineasPorId.ContainsKey(id)).ToList();
+                if (idsLineaFaltantes.Count > 0)
+                {
+                    return new Respuesta
+                    {
+                        IdTipoMensaje = 1,
+                        Mensaje = $"Una o más líneas no están disponibles para el documento: {string.Join(",", idsLineaFaltantes)}."
+                    };
                 }
 
                 var facturacionRequest = new FacturacionGuardarCambiosRequest
                 {
                     // Mismo cálculo que InsertarAsync — se manda de nuevo porque las líneas pudieron cambiar
                     // (IdExterno solo se llenaba al crear el documento y quedaba obsoleto después).
-                    IdExterno = string.Join(",", request.lineas.Select(l => l.idPedido)),
+                    IdExterno = string.Join(",", idsLinea),
                     IdFormaPago = request.idFormaPago,
                     NumeroReferencia = request.numeroReferencia,
                     IdMonedaMaestro = request.idMonedaMaestro,
@@ -942,13 +1125,13 @@ namespace SafetyReport.Handlers
                     Lineas = request.lineas.Select((l, i) => new FacturacionLineaEdicion
                     {
                         NumeroLinea = i + 1,
-                        ProductoCodigo = pedidosPorId[l.idPedido].Codigo,
+                        ProductoCodigo = lineasPorId[l.idPedidoFacturaLinea].Codigo ?? string.Empty,
                         ProductoSunatCodigo = l.productoSunatCodigo,
-                        Descripcion = !string.IsNullOrWhiteSpace(l.descripcion) ? l.descripcion : pedidosPorId[l.idPedido].NombreCliente ?? string.Empty,
+                        Descripcion = lineasPorId[l.idPedidoFacturaLinea].Descripcion,
                         IdUnidadMedidaMaestro = l.idUnidadMedidaMaestro,
-                        Cantidad = l.cantidad,
-                        ValorUnitario = pedidosPorId[l.idPedido].Precio.Value,
-                        MontoDescuento = l.montoDescuento,
+                        Cantidad = lineasPorId[l.idPedidoFacturaLinea].Cantidad,
+                        ValorUnitario = lineasPorId[l.idPedidoFacturaLinea].ValorUnitario,
+                        MontoDescuento = lineasPorId[l.idPedidoFacturaLinea].Descuento,
                         IdAfectacionIgvMaestro = l.idAfectacionIgvMaestro,
                         PorcentajeIgv = l.porcentajeIgv,
                         IdLineaDocumentoElectronico = l.idLineaDocumentoElectronico
@@ -977,23 +1160,29 @@ namespace SafetyReport.Handlers
                     return new Respuesta { IdTipoMensaje = resultado?.IdTipoMensaje ?? 3, Mensaje = resultado?.Mensaje ?? "No se pudieron guardar los cambios en facturación." };
                 }
 
-                // Reconcilia PEDIDO_FACTURA con el nuevo set de pedidos: enlaza los que se agregaron,
-                // desvincula los que se quitaron. Ninguna de las dos falla la operación si algo sale mal
-                // acá — el documento en ms-facturación ya se guardó, solo queda desincronizado el vínculo.
-                var enlace = await _pedidoFacturaDao.RegistrarEnvioAsync(
-                    usuarioLogueado, idPedidos, idDocumentoElectronico, idEstadoFacturacion: 10);
-                if (enlace.IdTipoMensaje != 2)
+                // Reconcilia PEDIDO_FACTURA_LINEA con el nuevo set de líneas: enlaza las que se
+                // agregaron (las que ya tenían este mismo documento se saltan — RegistrarEnvio exige
+                // línea libre), desvincula las que se quitaron. Ninguna de las dos falla la operación
+                // si algo sale mal acá — el documento en ms-facturación ya se guardó, solo queda
+                // desincronizado el vínculo.
+                var idsLineaNuevas = idsLinea.Where(id => lineasPorId[id].IdDocumentoElectronico is null).ToList();
+                if (idsLineaNuevas.Count > 0)
                 {
-                    _logger.LogWarning(
-                        "No se pudo enlazar los pedidos {IdPedidos} al documento {IdDocumentoElectronico}: {Mensaje}",
-                        string.Join(",", idPedidos), idDocumentoElectronico, enlace.Mensaje);
+                    var enlace = await _pedidoFacturaDao.RegistrarEnvioAsync(
+                        usuarioLogueado, idsLineaNuevas, idDocumentoElectronico);
+                    if (enlace.IdTipoMensaje != 2)
+                    {
+                        _logger.LogWarning(
+                            "No se pudo enlazar las líneas {IdsLinea} al documento {IdDocumentoElectronico}: {Mensaje}",
+                            string.Join(",", idsLineaNuevas), idDocumentoElectronico, enlace.Mensaje);
+                    }
                 }
 
-                var desvinculacion = await _pedidoFacturaDao.DesvincularAsync(usuarioLogueado, idDocumentoElectronico, idPedidos);
+                var desvinculacion = await _pedidoFacturaDao.DesvincularAsync(usuarioLogueado, idDocumentoElectronico, idsLinea);
                 if (desvinculacion.IdTipoMensaje != 2)
                 {
                     _logger.LogWarning(
-                        "No se pudo desvincular los pedidos removidos del documento {IdDocumentoElectronico}: {Mensaje}",
+                        "No se pudo desvincular las líneas removidas del documento {IdDocumentoElectronico}: {Mensaje}",
                         idDocumentoElectronico, desvinculacion.Mensaje);
                 }
 
@@ -1081,15 +1270,14 @@ namespace SafetyReport.Handlers
         // Confirma con SUNAT el documento ya guardado. ms-facturación recalcula FechaEmision/HoraEmision
         // a su propio reloj justo antes de enviar (ver EnviarDocumentoElectronicoASunatCasoDeUso) — no hace
         // falta que este Handler actualice nada antes de llamarlo.
-        // EstadoMaestroCodigo (ms-facturación) → PEDIDO_FACTURA.IdEstadoFacturacion (TABLA_MAESTRA IdMaestro=68).
+        // PEDIDO_FACTURA_LINEA.IdEstadoFacturacion usa el dominio SUNAT/ms-facturación directamente
+        // (EstadoMaestroCodigo, TABLA_MAESTRA IdMaestro=1) — ya no hay traducción a un dominio propio.
         // Error (8) es SUNAT rechazando el contenido del comprobante (dato inválido, no un fallo de
-        // transmisión) — antes no mapeaba y el pedido quedaba varado en Borrador Factura (10), invisible en
-        // SP_Pedido_ListarParaFacturacion. Se mapea a Error de Factura (11) para que vuelva a aparecer.
+        // transmisión) — antes no mapeaba y el pedido quedaba varado en Borrador Factura, invisible en
+        // SP_Pedido_ListarParaFacturacion. Se deja pasar para que vuelva a aparecer.
         private static int? MapearEstadoFacturacion(int estadoCodigoSunat) => estadoCodigoSunat switch
         {
-            3 or 4 => 5, // Aceptado / AceptadoConObservaciones → Aprobado
-            5 => 6,      // Rechazado → Rechazado
-            8 => 11,     // ErrorSunat → Error de Factura
+            3 or 4 or 5 or 8 => estadoCodigoSunat, // Aceptado / AceptadoConObservaciones / Rechazado / ErrorSunat
             _ => null
         };
 
@@ -1213,6 +1401,10 @@ namespace SafetyReport.Handlers
                 var lotesCreados = new List<FacturacionLoteDocumentoCreado>();
                 var itemsExitosos = new List<AnularFacturaItem>();
                 var mensajesError = new List<string>();
+                // Factura y boleta usan códigos SUNAT distintos para "solicitud de baja enviada, pendiente
+                // de respuesta" — ComunicacionBajaEnviada (6) vs. ResumenBajaEnviado (16) — así que cada
+                // rama arma su propio tramo de documentosConEstado en vez de un IdEstadoFacturacion único.
+                var documentosConEstado = new List<(int IdDocumentoElectronico, int IdEstadoFacturacion)>();
 
                 if (itemsOtros.Count > 0)
                 {
@@ -1220,6 +1412,7 @@ namespace SafetyReport.Handlers
                     {
                         lotesCreados.Add(comunicacionBajaResultado.Datos);
                         itemsExitosos.AddRange(itemsOtros);
+                        documentosConEstado.AddRange(itemsOtros.Select(item => (item.IdDocumentoElectronico, IdEstadoFacturacion: 6))); // ComunicacionBajaEnviada
                     }
                     else
                     {
@@ -1233,6 +1426,7 @@ namespace SafetyReport.Handlers
                     {
                         lotesCreados.Add(resumenBajaBoletaResultado.Datos);
                         itemsExitosos.AddRange(itemsBoleta);
+                        documentosConEstado.AddRange(itemsBoleta.Select(item => (item.IdDocumentoElectronico, IdEstadoFacturacion: 16))); // ResumenBajaEnviado
                     }
                     else
                     {
@@ -1240,18 +1434,14 @@ namespace SafetyReport.Handlers
                     }
                 }
 
-                if (itemsExitosos.Count > 0)
+                if (documentosConEstado.Count > 0)
                 {
-                    var documentosConEstado = itemsExitosos
-                        .Select(item => (item.IdDocumentoElectronico, IdEstadoFacturacion: 7)) // Pendiente Anulación
-                        .ToList();
-
                     var actualizacion = await _pedidoFacturaDao.ActualizarEstadoPorDocumentoAsync(usuarioLogueado.IdEmpresa, documentosConEstado);
                     if (actualizacion.IdTipoMensaje != 2)
                     {
                         _logger.LogWarning(
-                            "No se pudo marcar Pendiente Anulación los documentos {IdDocumentos} tras enviar la baja: {Mensaje}",
-                            string.Join(",", itemsExitosos.Select(i => i.IdDocumentoElectronico)), actualizacion.Mensaje);
+                            "No se pudo marcar la baja pendiente en los documentos {IdDocumentos} tras enviarla: {Mensaje}",
+                            string.Join(",", documentosConEstado.Select(d => d.IdDocumentoElectronico)), actualizacion.Mensaje);
                     }
                 }
 
@@ -1400,6 +1590,128 @@ namespace SafetyReport.Handlers
                         MonedaIcono = resultado.Datos.MonedaIcono
                     }
                 };
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error no controlado en la capa de negocio.");
+                return new Respuesta { IdTipoMensaje = 3, Mensaje = ex.Message };
+            }
+        }
+
+        // Sección "Facturación Analítica" del dashboard de Gerente — indicadores, desglose por
+        // trámite/país/estado. SP_Facturacion_ResumenAnalitico valida el rol 6 adentro (mismo patrón
+        // que SP_Usuario_Resumen/SP_Cliente_Resumen) — no hace falta un paso previo de acceso acá.
+        //
+        // Cambio de arquitectura: TotalFacturado/TotalNotasCredito/TotalNotasDebito/desglosePorEstado
+        // ya no salen del SP local — vienen por HTTP de ms-facturacion (sin cross-database entre las
+        // dos bases, decisión del equipo). Acá se combinan las dos fuentes, sin calcular nada — mismo
+        // patrón de dos pasos que ya usa ObtenerResumenDashboardAsync.
+        public async Task<Respuesta> ObtenerResumenAnaliticoAsync(UsuarioGeneral usuarioLogueado, FiltroFacturacionAnaliticaRequest filtro)
+        {
+            try
+            {
+                if (filtro.fechaDesde is not null && filtro.fechaHasta is not null && filtro.fechaDesde > filtro.fechaHasta)
+                {
+                    return new Respuesta { IdTipoMensaje = 1, Mensaje = "La fecha desde no puede ser mayor a la fecha hasta." };
+                }
+
+                var local = await _pedidoFacturaDao.ObtenerResumenAnaliticoAsync(usuarioLogueado, filtro);
+                if (local.IdTipoMensaje != 2 || local.Result is not ResumenAnaliticoFacturacionConsulta resultado)
+                {
+                    return local;
+                }
+
+                var montosTask = _facturacionService.ObtenerMontosFacturacionAsync(
+                    usuarioLogueado.IdEmpresa, // IdInquilino en ms-facturación = IdEmpresa acá
+                    1, // TODO: resolver desde EMPRESAS de ms-facturación, mismo TODO que ObtenerResumenDashboardAsync.
+                    filtro.fechaDesde, filtro.fechaHasta, CancellationToken.None);
+                var desgloseEstadoTask = _facturacionService.ObtenerDesgloseEstadoFacturacionAsync(
+                    usuarioLogueado.IdEmpresa, 1, filtro.fechaDesde, filtro.fechaHasta, filtro.idTipoDocumentoMaestro, CancellationToken.None);
+
+                await Task.WhenAll(montosTask, desgloseEstadoTask);
+                var montos = await montosTask;
+                var desgloseEstado = await desgloseEstadoTask;
+
+                if (montos is null || montos.IdTipoMensaje != 2 || montos.Datos is null)
+                {
+                    return new Respuesta { IdTipoMensaje = montos?.IdTipoMensaje ?? 3, Mensaje = montos?.Mensaje ?? "No se pudieron obtener los montos de facturación." };
+                }
+
+                if (desgloseEstado is null || desgloseEstado.IdTipoMensaje != 2 || desgloseEstado.Datos is null)
+                {
+                    return new Respuesta { IdTipoMensaje = desgloseEstado?.IdTipoMensaje ?? 3, Mensaje = desgloseEstado?.Mensaje ?? "No se pudo obtener el desglose por estado." };
+                }
+
+                resultado.Indicadores.TotalFacturado = montos.Datos.TotalFacturado;
+                resultado.Indicadores.TotalNotasCredito = montos.Datos.TotalNotasCredito;
+                resultado.Indicadores.TotalNotasDebito = montos.Datos.TotalNotasDebito;
+                resultado.Indicadores.MonedaIcono = montos.Datos.MonedaIcono;
+
+                resultado.DesglosePorEstado = desgloseEstado.Datos
+                    .Select(d => new DesgloseEstadoConsulta
+                    {
+                        IdEstadoMaestro = d.IdEstadoMaestro,
+                        Estado = d.Estado,
+                        CantidadFacturas = d.CantidadFacturas,
+                        MontoFacturado = d.MontoFacturado
+                    })
+                    .ToList();
+
+                return local;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error no controlado en la capa de negocio.");
+                return new Respuesta { IdTipoMensaje = 3, Mensaje = ex.Message };
+            }
+        }
+
+        public async Task<Respuesta> ObtenerEvolucionAnaliticaAsync(UsuarioGeneral usuarioLogueado, EvolucionFacturacionRequest filtro)
+        {
+            try
+            {
+                if (filtro.granularidad is < 1 or > 4)
+                {
+                    return new Respuesta { IdTipoMensaje = 1, Mensaje = "La granularidad debe ser 1 (Día), 2 (Semana), 3 (Mes) o 4 (Año)." };
+                }
+
+                if (filtro.fechaDesde is not null && filtro.fechaHasta is not null && filtro.fechaDesde > filtro.fechaHasta)
+                {
+                    return new Respuesta { IdTipoMensaje = 1, Mensaje = "La fecha desde no puede ser mayor a la fecha hasta." };
+                }
+
+                var resultado = await _facturacionService.ObtenerEvolucionFacturacionAsync(
+                    usuarioLogueado.IdEmpresa, 1, filtro.fechaDesde, filtro.fechaHasta, filtro.granularidad, CancellationToken.None);
+
+                if (resultado is null || resultado.IdTipoMensaje != 2 || resultado.Datos is null)
+                {
+                    return new Respuesta { IdTipoMensaje = resultado?.IdTipoMensaje ?? 3, Mensaje = resultado?.Mensaje ?? "No se pudo obtener la evolución de facturación." };
+                }
+
+                var serie = resultado.Datos
+                    .Select(d => new EvolucionFacturacionConsulta
+                    {
+                        Periodo = d.Periodo,
+                        Etiqueta = d.Etiqueta,
+                        CantidadPedidos = d.CantidadPedidos,
+                        MontoFacturado = d.MontoFacturado
+                    })
+                    .ToList();
+
+                return new Respuesta { IdTipoMensaje = 2, Mensaje = resultado.Mensaje ?? "Consulta exitosa.", Result = serie };
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error no controlado en la capa de negocio.");
+                return new Respuesta { IdTipoMensaje = 3, Mensaje = ex.Message };
+            }
+        }
+
+        public async Task<Respuesta> ObtenerResumenClientesGlobalAsync(UsuarioGeneral usuarioLogueado)
+        {
+            try
+            {
+                return await _pedidoFacturaDao.ObtenerResumenClientesGlobalAsync(usuarioLogueado);
             }
             catch (Exception ex)
             {

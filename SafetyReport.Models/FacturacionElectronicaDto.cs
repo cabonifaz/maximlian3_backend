@@ -71,6 +71,39 @@ namespace SafetyReport.Models
         public string MonedaIcono { get; set; } = string.Empty;
     }
 
+    // Respuesta de GET .../resumen-facturacion-analitica — dashboard de Facturación Analítica del
+    // Gerente. A diferencia de FacturacionResumenFacturacion (que netea todo en MontoTotalPEN), acá
+    // los 3 montos van separados: 3 tarjetas del dashboard. TotalNotasCredito es negativo (pérdida).
+    // Ver SP_Facturacion_ObtenerMontosFacturacion.
+    public class FacturacionMontosFacturacion
+    {
+        public decimal TotalFacturado { get; set; }
+        public decimal TotalNotasCredito { get; set; }
+        public decimal TotalNotasDebito { get; set; }
+        public string MonedaIcono { get; set; } = string.Empty;
+    }
+
+    // Fila de GET .../desglose-estado-facturacion-analitica — top 5 estados (por cantidad) + "Otros".
+    // IdEstadoMaestro es NULL en la fila "Otros". Ver SP_Facturacion_ObtenerDesgloseEstado.
+    public class FacturacionDesgloseEstado
+    {
+        public int? IdEstadoMaestro { get; set; }
+        public string Estado { get; set; } = string.Empty;
+        public int CantidadFacturas { get; set; }
+        public decimal MontoFacturado { get; set; }
+    }
+
+    // Fila de GET .../evolucion-facturacion-analitica — serie temporal (solo Factura/Boleta). Etiqueta
+    // ya viene formateada del SP (dd/mm | Sem 01 | Mes Año | Año, según granularidad). Ver
+    // SP_Facturacion_ObtenerEvolucion.
+    public class FacturacionEvolucion
+    {
+        public string Periodo { get; set; } = string.Empty;
+        public string Etiqueta { get; set; } = string.Empty;
+        public int CantidadPedidos { get; set; }
+        public decimal MontoFacturado { get; set; }
+    }
+
     // Solo el código de producto de cada línea del documento — referencia para el usuario, no se copia
     // cantidad/precio/IGV.
     public class FacturacionProductoResumen
@@ -103,10 +136,10 @@ namespace SafetyReport.Models
     public class FacturacionGuardarCambiosRequest
     {
         // IdExterno solo se llenaba al crear el documento y quedaba obsoleto en cuanto las líneas cambiaban.
-        // Se recalcula igual que en FacturacionInsertarDocumentoRequest.IdExterno: join de los IdPedido de
-        // las líneas actuales para Factura/Boleta (GuardarCambiosFacturaAsync), o el id del documento
-        // afectado para Nota de Crédito/Débito (EditarNotaCreditoDebitoAsync, ese id nunca cambia pero
-        // igual se recalcula desde el mismo campo que Insertar, no se asume).
+        // Se recalcula igual que en FacturacionInsertarDocumentoRequest.IdExterno: join de los
+        // IdPedidoFacturaLinea actuales para Factura/Boleta (GuardarCambiosFacturaAsync), o el id del
+        // documento afectado para Nota de Crédito/Débito (EditarNotaCreditoDebitoAsync, ese id nunca
+        // cambia pero igual se recalcula desde el mismo campo que Insertar, no se asume).
         public string IdExterno { get; set; } = string.Empty;
         // Null en Nota de Crédito/Débito, mismo criterio que FacturacionInsertarDocumentoRequest.FormaPago.
         public int? IdFormaPago { get; set; }
@@ -171,6 +204,14 @@ namespace SafetyReport.Models
         public int Correlativo { get; set; }
         public string EstadoCodigo { get; set; } = string.Empty;
         public DateTime FechaCreacion { get; set; }
+    }
+
+    // Respuesta de GET .../token/{token}/id — solo lo mínimo para armar la consulta de pedidos del
+    // documento contra maximlian3 (IdInquilino equivale a IdEmpresa acá).
+    public class FacturacionIdentificadorPorToken
+    {
+        public int IdDocumentoElectronico { get; set; }
+        public int IdInquilino { get; set; }
     }
 
     public class FacturacionResultadoEnvioSunat

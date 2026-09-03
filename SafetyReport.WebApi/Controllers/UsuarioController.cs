@@ -72,6 +72,17 @@ namespace SafetyReport.WebApi.Controllers
             return Ok(respuesta);
         }
 
+        [HttpGet("listaCortaDashboard")]
+        public async Task<IActionResult> ListarCortaDashboard([FromQuery] List<int>? idsRolFiltro)
+        {
+            var respuesta = await _usuarioHandler.ListarCortaDashboardAsync(
+                UsuarioLogueado,
+                idsRolFiltro
+            );
+
+            return Ok(respuesta);
+        }
+
         [HttpGet("listaCortaAsignacion")]
         public async Task<IActionResult> ListarCortaAsignacion([FromQuery] FiltroUsuarioAsignacionListaCorta request)
         {

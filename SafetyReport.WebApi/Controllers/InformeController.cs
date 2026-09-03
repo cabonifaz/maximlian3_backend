@@ -107,6 +107,13 @@ namespace SafetyReport.WebApi.Controllers
             return Ok(respuesta);
         }
 
+        [HttpPost("enviarNotificacion")]
+        public async Task<IActionResult> EnviarNotificacion([FromBody] InformeIdRequest request)
+        {
+            var respuesta = await _informeHandler.EnviarNotificacionInformeAsync(UsuarioLogueado, request);
+            return Ok(respuesta);
+        }
+
         [HttpDelete("eliminar")]
         public async Task<IActionResult> Eliminar([FromBody] InformeIdRequest request)
         {
@@ -144,6 +151,13 @@ namespace SafetyReport.WebApi.Controllers
         public async Task<IActionResult> Traducir([FromBody] InformeTranslationRequest request)
         {
             var respuesta = await _translationHandler.TranslateAsync(request);
+            return Ok(respuesta);
+        }
+
+        [HttpGet("resumen")]
+        public async Task<IActionResult> ObtenerEvolucion([FromQuery] EvolucionInformesRequest request)
+        {
+            var respuesta = await _informeHandler.ObtenerEvolucionAsync(UsuarioLogueado, request);
             return Ok(respuesta);
         }
 

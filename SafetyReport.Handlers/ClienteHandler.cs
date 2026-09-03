@@ -93,6 +93,27 @@ namespace SafetyReport.Handlers
             }
         }
 
+        // Payload reducido de ObtenerClientePorDocumentoElectronicoAsync + las líneas vivas del documento —
+        // ver SP_Cliente_ObtenerConLineasPorDocumentoElectronico.
+        public async Task<Respuesta> ObtenerClienteConLineasPorDocumentoElectronicoAsync(UsuarioGeneral usuarioLogueado, int idDocumentoElectronico)
+        {
+            try
+            {
+                return await _dao.ObtenerConLineasPorDocumentoElectronicoAsync(usuarioLogueado, idDocumentoElectronico);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error no controlado en la capa de negocio.");
+
+                return new Respuesta
+                {
+                    IdTipoMensaje = 3,
+                    Mensaje = ex.Message,
+                    Result = new ClienteConLineasConsulta()
+                };
+            }
+        }
+
         public async Task<Respuesta> ListarClientesAsync(UsuarioGeneral usuarioLogueado, string? busqueda, int? numPag, int? idPais, int? idEstado)
         {
             try
@@ -131,6 +152,25 @@ namespace SafetyReport.Handlers
             }
         }
 
+        public async Task<Respuesta> ActivarDesactivarClienteAsync(UsuarioGeneral usuarioLogueado, ClienteEstadoRequest request)
+        {
+            try
+            {
+                return await _dao.ActivarDesactivarClienteAsync(usuarioLogueado, request.idCliente, request.idEstado);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error no controlado en la capa de negocio.");
+
+                return new Respuesta
+                {
+                    IdTipoMensaje = 3,
+                    Mensaje = ex.Message,
+                    Result = new List<ClienteEstadoActualizado>()
+                };
+            }
+        }
+
         public async Task<Respuesta> ListarClienteShortAsync(UsuarioGeneral usuarioLogueado, string? correoBusqueda)
         {
             try
@@ -150,11 +190,11 @@ namespace SafetyReport.Handlers
             }
         }
 
-        public async Task<Respuesta> ListarClientesFacturacionAsync(UsuarioGeneral usuarioLogueado, string? busqueda, int? numPag, int? emitirPrefactura, int? idIdiomaFacturacion, int? estadoFacturacion)
+        public async Task<Respuesta> ListarClientesFacturacionAsync(UsuarioGeneral usuarioLogueado, string? busqueda, int? numPag, int? emitirPrefactura, int? idIdiomaFacturacion)
         {
             try
             {
-                return await _dao.ListarClientesFacturacionAsync(usuarioLogueado, busqueda, numPag, emitirPrefactura, idIdiomaFacturacion, estadoFacturacion);
+                return await _dao.ListarClientesFacturacionAsync(usuarioLogueado, busqueda, numPag, emitirPrefactura, idIdiomaFacturacion);
             }
             catch (Exception ex)
             {

@@ -46,6 +46,9 @@ namespace SafetyReport.DAO
         private static decimal? GetNullableDecimal(DbDataReader dr, string columna) =>
             dr[columna] == DBNull.Value ? null : Convert.ToDecimal(dr[columna]);
 
+        private static int? GetNullableInt(DbDataReader dr, string columna) =>
+            dr[columna] == DBNull.Value ? null : Convert.ToInt32(dr[columna]);
+
         // Une SP_Cliente_ObtenerParaFacturacion + SP_Pedido_ObtenerParaFacturacion en un solo viaje.
         // idCliente es NULL cuando el llamador solo necesita resolver pedidos (GuardarCambiosFacturaAsync).
         public async Task<Respuesta> ObtenerDatosBorradorAsync(UsuarioGeneral usuarioLogueado, int? idCliente, List<int> idPedidos)
@@ -149,8 +152,11 @@ namespace SafetyReport.DAO
             }
         }
 
+        // idPedidoFacturaLinea: líneas ya libres a asociar a idDocumentoElectronico (no pedidos —
+        // ver PLAN_Lineas_Facturacion.md). El SP fija IdEstadoFacturacion=1 (PendienteEnvio) él
+        // solo, ya no se pasa como parámetro.
         public async Task<Respuesta> RegistrarEnvioAsync(
-            UsuarioGeneral usuarioLogueado, List<int> idPedidos, int idDocumentoElectronico, int? idEstadoFacturacion)
+            UsuarioGeneral usuarioLogueado, List<int> idPedidoFacturaLinea, int idDocumentoElectronico)
         {
             try
             {
@@ -162,9 +168,8 @@ namespace SafetyReport.DAO
                 cmd.Parameters.AddWithValue("@vchUsuario", usuarioLogueado.Usuario);
                 cmd.Parameters.AddWithValue("@intIdEmpresa", usuarioLogueado.IdEmpresa);
                 cmd.Parameters.AddWithValue("@intIdRol", usuarioLogueado.IdRol);
-                cmd.Parameters.AddWithValue("@lstIdPedido", JsonSerializer.Serialize(idPedidos));
+                cmd.Parameters.AddWithValue("@lstIdPedidoFacturaLinea", JsonSerializer.Serialize(idPedidoFacturaLinea));
                 cmd.Parameters.AddWithValue("@intIdDocumentoElectronico", idDocumentoElectronico);
-                cmd.Parameters.AddWithValue("@intIdEstadoFacturacion", (object?)idEstadoFacturacion ?? DBNull.Value);
 
                 await cn.OpenAsync();
                 using var dr = await cmd.ExecuteReaderAsync();
@@ -187,10 +192,12 @@ namespace SafetyReport.DAO
             }
         }
 
-        // Desvincula (IdDocumentoElectronico = NULL) los pedidos que ya no vienen en las líneas del
-        // documento (línea eliminada en un GuardarCambios).
+        // Libera (IdPedidoFacturaLinea = NULL en sus pedidos, SoftDelete=1 en la línea) toda línea
+        // que hoy esté en idDocumentoElectronico pero ya no venga en idPedidoFacturaLineaVigentes
+        // (línea quitada en un GuardarCambios) — composición de línea inmutable, ya no se opera
+        // pedido por pedido (ver PLAN_Lineas_Facturacion.md).
         public async Task<Respuesta> DesvincularAsync(
-            UsuarioGeneral usuarioLogueado, int idDocumentoElectronico, List<int> idPedidosVigentes)
+            UsuarioGeneral usuarioLogueado, int idDocumentoElectronico, List<int> idPedidoFacturaLineaVigentes)
         {
             try
             {
@@ -203,7 +210,7 @@ namespace SafetyReport.DAO
                 cmd.Parameters.AddWithValue("@intIdEmpresa", usuarioLogueado.IdEmpresa);
                 cmd.Parameters.AddWithValue("@intIdRol", usuarioLogueado.IdRol);
                 cmd.Parameters.AddWithValue("@intIdDocumentoElectronico", idDocumentoElectronico);
-                cmd.Parameters.AddWithValue("@lstIdPedido", JsonSerializer.Serialize(idPedidosVigentes));
+                cmd.Parameters.AddWithValue("@lstIdPedidoFacturaLinea", JsonSerializer.Serialize(idPedidoFacturaLineaVigentes));
 
                 await cn.OpenAsync();
                 using var dr = await cmd.ExecuteReaderAsync();
@@ -418,6 +425,125 @@ namespace SafetyReport.DAO
                 using var dr = await cmd.ExecuteReaderAsync();
 
                 return await LeerCabeceraAsync(dr, cmd.CommandText);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error no controlado en la capa de datos.");
+                return new Respuesta { IdTipoMensaje = 3, Mensaje = ex.Message };
+            }
+        }
+
+        public async Task<Respuesta> ObtenerResumenAnaliticoAsync(UsuarioGeneral usuarioLogueado, FiltroFacturacionAnaliticaRequest filtro)
+        {
+            try
+            {
+                using MySqlConnection cn = new(_dbConfig.ConnectionString);
+                using MySqlCommand cmd = new("SP_Facturacion_ResumenAnalitico", cn);
+
+                cmd.CommandType = CommandType.StoredProcedure;
+                cmd.Parameters.AddWithValue("@intIdUsuario", usuarioLogueado.IdUsuario);
+                cmd.Parameters.AddWithValue("@vchUsuario", usuarioLogueado.Usuario);
+                cmd.Parameters.AddWithValue("@intIdEmpresa", usuarioLogueado.IdEmpresa);
+                cmd.Parameters.AddWithValue("@intIdRol", usuarioLogueado.IdRol);
+                cmd.Parameters.AddWithValue("@intIdCliente", (object?)filtro.idCliente ?? DBNull.Value);
+                cmd.Parameters.AddWithValue("@intIdPais", (object?)filtro.idPais ?? DBNull.Value);
+                cmd.Parameters.AddWithValue("@intIdTipoTramite", (object?)filtro.idTipoTramite ?? DBNull.Value);
+
+                await cn.OpenAsync();
+
+                using var dr = await cmd.ExecuteReaderAsync();
+                var respuesta = await LeerCabeceraAsync(dr, cmd.CommandText);
+
+                if (respuesta.IdTipoMensaje != 2)
+                {
+                    return respuesta;
+                }
+
+                var resultado = new ResumenAnaliticoFacturacionConsulta();
+
+                if (await dr.NextResultAsync() && await dr.ReadAsync())
+                {
+                    resultado.Indicadores = new IndicadoresFacturacionConsulta
+                    {
+                        CantidadPedidosPendientes = Convert.ToInt32(dr["CantidadPedidosPendientes"]),
+                        MontoPendienteFacturar = GetNullableDecimal(dr, "MontoPendienteFacturar") ?? 0m,
+                        CantidadPedidosFacturados = Convert.ToInt32(dr["CantidadPedidosFacturados"])
+                    };
+                }
+
+                if (await dr.NextResultAsync())
+                {
+                    while (await dr.ReadAsync())
+                        resultado.DesglosePorTramite.Add(new DesgloseTramiteConsulta
+                        {
+                            IdTipoTramite = GetNullableInt(dr, "IdTipoTramite"),
+                            TipoTramite = dr["TipoTramite"]?.ToString() ?? string.Empty,
+                            CantidadPedidos = Convert.ToInt32(dr["CantidadPedidos"]),
+                            MontoFacturado = Convert.ToDecimal(dr["MontoFacturado"])
+                        });
+                }
+
+                if (await dr.NextResultAsync())
+                {
+                    while (await dr.ReadAsync())
+                        resultado.DesglosePorPais.Add(new DesglosePaisConsulta
+                        {
+                            IdPais = GetNullableInt(dr, "IdPais"),
+                            Pais = dr["Pais"]?.ToString() ?? string.Empty,
+                            CantidadPedidos = Convert.ToInt32(dr["CantidadPedidos"]),
+                            MontoFacturado = Convert.ToDecimal(dr["MontoFacturado"])
+                        });
+                }
+
+                respuesta.Result = resultado;
+                return respuesta;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error no controlado en la capa de datos.");
+                return new Respuesta { IdTipoMensaje = 3, Mensaje = ex.Message };
+            }
+        }
+
+        public async Task<Respuesta> ObtenerResumenClientesGlobalAsync(UsuarioGeneral usuarioLogueado)
+        {
+            try
+            {
+                using MySqlConnection cn = new(_dbConfig.ConnectionString);
+                using MySqlCommand cmd = new("SP_Facturacion_ResumenClientesGlobal", cn);
+
+                cmd.CommandType = CommandType.StoredProcedure;
+                cmd.Parameters.AddWithValue("@intIdUsuario", usuarioLogueado.IdUsuario);
+                cmd.Parameters.AddWithValue("@vchUsuario", usuarioLogueado.Usuario);
+                cmd.Parameters.AddWithValue("@intIdEmpresa", usuarioLogueado.IdEmpresa);
+                cmd.Parameters.AddWithValue("@intIdRol", usuarioLogueado.IdRol);
+
+                await cn.OpenAsync();
+
+                using var dr = await cmd.ExecuteReaderAsync();
+                var respuesta = await LeerCabeceraAsync(dr, cmd.CommandText);
+
+                if (respuesta.IdTipoMensaje != 2)
+                {
+                    return respuesta;
+                }
+
+                var clientes = new List<ResumenClienteGlobalConsulta>();
+                if (await dr.NextResultAsync())
+                {
+                    while (await dr.ReadAsync())
+                        clientes.Add(new ResumenClienteGlobalConsulta
+                        {
+                            IdCliente = Convert.ToInt32(dr["IdCliente"]),
+                            Cliente = dr["Cliente"]?.ToString() ?? string.Empty,
+                            CantidadPedidosFacturados = Convert.ToInt32(dr["CantidadPedidosFacturados"]),
+                            TotalFacturado = GetNullableDecimal(dr, "TotalFacturado") ?? 0m,
+                            MontoPendienteFacturar = GetNullableDecimal(dr, "MontoPendienteFacturar") ?? 0m
+                        });
+                }
+
+                respuesta.Result = clientes;
+                return respuesta;
             }
             catch (Exception ex)
             {

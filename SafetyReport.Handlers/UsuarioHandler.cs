@@ -212,6 +212,25 @@ namespace SafetyReport.Handlers
             }
         }
 
+        public async Task<Respuesta> ListarCortaDashboardAsync(UsuarioGeneral usuarioLogueado, List<int>? idsRolFiltro)
+        {
+            try
+            {
+                return await _dao.ListarCortaDashboardAsync(usuarioLogueado, idsRolFiltro);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error no controlado en la capa de negocio.");
+
+                return new Respuesta
+                {
+                    IdTipoMensaje = 3,
+                    Mensaje = ex.Message,
+                    Result = new List<UsuarioListaCortaDashboardItem>()
+                };
+            }
+        }
+
         public async Task<Respuesta> ListarCortaAsignacionAsync(UsuarioGeneral usuarioLogueado, int idRolFiltro, string? filtro, bool esTraductor, List<int>? idiomasPedido)
         {
             try

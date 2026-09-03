@@ -52,6 +52,13 @@ namespace SafetyReport.WebApi.Controllers
             return Ok(respuesta);
         }
 
+        [HttpGet("obtenerConLineasPorDocumentoElectronico")]
+        public async Task<IActionResult> ObtenerConLineasPorDocumentoElectronico([FromQuery] int idDocumentoElectronico)
+        {
+            var respuesta = await _clienteHandler.ObtenerClienteConLineasPorDocumentoElectronicoAsync(UsuarioLogueado, idDocumentoElectronico);
+            return Ok(respuesta);
+        }
+
         [HttpGet("listar")]
         public async Task<IActionResult> Listar([FromQuery] FiltroCliente request)
         {
@@ -66,6 +73,13 @@ namespace SafetyReport.WebApi.Controllers
             return Ok(respuesta);
         }
 
+        [HttpPost("activarDesactivar")]
+        public async Task<IActionResult> ActivarDesactivar([FromBody] ClienteEstadoRequest request)
+        {
+            var respuesta = await _clienteHandler.ActivarDesactivarClienteAsync(UsuarioLogueado, request);
+            return Ok(respuesta);
+        }
+
         [HttpGet("listaCorta")]
         public async Task<IActionResult> ListaCorta([FromQuery] string? correoBusqueda)
         {
@@ -76,7 +90,7 @@ namespace SafetyReport.WebApi.Controllers
         [HttpGet("listarFacturacion")]
         public async Task<IActionResult> ListarFacturacion([FromQuery] FiltroClienteFacturacion request)
         {
-            var respuesta = await _clienteHandler.ListarClientesFacturacionAsync(UsuarioLogueado, request?.busqueda, request?.numPag, request?.emitirPrefactura, request?.idIdiomaFacturacion, request?.estadoFacturacion);
+            var respuesta = await _clienteHandler.ListarClientesFacturacionAsync(UsuarioLogueado, request?.busqueda, request?.numPag, request?.emitirPrefactura, request?.idIdiomaFacturacion);
             return Ok(respuesta);
         }
 
