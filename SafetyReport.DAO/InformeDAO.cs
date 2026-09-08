@@ -570,12 +570,15 @@ namespace SafetyReport.DAO
 
         private static void AgregarTvpsCampos(MySqlCommand cmd, InformeCrear r)
         {
-            cmd.Parameters.AddWithValue("@tvpIdentificacion", JsonSerializer.Serialize(ConstruirIdentificacionJson(r)));
-            cmd.Parameters.AddWithValue("@tvpAspectosLegales", JsonSerializer.Serialize(ConstruirAspectosLegalesJson(r)));
-            cmd.Parameters.AddWithValue("@tvpRamoOperaciones", JsonSerializer.Serialize(ConstruirRamoOperacionesJson(r)));
-            cmd.Parameters.AddWithValue("@tvpInformacionFinanciera", JsonSerializer.Serialize(ConstruirInformacionFinancieraJson(r)));
-            cmd.Parameters.AddWithValue("@tvpBancosProveedores", JsonSerializer.Serialize(ConstruirBancosProveedoresJson(r)));
-            cmd.Parameters.AddWithValue("@tvpDatosGenerales", JsonSerializer.Serialize(ConstruirDatosGeneralesJson(r)));
+            // Cada sección es un TVP de una sola fila en el SP original; el JSON que espera el
+            // SP en MySQL es un arreglo de exactamente un elemento (JSON_TYPE=ARRAY, extraído
+            // via $[0].Campo), no un objeto plano.
+            cmd.Parameters.AddWithValue("@tvpIdentificacion", JsonSerializer.Serialize(new[] { ConstruirIdentificacionJson(r) }));
+            cmd.Parameters.AddWithValue("@tvpAspectosLegales", JsonSerializer.Serialize(new[] { ConstruirAspectosLegalesJson(r) }));
+            cmd.Parameters.AddWithValue("@tvpRamoOperaciones", JsonSerializer.Serialize(new[] { ConstruirRamoOperacionesJson(r) }));
+            cmd.Parameters.AddWithValue("@tvpInformacionFinanciera", JsonSerializer.Serialize(new[] { ConstruirInformacionFinancieraJson(r) }));
+            cmd.Parameters.AddWithValue("@tvpBancosProveedores", JsonSerializer.Serialize(new[] { ConstruirBancosProveedoresJson(r) }));
+            cmd.Parameters.AddWithValue("@tvpDatosGenerales", JsonSerializer.Serialize(new[] { ConstruirDatosGeneralesJson(r) }));
 
             cmd.Parameters.AddWithValue("@lstBalances", JsonSerializer.Serialize(ConstruirBalancesJson(r.lstBalances)));
             cmd.Parameters.AddWithValue("@lstBalancesDesagregado", JsonSerializer.Serialize(ConstruirBalancesDesagregadoJson(r.lstBalancesDesagregado)));
