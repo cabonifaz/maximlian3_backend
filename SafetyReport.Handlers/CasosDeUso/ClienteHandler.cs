@@ -2,7 +2,7 @@
 using SafetyReport.Application.Puertos.Cliente;
 using SafetyReport.Models;
 
-namespace SafetyReport.Handlers
+namespace SafetyReport.Handlers.CasosDeUso
 {
     public class ClienteHandler
     {

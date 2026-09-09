@@ -1,7 +1,7 @@
 using SafetyReport.Application.Puertos.TablaMaestra;
 using SafetyReport.Models;
 
-namespace SafetyReport.Handlers
+namespace SafetyReport.Handlers.CasosDeUso
 {
     public class FormatoDocumentoResolver
     {

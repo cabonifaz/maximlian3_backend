@@ -1,25 +1,25 @@
 using Microsoft.Extensions.Logging;
-using SafetyReport.Application.Puertos.Asignacion;
+using SafetyReport.Application.Puertos.Banco;
 using SafetyReport.Models;
 
-namespace SafetyReport.Handlers
+namespace SafetyReport.Handlers.CasosDeUso
 {
-    public class AsignacionHandler
+    public class BancoHandler
     {
-        private readonly IAsignacionRepository _asignacionRepository;
-        private readonly ILogger<AsignacionHandler> _logger;
+        private readonly IBancoRepository _repository;
+        private readonly ILogger<BancoHandler> _logger;
 
-        public AsignacionHandler(IAsignacionRepository asignacionRepository, ILogger<AsignacionHandler> logger)
+        public BancoHandler(IBancoRepository repository, ILogger<BancoHandler> logger)
         {
-            _asignacionRepository = asignacionRepository;
+            _repository = repository;
             _logger = logger;
         }
 
-        public async Task<Respuesta> InsertarAsync(UsuarioGeneral usuarioLogueado, AsignacionCrear request)
+        public async Task<Respuesta> CrearAsync(UsuarioGeneral usuarioLogueado, List<BancoCrear> lstBancos)
         {
             try
             {
-                return await _asignacionRepository.InsertarAsync(usuarioLogueado, request);
+                return await _repository.CrearAsync(usuarioLogueado, lstBancos);
             }
             catch (Exception ex)
             {
@@ -29,16 +29,16 @@ namespace SafetyReport.Handlers
                 {
                     IdTipoMensaje = 3,
                     Mensaje = ex.Message,
-                    Result = new List<AsignacionCreada>()
+                    Result = new List<BancoCreado>()
                 };
             }
         }
 
-        public async Task<Respuesta> ActualizarAsync(UsuarioGeneral usuarioLogueado, AsignacionActualizar request)
+        public async Task<Respuesta> EditarAsync(UsuarioGeneral usuarioLogueado, BancoEditar request)
         {
             try
             {
-                return await _asignacionRepository.ActualizarAsync(usuarioLogueado, request);
+                return await _repository.EditarAsync(usuarioLogueado, request);
             }
             catch (Exception ex)
             {
@@ -48,16 +48,16 @@ namespace SafetyReport.Handlers
                 {
                     IdTipoMensaje = 3,
                     Mensaje = ex.Message,
-                    Result = new List<AsignacionCreada>()
+                    Result = new List<BancoCreado>()
                 };
             }
         }
 
-        public async Task<Respuesta> ListarAsync(UsuarioGeneral usuarioLogueado, FiltroAsignacion request)
+        public async Task<Respuesta> ObtenerAsync(UsuarioGeneral usuarioLogueado, BancoObtenerRequest request)
         {
             try
             {
-                return await _asignacionRepository.ListarAsync(usuarioLogueado, request);
+                return await _repository.ObtenerAsync(usuarioLogueado, request);
             }
             catch (Exception ex)
             {
@@ -67,16 +67,16 @@ namespace SafetyReport.Handlers
                 {
                     IdTipoMensaje = 3,
                     Mensaje = ex.Message,
-                    Result = new AsignacionListaResult()
+                    Result = new List<BancoConsulta>()
                 };
             }
         }
 
-        public async Task<Respuesta> ObtenerAsync(UsuarioGeneral usuarioLogueado, int idAsignacion)
+        public async Task<Respuesta> ListarAsync(UsuarioGeneral usuarioLogueado, FiltroBanco filtro)
         {
             try
             {
-                return await _asignacionRepository.ObtenerAsync(usuarioLogueado, idAsignacion);
+                return await _repository.ListarAsync(usuarioLogueado, filtro);
             }
             catch (Exception ex)
             {
@@ -86,16 +86,16 @@ namespace SafetyReport.Handlers
                 {
                     IdTipoMensaje = 3,
                     Mensaje = ex.Message,
-                    Result = new List<AsignacionConsulta>()
+                    Result = new BancoListaResult()
                 };
             }
         }
 
-        public async Task<Respuesta> BandejaAsync(UsuarioGeneral usuarioLogueado, FiltroAsignacionBandeja filtro)
+        public async Task<Respuesta> ListarMatchAsync(UsuarioGeneral usuarioLogueado, List<BancoMatchItem> lista)
         {
             try
             {
-                return await _asignacionRepository.BandejaAsync(usuarioLogueado, filtro);
+                return await _repository.ListarMatchAsync(usuarioLogueado, lista);
             }
             catch (Exception ex)
             {
@@ -105,16 +105,16 @@ namespace SafetyReport.Handlers
                 {
                     IdTipoMensaje = 3,
                     Mensaje = ex.Message,
-                    Result = new AsignacionBandejaResult()
+                    Result = new List<BancoMatchResultItem>()
                 };
             }
         }
 
-        public async Task<Respuesta> EliminarAsync(UsuarioGeneral usuarioLogueado, EliminarAsignacion request)
+        public async Task<Respuesta> EliminarAsync(UsuarioGeneral usuarioLogueado, int idBanco)
         {
             try
             {
-                return await _asignacionRepository.EliminarAsync(usuarioLogueado, request);
+                return await _repository.EliminarAsync(usuarioLogueado, idBanco);
             }
             catch (Exception ex)
             {
@@ -124,7 +124,7 @@ namespace SafetyReport.Handlers
                 {
                     IdTipoMensaje = 3,
                     Mensaje = ex.Message,
-                    Result = new List<EliminarAsignacionResult>()
+                    Result = new List<BancoEliminado>()
                 };
             }
         }

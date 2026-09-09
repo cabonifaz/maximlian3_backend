@@ -1,4 +1,5 @@
 using Microsoft.Extensions.DependencyInjection;
+using SafetyReport.Handlers.CasosDeUso;
 
 namespace SafetyReport.Handlers;
 

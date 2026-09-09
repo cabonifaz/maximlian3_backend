@@ -1,5 +1,5 @@
 using Microsoft.AspNetCore.Mvc;
-using SafetyReport.Handlers;
+using SafetyReport.Handlers.CasosDeUso;
 
 namespace SafetyReport.WebApi.Controllers
 {

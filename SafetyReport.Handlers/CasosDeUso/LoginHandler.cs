@@ -2,7 +2,7 @@
 using SafetyReport.Application.Puertos.Login;
 using SafetyReport.Models;
 
-namespace SafetyReport.Handlers
+namespace SafetyReport.Handlers.CasosDeUso
 {
     public class LoginHandler
     {

@@ -3,7 +3,7 @@ using SafetyReport.Application.Puertos.Pedido;
 using SafetyReport.Application.Puertos.PedidoFactura;
 using SafetyReport.Models;
 
-namespace SafetyReport.Handlers
+namespace SafetyReport.Handlers.CasosDeUso
 {
     // Verificación pública de facturas: cualquiera con el link (token) puede consultar el documento,
     // descargar su Xml/Pdf, o listar sus pedidos, sin login. Separado de PedidoFacturaHandler a
