@@ -1,7 +1,7 @@
 using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Spreadsheet;
-using SafetyReport.Application.Ports.Compania;
+using SafetyReport.Application.Puertos.Compania;
 using SafetyReport.Models;
 
 namespace SafetyReport.Infrastructure.Exportacion;

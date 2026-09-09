@@ -4,7 +4,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using NLog;
 using NLog.Targets;
-using SafetyReport.Application.Ports.Storage;
+using SafetyReport.Application.Puertos.Storage;
 
 namespace SafetyReport.WebApi.Logging
 {

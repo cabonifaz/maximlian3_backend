@@ -1,5 +1,5 @@
 using Microsoft.Extensions.Logging;
-using SafetyReport.Application.Ports.Banco;
+using SafetyReport.Application.Puertos.Banco;
 using SafetyReport.Models;
 
 namespace SafetyReport.Handlers

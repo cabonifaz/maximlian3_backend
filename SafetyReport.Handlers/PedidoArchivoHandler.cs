@@ -1,8 +1,8 @@
 ﻿using System.IO;
 using System.Linq;
 using Microsoft.Extensions.Logging;
-using SafetyReport.Application.Ports.PedidoArchivo;
-using SafetyReport.Application.Ports.Storage;
+using SafetyReport.Application.Puertos.PedidoArchivo;
+using SafetyReport.Application.Puertos.Storage;
 using SafetyReport.Models;
 
 namespace SafetyReport.Handlers

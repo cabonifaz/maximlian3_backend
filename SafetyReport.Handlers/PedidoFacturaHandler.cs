@@ -1,9 +1,9 @@
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
-using SafetyReport.Application.Ports.Cliente;
-using SafetyReport.Application.Ports.Pedido;
-using SafetyReport.Application.Ports.PedidoFactura;
-using SafetyReport.Application.Ports.PedidoFacturaLinea;
+using SafetyReport.Application.Puertos.Cliente;
+using SafetyReport.Application.Puertos.Pedido;
+using SafetyReport.Application.Puertos.PedidoFactura;
+using SafetyReport.Application.Puertos.PedidoFacturaLinea;
 using SafetyReport.Models;
 using System.Globalization;
 using System.Text;

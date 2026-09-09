@@ -1,6 +1,6 @@
 using Microsoft.Extensions.Logging;
-using SafetyReport.Application.Ports.InformeLocalImagen;
-using SafetyReport.Application.Ports.Storage;
+using SafetyReport.Application.Puertos.InformeLocalImagen;
+using SafetyReport.Application.Puertos.Storage;
 using SafetyReport.Models;
 
 namespace SafetyReport.Handlers

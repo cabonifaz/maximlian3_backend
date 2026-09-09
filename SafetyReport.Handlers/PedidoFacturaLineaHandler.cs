@@ -1,6 +1,6 @@
 using Microsoft.Extensions.Logging;
-using SafetyReport.Application.Ports.PedidoFactura;
-using SafetyReport.Application.Ports.PedidoFacturaLinea;
+using SafetyReport.Application.Puertos.PedidoFactura;
+using SafetyReport.Application.Puertos.PedidoFacturaLinea;
 using SafetyReport.Models;
 
 namespace SafetyReport.Handlers

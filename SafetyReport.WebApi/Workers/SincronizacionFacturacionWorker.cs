@@ -1,4 +1,4 @@
-using SafetyReport.Application.Ports.PedidoFactura;
+using SafetyReport.Application.Puertos.PedidoFactura;
 using SafetyReport.Models;
 
 namespace SafetyReport.WebApi.Workers

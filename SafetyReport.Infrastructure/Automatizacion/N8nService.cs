@@ -1,5 +1,5 @@
 using Microsoft.IdentityModel.Tokens;
-using SafetyReport.Application.Ports.Informe;
+using SafetyReport.Application.Puertos.Informe;
 using SafetyReport.Models;
 using System.IdentityModel.Tokens.Jwt;
 using System.Net.Http.Headers;

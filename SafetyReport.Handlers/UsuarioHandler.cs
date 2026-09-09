@@ -1,5 +1,5 @@
 ﻿using Microsoft.Extensions.Logging;
-using SafetyReport.Application.Ports.Usuario;
+using SafetyReport.Application.Puertos.Usuario;
 using SafetyReport.Models;
 
 namespace SafetyReport.Handlers

@@ -1,4 +1,4 @@
-using SafetyReport.Application.Ports.TablaMaestra;
+using SafetyReport.Application.Puertos.TablaMaestra;
 using SafetyReport.Models;
 
 namespace SafetyReport.Handlers

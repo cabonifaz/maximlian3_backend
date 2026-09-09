@@ -1,6 +1,6 @@
 using Microsoft.Data.SqlClient;
 using Microsoft.Extensions.Logging;
-using SafetyReport.Application.Ports.PedidoFactura;
+using SafetyReport.Application.Puertos.PedidoFactura;
 using SafetyReport.Models;
 using System.Data;
 

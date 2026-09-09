@@ -1,6 +1,6 @@
 using Microsoft.Data.SqlClient;
 using Microsoft.Extensions.Logging;
-using SafetyReport.Application.Ports.InformeLocalImagen;
+using SafetyReport.Application.Puertos.InformeLocalImagen;
 using SafetyReport.Models;
 using System.Data;
 

@@ -1,6 +1,6 @@
 ﻿using Microsoft.Data.SqlClient;
 using Microsoft.Extensions.Logging;
-using SafetyReport.Application.Ports.Pedido;
+using SafetyReport.Application.Puertos.Pedido;
 using SafetyReport.Models;
 using System.Data;
 using System.Text.Json;

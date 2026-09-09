@@ -1,4 +1,4 @@
-using SafetyReport.Application.Ports.Informe;
+using SafetyReport.Application.Puertos.Informe;
 using SafetyReport.Models;
 using System.Text.Json;
 

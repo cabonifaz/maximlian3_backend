@@ -1,6 +1,6 @@
 ﻿using Microsoft.Data.SqlClient;
 using Microsoft.Extensions.Logging;
-using SafetyReport.Application.Ports.TablaMaestra;
+using SafetyReport.Application.Puertos.TablaMaestra;
 using SafetyReport.Models;
 using System.Data;
 

@@ -2,7 +2,7 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.IdentityModel.Protocols;
 using Microsoft.IdentityModel.Protocols.OpenIdConnect;
 using Microsoft.IdentityModel.Tokens;
-using SafetyReport.Application.Ports.Login;
+using SafetyReport.Application.Puertos.Login;
 using SafetyReport.Models;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;

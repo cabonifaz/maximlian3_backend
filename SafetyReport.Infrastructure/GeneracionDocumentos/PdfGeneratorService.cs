@@ -8,7 +8,7 @@ using PdfSharp.Drawing.Layout;
 using PdfSharp.Fonts;
 using PdfSharp.Pdf;
 using PdfSharp.Pdf.Advanced;
-using SafetyReport.Application.Ports.Informe;
+using SafetyReport.Application.Puertos.Informe;
 
 namespace SafetyReport.Infrastructure.GeneracionDocumentos;
 

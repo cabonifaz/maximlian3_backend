@@ -1,5 +1,5 @@
 using System.Text.Json;
-using SafetyReport.Application.Ports.TablaMaestra;
+using SafetyReport.Application.Puertos.TablaMaestra;
 
 namespace SafetyReport.Infrastructure.Traduccion
 {

@@ -1,5 +1,5 @@
 ﻿using Microsoft.Extensions.Logging;
-using SafetyReport.Application.Ports.Tarifario;
+using SafetyReport.Application.Puertos.Tarifario;
 using SafetyReport.Models;
 
 namespace SafetyReport.Handlers

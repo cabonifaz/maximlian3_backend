@@ -2,7 +2,7 @@ using System.Globalization;
 using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Spreadsheet;
-using SafetyReport.Application.Ports.PedidoFactura;
+using SafetyReport.Application.Puertos.PedidoFactura;
 using SafetyReport.Models;
 
 namespace SafetyReport.Infrastructure.Exportacion;

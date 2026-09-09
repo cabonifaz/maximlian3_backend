@@ -1,6 +1,6 @@
 using System.Net.Http.Json;
 using System.Text.Json;
-using SafetyReport.Application.Ports.PedidoFactura;
+using SafetyReport.Application.Puertos.PedidoFactura;
 using SafetyReport.Models;
 
 namespace SafetyReport.Infrastructure.Facturacion

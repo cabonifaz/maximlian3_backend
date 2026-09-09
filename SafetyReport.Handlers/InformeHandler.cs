@@ -1,9 +1,9 @@
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
-using SafetyReport.Application.Ports.Informe;
-using SafetyReport.Application.Ports.InformeLocalImagen;
-using SafetyReport.Application.Ports.Storage;
+using SafetyReport.Application.Puertos.Informe;
+using SafetyReport.Application.Puertos.InformeLocalImagen;
+using SafetyReport.Application.Puertos.Storage;
 using SafetyReport.Models;
 using System.Text.Json;
 using System.Text.Json.Nodes;
