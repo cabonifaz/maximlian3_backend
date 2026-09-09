@@ -7,9 +7,9 @@ using Microsoft.Kiota.Abstractions.Authentication;
 using SafetyReport.Application.Ports.Informe;
 using SafetyReport.Models;
 
-namespace SafetyReport.Handlers
+namespace SafetyReport.Infrastructure.Email
 {
-    public class EmailService : IEmailService, IInformeEmailSender
+    public class EmailService : IInformeEmailSender
     {
         private static readonly string[] _scopes = ["Mail.Send"];
 

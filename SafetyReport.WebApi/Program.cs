@@ -27,6 +27,7 @@ using SafetyReport.Application.Ports.Usuario;
 using SafetyReport.DAO;
 using SafetyReport.Handlers;
 using SafetyReport.Infrastructure.Automation;
+using SafetyReport.Infrastructure.Email;
 using SafetyReport.Infrastructure.Facturacion;
 using SafetyReport.Infrastructure.Storage;
 using SafetyReport.Infrastructure.Translation;
@@ -322,10 +323,7 @@ builder.Services.AddScoped<IInformeAutomationGateway>(sp =>
 var emailConfig = builder.Configuration.GetSection("Email").Get<EmailConfig>()
     ?? throw new Exception("Falta configuración Email");
 builder.Services.AddSingleton(emailConfig);
-builder.Services.AddSingleton<IEmailService, EmailService>();
-builder.Services.AddSingleton<IInformeEmailSender>(sp =>
-    sp.GetRequiredService<IEmailService>() as EmailService
-    ?? throw new InvalidOperationException("IEmailService debe resolverse como EmailService."));
+builder.Services.AddSingleton<IInformeEmailSender, EmailService>();
 
 var facturacionElectronicaConfig = builder.Configuration.GetSection("FacturacionElectronica").Get<FacturacionElectronicaConfig>()
     ?? throw new Exception("Falta configuración FacturacionElectronica");
