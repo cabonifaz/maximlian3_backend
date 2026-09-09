@@ -1,25 +1,25 @@
-using Microsoft.Extensions.Logging;
-using SafetyReport.Application.Puertos.Asignacion;
+﻿using Microsoft.Extensions.Logging;
+using SafetyReport.Application.Puertos.Tarifario;
 using SafetyReport.Models;
 
-namespace SafetyReport.Handlers.CasosDeUso
+namespace SafetyReport.Application.CasosDeUso
 {
-    public class AsignacionHandler
+    public class TarifarioHandler
     {
-        private readonly IAsignacionRepository _asignacionRepository;
-        private readonly ILogger<AsignacionHandler> _logger;
+        private readonly ITarifarioRepository _repository;
+        private readonly ILogger<TarifarioHandler> _logger;
 
-        public AsignacionHandler(IAsignacionRepository asignacionRepository, ILogger<AsignacionHandler> logger)
+        public TarifarioHandler(ITarifarioRepository repository, ILogger<TarifarioHandler> logger)
         {
-            _asignacionRepository = asignacionRepository;
+            _repository = repository;
             _logger = logger;
         }
 
-        public async Task<Respuesta> InsertarAsync(UsuarioGeneral usuarioLogueado, AsignacionCrear request)
+        public async Task<Respuesta> CrearAsync(UsuarioGeneral usuarioLogueado, TarifarioCrear request)
         {
             try
             {
-                return await _asignacionRepository.InsertarAsync(usuarioLogueado, request);
+                return await _repository.CrearAsync(usuarioLogueado, request);
             }
             catch (Exception ex)
             {
@@ -29,16 +29,16 @@ namespace SafetyReport.Handlers.CasosDeUso
                 {
                     IdTipoMensaje = 3,
                     Mensaje = ex.Message,
-                    Result = new List<AsignacionCreada>()
+                    Result = new List<TarifarioCreado>()
                 };
             }
         }
 
-        public async Task<Respuesta> ActualizarAsync(UsuarioGeneral usuarioLogueado, AsignacionActualizar request)
+        public async Task<Respuesta> ListarAsync(UsuarioGeneral usuarioLogueado, TarifarioFiltro request)
         {
             try
             {
-                return await _asignacionRepository.ActualizarAsync(usuarioLogueado, request);
+                return await _repository.ListarAsync(usuarioLogueado, request);
             }
             catch (Exception ex)
             {
@@ -48,16 +48,16 @@ namespace SafetyReport.Handlers.CasosDeUso
                 {
                     IdTipoMensaje = 3,
                     Mensaje = ex.Message,
-                    Result = new List<AsignacionCreada>()
+                    Result = new TarifarioListaResult()
                 };
             }
         }
 
-        public async Task<Respuesta> ListarAsync(UsuarioGeneral usuarioLogueado, FiltroAsignacion request)
+        public async Task<Respuesta> ObtenerAsync(UsuarioGeneral usuarioLogueado, TarifarioIdRequest request)
         {
             try
             {
-                return await _asignacionRepository.ListarAsync(usuarioLogueado, request);
+                return await _repository.ObtenerAsync(usuarioLogueado, request);
             }
             catch (Exception ex)
             {
@@ -67,16 +67,16 @@ namespace SafetyReport.Handlers.CasosDeUso
                 {
                     IdTipoMensaje = 3,
                     Mensaje = ex.Message,
-                    Result = new AsignacionListaResult()
+                    Result = new List<TarifarioConsulta>()
                 };
             }
         }
 
-        public async Task<Respuesta> ObtenerAsync(UsuarioGeneral usuarioLogueado, int idAsignacion)
+        public async Task<Respuesta> EditarAsync(UsuarioGeneral usuarioLogueado, TarifarioEditar request)
         {
             try
             {
-                return await _asignacionRepository.ObtenerAsync(usuarioLogueado, idAsignacion);
+                return await _repository.EditarAsync(usuarioLogueado, request);
             }
             catch (Exception ex)
             {
@@ -86,16 +86,16 @@ namespace SafetyReport.Handlers.CasosDeUso
                 {
                     IdTipoMensaje = 3,
                     Mensaje = ex.Message,
-                    Result = new List<AsignacionConsulta>()
+                    Result = new List<TarifarioCreado>()
                 };
             }
         }
 
-        public async Task<Respuesta> BandejaAsync(UsuarioGeneral usuarioLogueado, FiltroAsignacionBandeja filtro)
+        public async Task<Respuesta> EliminarAsync(UsuarioGeneral usuarioLogueado, TarifarioIdRequest request)
         {
             try
             {
-                return await _asignacionRepository.BandejaAsync(usuarioLogueado, filtro);
+                return await _repository.EliminarAsync(usuarioLogueado, request);
             }
             catch (Exception ex)
             {
@@ -105,16 +105,15 @@ namespace SafetyReport.Handlers.CasosDeUso
                 {
                     IdTipoMensaje = 3,
                     Mensaje = ex.Message,
-                    Result = new AsignacionBandejaResult()
+                    Result = new List<TarifarioEliminado>()
                 };
             }
         }
-
-        public async Task<Respuesta> EliminarAsync(UsuarioGeneral usuarioLogueado, EliminarAsignacion request)
+        public async Task<Respuesta> ListarCortaAsync(UsuarioGeneral usuarioLogueado, TarifarioListaCortaFiltro request)
         {
             try
             {
-                return await _asignacionRepository.EliminarAsync(usuarioLogueado, request);
+                return await _repository.ListaCortaAsync(usuarioLogueado, request);
             }
             catch (Exception ex)
             {
@@ -124,7 +123,7 @@ namespace SafetyReport.Handlers.CasosDeUso
                 {
                     IdTipoMensaje = 3,
                     Mensaje = ex.Message,
-                    Result = new List<EliminarAsignacionResult>()
+                    Result = new TarifarioListaCortaResult()
                 };
             }
         }

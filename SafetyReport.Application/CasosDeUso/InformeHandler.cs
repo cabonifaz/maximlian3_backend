@@ -8,7 +8,7 @@ using SafetyReport.Models;
 using System.Text.Json;
 using System.Text.Json.Nodes;
 
-namespace SafetyReport.Handlers.CasosDeUso
+namespace SafetyReport.Application.CasosDeUso
 {
     public class InformeHandler
     {

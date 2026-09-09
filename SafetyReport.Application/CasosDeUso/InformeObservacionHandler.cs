@@ -2,7 +2,7 @@ using Microsoft.Extensions.Logging;
 using SafetyReport.Application.Puertos.InformeObservacion;
 using SafetyReport.Models;
 
-namespace SafetyReport.Handlers.CasosDeUso
+namespace SafetyReport.Application.CasosDeUso
 {
     public class InformeObservacionHandler
     {

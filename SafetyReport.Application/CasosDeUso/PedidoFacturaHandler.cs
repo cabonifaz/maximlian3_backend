@@ -8,7 +8,7 @@ using SafetyReport.Models;
 using System.Globalization;
 using System.Text;
 
-namespace SafetyReport.Handlers.CasosDeUso
+namespace SafetyReport.Application.CasosDeUso
 {
     public class PedidoFacturaHandler
     {

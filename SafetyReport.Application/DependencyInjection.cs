@@ -1,11 +1,11 @@
 using Microsoft.Extensions.DependencyInjection;
-using SafetyReport.Handlers.CasosDeUso;
+using SafetyReport.Application.CasosDeUso;
 
-namespace SafetyReport.Handlers;
+namespace SafetyReport.Application;
 
 public static class DependencyInjection
 {
-    public static IServiceCollection AddSafetyReportHandlers(this IServiceCollection services)
+    public static IServiceCollection AddSafetyReportApplication(this IServiceCollection services)
     {
         services.AddScoped<AsignacionHandler>();
         services.AddScoped<BancoHandler>();

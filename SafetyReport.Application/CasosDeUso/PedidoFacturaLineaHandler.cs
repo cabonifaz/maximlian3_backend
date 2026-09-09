@@ -3,7 +3,7 @@ using SafetyReport.Application.Puertos.PedidoFactura;
 using SafetyReport.Application.Puertos.PedidoFacturaLinea;
 using SafetyReport.Models;
 
-namespace SafetyReport.Handlers.CasosDeUso
+namespace SafetyReport.Application.CasosDeUso
 {
     // CRUD del sub-recurso PEDIDO_FACTURA_LINEA — ValidarAccesoFacturacionAsync se mantiene en
     // PedidoFacturaDAO porque es el chequeo de acceso compartido por todo el módulo de

@@ -1,6 +1,6 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using SafetyReport.Handlers.CasosDeUso;
+using SafetyReport.Application.CasosDeUso;
 using SafetyReport.Models;
 
 namespace SafetyReport.WebApi.Controllers

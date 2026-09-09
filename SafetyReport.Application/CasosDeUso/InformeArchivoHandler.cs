@@ -4,7 +4,7 @@ using SafetyReport.Application.Puertos.InformeArchivo;
 using SafetyReport.Application.Puertos.Almacenamiento;
 using SafetyReport.Models;
 
-namespace SafetyReport.Handlers.CasosDeUso
+namespace SafetyReport.Application.CasosDeUso
 {
     public class InformeArchivoHandler
     {

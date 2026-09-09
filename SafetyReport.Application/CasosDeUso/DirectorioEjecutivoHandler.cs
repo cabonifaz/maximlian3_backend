@@ -2,7 +2,7 @@ using Microsoft.Extensions.Logging;
 using SafetyReport.Application.Puertos.DirectorioEjecutivo;
 using SafetyReport.Models;
 
-namespace SafetyReport.Handlers.CasosDeUso
+namespace SafetyReport.Application.CasosDeUso
 {
     public class DirectorioEjecutivoHandler
     {

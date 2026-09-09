@@ -3,7 +3,7 @@ using SafetyReport.Application.Puertos.Compania;
 using SafetyReport.Application.Puertos.Almacenamiento;
 using SafetyReport.Models;
 
-namespace SafetyReport.Handlers.CasosDeUso
+namespace SafetyReport.Application.CasosDeUso
 {
     public class CompaniaHandler
     {

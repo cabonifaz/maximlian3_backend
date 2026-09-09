@@ -5,7 +5,7 @@ using NLog;
 using NLog.Web;
 using SafetyReport.Application.Puertos.Almacenamiento;
 using SafetyReport.DAO;
-using SafetyReport.Handlers;
+using SafetyReport.Application;
 using SafetyReport.Infrastructure;
 using SafetyReport.WebApi.Filters;
 using SafetyReport.WebApi.Helpers;
@@ -156,7 +156,7 @@ builder.Services.AddCors(options =>
     });
 });
 
-builder.Services.AddSafetyReportHandlers();
+builder.Services.AddSafetyReportApplication();
 builder.Services.AddSafetyReportInfrastructure(builder.Configuration);
 builder.Services.AddSafetyReportDao(builder.Configuration);
 builder.Services.AddHostedService<SafetyReport.WebApi.Workers.SincronizacionFacturacionWorker>();
