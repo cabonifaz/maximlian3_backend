@@ -4,7 +4,7 @@ using SafetyReport.Application.Puertos.PedidoFacturaLinea;
 using SafetyReport.Models;
 using System.Data;
 
-namespace SafetyReport.DAO.Persistencia
+namespace SafetyReport.Infrastructure.Persistencia
 {
     // Capa de datos del sub-recurso PEDIDO_FACTURA_LINEA — separado de PedidoFacturaDAO porque
     // agrupa exclusivamente el CRUD de líneas, no el resto del módulo de facturación (documentos,

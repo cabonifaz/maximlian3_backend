@@ -4,7 +4,7 @@ using SafetyReport.Application.Puertos.TablaMaestra;
 using SafetyReport.Models;
 using System.Data;
 
-namespace SafetyReport.DAO.Persistencia
+namespace SafetyReport.Infrastructure.Persistencia
 {
     public class TablaMaestraDAO : ITablaMaestraRepository
     {

@@ -4,7 +4,7 @@ using SafetyReport.Application.Puertos.InformeObservacion;
 using SafetyReport.Models;
 using System.Data;
 
-namespace SafetyReport.DAO.Persistencia
+namespace SafetyReport.Infrastructure.Persistencia
 {
     public class InformeObservacionDAO : IInformeObservacionRepository
     {

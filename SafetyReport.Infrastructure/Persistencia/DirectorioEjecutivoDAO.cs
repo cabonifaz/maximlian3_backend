@@ -4,7 +4,7 @@ using SafetyReport.Application.Puertos.DirectorioEjecutivo;
 using SafetyReport.Models;
 using System.Data;
 
-namespace SafetyReport.DAO.Persistencia
+namespace SafetyReport.Infrastructure.Persistencia
 {
     public class DirectorioEjecutivoDAO : IDirectorioEjecutivoRepository
     {

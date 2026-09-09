@@ -4,7 +4,7 @@ using SafetyReport.Application.Puertos.PedidoFactura;
 using SafetyReport.Models;
 using System.Data;
 
-namespace SafetyReport.DAO.Persistencia
+namespace SafetyReport.Infrastructure.Persistencia
 {
     public class PedidoFacturaDAO : IPedidoFacturaRepository, IFacturacionAccessValidator
     {

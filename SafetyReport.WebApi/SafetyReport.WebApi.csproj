@@ -16,7 +16,6 @@
 
 	<ItemGroup>
 		<ProjectReference Include="..\SafetyReport.Application\SafetyReport.Application.csproj" />
-		<ProjectReference Include="..\SafetyReport.DAO\SafetyReport.DAO.csproj" />
 		<ProjectReference Include="..\SafetyReport.Infrastructure\SafetyReport.Infrastructure.csproj" />
 	</ItemGroup>
 
