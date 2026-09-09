@@ -1,5 +1,3 @@
-using Amazon.BedrockRuntime;
-using Amazon.S3;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi;
@@ -26,14 +24,7 @@ using SafetyReport.Application.Ports.Tarifario;
 using SafetyReport.Application.Ports.Usuario;
 using SafetyReport.DAO;
 using SafetyReport.Handlers;
-using SafetyReport.Infrastructure.Automation;
-using SafetyReport.Infrastructure.DocumentGeneration;
-using SafetyReport.Infrastructure.Email;
-using SafetyReport.Infrastructure.Export;
-using SafetyReport.Infrastructure.Facturacion;
-using SafetyReport.Infrastructure.Identity;
-using SafetyReport.Infrastructure.Storage;
-using SafetyReport.Infrastructure.Translation;
+using SafetyReport.Infrastructure;
 using SafetyReport.Models;
 using SafetyReport.WebApi.Filters;
 using SafetyReport.WebApi.Helpers;
@@ -188,12 +179,12 @@ builder.Services.AddCors(options =>
 });
 
 builder.Services.AddSafetyReportHandlers();
+builder.Services.AddSafetyReportInfrastructure(builder.Configuration);
 
 builder.Services.AddScoped<LoginDAO>();
 builder.Services.AddScoped<ILoginRepository, LoginDAO>();
 builder.Services.AddScoped<UsuarioDAO>();
 builder.Services.AddScoped<IUsuarioRepository, UsuarioDAO>();
-builder.Services.AddScoped<IUsuarioIdentityProvider, CognitoUsuarioIdentityProvider>();
 builder.Services.AddScoped<TablaMaestraDAO>();
 builder.Services.AddScoped<ITablaMaestraRepository, TablaMaestraDAO>();
 builder.Services.AddScoped<ClienteDAO>();
@@ -204,7 +195,6 @@ builder.Services.AddScoped<ClienteContactoDAO>();
 builder.Services.AddScoped<IClienteContactoRepository, ClienteContactoDAO>();
 builder.Services.AddScoped<PedidoDAO>();
 builder.Services.AddScoped<IPedidoRepository, PedidoDAO>();
-builder.Services.AddScoped<IPedidoPrefacturaExcelExporter, PedidoPrefacturaExcelExporter>();
 builder.Services.AddScoped<PedidoFacturaDAO>();
 builder.Services.AddScoped<IPedidoFacturaRepository, PedidoFacturaDAO>();
 builder.Services.AddScoped<IFacturacionAccessValidator, PedidoFacturaDAO>();
@@ -212,10 +202,6 @@ builder.Services.AddScoped<PedidoFacturaLineaDAO>();
 builder.Services.AddScoped<IPedidoFacturaLineaRepository, PedidoFacturaLineaDAO>();
 builder.Services.AddScoped<AsignacionDAO>();
 builder.Services.AddScoped<IAsignacionRepository, AsignacionDAO>();
-builder.Services.AddScoped<DocxGeneratorService>();
-builder.Services.AddScoped<IInformeDocxGenerator, DocxGeneratorService>();
-builder.Services.AddScoped<PdfGeneratorService>();
-builder.Services.AddScoped<IInformePdfGenerator, PdfGeneratorService>();
 builder.Services.AddScoped<InformeDAO>();
 builder.Services.AddScoped<IInformeRepository, InformeDAO>();
 builder.Services.AddScoped<IInformeDraftRepository, InformeDAO>();
@@ -230,93 +216,11 @@ builder.Services.AddScoped<BancoDAO>();
 builder.Services.AddScoped<IBancoRepository, BancoDAO>();
 builder.Services.AddScoped<CompaniaDAO>();
 builder.Services.AddScoped<ICompaniaRepository, CompaniaDAO>();
-builder.Services.AddScoped<ICompaniaNoticiasDetalleExcelExporter, CompaniaNoticiasDetalleExcelExporter>();
 builder.Services.AddScoped<DirectorioEjecutivoDAO>();
 builder.Services.AddScoped<IDirectorioEjecutivoRepository, DirectorioEjecutivoDAO>();
 
-var awsRegion = builder.Configuration["AWS:Region"];
-var awsBucketName = builder.Configuration["AWS:BucketName"];
-var awsAccessKey = builder.Configuration["AWS:AccessKey"];
-var awsSecretKey = builder.Configuration["AWS:SecretKey"];
-
-if (string.IsNullOrWhiteSpace(awsRegion))
-    throw new Exception("Falta configuración AWS:Region");
-
-if (string.IsNullOrWhiteSpace(awsBucketName))
-    throw new Exception("Falta configuración AWS:BucketName");
-
-if (string.IsNullOrWhiteSpace(awsAccessKey) || string.IsNullOrWhiteSpace(awsSecretKey))
-    throw new Exception("Falta configuración AWS:AccessKey o AWS:SecretKey");
-
-builder.Services.AddSingleton<IAmazonS3>(sp =>
-{
-    var regionEndpoint = Amazon.RegionEndpoint.GetBySystemName(awsRegion);
-    var credenciales = new Amazon.Runtime.BasicAWSCredentials(awsAccessKey, awsSecretKey);
-    return new AmazonS3Client(credenciales, regionEndpoint);
-});
-
-builder.Services.AddSingleton<S3UploadService>();
-builder.Services.AddSingleton<IPedidoArchivoStorage>(sp => sp.GetRequiredService<S3UploadService>());
-builder.Services.AddSingleton<IInformeLocalImagenStorage>(sp => sp.GetRequiredService<S3UploadService>());
-builder.Services.AddSingleton<IInformeArchivoStorage>(sp => sp.GetRequiredService<S3UploadService>());
-builder.Services.AddSingleton<ICompaniaNoticiaStorage>(sp => sp.GetRequiredService<S3UploadService>());
-builder.Services.AddSingleton<IInformeStorage>(sp => sp.GetRequiredService<S3UploadService>());
-builder.Services.AddSingleton<ILogStorage>(sp => sp.GetRequiredService<S3UploadService>());
-
-builder.Services.AddSingleton<IAmazonBedrockRuntime>(sp =>
-{
-    var regionEndpoint = Amazon.RegionEndpoint.GetBySystemName(awsRegion);
-    var credenciales = new Amazon.Runtime.BasicAWSCredentials(awsAccessKey, awsSecretKey);
-    return new AmazonBedrockRuntimeClient(credenciales, regionEndpoint);
-});
-builder.Services.AddSingleton<BedrockService>();
-
-var bedrockTranslationConfig = builder.Configuration.GetSection("BedrockTranslation").Get<BedrockTranslationConfig>()
-    ?? throw new Exception("Falta configuración BedrockTranslation");
-builder.Services.AddSingleton(bedrockTranslationConfig);
-builder.Services.AddSingleton(sp =>
-{
-    var bedrock = sp.GetRequiredService<BedrockService>();
-    var config = sp.GetRequiredService<BedrockTranslationConfig>();
-    return new BedrockTranslationService(bedrock, config.TablaMaestra);
-});
-builder.Services.AddSingleton<ITablaMaestraTranslator>(sp =>
-    sp.GetRequiredService<BedrockTranslationService>());
-builder.Services.AddSingleton(sp =>
-{
-    var bedrock = sp.GetRequiredService<BedrockService>();
-    var config = sp.GetRequiredService<BedrockTranslationConfig>();
-    return new BedrockInformeTranslationService(bedrock, config.Informe);
-});
-builder.Services.AddSingleton<IInformeTranslator>(sp =>
-    sp.GetRequiredService<BedrockInformeTranslationService>());
-
 builder.Services.AddScoped<PedidoArchivoDAO>();
 builder.Services.AddScoped<IPedidoArchivoRepository, PedidoArchivoDAO>();
-builder.Services.AddScoped<CognitoTokenValidator>();
-builder.Services.AddScoped<ITokenValidator, CognitoTokenValidator>();
-
-var n8nConfig = builder.Configuration.GetSection("N8n").Get<N8nConfig>()
-    ?? throw new Exception("Falta configuración N8n");
-builder.Services.AddSingleton(n8nConfig);
-builder.Services.AddHttpClient<N8nService>(client =>
-{
-    client.Timeout = TimeSpan.FromSeconds(300);
-});
-builder.Services.AddScoped<IInformeAutomationGateway>(sp =>
-    sp.GetRequiredService<N8nService>());
-
-var emailConfig = builder.Configuration.GetSection("Email").Get<EmailConfig>()
-    ?? throw new Exception("Falta configuración Email");
-builder.Services.AddSingleton(emailConfig);
-builder.Services.AddSingleton<IInformeEmailSender, EmailService>();
-
-var facturacionElectronicaConfig = builder.Configuration.GetSection("FacturacionElectronica").Get<FacturacionElectronicaConfig>()
-    ?? throw new Exception("Falta configuración FacturacionElectronica");
-builder.Services.AddSingleton(facturacionElectronicaConfig);
-builder.Services.AddHttpClient<FacturacionElectronicaService>();
-builder.Services.AddScoped<IFacturacionElectronicaGateway>(sp =>
-    sp.GetRequiredService<FacturacionElectronicaService>());
 builder.Services.AddHostedService<SafetyReport.WebApi.Workers.SincronizacionFacturacionWorker>();
 
 var app = builder.Build();
