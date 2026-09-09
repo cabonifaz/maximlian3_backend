@@ -1,17 +1,19 @@
 using Microsoft.Extensions.Logging;
-using SafetyReport.DAO;
+using SafetyReport.Application.Ports.InformeObservacion;
 using SafetyReport.Models;
 
 namespace SafetyReport.Handlers
 {
     public class InformeObservacionHandler
     {
-        private readonly InformeObservacionDAO _dao;
+        private readonly IInformeObservacionRepository _informeObservacionRepository;
         private readonly ILogger<InformeObservacionHandler> _logger;
 
-        public InformeObservacionHandler(InformeObservacionDAO dao, ILogger<InformeObservacionHandler> logger)
+        public InformeObservacionHandler(
+            IInformeObservacionRepository informeObservacionRepository,
+            ILogger<InformeObservacionHandler> logger)
         {
-            _dao = dao;
+            _informeObservacionRepository = informeObservacionRepository;
             _logger = logger;
         }
 
@@ -19,7 +21,7 @@ namespace SafetyReport.Handlers
         {
             try
             {
-                return await _dao.ListarObservacionesAsync(usuarioLogueado, request.IdPedido);
+                return await _informeObservacionRepository.ListarObservacionesAsync(usuarioLogueado, request.IdPedido);
             }
             catch (Exception ex)
             {
@@ -33,7 +35,8 @@ namespace SafetyReport.Handlers
         {
             try
             {
-                return await _dao.InsertarObservacionesLoteAsync(usuarioLogueado, request.IdInforme, request.IdPedido, request.Observaciones);
+                return await _informeObservacionRepository.InsertarObservacionesLoteAsync(
+                    usuarioLogueado, request.IdInforme, request.IdPedido, request.Observaciones);
             }
             catch (Exception ex)
             {
@@ -47,7 +50,7 @@ namespace SafetyReport.Handlers
         {
             try
             {
-                return await _dao.EditarObservacionAsync(usuarioLogueado, request);
+                return await _informeObservacionRepository.EditarObservacionAsync(usuarioLogueado, request);
             }
             catch (Exception ex)
             {
@@ -61,7 +64,7 @@ namespace SafetyReport.Handlers
         {
             try
             {
-                return await _dao.EliminarObservacionAsync(usuarioLogueado, request.IdInformeObservacion);
+                return await _informeObservacionRepository.EliminarObservacionAsync(usuarioLogueado, request.IdInformeObservacion);
             }
             catch (Exception ex)
             {

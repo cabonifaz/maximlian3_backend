@@ -1,12 +1,13 @@
+using SafetyReport.Application.Ports.Informe;
 using SafetyReport.Models;
 
 namespace SafetyReport.Handlers
 {
     public class InformeTranslationHandler
     {
-        private readonly BedrockInformeTranslationService _translator;
+        private readonly IInformeTranslator _translator;
 
-        public InformeTranslationHandler(BedrockInformeTranslationService translator)
+        public InformeTranslationHandler(IInformeTranslator translator)
         {
             _translator = translator;
         }

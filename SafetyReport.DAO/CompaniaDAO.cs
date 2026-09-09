@@ -1,12 +1,13 @@
 using Microsoft.Data.SqlClient;
 using Microsoft.Extensions.Logging;
+using SafetyReport.Application.Ports.Compania;
 using SafetyReport.Models;
 using System.Data;
 using System.Text.Json;
 
 namespace SafetyReport.DAO
 {
-    public class CompaniaDAO
+    public class CompaniaDAO : ICompaniaRepository
     {
         private readonly DbConfig _dbConfig;
         private readonly ILogger<CompaniaDAO> _logger;

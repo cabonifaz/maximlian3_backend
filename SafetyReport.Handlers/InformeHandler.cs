@@ -1,7 +1,9 @@
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
-using SafetyReport.DAO;
+using SafetyReport.Application.Ports.Informe;
+using SafetyReport.Application.Ports.InformeLocalImagen;
+using SafetyReport.Application.Ports.Storage;
 using SafetyReport.Models;
 using System.Text.Json;
 using System.Text.Json.Nodes;
@@ -10,31 +12,37 @@ namespace SafetyReport.Handlers
 {
     public class InformeHandler
     {
-        private readonly InformeDAO _dao;
-        private readonly InformeLocalImagenDAO _localImagenDAO;
-        private readonly PedidoDAO _pedidoDAO;
-        private readonly PlantillaDocumentoDAO _plantillaDAO;
-        private readonly IS3UploadService _s3;
-        private readonly N8nService _n8n;
+        private readonly IInformeRepository _informeRepository;
+        private readonly IInformeLocalImagenRepository _informeLocalImagenRepository;
+        private readonly IInformeStorage _informeStorage;
+        private readonly IInformeAutomationGateway _informeAutomationGateway;
         private readonly N8nConfig _n8nConfig;
-        private readonly DocxGeneratorService _docxGenerator;
-        private readonly PdfGeneratorService _pdfGenerator;
-        private readonly IEmailService _emailService;
+        private readonly IInformeDocxGenerator _docxGenerator;
+        private readonly IInformePdfGenerator _pdfGenerator;
+        private readonly IInformeEmailSender _emailSender;
         private readonly int _s3ExpirationMinutes;
         private readonly ILogger<InformeHandler> _logger;
 
-        public InformeHandler(InformeDAO dao, InformeLocalImagenDAO localImagenDAO, PedidoDAO pedidoDAO, PlantillaDocumentoDAO plantillaDAO, IS3UploadService s3, N8nService n8n, N8nConfig n8nConfig, DocxGeneratorService docxGenerator, PdfGeneratorService pdfGenerator, IEmailService emailService, IConfiguration configuration, ILogger<InformeHandler> logger)
+        public InformeHandler(
+            IInformeRepository informeRepository,
+            IInformeLocalImagenRepository informeLocalImagenRepository,
+            IInformeStorage informeStorage,
+            IInformeAutomationGateway informeAutomationGateway,
+            N8nConfig n8nConfig,
+            IInformeDocxGenerator docxGenerator,
+            IInformePdfGenerator pdfGenerator,
+            IInformeEmailSender emailSender,
+            IConfiguration configuration,
+            ILogger<InformeHandler> logger)
         {
-            _dao = dao;
-            _localImagenDAO = localImagenDAO;
-            _pedidoDAO = pedidoDAO;
-            _plantillaDAO = plantillaDAO;
-            _s3 = s3;
-            _n8n = n8n;
+            _informeRepository = informeRepository;
+            _informeLocalImagenRepository = informeLocalImagenRepository;
+            _informeStorage = informeStorage;
+            _informeAutomationGateway = informeAutomationGateway;
             _n8nConfig = n8nConfig;
             _docxGenerator = docxGenerator;
             _pdfGenerator = pdfGenerator;
-            _emailService = emailService;
+            _emailSender = emailSender;
             _s3ExpirationMinutes = int.TryParse(configuration["AWS:S3ExpirationTime"], out var exp) ? exp : 15;
             _logger = logger;
         }
@@ -52,7 +60,7 @@ namespace SafetyReport.Handlers
                 if (error != null)
                     return new Respuesta { IdTipoMensaje = 1, Mensaje = error, Result = new List<InformeCreado>() };
 
-                var (respuesta, imagenes) = await _dao.InsertarAsync(usuarioLogueado, request);
+                var (respuesta, imagenes) = await _informeRepository.InsertarAsync(usuarioLogueado, request);
 
                 if (respuesta.IdTipoMensaje == 2 && respuesta.Result is List<InformeCreado> creados && creados.Count > 0)
                     await ProcesarImagenesPostInsercionAsync(usuarioLogueado, imagenes, rutasAnteriores, request.lstLocales, request.IdPedido ?? 0, creados[0].IdInforme);
@@ -76,7 +84,7 @@ namespace SafetyReport.Handlers
                 if (error != null)
                     return new Respuesta { IdTipoMensaje = 1, Mensaje = error, Result = new List<InformeCreado>() };
 
-                var (respuesta, imagenes) = await _dao.ActualizarAsync(usuarioLogueado, request);
+                var (respuesta, imagenes) = await _informeRepository.ActualizarAsync(usuarioLogueado, request);
                 AgregarUrlsPrefirmadas(respuesta, imagenes);
                 return respuesta;
             }
@@ -106,7 +114,7 @@ namespace SafetyReport.Handlers
                 {
                     var ext = Path.GetExtension(img.Nombre);
                     var mime = extensionMime.GetValueOrDefault(ext, "application/octet-stream");
-                    img.UploadUrl = _s3.GenerarUploadUrl(img.S3Key, mime);
+                    img.UploadUrl = _informeStorage.GenerarUploadUrl(img.S3Key, mime);
                     return img;
                 }).ToList();
             }
@@ -122,7 +130,7 @@ namespace SafetyReport.Handlers
             if (idsExistentes.Count == 0)
                 return new Dictionary<int, string>();
 
-            var respuesta = await _localImagenDAO.ObtenerUrlsImagenesAsync(u, idsExistentes);
+            var respuesta = await _informeLocalImagenRepository.ObtenerUrlsImagenesAsync(u, idsExistentes);
 
             if (respuesta.Result is List<InformeLocalImagenUrl> urls)
                 return urls
@@ -146,9 +154,9 @@ namespace SafetyReport.Handlers
                 if (i < imagenesRequest.Count
                     && imagenesRequest[i].IdInformeLocalImagen is not null and not 0
                     && rutasAnteriores.TryGetValue(imagenesRequest[i].IdInformeLocalImagen!.Value, out var rutaOrigen))
-                    await _s3.CopiarArchivoAsync(rutaOrigen, rutaDestino);
+                    await _informeStorage.CopiarArchivoAsync(rutaOrigen, rutaDestino);
 
-                await _localImagenDAO.ActualizarImagenUrlAsync(u, imagen.IdInformeLocalImagen, rutaDestino);
+                await _informeLocalImagenRepository.ActualizarImagenUrlAsync(u, imagen.IdInformeLocalImagen, rutaDestino);
                 imagen.S3Key = rutaDestino;
             }
         }
@@ -196,7 +204,7 @@ namespace SafetyReport.Handlers
                     };
                 }
 
-                var respuesta = await _dao.ObtenerAsync(usuarioLogueado, request.IdPedido, request.IdInforme);
+                var respuesta = await _informeRepository.ObtenerAsync(usuarioLogueado, request.IdPedido, request.IdInforme);
 
                 if (respuesta.IdTipoMensaje == 2 && respuesta.Result is List<InformeConsulta> informes)
                 {
@@ -208,7 +216,7 @@ namespace SafetyReport.Handlers
 
                     if (imagenes.Count > 0)
                     {
-                        var urls = _s3.GenerarDownloadUrlsBatch(imagenes.Select(img => img.ImagenURL).ToList());
+                        var urls = _informeStorage.GenerarDownloadUrlsBatch(imagenes.Select(img => img.ImagenURL).ToList());
                         for (int i = 0; i < imagenes.Count; i++)
                             imagenes[i].ImagenURL = urls[i];
                     }
@@ -228,7 +236,7 @@ namespace SafetyReport.Handlers
         {
             try
             {
-                return await _dao.ListarAsync(usuarioLogueado, request);
+                return await _informeRepository.ListarAsync(usuarioLogueado, request);
             }
             catch (Exception ex)
             {
@@ -242,7 +250,7 @@ namespace SafetyReport.Handlers
         {
             try
             {
-                return await _dao.ListarIdPorCompaniaAsync(usuarioLogueado, request);
+                return await _informeRepository.ListarIdPorCompaniaAsync(usuarioLogueado, request);
             }
             catch (Exception ex)
             {
@@ -256,7 +264,7 @@ namespace SafetyReport.Handlers
         {
             try
             {
-                return await _dao.CalcularBalanceDesagregadoAsync(usuarioLogueado, request);
+                return await _informeRepository.CalcularBalanceDesagregadoAsync(usuarioLogueado, request);
             }
             catch (Exception ex)
             {
@@ -270,7 +278,7 @@ namespace SafetyReport.Handlers
         {
             try
             {
-                return await _dao.CalcularBalanceSeguroAsync(usuarioLogueado, request);
+                return await _informeRepository.CalcularBalanceSeguroAsync(usuarioLogueado, request);
             }
             catch (Exception ex)
             {
@@ -284,7 +292,7 @@ namespace SafetyReport.Handlers
         {
             try
             {
-                return await _dao.CalcularBalanceBancoAsync(usuarioLogueado, request);
+                return await _informeRepository.CalcularBalanceBancoAsync(usuarioLogueado, request);
             }
             catch (Exception ex)
             {
@@ -298,7 +306,7 @@ namespace SafetyReport.Handlers
         {
             try
             {
-                return await _dao.CalcularBalanceTurquiaAsync(usuarioLogueado, request);
+                return await _informeRepository.CalcularBalanceTurquiaAsync(usuarioLogueado, request);
             }
             catch (Exception ex)
             {
@@ -312,7 +320,7 @@ namespace SafetyReport.Handlers
         {
             try
             {
-                return await _dao.CalcularBalanceTotalizadoAsync(usuarioLogueado, request);
+                return await _informeRepository.CalcularBalanceTotalizadoAsync(usuarioLogueado, request);
             }
             catch (Exception ex)
             {
@@ -326,7 +334,7 @@ namespace SafetyReport.Handlers
         {
             try
             {
-                return await _dao.EliminarAsync(usuarioLogueado, request.IdInforme);
+                return await _informeRepository.EliminarAsync(usuarioLogueado, request.IdInforme);
             }
             catch (Exception ex)
             {
@@ -340,7 +348,7 @@ namespace SafetyReport.Handlers
         {
             try
             {
-                return await _dao.ActualizarEstadoAsync(usuarioLogueado, request.IdInforme, request.IdEstadoInforme);
+                return await _informeRepository.ActualizarEstadoAsync(usuarioLogueado, request.IdInforme, request.IdEstadoInforme);
             }
             catch (Exception ex)
             {
@@ -354,7 +362,7 @@ namespace SafetyReport.Handlers
         {
             try
             {
-                var respuesta = await _dao.ObtenerDatosNotificacionInformeAsync(usuarioLogueado, request.IdInforme);
+                var respuesta = await _informeRepository.ObtenerDatosNotificacionInformeAsync(usuarioLogueado, request.IdInforme);
                 if (respuesta.IdTipoMensaje != 2) return respuesta;
 
                 var datos = (respuesta.Result as List<NotificacionInformeDatosConsulta>)?.FirstOrDefault();
@@ -379,7 +387,7 @@ namespace SafetyReport.Handlers
                     if (adjunto != null) adjuntos.Add(adjunto);
                 }
 
-                await _emailService.EnviarNotificacionInformeAsync(datos.Correo, new NotificacionInformeEmailDetalle
+                await _emailSender.EnviarNotificacionInformeAsync(datos.Correo, new NotificacionInformeEmailDetalle
                 {
                     CodigoPedido = datos.CodigoPedido,
                     Asunto = datos.Asunto,
@@ -387,7 +395,7 @@ namespace SafetyReport.Handlers
                     Adjuntos = adjuntos
                 });
 
-                var respuestaRegistro = await _dao.RegistrarEnvioInformeAsync(usuarioLogueado, request.IdInforme, datos.IdPedido);
+                var respuestaRegistro = await _informeRepository.RegistrarEnvioInformeAsync(usuarioLogueado, request.IdInforme, datos.IdPedido);
                 if (respuestaRegistro.IdTipoMensaje != 2)
                     _logger.LogError("El correo de notificacion se envio pero no se pudo registrar en INFORME_ENVIO para el informe {IdInforme}: {Mensaje}", request.IdInforme, respuestaRegistro.Mensaje);
 
@@ -436,7 +444,7 @@ namespace SafetyReport.Handlers
                 return null;
             }
 
-            var bytes = await _s3.DescargarBytesAsync(s3Key);
+            var bytes = await _informeStorage.DescargarBytesAsync(s3Key);
             if (bytes == null)
             {
                 _logger.LogWarning("No se pudo descargar de S3 el documento {S3Key} para el informe {IdInforme}.", s3Key, idInforme);
@@ -458,7 +466,7 @@ namespace SafetyReport.Handlers
                 var (respuesta, s3Key, nombreDescarga) = await ResolverDocumentoAsync(usuarioLogueado, request);
                 if (respuesta.IdTipoMensaje != 2) return respuesta;
 
-                var downloadUrl = _s3.GenerarDownloadUrl(s3Key!, nombreDescarga!);
+                var downloadUrl = _informeStorage.GenerarDownloadUrl(s3Key!, nombreDescarga!);
 
                 return new Respuesta
                 {
@@ -482,7 +490,7 @@ namespace SafetyReport.Handlers
         {
             var formato = string.IsNullOrWhiteSpace(request.Formato) ? ".pdf" : request.Formato;
 
-            var respuestaRuta = await _dao.ObtenerRutaDocumentoAsync(usuarioLogueado, request.IdInforme, request.IdPedido);
+            var respuestaRuta = await _informeRepository.ObtenerRutaDocumentoAsync(usuarioLogueado, request.IdInforme, request.IdPedido);
 
             string? ruta = null;
             JsonArray? formatos = null;
@@ -509,7 +517,7 @@ namespace SafetyReport.Handlers
                         : await GenerarDocumentoPdfAsync(usuarioLogueado, request);
                 if (generado.IdTipoMensaje != 2) return (generado, null, null);
 
-                respuestaRuta = await _dao.ObtenerRutaDocumentoAsync(usuarioLogueado, request.IdInforme, request.IdPedido);
+                respuestaRuta = await _informeRepository.ObtenerRutaDocumentoAsync(usuarioLogueado, request.IdInforme, request.IdPedido);
                 if (respuestaRuta.IdTipoMensaje != 2 || respuestaRuta.Result is not string urlGenerado || string.IsNullOrWhiteSpace(urlGenerado))
                     return (new Respuesta { IdTipoMensaje = 1, Mensaje = "Error al obtener el documento generado.", Result = null }, null, null);
 
@@ -536,7 +544,7 @@ namespace SafetyReport.Handlers
                     prompt = request.Prompt ?? string.Empty
                 };
 
-                var n8nRespuesta = await _n8n.PostAsync(_n8nConfig.WebhookObtenerCampos, payload);
+                var n8nRespuesta = await _informeAutomationGateway.PostAsync(_n8nConfig.WebhookObtenerCampos, payload);
 
                 return new Respuesta
                 {
@@ -559,7 +567,7 @@ namespace SafetyReport.Handlers
             {
                 var extension = Path.GetExtension(request.FileName);
                 var fileKey = $"autocompletado/{Guid.NewGuid()}{extension}";
-                var uploadUrl = _s3.GenerarUploadUrl(fileKey, request.MimeType);
+                var uploadUrl = _informeStorage.GenerarUploadUrl(fileKey, request.MimeType);
 
                 return Task.FromResult(new Respuesta
                 {
@@ -594,10 +602,11 @@ namespace SafetyReport.Handlers
 
                 var extension = Path.GetExtension(archivo.FileName);
                 var fileKey = $"autocompletado/{Guid.NewGuid()}{extension}";
-                await _s3.UploadFileAsync(fileKey, archivo);
+                using var archivoStream = archivo.OpenReadStream();
+                await _informeStorage.UploadStreamAsync(fileKey, archivoStream, archivo.ContentType);
 
                 var payload = new { fileKey, mimeType = archivo.ContentType, secciones = seccionesJson, prompt = prompt ?? string.Empty };
-                var n8nRespuesta = await _n8n.PostAsync(_n8nConfig.WebhookObtenerCampos, payload);
+                var n8nRespuesta = await _informeAutomationGateway.PostAsync(_n8nConfig.WebhookObtenerCampos, payload);
 
                 return new Respuesta
                 {
@@ -618,7 +627,7 @@ namespace SafetyReport.Handlers
         {
             try
             {
-                var (respuesta, nombreInforme, requiereTraduccion, cantidadEnvios, formatosCliente) = await _dao.GenerarDocumentoAsync(usuarioLogueado, request.IdInforme, request.IdPedido);
+                var (respuesta, nombreInforme, requiereTraduccion, cantidadEnvios, formatosCliente) = await _informeRepository.GenerarDocumentoAsync(usuarioLogueado, request.IdInforme, request.IdPedido);
                 if (respuesta.IdTipoMensaje != 2 || respuesta.Result is not string jsonStr || string.IsNullOrWhiteSpace(jsonStr))
                     return new Respuesta { IdTipoMensaje = respuesta.IdTipoMensaje, Mensaje = respuesta.Mensaje, Result = null };
 
@@ -631,7 +640,7 @@ namespace SafetyReport.Handlers
                 {
                     var resolved = assets
                         .Where(kv => !string.IsNullOrWhiteSpace(kv.Value?.GetValue<string>()))
-                        .ToDictionary(kv => kv.Key, kv => _s3.GenerarDownloadUrl(kv.Value!.GetValue<string>()));
+                        .ToDictionary(kv => kv.Key, kv => _informeStorage.GenerarDownloadUrl(kv.Value!.GetValue<string>()));
 
                     var json = estructura!.ToJsonString();
                     foreach (var (name, url) in resolved)
@@ -667,14 +676,14 @@ namespace SafetyReport.Handlers
                 var docExistente = await ObtenerDocumentoExistente(usuarioLogueado, request, ".xml");
                 if (docExistente != null) return docExistente;
 
-                var (respuesta, nombreInforme) = await _dao.GenerarDocumentoXmlAsync(usuarioLogueado, request.IdInforme, request.IdPedido);
+                var (respuesta, nombreInforme) = await _informeRepository.GenerarDocumentoXmlAsync(usuarioLogueado, request.IdInforme, request.IdPedido);
                 if (respuesta.IdTipoMensaje != 2 || respuesta.Result is not string xmlStr || string.IsNullOrWhiteSpace(xmlStr))
                     return new Respuesta { IdTipoMensaje = respuesta.IdTipoMensaje, Mensaje = respuesta.Mensaje, Result = null };
 
                 var nombreArchivo = !string.IsNullOrWhiteSpace(nombreInforme) ? nombreInforme : "documento";
                 var rutaBase = $"informes/pedido-{request.IdPedido}/informe-{request.IdInforme}/{nombreArchivo}";
                 using var xmlStream = new MemoryStream(System.Text.Encoding.UTF8.GetBytes(xmlStr));
-                await _s3.UploadStreamAsync(rutaBase + ".xml", xmlStream, "application/xml");
+                await _informeStorage.UploadStreamAsync(rutaBase + ".xml", xmlStream, "application/xml");
 
                 await ActualizarDocumentoJsonAsync(usuarioLogueado, request, rutaBase, ".xml");
 
@@ -700,7 +709,7 @@ namespace SafetyReport.Handlers
                 var docExistente = await ObtenerDocumentoExistente(usuarioLogueado, request, ".docx");
                 if (docExistente != null) return docExistente;
 
-                var (respuesta, nombreInforme, _, _, _) = await _dao.GenerarDocumentoAsync(usuarioLogueado, request.IdInforme, request.IdPedido);
+                var (respuesta, nombreInforme, _, _, _) = await _informeRepository.GenerarDocumentoAsync(usuarioLogueado, request.IdInforme, request.IdPedido);
                 if (respuesta.IdTipoMensaje != 2 || respuesta.Result is not string jsonStr || string.IsNullOrWhiteSpace(jsonStr))
                     return new Respuesta { IdTipoMensaje = respuesta.IdTipoMensaje, Mensaje = respuesta.Mensaje, Result = null };
 
@@ -715,7 +724,7 @@ namespace SafetyReport.Handlers
 
                 var nombreArchivo = !string.IsNullOrWhiteSpace(nombreInforme) ? nombreInforme : "documento";
                 var rutaBase = $"informes/pedido-{request.IdPedido}/informe-{request.IdInforme}/{nombreArchivo}";
-                await _s3.UploadStreamAsync(rutaBase + ".docx", docxStream, "application/vnd.openxmlformats-officedocument.wordprocessingml.document");
+                await _informeStorage.UploadStreamAsync(rutaBase + ".docx", docxStream, "application/vnd.openxmlformats-officedocument.wordprocessingml.document");
 
                 await ActualizarDocumentoJsonAsync(usuarioLogueado, request, rutaBase, ".docx");
 
@@ -741,7 +750,7 @@ namespace SafetyReport.Handlers
                 var docExistente = await ObtenerDocumentoExistente(usuarioLogueado, request, ".pdf");
                 if (docExistente != null) return docExistente;
 
-                var (respuesta, nombreInforme, _, _, _) = await _dao.GenerarDocumentoAsync(usuarioLogueado, request.IdInforme, request.IdPedido);
+                var (respuesta, nombreInforme, _, _, _) = await _informeRepository.GenerarDocumentoAsync(usuarioLogueado, request.IdInforme, request.IdPedido);
                 if (respuesta.IdTipoMensaje != 2 || respuesta.Result is not string jsonStr || string.IsNullOrWhiteSpace(jsonStr))
                     return new Respuesta { IdTipoMensaje = respuesta.IdTipoMensaje, Mensaje = respuesta.Mensaje, Result = null };
 
@@ -756,7 +765,7 @@ namespace SafetyReport.Handlers
 
                 var nombreArchivo = !string.IsNullOrWhiteSpace(nombreInforme) ? nombreInforme : "documento";
                 var rutaBase = $"informes/pedido-{request.IdPedido}/informe-{request.IdInforme}/{nombreArchivo}";
-                await _s3.UploadStreamAsync(rutaBase + ".pdf", pdfStream, "application/pdf");
+                await _informeStorage.UploadStreamAsync(rutaBase + ".pdf", pdfStream, "application/pdf");
 
                 await ActualizarDocumentoJsonAsync(usuarioLogueado, request, rutaBase, ".pdf");
 
@@ -790,10 +799,10 @@ namespace SafetyReport.Handlers
                 {
                     try
                     {
-                        bytes = await _s3.DescargarBytesAsync(s3Key);
+                        bytes = await _informeStorage.DescargarBytesAsync(s3Key);
                         if (bytes is null || bytes.Length == 0)
                         {
-                            var url = _s3.GenerarDownloadUrl(s3Key);
+                            var url = _informeStorage.GenerarDownloadUrl(s3Key);
                             bytes = await http.GetByteArrayAsync(url);
                         }
                         seen[s3Key] = bytes;
@@ -808,31 +817,31 @@ namespace SafetyReport.Handlers
         private async Task DescargarFuentesAsync(JsonNode estructura)
         {
             var fontFamily = estructura["document"]?["font"]?["family"]?.GetValue<string>() ?? "Calibri";
-            var variantes = PdfGeneratorService.DetectarVariantesFuente(estructura);
-            var rutasS3 = PdfGeneratorService.ObtenerRutasS3Fuentes(fontFamily, variantes);
+            var variantes = _pdfGenerator.DetectarVariantesFuenteDocumento(estructura);
+            var rutasS3 = _pdfGenerator.ObtenerRutasS3FuentesDocumento(fontFamily, variantes);
 
             var fuentes = new Dictionary<string, byte[]>(StringComparer.OrdinalIgnoreCase);
 
             var tareas = rutasS3.Select(async kv =>
             {
-                var bytes = await _s3.DescargarBytesAsync(kv.Value);
+                var bytes = await _informeStorage.DescargarBytesAsync(kv.Value);
                 if ((bytes == null || bytes.Length == 0) &&
                     kv.Value.StartsWith("fuentes/", StringComparison.OrdinalIgnoreCase))
                 {
-                    bytes = await _s3.DescargarBytesAsync(
+                    bytes = await _informeStorage.DescargarBytesAsync(
                         "fonts/" + kv.Value["fuentes/".Length..]);
                 }
                 if ((bytes == null || bytes.Length == 0) &&
                     kv.Key.EndsWith("bi", StringComparison.OrdinalIgnoreCase) &&
                     kv.Value.EndsWith("z.ttf", StringComparison.OrdinalIgnoreCase))
                 {
-                    bytes = await _s3.DescargarBytesAsync(
+                    bytes = await _informeStorage.DescargarBytesAsync(
                         kv.Value[..^"z.ttf".Length] + "bi.ttf");
                     if ((bytes == null || bytes.Length == 0) &&
                         kv.Value.StartsWith("fuentes/", StringComparison.OrdinalIgnoreCase))
                     {
                         var biName = kv.Value["fuentes/".Length..^"z.ttf".Length] + "bi.ttf";
-                        bytes = await _s3.DescargarBytesAsync("fonts/" + biName);
+                        bytes = await _informeStorage.DescargarBytesAsync("fonts/" + biName);
                     }
                 }
                 return (Nombre: kv.Key, Bytes: bytes);
@@ -845,12 +854,12 @@ namespace SafetyReport.Handlers
             }
 
             if (fuentes.Count > 0)
-                PdfGeneratorService.ConfigurarFuentes(fuentes);
+                _pdfGenerator.ConfigurarFuentesDocumento(fuentes);
         }
 
         private async Task<Respuesta?> ObtenerDocumentoExistente(UsuarioGeneral usuarioLogueado, FiltroGenerarDocumento request, string formato)
         {
-            var respuestaDoc = await _dao.ObtenerRutaDocumentoAsync(usuarioLogueado, request.IdInforme, request.IdPedido);
+            var respuestaDoc = await _informeRepository.ObtenerRutaDocumentoAsync(usuarioLogueado, request.IdInforme, request.IdPedido);
             if (respuestaDoc.IdTipoMensaje != 2 || respuestaDoc.Result is not string urlDocumento || string.IsNullOrWhiteSpace(urlDocumento))
                 return null;
 
@@ -877,7 +886,7 @@ namespace SafetyReport.Handlers
         {
             var formatos = new JsonArray { JsonValue.Create(formato) };
 
-            var respuestaDoc = await _dao.ObtenerRutaDocumentoAsync(usuarioLogueado, request.IdInforme, request.IdPedido);
+            var respuestaDoc = await _informeRepository.ObtenerRutaDocumentoAsync(usuarioLogueado, request.IdInforme, request.IdPedido);
             if (respuestaDoc.IdTipoMensaje == 2 && respuestaDoc.Result is string urlDocumento && !string.IsNullOrWhiteSpace(urlDocumento))
             {
                 try
@@ -905,7 +914,7 @@ namespace SafetyReport.Handlers
                 ["formatos"] = formatos
             };
 
-            await _dao.ActualizarDocumentoAsync(usuarioLogueado, request.IdInforme, docJson.ToJsonString());
+            await _informeRepository.ActualizarDocumentoAsync(usuarioLogueado, request.IdInforme, docJson.ToJsonString());
         }
 
         private static string MapearPlantillaHtml(string html, JsonNode? informe, JsonNode? pedido)
@@ -1261,7 +1270,7 @@ namespace SafetyReport.Handlers
                     return new Respuesta { IdTipoMensaje = 1, Mensaje = "La fecha desde no puede ser mayor a la fecha hasta." };
                 }
 
-                return await _dao.ObtenerEvolucionAsync(usuarioLogueado, filtro);
+                return await _informeRepository.ObtenerEvolucionAsync(usuarioLogueado, filtro);
             }
             catch (Exception ex)
             {

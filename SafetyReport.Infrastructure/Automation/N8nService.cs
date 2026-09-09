@@ -1,13 +1,14 @@
 using Microsoft.IdentityModel.Tokens;
+using SafetyReport.Application.Ports.Informe;
 using SafetyReport.Models;
 using System.IdentityModel.Tokens.Jwt;
 using System.Net.Http.Headers;
 using System.Text;
 using System.Text.Json;
 
-namespace SafetyReport.Handlers
+namespace SafetyReport.Infrastructure.Automation
 {
-    public class N8nService
+    public class N8nService : IInformeAutomationGateway
     {
         private readonly N8nConfig _config;
         private readonly HttpClient _httpClient;

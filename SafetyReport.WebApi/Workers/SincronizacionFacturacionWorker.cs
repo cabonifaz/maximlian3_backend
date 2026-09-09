@@ -1,5 +1,4 @@
-using SafetyReport.DAO;
-using SafetyReport.Handlers;
+using SafetyReport.Application.Ports.PedidoFactura;
 using SafetyReport.Models;
 
 namespace SafetyReport.WebApi.Workers
@@ -47,10 +46,10 @@ namespace SafetyReport.WebApi.Workers
         private async Task SincronizarAsync(CancellationToken cancellationToken)
         {
             using var scope = scopeFactory.CreateScope();
-            var pedidoFacturaDAO = scope.ServiceProvider.GetRequiredService<PedidoFacturaDAO>();
-            var facturacionElectronicaService = scope.ServiceProvider.GetRequiredService<FacturacionElectronicaService>();
+            var pedidoFacturaRepository = scope.ServiceProvider.GetRequiredService<IPedidoFacturaRepository>();
+            var facturacionElectronicaGateway = scope.ServiceProvider.GetRequiredService<IFacturacionElectronicaGateway>();
 
-            var checkpoints = await pedidoFacturaDAO.ObtenerCheckpointsSincronizacionAsync();
+            var checkpoints = await pedidoFacturaRepository.ObtenerCheckpointsSincronizacionAsync();
             if (checkpoints.IdTipoMensaje != 2 || checkpoints.Result is not List<CheckpointSincronizacionConsulta> lista)
             {
                 logger.LogWarning("No se pudieron obtener los checkpoints de sincronización de facturación: {Mensaje}", checkpoints.Mensaje);
@@ -61,7 +60,7 @@ namespace SafetyReport.WebApi.Workers
 
             foreach (var checkpoint in lista)
             {
-                var nuevoCheckpoint = await SincronizarEmpresaAsync(pedidoFacturaDAO, facturacionElectronicaService, checkpoint, cancellationToken);
+                var nuevoCheckpoint = await SincronizarEmpresaAsync(pedidoFacturaRepository, facturacionElectronicaGateway, checkpoint, cancellationToken);
                 if (nuevoCheckpoint.HasValue)
                 {
                     checkpointsAAvanzar.Add((checkpoint.IdEmpresa, nuevoCheckpoint.Value));
@@ -70,7 +69,7 @@ namespace SafetyReport.WebApi.Workers
 
             if (checkpointsAAvanzar.Count > 0)
             {
-                var resultado = await pedidoFacturaDAO.ActualizarCheckpointSincronizacionAsync(checkpointsAAvanzar);
+                var resultado = await pedidoFacturaRepository.ActualizarCheckpointSincronizacionAsync(checkpointsAAvanzar);
                 if (resultado.IdTipoMensaje != 2)
                 {
                     logger.LogError("No se pudieron avanzar los checkpoints de sincronización de facturación: {Mensaje}", resultado.Mensaje);
@@ -81,10 +80,10 @@ namespace SafetyReport.WebApi.Workers
         // Devuelve el nuevo checkpoint a fijar para la empresa, o null si no debe avanzar (falla de red/aplicación,
         // se reintenta desde el mismo punto en el próximo ciclo).
         private async Task<int?> SincronizarEmpresaAsync(
-            PedidoFacturaDAO pedidoFacturaDAO, FacturacionElectronicaService facturacionElectronicaService,
+            IPedidoFacturaRepository pedidoFacturaRepository, IFacturacionElectronicaGateway facturacionElectronicaGateway,
             CheckpointSincronizacionConsulta checkpoint, CancellationToken cancellationToken)
         {
-            var envelope = await facturacionElectronicaService.ListarEventosRecientesAsync(
+            var envelope = await facturacionElectronicaGateway.ListarEventosRecientesAsync(
                 checkpoint.IdEmpresa, checkpoint.UltimoIdEvento, cancellationToken);
 
             if (envelope is null || envelope.IdTipoMensaje != 2)
@@ -110,7 +109,7 @@ namespace SafetyReport.WebApi.Workers
 
             if (documentosConEstado.Count > 0)
             {
-                var resultado = await pedidoFacturaDAO.ActualizarEstadoPorDocumentoAsync(checkpoint.IdEmpresa, documentosConEstado);
+                var resultado = await pedidoFacturaRepository.ActualizarEstadoPorDocumentoAsync(checkpoint.IdEmpresa, documentosConEstado);
                 if (resultado.IdTipoMensaje != 2)
                 {
                     logger.LogError(

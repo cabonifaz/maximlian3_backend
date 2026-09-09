@@ -8,10 +8,11 @@ using PdfSharp.Drawing.Layout;
 using PdfSharp.Fonts;
 using PdfSharp.Pdf;
 using PdfSharp.Pdf.Advanced;
+using SafetyReport.Application.Ports.Informe;
 
 namespace SafetyReport.Handlers;
 
-public class PdfGeneratorService
+public class PdfGeneratorService : IInformePdfGenerator
 {
     private string _fontFamily = "Calibri";
     private const string FallbackSymbolFontFamily = "Calibri";
@@ -104,6 +105,15 @@ public class PdfGeneratorService
             }
         }
     }
+
+    public HashSet<string> DetectarVariantesFuenteDocumento(JsonNode json) =>
+        DetectarVariantesFuente(json);
+
+    public Dictionary<string, string> ObtenerRutasS3FuentesDocumento(string fontFamily, HashSet<string> variantes) =>
+        ObtenerRutasS3Fuentes(fontFamily, variantes);
+
+    public void ConfigurarFuentesDocumento(Dictionary<string, byte[]> fuentes) =>
+        ConfigurarFuentes(fuentes);
 
     private byte[]? ResolveAssetBytes(string? valor)
     {

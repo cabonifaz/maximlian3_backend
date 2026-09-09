@@ -1,11 +1,11 @@
 ﻿using Amazon.S3;
 using Amazon.S3.Model;
-using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Configuration;
 using SafetyReport.Application.Ports.Storage;
-using SafetyReport.Models;
 
-public class S3UploadService : IS3UploadService, IPedidoArchivoStorage
+namespace SafetyReport.Infrastructure.Storage;
+
+public class S3UploadService : IPedidoArchivoStorage, IInformeLocalImagenStorage, IInformeArchivoStorage, ICompaniaNoticiaStorage, IInformeStorage, ILogStorage
 {
     private readonly IAmazonS3 _s3Client;
     private readonly IConfiguration _configuration;
@@ -98,27 +98,6 @@ public class S3UploadService : IS3UploadService, IPedidoArchivoStorage
             Verb       = HttpVerb.GET,
             Expires    = expiry
         })).ToList();
-    }
-
-    public async Task UploadFileAsync(string rutaArchivo, IFormFile file)
-    {
-        if (file is null || file.Length == 0)
-        {
-            throw new ArgumentException("Archivo no válido", nameof(file));
-        }
-
-        using var stream = file.OpenReadStream();
-
-        var putRequest = new PutObjectRequest
-        {
-            BucketName = _bucketName,
-            Key = rutaArchivo,
-            InputStream = stream,
-            ContentType = file.ContentType,
-            AutoCloseStream = true
-        };
-
-        await _s3Client.PutObjectAsync(putRequest);
     }
 
     public async Task UploadStreamAsync(string rutaArchivo, Stream stream, string contentType)

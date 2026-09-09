@@ -9,6 +9,12 @@ using SafetyReport.Application.Ports.Banco;
 using SafetyReport.Application.Ports.Asignacion;
 using SafetyReport.Application.Ports.Cliente;
 using SafetyReport.Application.Ports.ClienteContacto;
+using SafetyReport.Application.Ports.Compania;
+using SafetyReport.Application.Ports.Informe;
+using SafetyReport.Application.Ports.InformeArchivo;
+using SafetyReport.Application.Ports.InformeLocalImagen;
+using SafetyReport.Application.Ports.InformeObservacion;
+using SafetyReport.Application.Ports.DirectorioEjecutivo;
 using SafetyReport.Application.Ports.Login;
 using SafetyReport.Application.Ports.Pedido;
 using SafetyReport.Application.Ports.PedidoArchivo;
@@ -20,6 +26,9 @@ using SafetyReport.Application.Ports.Tarifario;
 using SafetyReport.Application.Ports.Usuario;
 using SafetyReport.DAO;
 using SafetyReport.Handlers;
+using SafetyReport.Infrastructure.Automation;
+using SafetyReport.Infrastructure.Facturacion;
+using SafetyReport.Infrastructure.Storage;
 using SafetyReport.Models;
 using SafetyReport.WebApi.Filters;
 using SafetyReport.WebApi.Helpers;
@@ -208,23 +217,32 @@ builder.Services.AddScoped<AsignacionHandler>();
 builder.Services.AddScoped<AsignacionDAO>();
 builder.Services.AddScoped<IAsignacionRepository, AsignacionDAO>();
 builder.Services.AddScoped<DocxGeneratorService>();
+builder.Services.AddScoped<IInformeDocxGenerator, DocxGeneratorService>();
 builder.Services.AddScoped<PdfGeneratorService>();
+builder.Services.AddScoped<IInformePdfGenerator, PdfGeneratorService>();
 builder.Services.AddScoped<InformeHandler>();
 builder.Services.AddScoped<InformeDAO>();
+builder.Services.AddScoped<IInformeRepository, InformeDAO>();
+builder.Services.AddScoped<IInformeDraftRepository, InformeDAO>();
 builder.Services.AddScoped<InformeObservacionHandler>();
 builder.Services.AddScoped<InformeObservacionDAO>();
+builder.Services.AddScoped<IInformeObservacionRepository, InformeObservacionDAO>();
 builder.Services.AddScoped<InformeLocalImagenHandler>();
 builder.Services.AddScoped<InformeLocalImagenDAO>();
+builder.Services.AddScoped<IInformeLocalImagenRepository, InformeLocalImagenDAO>();
 builder.Services.AddScoped<InformeArchivoHandler>();
 builder.Services.AddScoped<InformeArchivoDAO>();
+builder.Services.AddScoped<IInformeArchivoRepository, InformeArchivoDAO>();
 builder.Services.AddScoped<PlantillaDocumentoDAO>();
 builder.Services.AddScoped<BancoHandler>();
 builder.Services.AddScoped<BancoDAO>();
 builder.Services.AddScoped<IBancoRepository, BancoDAO>();
 builder.Services.AddScoped<CompaniaHandler>();
 builder.Services.AddScoped<CompaniaDAO>();
+builder.Services.AddScoped<ICompaniaRepository, CompaniaDAO>();
 builder.Services.AddScoped<DirectorioEjecutivoHandler>();
 builder.Services.AddScoped<DirectorioEjecutivoDAO>();
+builder.Services.AddScoped<IDirectorioEjecutivoRepository, DirectorioEjecutivoDAO>();
 
 var awsRegion = builder.Configuration["AWS:Region"];
 var awsBucketName = builder.Configuration["AWS:BucketName"];
@@ -247,10 +265,13 @@ builder.Services.AddSingleton<IAmazonS3>(sp =>
     return new AmazonS3Client(credenciales, regionEndpoint);
 });
 
-builder.Services.AddSingleton<IS3UploadService, S3UploadService>();
-builder.Services.AddSingleton<IPedidoArchivoStorage>(sp =>
-    sp.GetRequiredService<IS3UploadService>() as S3UploadService
-    ?? throw new InvalidOperationException("IS3UploadService debe resolverse como S3UploadService."));
+builder.Services.AddSingleton<S3UploadService>();
+builder.Services.AddSingleton<IPedidoArchivoStorage>(sp => sp.GetRequiredService<S3UploadService>());
+builder.Services.AddSingleton<IInformeLocalImagenStorage>(sp => sp.GetRequiredService<S3UploadService>());
+builder.Services.AddSingleton<IInformeArchivoStorage>(sp => sp.GetRequiredService<S3UploadService>());
+builder.Services.AddSingleton<ICompaniaNoticiaStorage>(sp => sp.GetRequiredService<S3UploadService>());
+builder.Services.AddSingleton<IInformeStorage>(sp => sp.GetRequiredService<S3UploadService>());
+builder.Services.AddSingleton<ILogStorage>(sp => sp.GetRequiredService<S3UploadService>());
 
 builder.Services.AddSingleton<IAmazonBedrockRuntime>(sp =>
 {
@@ -277,6 +298,8 @@ builder.Services.AddSingleton(sp =>
     var config = sp.GetRequiredService<BedrockTranslationConfig>();
     return new BedrockInformeTranslationService(bedrock, config.Informe);
 });
+builder.Services.AddSingleton<IInformeTranslator>(sp =>
+    sp.GetRequiredService<BedrockInformeTranslationService>());
 builder.Services.AddScoped<InformeTranslationHandler>();
 
 builder.Services.AddScoped<PedidoArchivoHandler>();
@@ -292,11 +315,16 @@ builder.Services.AddHttpClient<N8nService>(client =>
 {
     client.Timeout = TimeSpan.FromSeconds(300);
 });
+builder.Services.AddScoped<IInformeAutomationGateway>(sp =>
+    sp.GetRequiredService<N8nService>());
 
 var emailConfig = builder.Configuration.GetSection("Email").Get<EmailConfig>()
     ?? throw new Exception("Falta configuración Email");
 builder.Services.AddSingleton(emailConfig);
 builder.Services.AddSingleton<IEmailService, EmailService>();
+builder.Services.AddSingleton<IInformeEmailSender>(sp =>
+    sp.GetRequiredService<IEmailService>() as EmailService
+    ?? throw new InvalidOperationException("IEmailService debe resolverse como EmailService."));
 
 var facturacionElectronicaConfig = builder.Configuration.GetSection("FacturacionElectronica").Get<FacturacionElectronicaConfig>()
     ?? throw new Exception("Falta configuración FacturacionElectronica");
@@ -308,7 +336,7 @@ builder.Services.AddHostedService<SafetyReport.WebApi.Workers.SincronizacionFact
 
 var app = builder.Build();
 
-S3FallbackTarget.UploadService = app.Services.GetRequiredService<IS3UploadService>();
+S3FallbackTarget.UploadService = app.Services.GetRequiredService<ILogStorage>();
 
 app.UseSwagger();
 app.UseSwaggerUI();

@@ -1,9 +1,10 @@
+using SafetyReport.Application.Ports.Informe;
 using SafetyReport.Models;
 using System.Text.Json;
 
 namespace SafetyReport.Handlers
 {
-    public class BedrockInformeTranslationService
+    public class BedrockInformeTranslationService : IInformeTranslator
     {
         private readonly BedrockService _bedrock;
         private readonly string _modelId;

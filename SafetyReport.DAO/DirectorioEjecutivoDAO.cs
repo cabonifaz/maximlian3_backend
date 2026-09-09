@@ -1,11 +1,12 @@
 using Microsoft.Data.SqlClient;
 using Microsoft.Extensions.Logging;
+using SafetyReport.Application.Ports.DirectorioEjecutivo;
 using SafetyReport.Models;
 using System.Data;
 
 namespace SafetyReport.DAO
 {
-    public class DirectorioEjecutivoDAO
+    public class DirectorioEjecutivoDAO : IDirectorioEjecutivoRepository
     {
         private readonly DbConfig _dbConfig;
         private readonly ILogger<DirectorioEjecutivoDAO> _logger;

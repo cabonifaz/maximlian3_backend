@@ -2,21 +2,25 @@ using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Spreadsheet;
 using Microsoft.Extensions.Logging;
-using SafetyReport.DAO;
+using SafetyReport.Application.Ports.Compania;
+using SafetyReport.Application.Ports.Storage;
 using SafetyReport.Models;
 
 namespace SafetyReport.Handlers
 {
     public class CompaniaHandler
     {
-        private readonly CompaniaDAO _dao;
-        private readonly IS3UploadService _s3UploadService;
+        private readonly ICompaniaRepository _companiaRepository;
+        private readonly ICompaniaNoticiaStorage _companiaNoticiaStorage;
         private readonly ILogger<CompaniaHandler> _logger;
 
-        public CompaniaHandler(CompaniaDAO dao, IS3UploadService s3UploadService, ILogger<CompaniaHandler> logger)
+        public CompaniaHandler(
+            ICompaniaRepository companiaRepository,
+            ICompaniaNoticiaStorage companiaNoticiaStorage,
+            ILogger<CompaniaHandler> logger)
         {
-            _dao = dao;
-            _s3UploadService = s3UploadService;
+            _companiaRepository = companiaRepository;
+            _companiaNoticiaStorage = companiaNoticiaStorage;
             _logger = logger;
         }
 
@@ -24,7 +28,7 @@ namespace SafetyReport.Handlers
         {
             try
             {
-                return await _dao.CrearAsync(usuarioLogueado, lstCompanias);
+                return await _companiaRepository.CrearAsync(usuarioLogueado, lstCompanias);
             }
             catch (Exception ex)
             {
@@ -38,7 +42,7 @@ namespace SafetyReport.Handlers
         {
             try
             {
-                return await _dao.EditarAsync(usuarioLogueado, request);
+                return await _companiaRepository.EditarAsync(usuarioLogueado, request);
             }
             catch (Exception ex)
             {
@@ -52,7 +56,7 @@ namespace SafetyReport.Handlers
         {
             try
             {
-                return await _dao.ObtenerAsync(usuarioLogueado, request);
+                return await _companiaRepository.ObtenerAsync(usuarioLogueado, request);
             }
             catch (Exception ex)
             {
@@ -66,7 +70,7 @@ namespace SafetyReport.Handlers
         {
             try
             {
-                return await _dao.ListarAsync(usuarioLogueado, filtro);
+                return await _companiaRepository.ListarAsync(usuarioLogueado, filtro);
             }
             catch (Exception ex)
             {
@@ -80,7 +84,7 @@ namespace SafetyReport.Handlers
         {
             try
             {
-                return await _dao.BuscarAsync(usuarioLogueado, filtro);
+                return await _companiaRepository.BuscarAsync(usuarioLogueado, filtro);
             }
             catch (Exception ex)
             {
@@ -94,7 +98,7 @@ namespace SafetyReport.Handlers
         {
             try
             {
-                return await _dao.ListarMatchAsync(usuarioLogueado, lista);
+                return await _companiaRepository.ListarMatchAsync(usuarioLogueado, lista);
             }
             catch (Exception ex)
             {
@@ -108,7 +112,7 @@ namespace SafetyReport.Handlers
         {
             try
             {
-                return await _dao.EliminarAsync(usuarioLogueado, idCompania);
+                return await _companiaRepository.EliminarAsync(usuarioLogueado, idCompania);
             }
             catch (Exception ex)
             {
@@ -123,7 +127,7 @@ namespace SafetyReport.Handlers
             try
             {
                 await PrepararArchivosNoticiaAsync(usuarioLogueado, request.IdCompania, request.Archivos);
-                var respuesta = await _dao.CrearNoticiaAsync(usuarioLogueado, request);
+                var respuesta = await _companiaRepository.CrearNoticiaAsync(usuarioLogueado, request);
                 AgregarArchivosPresignados(respuesta, request.Archivos);
                 return respuesta;
             }
@@ -140,7 +144,7 @@ namespace SafetyReport.Handlers
             try
             {
                 await PrepararArchivosNoticiaAsync(usuarioLogueado, request.IdCompania, request.Archivos);
-                var respuesta = await _dao.EditarNoticiaAsync(usuarioLogueado, request);
+                var respuesta = await _companiaRepository.EditarNoticiaAsync(usuarioLogueado, request);
                 AgregarArchivosPresignados(respuesta, request.Archivos);
                 return respuesta;
             }
@@ -156,7 +160,7 @@ namespace SafetyReport.Handlers
         {
             try
             {
-                return await _dao.ObtenerNoticiaAsync(usuarioLogueado, request);
+                return await _companiaRepository.ObtenerNoticiaAsync(usuarioLogueado, request);
             }
             catch (Exception ex)
             {
@@ -170,12 +174,12 @@ namespace SafetyReport.Handlers
         {
             try
             {
-                var respuesta = await _dao.ObtenerNoticiaArchivoAsync(usuarioLogueado, request.IdCompaniaNoticiaArchivo);
+                var respuesta = await _companiaRepository.ObtenerNoticiaArchivoAsync(usuarioLogueado, request.IdCompaniaNoticiaArchivo);
                 if (respuesta.IdTipoMensaje == 2 && respuesta.Result is List<CompaniaNoticiaArchivoDescargaConsulta> archivos && archivos.Count > 0)
                 {
                     var archivo = archivos[0];
                     if (!string.IsNullOrWhiteSpace(archivo.ArchivoUrl))
-                        archivo.DownloadUrl = _s3UploadService.GenerarDownloadUrl(archivo.ArchivoUrl, archivo.NombreDocumento ?? archivo.ArchivoUrl);
+                        archivo.DownloadUrl = _companiaNoticiaStorage.GenerarDownloadUrl(archivo.ArchivoUrl, archivo.NombreDocumento ?? archivo.ArchivoUrl);
                     archivo.ArchivoUrl = string.Empty;
                 }
                 return respuesta;
@@ -192,7 +196,7 @@ namespace SafetyReport.Handlers
         {
             try
             {
-                var respuesta = await _dao.EliminarNoticiaArchivoAsync(usuarioLogueado, request.IdCompaniaNoticiaArchivo);
+                var respuesta = await _companiaRepository.EliminarNoticiaArchivoAsync(usuarioLogueado, request.IdCompaniaNoticiaArchivo);
                 if (respuesta.IdTipoMensaje == 2 && respuesta.Result is List<CompaniaNoticiaArchivoEliminado> archivos && archivos.Count > 0)
                 {
                     var archivo = archivos[0];
@@ -200,7 +204,7 @@ namespace SafetyReport.Handlers
                     {
                         try
                         {
-                            await _s3UploadService.DeleteFileAsync(archivo.ArchivoUrl);
+                            await _companiaNoticiaStorage.DeleteFileAsync(archivo.ArchivoUrl);
                         }
                         catch
                         {
@@ -222,7 +226,7 @@ namespace SafetyReport.Handlers
         {
             try
             {
-                return await _dao.ListarNoticiasAsync(usuarioLogueado, filtro);
+                return await _companiaRepository.ListarNoticiasAsync(usuarioLogueado, filtro);
             }
             catch (Exception ex)
             {
@@ -236,12 +240,12 @@ namespace SafetyReport.Handlers
         {
             try
             {
-                var obtener = await _dao.ObtenerNoticiaAsync(usuarioLogueado, new CompaniaNoticiaObtenerRequest
+                var obtener = await _companiaRepository.ObtenerNoticiaAsync(usuarioLogueado, new CompaniaNoticiaObtenerRequest
                 {
                     IdCompaniaNoticia = idCompaniaNoticia
                 });
 
-                var respuesta = await _dao.EliminarNoticiaAsync(usuarioLogueado, idCompaniaNoticia);
+                var respuesta = await _companiaRepository.EliminarNoticiaAsync(usuarioLogueado, idCompaniaNoticia);
 
                 if (respuesta.IdTipoMensaje == 2)
                     await EliminarArchivosS3Async(obtener);
@@ -260,7 +264,7 @@ namespace SafetyReport.Handlers
         {
             try
             {
-                return await _dao.ListarNoticiasBalanceAsync(usuarioLogueado, filtro);
+                return await _companiaRepository.ListarNoticiasBalanceAsync(usuarioLogueado, filtro);
             }
             catch (Exception ex)
             {
@@ -274,7 +278,7 @@ namespace SafetyReport.Handlers
         {
             try
             {
-                return await _dao.ObtenerNoticiaBalanceAsync(usuarioLogueado, request);
+                return await _companiaRepository.ObtenerNoticiaBalanceAsync(usuarioLogueado, request);
             }
             catch (Exception ex)
             {
@@ -288,7 +292,7 @@ namespace SafetyReport.Handlers
         {
             try
             {
-                return await _dao.ListarNoticiasDetalleAsync(usuarioLogueado, filtro);
+                return await _companiaRepository.ListarNoticiasDetalleAsync(usuarioLogueado, filtro);
             }
             catch (Exception ex)
             {
@@ -302,7 +306,7 @@ namespace SafetyReport.Handlers
         {
             try
             {
-                var respuesta = await _dao.ExportarNoticiasDetalleAsync(usuarioLogueado, filtro);
+                var respuesta = await _companiaRepository.ExportarNoticiasDetalleAsync(usuarioLogueado, filtro);
                 if (respuesta.IdTipoMensaje != 2)
                     return respuesta;
 
@@ -350,7 +354,7 @@ namespace SafetyReport.Handlers
 
                 archivo.ArchivoUrl = rutaArchivo;
                 archivo.NombreDocumento = nombreDocumento;
-                archivo.UploadUrl = _s3UploadService.GenerarUploadUrl(rutaArchivo, formatoArchivo);
+                archivo.UploadUrl = _companiaNoticiaStorage.GenerarUploadUrl(rutaArchivo, formatoArchivo);
             }
         }
 

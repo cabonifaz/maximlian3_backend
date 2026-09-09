@@ -4,13 +4,14 @@ using System.Threading;
 using System.Threading.Tasks;
 using NLog;
 using NLog.Targets;
+using SafetyReport.Application.Ports.Storage;
 
 namespace SafetyReport.WebApi.Logging
 {
     [Target("S3Fallback")]
     public sealed class S3FallbackTarget : AsyncTaskTarget
     {
-        public static IS3UploadService? UploadService { get; set; }
+        public static ILogStorage? UploadService { get; set; }
 
         public S3FallbackTarget()
         {

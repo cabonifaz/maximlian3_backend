@@ -3,13 +3,14 @@ using System.Text.Json.Nodes;
 using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Wordprocessing;
+using SafetyReport.Application.Ports.Informe;
 using A = DocumentFormat.OpenXml.Drawing;
 using DW = DocumentFormat.OpenXml.Drawing.Wordprocessing;
 using PIC = DocumentFormat.OpenXml.Drawing.Pictures;
 
 namespace SafetyReport.Handlers;
 
-public partial class DocxGeneratorService
+public partial class DocxGeneratorService : IInformeDocxGenerator
 {
     private string _fontFamily = "Calibri";
     private int _fontSizeHp = 20;

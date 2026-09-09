@@ -108,5 +108,8 @@ namespace SafetyReport.Application.Ports.PedidoFactura
         Task<FacturacionEnvelope<List<FacturacionEvolucion>>?> ObtenerEvolucionFacturacionAsync(
             int idInquilino, int idEmpresa, DateOnly? fechaDesde, DateOnly? fechaHasta,
             int granularidad, CancellationToken cancellationToken);
+
+        Task<FacturacionEnvelope<List<FacturacionEventoDocumento>>?> ListarEventosRecientesAsync(
+            int idInquilino, int ultimoIdEvento, CancellationToken cancellationToken);
     }
 }

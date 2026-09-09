@@ -1,17 +1,19 @@
 using Microsoft.Extensions.Logging;
-using SafetyReport.DAO;
+using SafetyReport.Application.Ports.DirectorioEjecutivo;
 using SafetyReport.Models;
 
 namespace SafetyReport.Handlers
 {
     public class DirectorioEjecutivoHandler
     {
-        private readonly DirectorioEjecutivoDAO _dao;
+        private readonly IDirectorioEjecutivoRepository _directorioEjecutivoRepository;
         private readonly ILogger<DirectorioEjecutivoHandler> _logger;
 
-        public DirectorioEjecutivoHandler(DirectorioEjecutivoDAO dao, ILogger<DirectorioEjecutivoHandler> logger)
+        public DirectorioEjecutivoHandler(
+            IDirectorioEjecutivoRepository directorioEjecutivoRepository,
+            ILogger<DirectorioEjecutivoHandler> logger)
         {
-            _dao = dao;
+            _directorioEjecutivoRepository = directorioEjecutivoRepository;
             _logger = logger;
         }
 
@@ -19,7 +21,7 @@ namespace SafetyReport.Handlers
         {
             try
             {
-                return await _dao.CrearAsync(usuarioLogueado, lstDirectorios);
+                return await _directorioEjecutivoRepository.CrearAsync(usuarioLogueado, lstDirectorios);
             }
             catch (Exception ex)
             {
@@ -33,7 +35,7 @@ namespace SafetyReport.Handlers
         {
             try
             {
-                return await _dao.EditarAsync(usuarioLogueado, request);
+                return await _directorioEjecutivoRepository.EditarAsync(usuarioLogueado, request);
             }
             catch (Exception ex)
             {
@@ -47,7 +49,7 @@ namespace SafetyReport.Handlers
         {
             try
             {
-                return await _dao.ObtenerAsync(usuarioLogueado, request);
+                return await _directorioEjecutivoRepository.ObtenerAsync(usuarioLogueado, request);
             }
             catch (Exception ex)
             {
@@ -61,7 +63,7 @@ namespace SafetyReport.Handlers
         {
             try
             {
-                return await _dao.ListarAsync(usuarioLogueado, filtro);
+                return await _directorioEjecutivoRepository.ListarAsync(usuarioLogueado, filtro);
             }
             catch (Exception ex)
             {
@@ -75,7 +77,7 @@ namespace SafetyReport.Handlers
         {
             try
             {
-                return await _dao.EliminarAsync(usuarioLogueado, idDirectorioEjecutivo);
+                return await _directorioEjecutivoRepository.EliminarAsync(usuarioLogueado, idDirectorioEjecutivo);
             }
             catch (Exception ex)
             {

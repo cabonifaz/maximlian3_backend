@@ -1,21 +1,27 @@
 using Microsoft.Extensions.Logging;
-using SafetyReport.DAO;
+using SafetyReport.Application.Ports.Informe;
+using SafetyReport.Application.Ports.InformeArchivo;
+using SafetyReport.Application.Ports.Storage;
 using SafetyReport.Models;
 
 namespace SafetyReport.Handlers
 {
     public class InformeArchivoHandler
     {
-        private readonly InformeArchivoDAO _dao;
-        private readonly InformeDAO _informeDAO;
-        private readonly IS3UploadService _s3;
+        private readonly IInformeArchivoRepository _informeArchivoRepository;
+        private readonly IInformeDraftRepository _informeDraftRepository;
+        private readonly IInformeArchivoStorage _informeArchivoStorage;
         private readonly ILogger<InformeArchivoHandler> _logger;
 
-        public InformeArchivoHandler(InformeArchivoDAO dao, InformeDAO informeDAO, IS3UploadService s3, ILogger<InformeArchivoHandler> logger)
+        public InformeArchivoHandler(
+            IInformeArchivoRepository informeArchivoRepository,
+            IInformeDraftRepository informeDraftRepository,
+            IInformeArchivoStorage informeArchivoStorage,
+            ILogger<InformeArchivoHandler> logger)
         {
-            _dao = dao;
-            _informeDAO = informeDAO;
-            _s3 = s3;
+            _informeArchivoRepository = informeArchivoRepository;
+            _informeDraftRepository = informeDraftRepository;
+            _informeArchivoStorage = informeArchivoStorage;
             _logger = logger;
         }
 
@@ -27,7 +33,7 @@ namespace SafetyReport.Handlers
 
                 if (idInforme == 0)
                 {
-                    var resultado = await _informeDAO.ObtenerOCrearInformeAsync(usuarioLogueado, request.IdPedido);
+                    var resultado = await _informeDraftRepository.ObtenerOCrearInformeAsync(usuarioLogueado, request.IdPedido);
                     if (resultado.IdTipoMensaje != 2 || resultado.Result is not List<InformeIdResult> ids || ids.Count == 0)
                         return new Respuesta { IdTipoMensaje = resultado.IdTipoMensaje, Mensaje = resultado.Mensaje, Result = new List<InformeArchivoUrlResult>() };
                     idInforme = ids[0].IdInforme;
@@ -43,7 +49,7 @@ namespace SafetyReport.Handlers
                     {
                         Nombre = nombre,
                         ArchivoUrl = s3Key,
-                        UploadUrl = _s3.GenerarUploadUrl(s3Key, "application/octet-stream")
+                        UploadUrl = _informeArchivoStorage.GenerarUploadUrl(s3Key, "application/octet-stream")
                     });
                 }
 
@@ -62,11 +68,11 @@ namespace SafetyReport.Handlers
         {
             try
             {
-                var respuesta = await _dao.ObtenerArchivoAsync(usuarioLogueado, request.IdInformeArchivo);
+                var respuesta = await _informeArchivoRepository.ObtenerArchivoAsync(usuarioLogueado, request.IdInformeArchivo);
                 if (respuesta.IdTipoMensaje == 2 && respuesta.Result is List<InformeArchivoConsulta> archivos && archivos.Count > 0)
                 {
                     var archivo = archivos[0];
-                    archivo.DownloadUrl = _s3.GenerarDownloadUrl(archivo.ArchivoUrl);
+                    archivo.DownloadUrl = _informeArchivoStorage.GenerarDownloadUrl(archivo.ArchivoUrl);
                     archivo.ArchivoUrl = string.Empty;
                 }
                 return respuesta;
@@ -83,14 +89,14 @@ namespace SafetyReport.Handlers
         {
             try
             {
-                var obtener = await _dao.ObtenerArchivoAsync(usuarioLogueado, request.IdInformeArchivo);
+                var obtener = await _informeArchivoRepository.ObtenerArchivoAsync(usuarioLogueado, request.IdInformeArchivo);
                 if (obtener.IdTipoMensaje != 2)
                     return obtener;
 
                 if (obtener.Result is List<InformeArchivoConsulta> archivos && archivos.Count > 0)
-                    await _s3.DeleteFileAsync(archivos[0].ArchivoUrl);
+                    await _informeArchivoStorage.DeleteFileAsync(archivos[0].ArchivoUrl);
 
-                return await _dao.EliminarArchivoAsync(usuarioLogueado, request.IdInformeArchivo);
+                return await _informeArchivoRepository.EliminarArchivoAsync(usuarioLogueado, request.IdInformeArchivo);
             }
             catch (Exception ex)
             {
@@ -104,7 +110,7 @@ namespace SafetyReport.Handlers
         {
             try
             {
-                return await _dao.ActualizarArchivoAsync(usuarioLogueado, request);
+                return await _informeArchivoRepository.ActualizarArchivoAsync(usuarioLogueado, request);
             }
             catch (Exception ex)
             {
@@ -118,7 +124,8 @@ namespace SafetyReport.Handlers
         {
             try
             {
-                return await _dao.InsertarArchivoLoteAsync(usuarioLogueado, request.IdInforme, request.IdPedido, request.Archivos);
+                return await _informeArchivoRepository.InsertarArchivoLoteAsync(
+                    usuarioLogueado, request.IdInforme, request.IdPedido, request.Archivos);
             }
             catch (Exception ex)
             {

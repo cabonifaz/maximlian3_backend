@@ -1,11 +1,12 @@
 using Microsoft.Data.SqlClient;
 using Microsoft.Extensions.Logging;
+using SafetyReport.Application.Ports.InformeObservacion;
 using SafetyReport.Models;
 using System.Data;
 
 namespace SafetyReport.DAO
 {
-    public class InformeObservacionDAO
+    public class InformeObservacionDAO : IInformeObservacionRepository
     {
         private readonly DbConfig _dbConfig;
         private readonly ILogger<InformeObservacionDAO> _logger;

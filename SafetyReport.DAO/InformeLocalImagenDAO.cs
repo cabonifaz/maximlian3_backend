@@ -1,11 +1,12 @@
 using Microsoft.Data.SqlClient;
 using Microsoft.Extensions.Logging;
+using SafetyReport.Application.Ports.InformeLocalImagen;
 using SafetyReport.Models;
 using System.Data;
 
 namespace SafetyReport.DAO
 {
-    public class InformeLocalImagenDAO
+    public class InformeLocalImagenDAO : IInformeLocalImagenRepository
     {
         private readonly DbConfig _dbConfig;
         private readonly ILogger<InformeLocalImagenDAO> _logger;

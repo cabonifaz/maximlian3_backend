@@ -4,11 +4,12 @@ using Microsoft.Graph.Me.SendMail;
 using Microsoft.Graph.Models;
 using Microsoft.Identity.Client;
 using Microsoft.Kiota.Abstractions.Authentication;
+using SafetyReport.Application.Ports.Informe;
 using SafetyReport.Models;
 
 namespace SafetyReport.Handlers
 {
-    public class EmailService : IEmailService
+    public class EmailService : IEmailService, IInformeEmailSender
     {
         private static readonly string[] _scopes = ["Mail.Send"];
 

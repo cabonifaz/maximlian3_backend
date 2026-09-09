@@ -3,7 +3,7 @@ using System.Text.Json;
 using SafetyReport.Application.Ports.PedidoFactura;
 using SafetyReport.Models;
 
-namespace SafetyReport.Handlers
+namespace SafetyReport.Infrastructure.Facturacion
 {
     public class FacturacionElectronicaService : IFacturacionElectronicaGateway
     {
