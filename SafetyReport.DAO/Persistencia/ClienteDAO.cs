@@ -4,7 +4,7 @@ using SafetyReport.Application.Ports.Cliente;
 using SafetyReport.Models;
 using System.Data;
 
-namespace SafetyReport.DAO
+namespace SafetyReport.DAO.Persistencia
 {
     public class ClienteDAO : IClienteRepository
     {

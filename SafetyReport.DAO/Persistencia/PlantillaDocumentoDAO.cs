@@ -3,7 +3,7 @@ using SafetyReport.Models;
 using System.Data;
 using System.Text.Json;
 
-namespace SafetyReport.DAO
+namespace SafetyReport.DAO.Persistencia
 {
     public class PlantillaDocumentoDAO
     {

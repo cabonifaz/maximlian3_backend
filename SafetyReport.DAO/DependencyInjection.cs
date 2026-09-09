@@ -1,5 +1,6 @@
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using SafetyReport.DAO.Persistencia;
 using SafetyReport.Application.Ports.Asignacion;
 using SafetyReport.Application.Ports.Banco;
 using SafetyReport.Application.Ports.Cliente;
