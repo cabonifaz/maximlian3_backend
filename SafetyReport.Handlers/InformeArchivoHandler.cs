@@ -1,7 +1,7 @@
 using Microsoft.Extensions.Logging;
 using SafetyReport.Application.Puertos.Informe;
 using SafetyReport.Application.Puertos.InformeArchivo;
-using SafetyReport.Application.Puertos.Storage;
+using SafetyReport.Application.Puertos.Almacenamiento;
 using SafetyReport.Models;
 
 namespace SafetyReport.Handlers

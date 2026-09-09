@@ -1,7 +1,7 @@
 ﻿using Amazon.S3;
 using Amazon.S3.Model;
 using Microsoft.Extensions.Configuration;
-using SafetyReport.Application.Puertos.Storage;
+using SafetyReport.Application.Puertos.Almacenamiento;
 
 namespace SafetyReport.Infrastructure.Almacenamiento;
 

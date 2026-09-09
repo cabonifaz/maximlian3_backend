@@ -3,7 +3,7 @@ using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi;
 using NLog;
 using NLog.Web;
-using SafetyReport.Application.Puertos.Storage;
+using SafetyReport.Application.Puertos.Almacenamiento;
 using SafetyReport.DAO;
 using SafetyReport.Handlers;
 using SafetyReport.Infrastructure;

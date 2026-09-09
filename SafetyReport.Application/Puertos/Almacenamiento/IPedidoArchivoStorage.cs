@@ -1,4 +1,4 @@
-namespace SafetyReport.Application.Puertos.Storage;
+namespace SafetyReport.Application.Puertos.Almacenamiento;
 
 public interface IPedidoArchivoStorage
 {

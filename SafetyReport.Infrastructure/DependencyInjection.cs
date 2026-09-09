@@ -6,7 +6,7 @@ using SafetyReport.Application.Puertos.Compania;
 using SafetyReport.Application.Puertos.Informe;
 using SafetyReport.Application.Puertos.Login;
 using SafetyReport.Application.Puertos.PedidoFactura;
-using SafetyReport.Application.Puertos.Storage;
+using SafetyReport.Application.Puertos.Almacenamiento;
 using SafetyReport.Application.Puertos.TablaMaestra;
 using SafetyReport.Application.Puertos.Usuario;
 using SafetyReport.Infrastructure.Automatizacion;
