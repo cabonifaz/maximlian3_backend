@@ -1,4 +1,4 @@
-namespace SafetyReport.Models
+namespace SafetyReport.Infrastructure.Traduccion
 {
     public class BedrockTranslationConfig
     {

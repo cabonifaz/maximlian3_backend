@@ -30,7 +30,6 @@ using SafetyReport.Infrastructure.Persistencia;
 using SafetyReport.Infrastructure.Seguridad;
 using SafetyReport.Infrastructure.Almacenamiento;
 using SafetyReport.Infrastructure.Traduccion;
-using SafetyReport.Models;
 
 namespace SafetyReport.Infrastructure;
 

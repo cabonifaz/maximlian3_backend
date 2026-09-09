@@ -1,4 +1,4 @@
-namespace SafetyReport.Models
+namespace SafetyReport.Infrastructure.Automatizacion
 {
     public class N8nConfig
     {

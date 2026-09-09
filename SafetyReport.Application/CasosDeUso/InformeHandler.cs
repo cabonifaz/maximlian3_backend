@@ -16,7 +16,6 @@ namespace SafetyReport.Application.CasosDeUso
         private readonly IInformeLocalImagenRepository _informeLocalImagenRepository;
         private readonly IInformeStorage _informeStorage;
         private readonly IInformeAutomationGateway _informeAutomationGateway;
-        private readonly N8nConfig _n8nConfig;
         private readonly IInformeDocxGenerator _docxGenerator;
         private readonly IInformePdfGenerator _pdfGenerator;
         private readonly IInformeEmailSender _emailSender;
@@ -28,7 +27,6 @@ namespace SafetyReport.Application.CasosDeUso
             IInformeLocalImagenRepository informeLocalImagenRepository,
             IInformeStorage informeStorage,
             IInformeAutomationGateway informeAutomationGateway,
-            N8nConfig n8nConfig,
             IInformeDocxGenerator docxGenerator,
             IInformePdfGenerator pdfGenerator,
             IInformeEmailSender emailSender,
@@ -39,7 +37,6 @@ namespace SafetyReport.Application.CasosDeUso
             _informeLocalImagenRepository = informeLocalImagenRepository;
             _informeStorage = informeStorage;
             _informeAutomationGateway = informeAutomationGateway;
-            _n8nConfig = n8nConfig;
             _docxGenerator = docxGenerator;
             _pdfGenerator = pdfGenerator;
             _emailSender = emailSender;
@@ -544,7 +541,7 @@ namespace SafetyReport.Application.CasosDeUso
                     prompt = request.Prompt ?? string.Empty
                 };
 
-                var n8nRespuesta = await _informeAutomationGateway.PostAsync(_n8nConfig.WebhookObtenerCampos, payload);
+                var n8nRespuesta = await _informeAutomationGateway.ObtenerCamposAsync(payload);
 
                 return new Respuesta
                 {
@@ -606,7 +603,7 @@ namespace SafetyReport.Application.CasosDeUso
                 await _informeStorage.UploadStreamAsync(fileKey, archivoStream, archivo.ContentType);
 
                 var payload = new { fileKey, mimeType = archivo.ContentType, secciones = seccionesJson, prompt = prompt ?? string.Empty };
-                var n8nRespuesta = await _informeAutomationGateway.PostAsync(_n8nConfig.WebhookObtenerCampos, payload);
+                var n8nRespuesta = await _informeAutomationGateway.ObtenerCamposAsync(payload);
 
                 return new Respuesta
                 {

@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Filters;
+using SafetyReport.Application.Comun;
 using SafetyReport.Models;
 
 namespace SafetyReport.WebApi.Filters

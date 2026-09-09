@@ -5,7 +5,6 @@ using Microsoft.Graph.Models;
 using Microsoft.Identity.Client;
 using Microsoft.Kiota.Abstractions.Authentication;
 using SafetyReport.Application.Puertos.Informe;
-using SafetyReport.Models;
 
 namespace SafetyReport.Infrastructure.Correo
 {

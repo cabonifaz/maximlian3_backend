@@ -1,8 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Text;
-
-namespace SafetyReport.Models
+﻿namespace SafetyReport.Application.Comun
 {
     public class Respuesta
     {

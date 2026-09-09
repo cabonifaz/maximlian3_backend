@@ -1,6 +1,5 @@
 using Microsoft.IdentityModel.Tokens;
 using SafetyReport.Application.Puertos.Informe;
-using SafetyReport.Models;
 using System.IdentityModel.Tokens.Jwt;
 using System.Net.Http.Headers;
 using System.Text;
@@ -29,10 +28,10 @@ namespace SafetyReport.Infrastructure.Automatizacion
             return new JwtSecurityTokenHandler().WriteToken(token);
         }
 
-        public async Task<string> PostAsync(string webhookUrl, object payload)
+        public async Task<string> ObtenerCamposAsync(object payload)
         {
             var token = GenerarToken();
-            var request = new HttpRequestMessage(HttpMethod.Post, webhookUrl);
+            var request = new HttpRequestMessage(HttpMethod.Post, _config.WebhookObtenerCampos);
             request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
             request.Content = new StringContent(
                 JsonSerializer.Serialize(payload),
