@@ -1,22 +1,23 @@
 ﻿using System.IO;
 using System.Linq;
 using Microsoft.Extensions.Logging;
-using SafetyReport.DAO;
+using SafetyReport.Application.Ports.PedidoArchivo;
+using SafetyReport.Application.Ports.Storage;
 using SafetyReport.Models;
 
 namespace SafetyReport.Handlers
 {
     public class PedidoArchivoHandler
     {
-        private readonly PedidoArchivoDAO _dao;
-        private readonly IS3UploadService _s3UploadService;
+        private readonly IPedidoArchivoRepository _repository;
+        private readonly IPedidoArchivoStorage _storage;
         private readonly FormatoDocumentoResolver _formatoDocumentoResolver;
         private readonly ILogger<PedidoArchivoHandler> _logger;
 
-        public PedidoArchivoHandler(PedidoArchivoDAO dao, IS3UploadService s3UploadService, FormatoDocumentoResolver formatoDocumentoResolver, ILogger<PedidoArchivoHandler> logger)
+        public PedidoArchivoHandler(IPedidoArchivoRepository repository, IPedidoArchivoStorage storage, FormatoDocumentoResolver formatoDocumentoResolver, ILogger<PedidoArchivoHandler> logger)
         {
-            _dao = dao;
-            _s3UploadService = s3UploadService;
+            _repository = repository;
+            _storage = storage;
             _formatoDocumentoResolver = formatoDocumentoResolver;
             _logger = logger;
         }
@@ -31,7 +32,7 @@ namespace SafetyReport.Handlers
                 foreach (var archivo in request.Archivos)
                 {
                     var formatoDocumento = await _formatoDocumentoResolver.ResolverAsync(usuarioLogueado, archivo.FormatoArchivo, archivo.NombreDocumento);
-                    var rutaDefecto = _s3UploadService.GenerarRutaPedidoArchivo(request.IdPedido, archivo.NombreDocumento, 0);
+                    var rutaDefecto = _storage.GenerarRutaPedidoArchivo(request.IdPedido, archivo.NombreDocumento, 0);
 
                     var solicitudCrear = new PedidoArchivoCrear
                     {
@@ -43,7 +44,7 @@ namespace SafetyReport.Handlers
                         IdTipoArchivo = archivo.IdTipoArchivo
                     };
 
-                    var daoRespuesta = await _dao.CrearAsync(usuarioLogueado, solicitudCrear);
+                    var daoRespuesta = await _repository.CrearAsync(usuarioLogueado, solicitudCrear);
                     if (daoRespuesta.IdTipoMensaje != 2)
                     {
                         return new Respuesta
@@ -59,7 +60,7 @@ namespace SafetyReport.Handlers
                     var archivosCreados = daoRespuesta.Result as List<PedidoArchivoCreado> ?? [];
                     var rutaArchivo = archivosCreados.FirstOrDefault()?.DocumentoURL ?? rutaDefecto;
 
-                    var urlSubida = _s3UploadService.GenerarUploadUrl(rutaArchivo, archivo.FormatoArchivo);
+                    var urlSubida = _storage.GenerarUploadUrl(rutaArchivo, archivo.FormatoArchivo);
 
                     archivosPresignados.Add(new PedidoArchivoPresignado
                     {
@@ -98,7 +99,7 @@ namespace SafetyReport.Handlers
                     request.FormatoDocumento = await _formatoDocumentoResolver.ResolverAsync(usuarioLogueado, request.FormatoDocumento, request.NombreDocumento);
                 }
 
-                var respuestaObtener = await _dao.ObtenerAsync(usuarioLogueado, new PedidoArchivoIdRequest
+                var respuestaObtener = await _repository.ObtenerAsync(usuarioLogueado, new PedidoArchivoIdRequest
                 {
                     IdPedidoArchivo = request.IdPedidoArchivo,
                     IdPedido = request.IdPedido
@@ -116,12 +117,12 @@ namespace SafetyReport.Handlers
                 }
 
                 var rutaOrigen = existente.DocumentoURL;
-                var rutaDestino = _s3UploadService.GenerarRutaPedidoArchivo(request.IdPedido, request.NombreDocumento, request.IdPedidoArchivo);
+                var rutaDestino = _storage.GenerarRutaPedidoArchivo(request.IdPedido, request.NombreDocumento, request.IdPedidoArchivo);
 
                 // Solo mover S3 si cambia el nombre / ruta
                 if (!string.Equals(rutaOrigen, rutaDestino, StringComparison.OrdinalIgnoreCase))
                 {
-                    await _s3UploadService.MoverArchivoAsync(rutaOrigen, rutaDestino);
+                    await _storage.MoverArchivoAsync(rutaOrigen, rutaDestino);
                     request.DocumentoURL = rutaDestino;
                 }
                 else
@@ -129,7 +130,7 @@ namespace SafetyReport.Handlers
                     request.DocumentoURL = rutaOrigen;
                 }
 
-                var daoRespuesta = await _dao.EditarAsync(usuarioLogueado, request);
+                var daoRespuesta = await _repository.EditarAsync(usuarioLogueado, request);
 
                 return daoRespuesta;
             }
@@ -150,14 +151,14 @@ namespace SafetyReport.Handlers
         {
             try
             {
-                var daoRespuesta = await _dao.ObtenerAsync(usuarioLogueado, request);
+                var daoRespuesta = await _repository.ObtenerAsync(usuarioLogueado, request);
 
                 if (daoRespuesta.IdTipoMensaje == 2 && daoRespuesta.Result is List<PedidoArchivoConsulta> archivos)
                 {
                     foreach (var archivo in archivos)
                     {
                         // Generar URL prefirmada para descarga (GET)
-                        archivo.DownloadUrl = _s3UploadService.GenerarDownloadUrl(archivo.DocumentoURL);
+                        archivo.DownloadUrl = _storage.GenerarDownloadUrl(archivo.DocumentoURL);
                     }
                 }
 
@@ -180,7 +181,7 @@ namespace SafetyReport.Handlers
         {
             try
             {
-                return await _dao.ListarAsync(usuarioLogueado, request);
+                return await _repository.ListarAsync(usuarioLogueado, request);
             }
             catch (Exception ex)
             {
@@ -199,20 +200,20 @@ namespace SafetyReport.Handlers
         {
             try
             {
-                var respuestaObtener = await _dao.ObtenerAsync(usuarioLogueado, request);
+                var respuestaObtener = await _repository.ObtenerAsync(usuarioLogueado, request);
 
                 if (respuestaObtener.IdTipoMensaje != 2)
                     return respuestaObtener;
 
                 var existente = (respuestaObtener.Result as List<PedidoArchivoConsulta>)?.FirstOrDefault();
 
-                var daoRespuesta = await _dao.EliminarAsync(usuarioLogueado, request);
+                var daoRespuesta = await _repository.EliminarAsync(usuarioLogueado, request);
 
                 if (daoRespuesta.IdTipoMensaje == 2)
                 {
                     try
                     {
-                        await _s3UploadService.DeleteFileAsync(existente.DocumentoURL);
+                        await _storage.DeleteFileAsync(existente.DocumentoURL);
                     }
                     catch
                     {

@@ -5,8 +5,15 @@ using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi;
 using NLog;
 using NLog.Web;
+using SafetyReport.Application.Ports.Banco;
 using SafetyReport.Application.Ports.Cliente;
+using SafetyReport.Application.Ports.ClienteContacto;
 using SafetyReport.Application.Ports.Login;
+using SafetyReport.Application.Ports.Pedido;
+using SafetyReport.Application.Ports.PedidoArchivo;
+using SafetyReport.Application.Ports.Storage;
+using SafetyReport.Application.Ports.TablaMaestra;
+using SafetyReport.Application.Ports.Tarifario;
 using SafetyReport.Application.Ports.Usuario;
 using SafetyReport.DAO;
 using SafetyReport.Handlers;
@@ -171,17 +178,21 @@ builder.Services.AddScoped<IUsuarioRepository, UsuarioDAO>();
 builder.Services.AddScoped<IUsuarioIdentityProvider, CognitoUsuarioIdentityProvider>();
 builder.Services.AddScoped<UsuarioHandler>();
 builder.Services.AddScoped<TablaMaestraDAO>();
+builder.Services.AddScoped<ITablaMaestraRepository, TablaMaestraDAO>();
 builder.Services.AddScoped<TablaMaestraHandler>();
 builder.Services.AddScoped<FormatoDocumentoResolver>();
 builder.Services.AddScoped<ClienteDAO>();
 builder.Services.AddScoped<IClienteRepository, ClienteDAO>();
 builder.Services.AddScoped<ClienteHandler>();
 builder.Services.AddScoped<TarifarioDAO>();
+builder.Services.AddScoped<ITarifarioRepository, TarifarioDAO>();
 builder.Services.AddScoped<TarifarioHandler>();
 builder.Services.AddScoped<ClienteContactoHandler>();
 builder.Services.AddScoped<ClienteContactoDAO>();
+builder.Services.AddScoped<IClienteContactoRepository, ClienteContactoDAO>();
 builder.Services.AddScoped<PedidoHandler>();
 builder.Services.AddScoped<PedidoDAO>();
+builder.Services.AddScoped<IPedidoRepository, PedidoDAO>();
 builder.Services.AddScoped<PedidoFacturaHandler>();
 builder.Services.AddScoped<PedidoFacturaDAO>();
 builder.Services.AddScoped<PedidoFacturaLineaHandler>();
@@ -202,6 +213,7 @@ builder.Services.AddScoped<InformeArchivoDAO>();
 builder.Services.AddScoped<PlantillaDocumentoDAO>();
 builder.Services.AddScoped<BancoHandler>();
 builder.Services.AddScoped<BancoDAO>();
+builder.Services.AddScoped<IBancoRepository, BancoDAO>();
 builder.Services.AddScoped<CompaniaHandler>();
 builder.Services.AddScoped<CompaniaDAO>();
 builder.Services.AddScoped<DirectorioEjecutivoHandler>();
@@ -229,6 +241,9 @@ builder.Services.AddSingleton<IAmazonS3>(sp =>
 });
 
 builder.Services.AddSingleton<IS3UploadService, S3UploadService>();
+builder.Services.AddSingleton<IPedidoArchivoStorage>(sp =>
+    sp.GetRequiredService<IS3UploadService>() as S3UploadService
+    ?? throw new InvalidOperationException("IS3UploadService debe resolverse como S3UploadService."));
 
 builder.Services.AddSingleton<IAmazonBedrockRuntime>(sp =>
 {
@@ -247,6 +262,8 @@ builder.Services.AddSingleton(sp =>
     var config = sp.GetRequiredService<BedrockTranslationConfig>();
     return new BedrockTranslationService(bedrock, config.TablaMaestra);
 });
+builder.Services.AddSingleton<ITablaMaestraTranslator>(sp =>
+    sp.GetRequiredService<BedrockTranslationService>());
 builder.Services.AddSingleton(sp =>
 {
     var bedrock = sp.GetRequiredService<BedrockService>();
@@ -257,6 +274,7 @@ builder.Services.AddScoped<InformeTranslationHandler>();
 
 builder.Services.AddScoped<PedidoArchivoHandler>();
 builder.Services.AddScoped<PedidoArchivoDAO>();
+builder.Services.AddScoped<IPedidoArchivoRepository, PedidoArchivoDAO>();
 builder.Services.AddScoped<CognitoTokenValidator>();
 builder.Services.AddScoped<ITokenValidator, CognitoTokenValidator>();
 

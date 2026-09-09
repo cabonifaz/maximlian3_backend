@@ -1,18 +1,18 @@
 ﻿using Microsoft.Extensions.Logging;
-using SafetyReport.DAO;
+using SafetyReport.Application.Ports.TablaMaestra;
 using SafetyReport.Models;
 
 namespace SafetyReport.Handlers
 {
     public class TablaMaestraHandler
     {
-        private readonly TablaMaestraDAO _dao;
-        private readonly BedrockTranslationService _translator;
+        private readonly ITablaMaestraRepository _repository;
+        private readonly ITablaMaestraTranslator _translator;
         private readonly ILogger<TablaMaestraHandler> _logger;
 
-        public TablaMaestraHandler(TablaMaestraDAO dao, BedrockTranslationService translator, ILogger<TablaMaestraHandler> logger)
+        public TablaMaestraHandler(ITablaMaestraRepository repository, ITablaMaestraTranslator translator, ILogger<TablaMaestraHandler> logger)
         {
-            _dao = dao;
+            _repository = repository;
             _translator = translator;
             _logger = logger;
         }
@@ -21,7 +21,7 @@ namespace SafetyReport.Handlers
         {
             try
             {
-                return await _dao.ListarAsync(usuarioLogueado, idsMaestro, busqueda, numPag);
+                return await _repository.ListarAsync(usuarioLogueado, idsMaestro, busqueda, numPag);
             }
             catch (Exception ex)
             {
@@ -40,7 +40,7 @@ namespace SafetyReport.Handlers
         {
             try
             {
-                return await _dao.ListarInventarioAsync(usuarioLogueado, idMaestro);
+                return await _repository.ListarInventarioAsync(usuarioLogueado, idMaestro);
             }
             catch (Exception ex)
             {
@@ -59,7 +59,7 @@ namespace SafetyReport.Handlers
         {
             try
             {
-                return await _dao.ListaCortaAsync(usuarioLogueado, idMaestro);
+                return await _repository.ListaCortaAsync(usuarioLogueado, idMaestro);
             }
             catch (Exception ex)
             {
@@ -81,7 +81,7 @@ namespace SafetyReport.Handlers
             try
             {
                 var soloString1 = _maestrosSoloString1.Contains(request.IdMaestro);
-                var input = new TranslationInput
+                var input = new TablaMaestraTranslationInput
                 {
                     String1 = request.InputText,
                     String2 = soloString1 ? null : request.InputText2,
@@ -130,7 +130,7 @@ namespace SafetyReport.Handlers
                     };
                 }
 
-                return await _dao.CrearAsync(usuarioLogueado, request);
+                return await _repository.CrearAsync(usuarioLogueado, request);
             }
             catch (Exception ex)
             {
@@ -149,7 +149,7 @@ namespace SafetyReport.Handlers
         {
             try
             {
-                return await _dao.EditarAsync(usuarioLogueado, request);
+                return await _repository.EditarAsync(usuarioLogueado, request);
             }
             catch (Exception ex)
             {
@@ -168,7 +168,7 @@ namespace SafetyReport.Handlers
         {
             try
             {
-                return await _dao.ObtenerAsync(usuarioLogueado, request);
+                return await _repository.ObtenerAsync(usuarioLogueado, request);
             }
             catch (Exception ex)
             {
@@ -187,7 +187,7 @@ namespace SafetyReport.Handlers
         {
             try
             {
-                return await _dao.EliminarAsync(usuarioLogueado, request.IdTablaMaestra);
+                return await _repository.EliminarAsync(usuarioLogueado, request.IdTablaMaestra);
             }
             catch (Exception ex)
             {

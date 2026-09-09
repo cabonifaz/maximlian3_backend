@@ -1,11 +1,12 @@
 using Microsoft.Data.SqlClient;
 using Microsoft.Extensions.Logging;
+using SafetyReport.Application.Ports.Tarifario;
 using SafetyReport.Models;
 using System.Data;
 
 namespace SafetyReport.DAO
 {
-    public class TarifarioDAO
+    public class TarifarioDAO : ITarifarioRepository
     {
         private readonly DbConfig _dbConfig;
         private readonly ILogger<TarifarioDAO> _logger;

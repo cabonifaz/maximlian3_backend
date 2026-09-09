@@ -2,9 +2,10 @@
 using Amazon.S3.Model;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Configuration;
+using SafetyReport.Application.Ports.Storage;
 using SafetyReport.Models;
 
-public class S3UploadService : IS3UploadService
+public class S3UploadService : IS3UploadService, IPedidoArchivoStorage
 {
     private readonly IAmazonS3 _s3Client;
     private readonly IConfiguration _configuration;

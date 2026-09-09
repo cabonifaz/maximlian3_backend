@@ -1,22 +1,24 @@
 ﻿using Microsoft.Extensions.Logging;
-using SafetyReport.DAO;
+using SafetyReport.Application.Ports.Pedido;
+using SafetyReport.Application.Ports.PedidoArchivo;
+using SafetyReport.Application.Ports.Storage;
 using SafetyReport.Models;
 
 namespace SafetyReport.Handlers
 {
     public class PedidoHandler
     {
-        private readonly PedidoDAO _dao;
-        private readonly PedidoArchivoDAO _pedidoArchivoDao;
-        private readonly IS3UploadService _s3UploadService;
+        private readonly IPedidoRepository _repository;
+        private readonly IPedidoArchivoRepository _pedidoArchivoRepository;
+        private readonly IPedidoArchivoStorage _pedidoArchivoStorage;
         private readonly FormatoDocumentoResolver _formatoDocumentoResolver;
         private readonly ILogger<PedidoHandler> _logger;
 
-        public PedidoHandler(PedidoDAO dao, PedidoArchivoDAO pedidoArchivoDao, IS3UploadService s3UploadService, FormatoDocumentoResolver formatoDocumentoResolver, ILogger<PedidoHandler> logger)
+        public PedidoHandler(IPedidoRepository repository, IPedidoArchivoRepository pedidoArchivoRepository, IPedidoArchivoStorage pedidoArchivoStorage, FormatoDocumentoResolver formatoDocumentoResolver, ILogger<PedidoHandler> logger)
         {
-            _dao = dao;
-            _pedidoArchivoDao = pedidoArchivoDao;
-            _s3UploadService = s3UploadService;
+            _repository = repository;
+            _pedidoArchivoRepository = pedidoArchivoRepository;
+            _pedidoArchivoStorage = pedidoArchivoStorage;
             _formatoDocumentoResolver = formatoDocumentoResolver;
             _logger = logger;
         }
@@ -26,7 +28,7 @@ namespace SafetyReport.Handlers
             try
             {
                 // Crea el pedido primero (sin archivos) para obtener el IdPedido real.
-                var respuestaDao = await _dao.CrearAsync(usuarioLogueado, request);
+                var respuestaDao = await _repository.CrearAsync(usuarioLogueado, request);
 
                 if (respuestaDao.IdTipoMensaje != 2)
                     return respuestaDao;
@@ -41,7 +43,7 @@ namespace SafetyReport.Handlers
                     foreach (var archivo in request.Archivos)
                     {
                         var formatoDocumento = await _formatoDocumentoResolver.ResolverAsync(usuarioLogueado, archivo.FormatoArchivo, archivo.NombreDocumento);
-                        var rutaDefecto = _s3UploadService.GenerarRutaPedidoArchivo(idPedido, archivo.NombreDocumento, 0);
+                        var rutaDefecto = _pedidoArchivoStorage.GenerarRutaPedidoArchivo(idPedido, archivo.NombreDocumento, 0);
 
                         var archivoCrear = new PedidoArchivoCrear
                         {
@@ -53,7 +55,7 @@ namespace SafetyReport.Handlers
                             IdTipoArchivo = archivo.IdTipoArchivo
                         };
 
-                        var respuestaArchivo = await _pedidoArchivoDao.CrearAsync(usuarioLogueado, archivoCrear);
+                        var respuestaArchivo = await _pedidoArchivoRepository.CrearAsync(usuarioLogueado, archivoCrear);
 
                         if (respuestaArchivo.IdTipoMensaje != 2)
                         {
@@ -72,7 +74,7 @@ namespace SafetyReport.Handlers
                         {
                             NombreDocumento = archivo.NombreDocumento,
                             RutaArchivo = rutaArchivo,
-                            UploadUrl = _s3UploadService.GenerarUploadUrl(rutaArchivo, archivo.FormatoArchivo)
+                            UploadUrl = _pedidoArchivoStorage.GenerarUploadUrl(rutaArchivo, archivo.FormatoArchivo)
                         });
                     }
                 }
@@ -101,7 +103,7 @@ namespace SafetyReport.Handlers
         {
             try
             {
-                return await _dao.EditarAsync(usuarioLogueado, request);
+                return await _repository.EditarAsync(usuarioLogueado, request);
             }
             catch (Exception ex)
             {
@@ -120,7 +122,7 @@ namespace SafetyReport.Handlers
         {
             try
             {
-                return await _dao.ObtenerAsync(usuarioLogueado, request);
+                return await _repository.ObtenerAsync(usuarioLogueado, request);
             }
             catch (Exception ex)
             {
@@ -139,7 +141,7 @@ namespace SafetyReport.Handlers
         {
             try
             {
-                return await _dao.ListarAsync(usuarioLogueado, request);
+                return await _repository.ListarAsync(usuarioLogueado, request);
             }
             catch (Exception ex)
             {
@@ -158,7 +160,7 @@ namespace SafetyReport.Handlers
         {
             try
             {
-                return await _dao.ListarAsignacionAsync(usuarioLogueado, request);
+                return await _repository.ListarAsignacionAsync(usuarioLogueado, request);
             }
             catch (Exception ex)
             {
@@ -177,7 +179,7 @@ namespace SafetyReport.Handlers
         {
             try
             {
-                return await _dao.CancelarAsync(usuarioLogueado, request.IdPedido);
+                return await _repository.CancelarAsync(usuarioLogueado, request.IdPedido);
             }
             catch (Exception ex)
             {
@@ -196,7 +198,7 @@ namespace SafetyReport.Handlers
         {
             try
             {
-                return await _dao.EliminarAsync(usuarioLogueado, request.IdPedido);
+                return await _repository.EliminarAsync(usuarioLogueado, request.IdPedido);
             }
             catch (Exception ex)
             {
@@ -215,7 +217,7 @@ namespace SafetyReport.Handlers
         {
             try
             {
-                return await _dao.ObtenerResumenAsync(usuarioLogueado);
+                return await _repository.ObtenerResumenAsync(usuarioLogueado);
             }
             catch (Exception ex)
             {

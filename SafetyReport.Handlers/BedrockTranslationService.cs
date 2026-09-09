@@ -1,25 +1,9 @@
 using System.Text.Json;
+using SafetyReport.Application.Ports.TablaMaestra;
 
 namespace SafetyReport.Handlers
 {
-    public class TranslationInput
-    {
-        public string? String1 { get; set; }
-        public string? String2 { get; set; }
-        public int IdIdioma { get; set; } = 1;
-    }
-
-    public class TranslationOutput
-    {
-        public string? String1 { get; set; }
-        public string? String2 { get; set; }
-        public string? String4 { get; set; }
-        public string? String5 { get; set; }
-        public string? String6 { get; set; }
-        public string? String7 { get; set; }
-    }
-
-    public class BedrockTranslationService
+    public class BedrockTranslationService : ITablaMaestraTranslator
     {
         private readonly BedrockService _bedrock;
 
@@ -127,7 +111,7 @@ namespace SafetyReport.Handlers
             _configPt = BuildConfig(modelId, _promptFromPortuguese);
         }
 
-        public async Task<TranslationOutput> TranslateAsync(TranslationInput input)
+        public async Task<TablaMaestraTranslationOutput> TranslateAsync(TablaMaestraTranslationInput input)
         {
             var config = input.IdIdioma switch
             {
@@ -144,7 +128,7 @@ namespace SafetyReport.Handlers
             return ParseResponse(responseText);
         }
 
-        private static TranslationOutput ParseResponse(string text)
+        private static TablaMaestraTranslationOutput ParseResponse(string text)
         {
             var start = text.IndexOf('{');
             var end = text.LastIndexOf('}');
@@ -155,7 +139,7 @@ namespace SafetyReport.Handlers
             {
                 var doc = JsonDocument.Parse(text);
                 var root = doc.RootElement;
-                var output = new TranslationOutput();
+                var output = new TablaMaestraTranslationOutput();
 
                 foreach (var prop in root.EnumerateObject())
                 {
@@ -196,7 +180,7 @@ namespace SafetyReport.Handlers
             }
             catch
             {
-                return new TranslationOutput();
+                return new TablaMaestraTranslationOutput();
             }
         }
     }

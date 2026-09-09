@@ -1,12 +1,13 @@
 ﻿using Microsoft.Data.SqlClient;
 using Microsoft.Extensions.Logging;
+using SafetyReport.Application.Ports.Pedido;
 using SafetyReport.Models;
 using System.Data;
 using System.Text.Json;
 
 namespace SafetyReport.DAO
 {
-    public class PedidoDAO
+    public class PedidoDAO : IPedidoRepository
     {
         private readonly DbConfig _dbConfig;
         private readonly ILogger<PedidoDAO> _logger;

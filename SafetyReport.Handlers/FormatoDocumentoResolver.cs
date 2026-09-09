@@ -1,15 +1,15 @@
-using SafetyReport.DAO;
+using SafetyReport.Application.Ports.TablaMaestra;
 using SafetyReport.Models;
 
 namespace SafetyReport.Handlers
 {
     public class FormatoDocumentoResolver
     {
-        private readonly TablaMaestraDAO _tablaMaestraDao;
+        private readonly ITablaMaestraRepository _tablaMaestraRepository;
 
-        public FormatoDocumentoResolver(TablaMaestraDAO tablaMaestraDao)
+        public FormatoDocumentoResolver(ITablaMaestraRepository tablaMaestraRepository)
         {
-            _tablaMaestraDao = tablaMaestraDao;
+            _tablaMaestraRepository = tablaMaestraRepository;
         }
 
         public async Task<string> ResolverAsync(UsuarioGeneral usuarioLogueado, string? formatoArchivo, string nombreArchivo)
@@ -18,7 +18,7 @@ namespace SafetyReport.Handlers
 
             if (!string.IsNullOrWhiteSpace(mime))
             {
-                var respuesta = await _tablaMaestraDao.ObtenerAsync(usuarioLogueado, new ObtenerTablaMaestraRequest
+                var respuesta = await _tablaMaestraRepository.ObtenerAsync(usuarioLogueado, new ObtenerTablaMaestraRequest
                 {
                     idMaestro = 34
                 });

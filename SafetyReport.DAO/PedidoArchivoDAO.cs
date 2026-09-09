@@ -1,11 +1,12 @@
 ﻿using Microsoft.Data.SqlClient;
 using Microsoft.Extensions.Logging;
+using SafetyReport.Application.Ports.PedidoArchivo;
 using SafetyReport.Models;
 using System.Data;
 
 namespace SafetyReport.DAO
 {
-    public class PedidoArchivoDAO
+    public class PedidoArchivoDAO : IPedidoArchivoRepository
     {
         private readonly DbConfig _dbConfig;
         private readonly ILogger<PedidoArchivoDAO> _logger;

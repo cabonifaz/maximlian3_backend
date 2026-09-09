@@ -1,17 +1,17 @@
 ﻿using Microsoft.Extensions.Logging;
-using SafetyReport.DAO;
+using SafetyReport.Application.Ports.Tarifario;
 using SafetyReport.Models;
 
 namespace SafetyReport.Handlers
 {
     public class TarifarioHandler
     {
-        private readonly TarifarioDAO _dao;
+        private readonly ITarifarioRepository _repository;
         private readonly ILogger<TarifarioHandler> _logger;
 
-        public TarifarioHandler(TarifarioDAO dao, ILogger<TarifarioHandler> logger)
+        public TarifarioHandler(ITarifarioRepository repository, ILogger<TarifarioHandler> logger)
         {
-            _dao = dao;
+            _repository = repository;
             _logger = logger;
         }
 
@@ -19,7 +19,7 @@ namespace SafetyReport.Handlers
         {
             try
             {
-                return await _dao.CrearAsync(usuarioLogueado, request);
+                return await _repository.CrearAsync(usuarioLogueado, request);
             }
             catch (Exception ex)
             {
@@ -38,7 +38,7 @@ namespace SafetyReport.Handlers
         {
             try
             {
-                return await _dao.ListarAsync(usuarioLogueado, request);
+                return await _repository.ListarAsync(usuarioLogueado, request);
             }
             catch (Exception ex)
             {
@@ -57,7 +57,7 @@ namespace SafetyReport.Handlers
         {
             try
             {
-                return await _dao.ObtenerAsync(usuarioLogueado, request);
+                return await _repository.ObtenerAsync(usuarioLogueado, request);
             }
             catch (Exception ex)
             {
@@ -76,7 +76,7 @@ namespace SafetyReport.Handlers
         {
             try
             {
-                return await _dao.EditarAsync(usuarioLogueado, request);
+                return await _repository.EditarAsync(usuarioLogueado, request);
             }
             catch (Exception ex)
             {
@@ -95,7 +95,7 @@ namespace SafetyReport.Handlers
         {
             try
             {
-                return await _dao.EliminarAsync(usuarioLogueado, request);
+                return await _repository.EliminarAsync(usuarioLogueado, request);
             }
             catch (Exception ex)
             {
@@ -113,7 +113,7 @@ namespace SafetyReport.Handlers
         {
             try
             {
-                return await _dao.ListaCortaAsync(usuarioLogueado, request);
+                return await _repository.ListaCortaAsync(usuarioLogueado, request);
             }
             catch (Exception ex)
             {

@@ -1,17 +1,17 @@
 using Microsoft.Extensions.Logging;
-using SafetyReport.DAO;
+using SafetyReport.Application.Ports.Banco;
 using SafetyReport.Models;
 
 namespace SafetyReport.Handlers
 {
     public class BancoHandler
     {
-        private readonly BancoDAO _dao;
+        private readonly IBancoRepository _repository;
         private readonly ILogger<BancoHandler> _logger;
 
-        public BancoHandler(BancoDAO dao, ILogger<BancoHandler> logger)
+        public BancoHandler(IBancoRepository repository, ILogger<BancoHandler> logger)
         {
-            _dao = dao;
+            _repository = repository;
             _logger = logger;
         }
 
@@ -19,7 +19,7 @@ namespace SafetyReport.Handlers
         {
             try
             {
-                return await _dao.CrearAsync(usuarioLogueado, lstBancos);
+                return await _repository.CrearAsync(usuarioLogueado, lstBancos);
             }
             catch (Exception ex)
             {
@@ -38,7 +38,7 @@ namespace SafetyReport.Handlers
         {
             try
             {
-                return await _dao.EditarAsync(usuarioLogueado, request);
+                return await _repository.EditarAsync(usuarioLogueado, request);
             }
             catch (Exception ex)
             {
@@ -57,7 +57,7 @@ namespace SafetyReport.Handlers
         {
             try
             {
-                return await _dao.ObtenerAsync(usuarioLogueado, request);
+                return await _repository.ObtenerAsync(usuarioLogueado, request);
             }
             catch (Exception ex)
             {
@@ -76,7 +76,7 @@ namespace SafetyReport.Handlers
         {
             try
             {
-                return await _dao.ListarAsync(usuarioLogueado, filtro);
+                return await _repository.ListarAsync(usuarioLogueado, filtro);
             }
             catch (Exception ex)
             {
@@ -95,7 +95,7 @@ namespace SafetyReport.Handlers
         {
             try
             {
-                return await _dao.ListarMatchAsync(usuarioLogueado, lista);
+                return await _repository.ListarMatchAsync(usuarioLogueado, lista);
             }
             catch (Exception ex)
             {
@@ -114,7 +114,7 @@ namespace SafetyReport.Handlers
         {
             try
             {
-                return await _dao.EliminarAsync(usuarioLogueado, idBanco);
+                return await _repository.EliminarAsync(usuarioLogueado, idBanco);
             }
             catch (Exception ex)
             {
