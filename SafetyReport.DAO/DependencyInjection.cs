@@ -1,3 +1,4 @@
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using SafetyReport.Application.Ports.Asignacion;
 using SafetyReport.Application.Ports.Banco;
@@ -17,13 +18,21 @@ using SafetyReport.Application.Ports.PedidoFacturaLinea;
 using SafetyReport.Application.Ports.TablaMaestra;
 using SafetyReport.Application.Ports.Tarifario;
 using SafetyReport.Application.Ports.Usuario;
+using SafetyReport.Models;
 
 namespace SafetyReport.DAO;
 
 public static class DependencyInjection
 {
-    public static IServiceCollection AddSafetyReportDao(this IServiceCollection services)
+    public static IServiceCollection AddSafetyReportDao(
+        this IServiceCollection services,
+        IConfiguration configuration)
     {
+        var connectionString = configuration.GetConnectionString("DefaultConnection")
+            ?? throw new Exception("Falta ConnectionStrings:DefaultConnection");
+
+        services.AddSingleton(new DbConfig(connectionString));
+
         services.AddScoped<LoginDAO>();
         services.AddScoped<ILoginRepository, LoginDAO>();
         services.AddScoped<UsuarioDAO>();

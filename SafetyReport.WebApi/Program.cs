@@ -7,7 +7,6 @@ using SafetyReport.Application.Ports.Storage;
 using SafetyReport.DAO;
 using SafetyReport.Handlers;
 using SafetyReport.Infrastructure;
-using SafetyReport.Models;
 using SafetyReport.WebApi.Filters;
 using SafetyReport.WebApi.Helpers;
 using SafetyReport.WebApi.Logging;
@@ -59,7 +58,6 @@ var idPoolUsuarios = builder.Configuration["Cognito:UserPoolId"];
 var clientIdFrontend = builder.Configuration["Cognito:ClientIdFrontend"];
 var clientIdBackend = builder.Configuration["Cognito:ClientIdBackend"];
 var clientIdN8n = builder.Configuration["Cognito:ClientIdN8n"];
-var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
 
 var cognitoIssuer = $"https://cognito-idp.{region}.amazonaws.com/{idPoolUsuarios}";
 var validClientIds = new[] { clientIdFrontend, clientIdBackend, clientIdN8n };
@@ -67,8 +65,6 @@ var validClientIds = new[] { clientIdFrontend, clientIdBackend, clientIdN8n };
 Console.WriteLine($"AUTHORITY CONFIG: {cognitoIssuer}");
 Console.WriteLine($"CLIENT ID FRONTEND: {clientIdFrontend}");
 Console.WriteLine($"CLIENT ID BACKEND: {clientIdBackend}");
-
-builder.Services.AddSingleton(new DbConfig(connectionString!));
 
 builder.Services.AddAuthentication(options =>
 {
@@ -162,7 +158,7 @@ builder.Services.AddCors(options =>
 
 builder.Services.AddSafetyReportHandlers();
 builder.Services.AddSafetyReportInfrastructure(builder.Configuration);
-builder.Services.AddSafetyReportDao();
+builder.Services.AddSafetyReportDao(builder.Configuration);
 builder.Services.AddHostedService<SafetyReport.WebApi.Workers.SincronizacionFacturacionWorker>();
 
 var app = builder.Build();
