@@ -1,5 +1,5 @@
 using Microsoft.Data.SqlClient;
-using SafetyReport.Models;
+using SafetyReport.Application.Puertos.Informe;
 using System.Data;
 using System.Text.Json;
 
