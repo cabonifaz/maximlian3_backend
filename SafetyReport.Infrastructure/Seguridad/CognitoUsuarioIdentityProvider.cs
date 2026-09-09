@@ -4,7 +4,6 @@ using Amazon.CognitoIdentityProvider.Model;
 using Amazon.Runtime;
 using Microsoft.Extensions.Configuration;
 using SafetyReport.Application.Puertos.Usuario;
-using SafetyReport.Models;
 
 namespace SafetyReport.Infrastructure.Seguridad;
 

@@ -1,5 +1,5 @@
 using Microsoft.AspNetCore.Mvc;
-using SafetyReport.Models;
+using SafetyReport.Application.Comun;
 using SafetyReport.WebApi.Helpers;
 
 namespace SafetyReport.WebApi.Controllers

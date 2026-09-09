@@ -1,5 +1,5 @@
 using System.Security.Claims;
-using SafetyReport.Models;
+using SafetyReport.Application.Comun;
 
 namespace SafetyReport.WebApi.Helpers
 {
