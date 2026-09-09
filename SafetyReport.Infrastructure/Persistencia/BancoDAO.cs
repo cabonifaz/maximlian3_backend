@@ -1,7 +1,6 @@
 using Microsoft.Data.SqlClient;
 using Microsoft.Extensions.Logging;
 using SafetyReport.Application.Puertos.Banco;
-using SafetyReport.Models;
 using System.Data;
 using System.Text.Json;
 

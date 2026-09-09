@@ -1,7 +1,7 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using SafetyReport.Application.CasosDeUso;
-using SafetyReport.Models;
+using SafetyReport.Application.Puertos.Banco;
 
 namespace SafetyReport.WebApi.Controllers
 {
