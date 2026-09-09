@@ -1,10 +1,8 @@
-using SafetyReport.Models;
-
 namespace SafetyReport.Application.Puertos.Cliente;
 
 public interface IClienteRepository
 {
-    Task<Respuesta> CrearClienteAsync(UsuarioGeneral usuarioLogueado, Models.Cliente request);
+    Task<Respuesta> CrearClienteAsync(UsuarioGeneral usuarioLogueado, Cliente request);
     Task<Respuesta> EditarClienteAsync(UsuarioGeneral usuarioLogueado, EditarCliente request);
     Task<Respuesta> ObtenerClienteAsync(UsuarioGeneral usuarioLogueado, int idCliente);
     Task<Respuesta> ObtenerClientePorDocumentoElectronicoAsync(UsuarioGeneral usuarioLogueado, int idDocumentoElectronico);

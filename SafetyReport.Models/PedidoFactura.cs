@@ -227,6 +227,17 @@ namespace SafetyReport.Models
         public decimal? Precio { get; set; }
     }
 
+    public class ClienteParaFacturacionConsulta
+    {
+        public int IdCliente { get; set; }
+        public int IdTipoDocumentoSunat { get; set; }
+        public string NumeroDocumento { get; set; } = string.Empty;
+        public string? Nombre { get; set; }
+        public string? Correo { get; set; }
+        public string? Direccion { get; set; }
+        public int IdPais { get; set; }
+    }
+
     // Resultado de SP_Facturacion_ObtenerDatosBorrador (PedidoFacturaDAO.ObtenerDatosBorradorAsync).
     public class DatosBorradorFacturaConsulta
     {

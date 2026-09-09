@@ -1,4 +1,4 @@
-namespace SafetyReport.Models
+namespace SafetyReport.Application.Puertos.Asignacion
 {
     public class AsignacionUsuario
     {

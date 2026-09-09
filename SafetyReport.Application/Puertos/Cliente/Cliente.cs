@@ -1,4 +1,7 @@
-﻿namespace SafetyReport.Models
+﻿using SafetyReport.Application.Puertos.ClienteContacto;
+using SafetyReport.Models;
+
+namespace SafetyReport.Application.Puertos.Cliente
 {
     public class ClienteTarifarioRequest
     {
@@ -221,19 +224,6 @@
         public string? Investigado { get; set; }
         public string? AplicaPenalidad { get; set; }
         public string EstadoFacturacion { get; set; } = string.Empty;
-    }
-
-    // Resultado de SP_Facturacion_ObtenerDatosBorrador — exactamente los campos que necesita el payload
-    // "cliente" de facturación (PedidoFacturaHandler.GuardarBorradorFacturaAsync).
-    public class ClienteParaFacturacionConsulta
-    {
-        public int IdCliente { get; set; }
-        public int IdTipoDocumentoSunat { get; set; }
-        public string NumeroDocumento { get; set; } = string.Empty;
-        public string? Nombre { get; set; }
-        public string? Correo { get; set; }
-        public string? Direccion { get; set; }
-        public int IdPais { get; set; }
     }
 
     public class ClienteResumen

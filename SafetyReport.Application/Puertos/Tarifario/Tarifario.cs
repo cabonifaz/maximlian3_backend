@@ -2,7 +2,7 @@
 using System.Collections.Generic;
 using System.Text;
 
-namespace SafetyReport.Models
+namespace SafetyReport.Application.Puertos.Tarifario
 {
     public class TarifarioCrear
     {
