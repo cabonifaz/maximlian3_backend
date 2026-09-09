@@ -29,6 +29,7 @@ using SafetyReport.Handlers;
 using SafetyReport.Infrastructure.Automation;
 using SafetyReport.Infrastructure.Email;
 using SafetyReport.Infrastructure.Facturacion;
+using SafetyReport.Infrastructure.Identity;
 using SafetyReport.Infrastructure.Storage;
 using SafetyReport.Infrastructure.Translation;
 using SafetyReport.Models;

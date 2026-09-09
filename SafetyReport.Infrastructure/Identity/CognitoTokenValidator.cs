@@ -7,7 +7,7 @@ using SafetyReport.Models;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 
-namespace SafetyReport.Handlers
+namespace SafetyReport.Infrastructure.Identity
 {
     public class CognitoTokenValidator : ITokenValidator
     {
