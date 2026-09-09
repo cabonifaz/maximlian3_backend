@@ -1,5 +1,6 @@
 using Microsoft.Extensions.Logging;
-using SafetyReport.DAO;
+using SafetyReport.Application.Ports.PedidoFactura;
+using SafetyReport.Application.Ports.PedidoFacturaLinea;
 using SafetyReport.Models;
 
 namespace SafetyReport.Handlers
@@ -9,15 +10,17 @@ namespace SafetyReport.Handlers
     // facturación, no algo propio de líneas — ver PLAN_Lineas_Facturacion.md.
     public class PedidoFacturaLineaHandler
     {
-        private readonly PedidoFacturaLineaDAO _pedidoFacturaLineaDao;
-        private readonly PedidoFacturaDAO _pedidoFacturaDao;
+        private readonly IPedidoFacturaLineaRepository _pedidoFacturaLineaRepository;
+        private readonly IFacturacionAccessValidator _facturacionAccessValidator;
         private readonly ILogger<PedidoFacturaLineaHandler> _logger;
 
         public PedidoFacturaLineaHandler(
-            PedidoFacturaLineaDAO pedidoFacturaLineaDao, PedidoFacturaDAO pedidoFacturaDao, ILogger<PedidoFacturaLineaHandler> logger)
+            IPedidoFacturaLineaRepository pedidoFacturaLineaRepository,
+            IFacturacionAccessValidator facturacionAccessValidator,
+            ILogger<PedidoFacturaLineaHandler> logger)
         {
-            _pedidoFacturaLineaDao = pedidoFacturaLineaDao;
-            _pedidoFacturaDao = pedidoFacturaDao;
+            _pedidoFacturaLineaRepository = pedidoFacturaLineaRepository;
+            _facturacionAccessValidator = facturacionAccessValidator;
             _logger = logger;
         }
 
@@ -25,13 +28,13 @@ namespace SafetyReport.Handlers
         {
             try
             {
-                var acceso = await _pedidoFacturaDao.ValidarAccesoFacturacionAsync(usuarioLogueado, "crear una línea de facturación");
+                var acceso = await _facturacionAccessValidator.ValidarAccesoFacturacionAsync(usuarioLogueado, "crear una línea de facturación");
                 if (acceso.IdTipoMensaje != 2)
                 {
                     return acceso;
                 }
 
-                return await _pedidoFacturaLineaDao.CrearAsync(
+                return await _pedidoFacturaLineaRepository.CrearAsync(
                     usuarioLogueado, request.idCliente, request.idsPedido, request.codigo, request.descripcion);
             }
             catch (Exception ex)
@@ -45,13 +48,13 @@ namespace SafetyReport.Handlers
         {
             try
             {
-                var acceso = await _pedidoFacturaDao.ValidarAccesoFacturacionAsync(usuarioLogueado, "crear líneas de facturación en lote");
+                var acceso = await _facturacionAccessValidator.ValidarAccesoFacturacionAsync(usuarioLogueado, "crear líneas de facturación en lote");
                 if (acceso.IdTipoMensaje != 2)
                 {
                     return acceso;
                 }
 
-                return await _pedidoFacturaLineaDao.CrearLoteAsync(usuarioLogueado, request.idCliente, request.grupos);
+                return await _pedidoFacturaLineaRepository.CrearLoteAsync(usuarioLogueado, request.idCliente, request.grupos);
             }
             catch (Exception ex)
             {
@@ -67,13 +70,13 @@ namespace SafetyReport.Handlers
         {
             try
             {
-                var acceso = await _pedidoFacturaDao.ValidarAccesoFacturacionAsync(usuarioLogueado, "eliminar una línea de facturación");
+                var acceso = await _facturacionAccessValidator.ValidarAccesoFacturacionAsync(usuarioLogueado, "eliminar una línea de facturación");
                 if (acceso.IdTipoMensaje != 2)
                 {
                     return acceso;
                 }
 
-                return await _pedidoFacturaLineaDao.DesvincularAsync(usuarioLogueado, idPedidoFacturaLinea);
+                return await _pedidoFacturaLineaRepository.DesvincularAsync(usuarioLogueado, idPedidoFacturaLinea);
             }
             catch (Exception ex)
             {
@@ -87,13 +90,13 @@ namespace SafetyReport.Handlers
         {
             try
             {
-                var acceso = await _pedidoFacturaDao.ValidarAccesoFacturacionAsync(usuarioLogueado, "editar una línea de facturación");
+                var acceso = await _facturacionAccessValidator.ValidarAccesoFacturacionAsync(usuarioLogueado, "editar una línea de facturación");
                 if (acceso.IdTipoMensaje != 2)
                 {
                     return acceso;
                 }
 
-                return await _pedidoFacturaLineaDao.ActualizarDatosAsync(
+                return await _pedidoFacturaLineaRepository.ActualizarDatosAsync(
                     usuarioLogueado, idPedidoFacturaLinea, request.codigo, request.descripcion,
                     request.valorUnitario, request.descuento);
             }
@@ -109,13 +112,13 @@ namespace SafetyReport.Handlers
         {
             try
             {
-                var acceso = await _pedidoFacturaDao.ValidarAccesoFacturacionAsync(usuarioLogueado, "editar los pedidos de una línea de facturación");
+                var acceso = await _facturacionAccessValidator.ValidarAccesoFacturacionAsync(usuarioLogueado, "editar los pedidos de una línea de facturación");
                 if (acceso.IdTipoMensaje != 2)
                 {
                     return acceso;
                 }
 
-                return await _pedidoFacturaLineaDao.ActualizarPedidosAsync(
+                return await _pedidoFacturaLineaRepository.ActualizarPedidosAsync(
                     usuarioLogueado, idPedidoFacturaLinea, request.idCliente, request.idsPedido);
             }
             catch (Exception ex)
@@ -129,13 +132,13 @@ namespace SafetyReport.Handlers
         {
             try
             {
-                var acceso = await _pedidoFacturaDao.ValidarAccesoFacturacionAsync(usuarioLogueado, "listar las líneas de facturación");
+                var acceso = await _facturacionAccessValidator.ValidarAccesoFacturacionAsync(usuarioLogueado, "listar las líneas de facturación");
                 if (acceso.IdTipoMensaje != 2)
                 {
                     return acceso;
                 }
 
-                return await _pedidoFacturaLineaDao.ListarAsync(usuarioLogueado, request);
+                return await _pedidoFacturaLineaRepository.ListarAsync(usuarioLogueado, request);
             }
             catch (Exception ex)
             {

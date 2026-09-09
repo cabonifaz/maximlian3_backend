@@ -1,5 +1,6 @@
 using Microsoft.Extensions.Logging;
-using SafetyReport.DAO;
+using SafetyReport.Application.Ports.Pedido;
+using SafetyReport.Application.Ports.PedidoFactura;
 using SafetyReport.Models;
 
 namespace SafetyReport.Handlers
@@ -10,14 +11,17 @@ namespace SafetyReport.Handlers
     // controller que lo expone no lleva [Authorize].
     public class VerificacionFacturaHandler
     {
-        private readonly FacturacionElectronicaService _facturacionService;
-        private readonly PedidoDAO _pedidoDao;
+        private readonly IFacturacionElectronicaGateway _facturacionGateway;
+        private readonly IPedidoRepository _pedidoRepository;
         private readonly ILogger<VerificacionFacturaHandler> _logger;
 
-        public VerificacionFacturaHandler(FacturacionElectronicaService facturacionService, PedidoDAO pedidoDao, ILogger<VerificacionFacturaHandler> logger)
+        public VerificacionFacturaHandler(
+            IFacturacionElectronicaGateway facturacionGateway,
+            IPedidoRepository pedidoRepository,
+            ILogger<VerificacionFacturaHandler> logger)
         {
-            _facturacionService = facturacionService;
-            _pedidoDao = pedidoDao;
+            _facturacionGateway = facturacionGateway;
+            _pedidoRepository = pedidoRepository;
             _logger = logger;
         }
 
@@ -25,7 +29,7 @@ namespace SafetyReport.Handlers
         {
             try
             {
-                var resultado = await _facturacionService.ObtenerDocumentoPorTokenAsync(token, CancellationToken.None);
+                var resultado = await _facturacionGateway.ObtenerDocumentoPorTokenAsync(token, CancellationToken.None);
 
                 if (resultado is null || resultado.IdTipoMensaje != 2)
                 {
@@ -48,14 +52,14 @@ namespace SafetyReport.Handlers
         {
             try
             {
-                var identificado = await _facturacionService.ObtenerIdDocumentoPorTokenAsync(token, CancellationToken.None);
+                var identificado = await _facturacionGateway.ObtenerIdDocumentoPorTokenAsync(token, CancellationToken.None);
 
                 if (identificado is null || identificado.IdTipoMensaje != 2 || identificado.Datos is null)
                 {
                     return new Respuesta { IdTipoMensaje = identificado?.IdTipoMensaje ?? 3, Mensaje = identificado?.Mensaje ?? "Token de verificación inválido." };
                 }
 
-                return await _pedidoDao.ListarPorDocumentoElectronicoPublicoAsync(
+                return await _pedidoRepository.ListarPorDocumentoElectronicoPublicoAsync(
                     identificado.Datos.IdInquilino, identificado.Datos.IdDocumentoElectronico);
             }
             catch (Exception ex)
@@ -70,7 +74,7 @@ namespace SafetyReport.Handlers
         {
             try
             {
-                var resultado = await _facturacionService.ObtenerUrlDescargaPorTokenAsync(token, tipoArchivo, CancellationToken.None);
+                var resultado = await _facturacionGateway.ObtenerUrlDescargaPorTokenAsync(token, tipoArchivo, CancellationToken.None);
 
                 if (resultado is null || resultado.IdTipoMensaje != 2)
                 {

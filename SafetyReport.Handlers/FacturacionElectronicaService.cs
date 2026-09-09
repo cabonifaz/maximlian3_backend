@@ -1,10 +1,11 @@
 using System.Net.Http.Json;
 using System.Text.Json;
+using SafetyReport.Application.Ports.PedidoFactura;
 using SafetyReport.Models;
 
 namespace SafetyReport.Handlers
 {
-    public class FacturacionElectronicaService
+    public class FacturacionElectronicaService : IFacturacionElectronicaGateway
     {
         private readonly HttpClient _httpClient;
         private static readonly JsonSerializerOptions JsonOptions = new(JsonSerializerDefaults.Web);

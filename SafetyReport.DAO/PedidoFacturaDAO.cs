@@ -1,11 +1,12 @@
 using Microsoft.Data.SqlClient;
 using Microsoft.Extensions.Logging;
+using SafetyReport.Application.Ports.PedidoFactura;
 using SafetyReport.Models;
 using System.Data;
 
 namespace SafetyReport.DAO
 {
-    public class PedidoFacturaDAO
+    public class PedidoFacturaDAO : IPedidoFacturaRepository, IFacturacionAccessValidator
     {
         private readonly DbConfig _dbConfig;
         private readonly ILogger<PedidoFacturaDAO> _logger;

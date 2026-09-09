@@ -1,17 +1,17 @@
 using Microsoft.Extensions.Logging;
-using SafetyReport.DAO;
+using SafetyReport.Application.Ports.Asignacion;
 using SafetyReport.Models;
 
 namespace SafetyReport.Handlers
 {
     public class AsignacionHandler
     {
-        private readonly AsignacionDAO _dao;
+        private readonly IAsignacionRepository _asignacionRepository;
         private readonly ILogger<AsignacionHandler> _logger;
 
-        public AsignacionHandler(AsignacionDAO dao, ILogger<AsignacionHandler> logger)
+        public AsignacionHandler(IAsignacionRepository asignacionRepository, ILogger<AsignacionHandler> logger)
         {
-            _dao = dao;
+            _asignacionRepository = asignacionRepository;
             _logger = logger;
         }
 
@@ -19,7 +19,7 @@ namespace SafetyReport.Handlers
         {
             try
             {
-                return await _dao.InsertarAsync(usuarioLogueado, request);
+                return await _asignacionRepository.InsertarAsync(usuarioLogueado, request);
             }
             catch (Exception ex)
             {
@@ -38,7 +38,7 @@ namespace SafetyReport.Handlers
         {
             try
             {
-                return await _dao.ActualizarAsync(usuarioLogueado, request);
+                return await _asignacionRepository.ActualizarAsync(usuarioLogueado, request);
             }
             catch (Exception ex)
             {
@@ -57,7 +57,7 @@ namespace SafetyReport.Handlers
         {
             try
             {
-                return await _dao.ListarAsync(usuarioLogueado, request);
+                return await _asignacionRepository.ListarAsync(usuarioLogueado, request);
             }
             catch (Exception ex)
             {
@@ -76,7 +76,7 @@ namespace SafetyReport.Handlers
         {
             try
             {
-                return await _dao.ObtenerAsync(usuarioLogueado, idAsignacion);
+                return await _asignacionRepository.ObtenerAsync(usuarioLogueado, idAsignacion);
             }
             catch (Exception ex)
             {
@@ -95,7 +95,7 @@ namespace SafetyReport.Handlers
         {
             try
             {
-                return await _dao.BandejaAsync(usuarioLogueado, filtro);
+                return await _asignacionRepository.BandejaAsync(usuarioLogueado, filtro);
             }
             catch (Exception ex)
             {
@@ -114,7 +114,7 @@ namespace SafetyReport.Handlers
         {
             try
             {
-                return await _dao.EliminarAsync(usuarioLogueado, request);
+                return await _asignacionRepository.EliminarAsync(usuarioLogueado, request);
             }
             catch (Exception ex)
             {

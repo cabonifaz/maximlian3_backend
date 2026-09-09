@@ -1,5 +1,6 @@
 using Microsoft.Data.SqlClient;
 using Microsoft.Extensions.Logging;
+using SafetyReport.Application.Ports.PedidoFacturaLinea;
 using SafetyReport.Models;
 using System.Data;
 
@@ -8,7 +9,7 @@ namespace SafetyReport.DAO
     // Capa de datos del sub-recurso PEDIDO_FACTURA_LINEA — separado de PedidoFacturaDAO porque
     // agrupa exclusivamente el CRUD de líneas, no el resto del módulo de facturación (documentos,
     // notas, cuotas, etc.) — ver PLAN_Lineas_Facturacion.md.
-    public class PedidoFacturaLineaDAO
+    public class PedidoFacturaLineaDAO : IPedidoFacturaLineaRepository
     {
         private readonly DbConfig _dbConfig;
         private readonly ILogger<PedidoFacturaLineaDAO> _logger;
