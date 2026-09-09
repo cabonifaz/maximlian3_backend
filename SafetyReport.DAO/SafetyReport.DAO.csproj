@@ -2,6 +2,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\SafetyReport.Models\SafetyReport.Models.csproj" />
+    <ProjectReference Include="..\SafetyReport.Application\SafetyReport.Application.csproj" />
   </ItemGroup>
 
   <ItemGroup>

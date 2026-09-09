@@ -5,6 +5,9 @@ using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi;
 using NLog;
 using NLog.Web;
+using SafetyReport.Application.Ports.Cliente;
+using SafetyReport.Application.Ports.Login;
+using SafetyReport.Application.Ports.Usuario;
 using SafetyReport.DAO;
 using SafetyReport.Handlers;
 using SafetyReport.Models;
@@ -161,13 +164,17 @@ builder.Services.AddCors(options =>
 });
 
 builder.Services.AddScoped<LoginDAO>();
+builder.Services.AddScoped<ILoginRepository, LoginDAO>();
 builder.Services.AddScoped<LoginHandler>();
 builder.Services.AddScoped<UsuarioDAO>();
+builder.Services.AddScoped<IUsuarioRepository, UsuarioDAO>();
+builder.Services.AddScoped<IUsuarioIdentityProvider, CognitoUsuarioIdentityProvider>();
 builder.Services.AddScoped<UsuarioHandler>();
 builder.Services.AddScoped<TablaMaestraDAO>();
 builder.Services.AddScoped<TablaMaestraHandler>();
 builder.Services.AddScoped<FormatoDocumentoResolver>();
 builder.Services.AddScoped<ClienteDAO>();
+builder.Services.AddScoped<IClienteRepository, ClienteDAO>();
 builder.Services.AddScoped<ClienteHandler>();
 builder.Services.AddScoped<TarifarioDAO>();
 builder.Services.AddScoped<TarifarioHandler>();
@@ -251,6 +258,7 @@ builder.Services.AddScoped<InformeTranslationHandler>();
 builder.Services.AddScoped<PedidoArchivoHandler>();
 builder.Services.AddScoped<PedidoArchivoDAO>();
 builder.Services.AddScoped<CognitoTokenValidator>();
+builder.Services.AddScoped<ITokenValidator, CognitoTokenValidator>();
 
 var n8nConfig = builder.Configuration.GetSection("N8n").Get<N8nConfig>()
     ?? throw new Exception("Falta configuración N8n");

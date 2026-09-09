@@ -1,0 +1,11 @@
+**/bin/
+**/obj/
+.git/
+.gitignore
+.claude/
+CLAUDE.md
+**/appsettings.json
+**/appsettings.*.json
+!**/appsettings.Model.json
+SafetyReport.WebApi/App_Data/
+**/*.user

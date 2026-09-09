@@ -1,24 +1,19 @@
-﻿using Amazon;
-using Amazon.CognitoIdentityProvider;
-using Amazon.CognitoIdentityProvider.Model;
-using Amazon.Runtime;
-using Microsoft.Extensions.Configuration;
-using Microsoft.Extensions.Logging;
-using SafetyReport.DAO;
+﻿using Microsoft.Extensions.Logging;
+using SafetyReport.Application.Ports.Usuario;
 using SafetyReport.Models;
 
 namespace SafetyReport.Handlers
 {
     public class UsuarioHandler
     {
-        private readonly UsuarioDAO _dao;
-        private readonly IConfiguration _config;
+        private readonly IUsuarioRepository _repository;
+        private readonly IUsuarioIdentityProvider _identityProvider;
         private readonly ILogger<UsuarioHandler> _logger;
 
-        public UsuarioHandler(UsuarioDAO dao, IConfiguration config, ILogger<UsuarioHandler> logger)
+        public UsuarioHandler(IUsuarioRepository repository, IUsuarioIdentityProvider identityProvider, ILogger<UsuarioHandler> logger)
         {
-            _dao = dao;
-            _config = config;
+            _repository = repository;
+            _identityProvider = identityProvider;
             _logger = logger;
         }
 
@@ -26,50 +21,21 @@ namespace SafetyReport.Handlers
         {
             try
             {
-                var respuesta = await _dao.CrearUsuarioAsync(usuarioLogueado, request);
+                var respuesta = await _repository.CrearUsuarioAsync(usuarioLogueado, request);
 
                 if (respuesta.IdTipoMensaje != 2)
                     return respuesta;
 
-                var creado = ((List<UsuarioCreado>)respuesta.Result).FirstOrDefault();
+                var creado = ObtenerPrimerResultado<UsuarioCreado>(respuesta.Result);
 
                 if (creado == null)
                     return respuesta;
 
-                var llaveAcceso = _config["AWS:AccessKey"];
-                var llaveSecreta = _config["AWS:SecretKey"];
-                var region = _config["AWS:Region"];
-                var idPoolUsuarios = _config["Cognito:UserPoolId"];
-
-                var credenciales = new BasicAWSCredentials(llaveAcceso, llaveSecreta);
-
-                var clienteCognito = new AmazonCognitoIdentityProviderClient(
-                    credenciales,
-                    RegionEndpoint.GetBySystemName(region)
-                );
-
-                var solicitudCrear = new AdminCreateUserRequest
-                {
-                    UserPoolId = idPoolUsuarios,
-                    Username = creado.Usuario,
-                    DesiredDeliveryMediums = new List<string> { "EMAIL" },
-                    UserAttributes = new List<AttributeType>
-                    {
-                        new AttributeType { Name = "email", Value = request.Correo },
-                        new AttributeType { Name = "email_verified", Value = "true" },
-                        new AttributeType { Name = "custom:id_empresa", Value = usuarioLogueado.IdEmpresa.ToString() },
-                        new AttributeType { Name = "custom:id_usuario", Value = creado.IdUsuario.ToString() }
-                    }
-                };
-
-                var respuestaCognito = await clienteCognito.AdminCreateUserAsync(solicitudCrear);
-
-                var sub = respuestaCognito.User.Attributes?
-                    .FirstOrDefault(x => x.Name == "sub")?.Value;
+                var sub = await _identityProvider.CrearUsuarioAsync(usuarioLogueado, request, creado);
 
                 if (!string.IsNullOrWhiteSpace(sub))
                 {
-                    var respuestaSub = await _dao.ActualizarSubAsync(usuarioLogueado, creado.IdUsuario, sub);
+                    var respuestaSub = await _repository.ActualizarSubAsync(usuarioLogueado, creado.IdUsuario, sub);
 
                     if (respuestaSub.IdTipoMensaje != 2)
                         return respuestaSub;
@@ -94,7 +60,7 @@ namespace SafetyReport.Handlers
         {
             try
             {
-                return await _dao.EditarUsuarioAsync(usuarioLogueado, request);
+                return await _repository.EditarUsuarioAsync(usuarioLogueado, request);
             }
             catch (Exception ex)
             {
@@ -113,31 +79,16 @@ namespace SafetyReport.Handlers
         {
             try
             {
-                var respuesta = await _dao.EliminarUsuarioAsync(usuarioLogueado, request.IdUsuarioEliminar);
+                var respuesta = await _repository.EliminarUsuarioAsync(usuarioLogueado, request.IdUsuarioEliminar);
 
                 if (respuesta.IdTipoMensaje != 2)
                     return respuesta;
 
-                var eliminado = ((List<EliminarUsuarioResult>)respuesta.Result).FirstOrDefault();
+                var eliminado = ObtenerPrimerResultado<EliminarUsuarioResult>(respuesta.Result);
 
                 if (eliminado != null && !string.IsNullOrWhiteSpace(eliminado.Usuario))
                 {
-                    var llaveAcceso = _config["AWS:AccessKey"];
-                    var llaveSecreta = _config["AWS:SecretKey"];
-                    var region = _config["AWS:Region"];
-                    var idPoolUsuarios = _config["Cognito:UserPoolId"];
-
-                    var credenciales = new BasicAWSCredentials(llaveAcceso, llaveSecreta);
-                    var clienteCognito = new AmazonCognitoIdentityProviderClient(
-                        credenciales,
-                        RegionEndpoint.GetBySystemName(region)
-                    );
-
-                    await clienteCognito.AdminDeleteUserAsync(new AdminDeleteUserRequest
-                    {
-                        UserPoolId = idPoolUsuarios,
-                        Username = eliminado.Usuario
-                    });
+                    await _identityProvider.EliminarUsuarioAsync(eliminado.Usuario);
                 }
 
                 return respuesta;
@@ -159,7 +110,7 @@ namespace SafetyReport.Handlers
         {
             try
             {
-                return await _dao.ListarUsuariosAsync(usuarioLogueado, filtro, idEstado, numPag);
+                return await _repository.ListarUsuariosAsync(usuarioLogueado, filtro, idEstado, numPag);
             }
             catch (Exception ex)
             {
@@ -178,7 +129,7 @@ namespace SafetyReport.Handlers
         {
             try
             {
-                return await _dao.ObtenerUsuarioAsync(usuarioLogueado, idUsuarioConsulta);
+                return await _repository.ObtenerUsuarioAsync(usuarioLogueado, idUsuarioConsulta);
             }
             catch (Exception ex)
             {
@@ -197,7 +148,7 @@ namespace SafetyReport.Handlers
         {
             try
             {
-                return await _dao.ListarCortaAsync(usuarioLogueado, idRolFiltro);
+                return await _repository.ListarCortaAsync(usuarioLogueado, idRolFiltro);
             }
             catch (Exception ex)
             {
@@ -216,7 +167,7 @@ namespace SafetyReport.Handlers
         {
             try
             {
-                return await _dao.ListarCortaDashboardAsync(usuarioLogueado, idsRolFiltro);
+                return await _repository.ListarCortaDashboardAsync(usuarioLogueado, idsRolFiltro);
             }
             catch (Exception ex)
             {
@@ -235,7 +186,7 @@ namespace SafetyReport.Handlers
         {
             try
             {
-                return await _dao.ListarCortaAsignacionAsync(usuarioLogueado, idRolFiltro, filtro, esTraductor, idiomasPedido);
+                return await _repository.ListarCortaAsignacionAsync(usuarioLogueado, idRolFiltro, filtro, esTraductor, idiomasPedido);
             }
             catch (Exception ex)
             {
@@ -254,7 +205,7 @@ namespace SafetyReport.Handlers
         {
             try
             {
-                return await _dao.ObtenerResumenAsync(usuarioLogueado, filtro);
+                return await _repository.ObtenerResumenAsync(usuarioLogueado, filtro);
             }
             catch (Exception ex)
             {
@@ -267,6 +218,16 @@ namespace SafetyReport.Handlers
                     Result = new UsuarioCumplimientoResult()
                 };
             }
+        }
+
+        private static T? ObtenerPrimerResultado<T>(object? result)
+        {
+            return result switch
+            {
+                T item => item,
+                IEnumerable<T> items => items.FirstOrDefault(),
+                _ => default
+            };
         }
     }
 }

@@ -3,6 +3,7 @@
   <ItemGroup>
     <ProjectReference Include="..\SafetyReport.DAO\SafetyReport.DAO.csproj" />
     <ProjectReference Include="..\SafetyReport.Models\SafetyReport.Models.csproj" />
+    <ProjectReference Include="..\SafetyReport.Application\SafetyReport.Application.csproj" />
   </ItemGroup>
 
   <ItemGroup>

@@ -1,17 +1,17 @@
 ﻿using Microsoft.Extensions.Logging;
-using SafetyReport.DAO;
+using SafetyReport.Application.Ports.Cliente;
 using SafetyReport.Models;
 
 namespace SafetyReport.Handlers
 {
     public class ClienteHandler
     {
-        private readonly ClienteDAO _dao;
+        private readonly IClienteRepository _repository;
         private readonly ILogger<ClienteHandler> _logger;
 
-        public ClienteHandler(ClienteDAO dao, ILogger<ClienteHandler> logger)
+        public ClienteHandler(IClienteRepository repository, ILogger<ClienteHandler> logger)
         {
-            _dao = dao;
+            _repository = repository;
             _logger = logger;
         }
 
@@ -19,7 +19,7 @@ namespace SafetyReport.Handlers
         {
             try
             {
-                return await _dao.CrearClienteAsync(usuarioLogueado, request);
+                return await _repository.CrearClienteAsync(usuarioLogueado, request);
             }
             catch (Exception ex)
             {
@@ -38,7 +38,7 @@ namespace SafetyReport.Handlers
         {
             try
             {
-                return await _dao.EditarClienteAsync(usuarioLogueado, request);
+                return await _repository.EditarClienteAsync(usuarioLogueado, request);
             }
             catch (Exception ex)
             {
@@ -57,7 +57,7 @@ namespace SafetyReport.Handlers
         {
             try
             {
-                return await _dao.ObtenerClienteAsync(usuarioLogueado, idCliente);
+                return await _repository.ObtenerClienteAsync(usuarioLogueado, idCliente);
             }
             catch (Exception ex)
             {
@@ -78,7 +78,7 @@ namespace SafetyReport.Handlers
         {
             try
             {
-                return await _dao.ObtenerClientePorDocumentoElectronicoAsync(usuarioLogueado, idDocumentoElectronico);
+                return await _repository.ObtenerClientePorDocumentoElectronicoAsync(usuarioLogueado, idDocumentoElectronico);
             }
             catch (Exception ex)
             {
@@ -99,7 +99,7 @@ namespace SafetyReport.Handlers
         {
             try
             {
-                return await _dao.ObtenerConLineasPorDocumentoElectronicoAsync(usuarioLogueado, idDocumentoElectronico);
+                return await _repository.ObtenerConLineasPorDocumentoElectronicoAsync(usuarioLogueado, idDocumentoElectronico);
             }
             catch (Exception ex)
             {
@@ -118,7 +118,7 @@ namespace SafetyReport.Handlers
         {
             try
             {
-                return await _dao.ListarClientesAsync(usuarioLogueado, busqueda, numPag, idPais, idEstado);
+                return await _repository.ListarClientesAsync(usuarioLogueado, busqueda, numPag, idPais, idEstado);
             }
             catch (Exception ex)
             {
@@ -137,7 +137,7 @@ namespace SafetyReport.Handlers
         {
             try
             {
-                return await _dao.EliminarClienteAsync(usuarioLogueado, request.idCliente);
+                return await _repository.EliminarClienteAsync(usuarioLogueado, request.idCliente);
             }
             catch (Exception ex)
             {
@@ -156,7 +156,7 @@ namespace SafetyReport.Handlers
         {
             try
             {
-                return await _dao.ActivarDesactivarClienteAsync(usuarioLogueado, request.idCliente, request.idEstado);
+                return await _repository.ActivarDesactivarClienteAsync(usuarioLogueado, request.idCliente, request.idEstado);
             }
             catch (Exception ex)
             {
@@ -175,7 +175,7 @@ namespace SafetyReport.Handlers
         {
             try
             {
-                return await _dao.ListarClienteShortAsync(usuarioLogueado, correoBusqueda);
+                return await _repository.ListarClienteShortAsync(usuarioLogueado, correoBusqueda);
             }
             catch (Exception ex)
             {
@@ -194,7 +194,7 @@ namespace SafetyReport.Handlers
         {
             try
             {
-                return await _dao.ListarClientesFacturacionAsync(usuarioLogueado, busqueda, numPag, emitirPrefactura, idIdiomaFacturacion);
+                return await _repository.ListarClientesFacturacionAsync(usuarioLogueado, busqueda, numPag, emitirPrefactura, idIdiomaFacturacion);
             }
             catch (Exception ex)
             {
@@ -213,7 +213,7 @@ namespace SafetyReport.Handlers
         {
             try
             {
-                return await _dao.ListarPedidosFacturacionClienteAsync(usuarioLogueado, idCliente, busqueda, numPag);
+                return await _repository.ListarPedidosFacturacionClienteAsync(usuarioLogueado, idCliente, busqueda, numPag);
             }
             catch (Exception ex)
             {
@@ -232,7 +232,7 @@ namespace SafetyReport.Handlers
         {
             try
             {
-                return await _dao.ObtenerResumenClientesAsync(usuarioLogueado);
+                return await _repository.ObtenerResumenClientesAsync(usuarioLogueado);
             }
             catch (Exception ex)
             {

@@ -1,18 +1,18 @@
 ﻿using Microsoft.Extensions.Logging;
-using SafetyReport.DAO;
+using SafetyReport.Application.Ports.Login;
 using SafetyReport.Models;
 
 namespace SafetyReport.Handlers
 {
     public class LoginHandler
     {
-        private readonly LoginDAO _loginDAO;
-        private readonly CognitoTokenValidator _tokenValidator;
+        private readonly ILoginRepository _loginRepository;
+        private readonly ITokenValidator _tokenValidator;
         private readonly ILogger<LoginHandler> _logger;
 
-        public LoginHandler(LoginDAO loginDAO, CognitoTokenValidator tokenValidator, ILogger<LoginHandler> logger)
+        public LoginHandler(ILoginRepository loginRepository, ITokenValidator tokenValidator, ILogger<LoginHandler> logger)
         {
-            _loginDAO = loginDAO;
+            _loginRepository = loginRepository;
             _tokenValidator = tokenValidator;
             _logger = logger;
         }
@@ -33,7 +33,7 @@ namespace SafetyReport.Handlers
                     };
                 }
 
-                return await _loginDAO.AutenticarAsync(usuarioLogueado);
+                return await _loginRepository.AutenticarAsync(usuarioLogueado);
             }
             catch (Exception ex)
             {
