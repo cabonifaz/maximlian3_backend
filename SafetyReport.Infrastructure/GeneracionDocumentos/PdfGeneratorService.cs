@@ -10,7 +10,7 @@ using PdfSharp.Pdf;
 using PdfSharp.Pdf.Advanced;
 using SafetyReport.Application.Ports.Informe;
 
-namespace SafetyReport.Infrastructure.DocumentGeneration;
+namespace SafetyReport.Infrastructure.GeneracionDocumentos;
 
 public class PdfGeneratorService : IInformePdfGenerator
 {

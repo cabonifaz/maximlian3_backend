@@ -1,4 +1,4 @@
-namespace SafetyReport.Infrastructure.DocumentGeneration;
+namespace SafetyReport.Infrastructure.GeneracionDocumentos;
 
 internal static class FontStore
 {

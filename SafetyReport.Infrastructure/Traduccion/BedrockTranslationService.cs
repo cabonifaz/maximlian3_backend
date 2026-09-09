@@ -1,7 +1,7 @@
 using System.Text.Json;
 using SafetyReport.Application.Ports.TablaMaestra;
 
-namespace SafetyReport.Infrastructure.Translation
+namespace SafetyReport.Infrastructure.Traduccion
 {
     public class BedrockTranslationService : ITablaMaestraTranslator
     {

@@ -6,7 +6,7 @@ using Microsoft.Extensions.Configuration;
 using SafetyReport.Application.Ports.Usuario;
 using SafetyReport.Models;
 
-namespace SafetyReport.Infrastructure.Identity;
+namespace SafetyReport.Infrastructure.Seguridad;
 
 public class CognitoUsuarioIdentityProvider : IUsuarioIdentityProvider
 {

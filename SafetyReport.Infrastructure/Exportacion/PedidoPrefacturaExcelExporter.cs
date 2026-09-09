@@ -5,7 +5,7 @@ using DocumentFormat.OpenXml.Spreadsheet;
 using SafetyReport.Application.Ports.PedidoFactura;
 using SafetyReport.Models;
 
-namespace SafetyReport.Infrastructure.Export;
+namespace SafetyReport.Infrastructure.Exportacion;
 
 public class PedidoPrefacturaExcelExporter : IPedidoPrefacturaExcelExporter
 {

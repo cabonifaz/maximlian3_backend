@@ -3,7 +3,7 @@ using Amazon.S3.Model;
 using Microsoft.Extensions.Configuration;
 using SafetyReport.Application.Ports.Storage;
 
-namespace SafetyReport.Infrastructure.Storage;
+namespace SafetyReport.Infrastructure.Almacenamiento;
 
 public class S3UploadService : IPedidoArchivoStorage, IInformeLocalImagenStorage, IInformeArchivoStorage, ICompaniaNoticiaStorage, IInformeStorage, ILogStorage
 {

@@ -6,7 +6,7 @@ using System.Net.Http.Headers;
 using System.Text;
 using System.Text.Json;
 
-namespace SafetyReport.Infrastructure.Automation
+namespace SafetyReport.Infrastructure.Automatizacion
 {
     public class N8nService : IInformeAutomationGateway
     {

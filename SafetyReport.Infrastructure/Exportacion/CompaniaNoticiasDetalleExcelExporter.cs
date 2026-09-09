@@ -4,7 +4,7 @@ using DocumentFormat.OpenXml.Spreadsheet;
 using SafetyReport.Application.Ports.Compania;
 using SafetyReport.Models;
 
-namespace SafetyReport.Infrastructure.Export;
+namespace SafetyReport.Infrastructure.Exportacion;
 
 public class CompaniaNoticiasDetalleExcelExporter : ICompaniaNoticiasDetalleExcelExporter
 {
