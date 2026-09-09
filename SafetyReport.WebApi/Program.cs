@@ -29,6 +29,7 @@ using SafetyReport.Handlers;
 using SafetyReport.Infrastructure.Automation;
 using SafetyReport.Infrastructure.Facturacion;
 using SafetyReport.Infrastructure.Storage;
+using SafetyReport.Infrastructure.Translation;
 using SafetyReport.Models;
 using SafetyReport.WebApi.Filters;
 using SafetyReport.WebApi.Helpers;

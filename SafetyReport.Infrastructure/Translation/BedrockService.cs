@@ -1,7 +1,7 @@
 using Amazon.BedrockRuntime;
 using Amazon.BedrockRuntime.Model;
 
-namespace SafetyReport.Handlers
+namespace SafetyReport.Infrastructure.Translation
 {
     public class BedrockConfig
     {

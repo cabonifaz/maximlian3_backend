@@ -2,7 +2,7 @@ using SafetyReport.Application.Ports.Informe;
 using SafetyReport.Models;
 using System.Text.Json;
 
-namespace SafetyReport.Handlers
+namespace SafetyReport.Infrastructure.Translation
 {
     public class BedrockInformeTranslationService : IInformeTranslator
     {
