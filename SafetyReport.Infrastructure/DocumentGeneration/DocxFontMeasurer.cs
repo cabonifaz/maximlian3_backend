@@ -1,4 +1,4 @@
-namespace SafetyReport.Handlers;
+namespace SafetyReport.Infrastructure.DocumentGeneration;
 
 /// <summary>
 /// Measures text width in points from TrueType font bytes already in FontStore.

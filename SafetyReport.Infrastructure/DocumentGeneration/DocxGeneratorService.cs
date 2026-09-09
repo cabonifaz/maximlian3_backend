@@ -8,7 +8,7 @@ using A = DocumentFormat.OpenXml.Drawing;
 using DW = DocumentFormat.OpenXml.Drawing.Wordprocessing;
 using PIC = DocumentFormat.OpenXml.Drawing.Pictures;
 
-namespace SafetyReport.Handlers;
+namespace SafetyReport.Infrastructure.DocumentGeneration;
 
 public partial class DocxGeneratorService : IInformeDocxGenerator
 {

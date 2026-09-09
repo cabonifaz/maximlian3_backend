@@ -27,6 +27,7 @@ using SafetyReport.Application.Ports.Usuario;
 using SafetyReport.DAO;
 using SafetyReport.Handlers;
 using SafetyReport.Infrastructure.Automation;
+using SafetyReport.Infrastructure.DocumentGeneration;
 using SafetyReport.Infrastructure.Email;
 using SafetyReport.Infrastructure.Facturacion;
 using SafetyReport.Infrastructure.Identity;
