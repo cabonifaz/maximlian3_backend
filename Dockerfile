@@ -1,9 +1,9 @@
 FROM mcr.microsoft.com/dotnet/sdk:10.0 AS build
 WORKDIR /src
 
-COPY SafetyReport.Models/SafetyReport.Models.csproj    SafetyReport.Models/
-COPY SafetyReport.DAO/SafetyReport.DAO.csproj          SafetyReport.DAO/
-COPY SafetyReport.Handlers/SafetyReport.Handlers.csproj SafetyReport.Handlers/
+COPY SafetyReport.Domain/SafetyReport.Domain.csproj    SafetyReport.Domain/
+COPY SafetyReport.Application/SafetyReport.Application.csproj SafetyReport.Application/
+COPY SafetyReport.Infrastructure/SafetyReport.Infrastructure.csproj SafetyReport.Infrastructure/
 COPY SafetyReport.WebApi/SafetyReport.WebApi.csproj    SafetyReport.WebApi/
 RUN dotnet restore SafetyReport.WebApi/SafetyReport.WebApi.csproj
 

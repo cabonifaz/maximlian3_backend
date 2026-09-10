@@ -1,6 +1,6 @@
 using System.Text.Json;
 
-namespace SafetyReport.Models
+namespace SafetyReport.Application.Puertos.Informe
 {
     // ── Child input items ────────────────────────────────────────────────────────
 

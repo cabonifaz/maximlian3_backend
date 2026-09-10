@@ -3,7 +3,6 @@ using Microsoft.AspNetCore.Http.Timeouts;
 using Microsoft.AspNetCore.Mvc;
 using SafetyReport.Application.CasosDeUso;
 using SafetyReport.Application.Puertos.Informe;
-using SafetyReport.Models;
 
 namespace SafetyReport.WebApi.Controllers
 {

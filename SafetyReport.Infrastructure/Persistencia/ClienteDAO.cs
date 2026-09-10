@@ -3,7 +3,7 @@ using Microsoft.Extensions.Logging;
 using SafetyReport.Application.Puertos.Cliente;
 using SafetyReport.Application.Puertos.ClienteContacto;
 using SafetyReport.Application.Puertos.PedidoFacturaLinea;
-using SafetyReport.Models;
+using SafetyReport.Application.Puertos.Informe;
 using System.Data;
 
 namespace SafetyReport.Infrastructure.Persistencia

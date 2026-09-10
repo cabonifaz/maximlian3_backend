@@ -1,7 +1,7 @@
 using Microsoft.Extensions.Logging;
 using SafetyReport.Application.Puertos.InformeLocalImagen;
 using SafetyReport.Application.Puertos.Almacenamiento;
-using SafetyReport.Models;
+using SafetyReport.Application.Puertos.Informe;
 
 namespace SafetyReport.Application.CasosDeUso
 {

@@ -20,7 +20,6 @@
   <ItemGroup>
     <ProjectReference Include="..\SafetyReport.Application\SafetyReport.Application.csproj" />
     <ProjectReference Include="..\SafetyReport.Domain\SafetyReport.Domain.csproj" />
-    <ProjectReference Include="..\SafetyReport.Models\SafetyReport.Models.csproj" />
   </ItemGroup>
 
   <PropertyGroup>

@@ -3,7 +3,7 @@ using Microsoft.IdentityModel.Protocols;
 using Microsoft.IdentityModel.Protocols.OpenIdConnect;
 using Microsoft.IdentityModel.Tokens;
 using SafetyReport.Application.Puertos.Login;
-using SafetyReport.Models;
+using SafetyReport.Application.Puertos.Informe;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 

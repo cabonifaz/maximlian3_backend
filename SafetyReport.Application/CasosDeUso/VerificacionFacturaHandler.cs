@@ -1,7 +1,7 @@
 using Microsoft.Extensions.Logging;
 using SafetyReport.Application.Puertos.Pedido;
 using SafetyReport.Application.Puertos.PedidoFactura;
-using SafetyReport.Models;
+using SafetyReport.Application.Puertos.Informe;
 
 namespace SafetyReport.Application.CasosDeUso
 {
