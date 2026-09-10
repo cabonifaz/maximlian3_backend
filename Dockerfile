@@ -15,7 +15,6 @@ FROM mcr.microsoft.com/dotnet/aspnet:10.0
 WORKDIR /app
 COPY --from=build /app/publish ./
 
-ENV ASPNETCORE_ENVIRONMENT=Production
 EXPOSE 8080
 
 # Railway inyecta PORT en runtime; ENV en el Dockerfile no lo expandiria, por eso

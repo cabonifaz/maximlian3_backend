@@ -2,7 +2,6 @@ using Amazon.BedrockRuntime;
 using Amazon.S3;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Hosting;
 using SafetyReport.Application.Puertos.Asignacion;
 using SafetyReport.Application.Puertos.Banco;
 using SafetyReport.Application.Puertos.Cliente;
@@ -38,8 +37,7 @@ public static class DependencyInjection
 {
     public static IServiceCollection AddSafetyReportInfrastructure(
         this IServiceCollection services,
-        IConfiguration configuration,
-        IHostEnvironment environment)
+        IConfiguration configuration)
     {
         services.AddScoped<IPedidoPrefacturaExcelExporter, PedidoPrefacturaExcelExporter>();
         services.AddScoped<ICompaniaNoticiasDetalleExcelExporter, CompaniaNoticiasDetalleExcelExporter>();
@@ -55,7 +53,7 @@ public static class DependencyInjection
         AddStorage(services, awsConfig);
         AddTranslation(services, configuration, awsConfig);
         AddAutomation(services, configuration);
-        AddEmail(services, configuration, environment);
+        AddEmail(services, configuration);
         AddFacturacionElectronica(services, configuration);
 
         return services;
@@ -222,12 +220,13 @@ public static class DependencyInjection
             sp.GetRequiredService<N8nService>());
     }
 
-    private static void AddEmail(IServiceCollection services, IConfiguration configuration, IHostEnvironment environment)
+    private static void AddEmail(IServiceCollection services, IConfiguration configuration)
     {
         // Solo el ambiente "Production" real (buzon organizacional) usa auth app-only.
         // Cualquier otro nombre de ambiente (Development, Staging/PreProd, etc.) envia
         // desde la cuenta Hotmail de pruebas via auth delegada.
-        if (!environment.IsProduction())
+        var isProduction = string.Equals(configuration["Environment"], "Production", StringComparison.OrdinalIgnoreCase);
+        if (!isProduction)
         {
             var devConfig = configuration.GetSection("Email:Dev").Get<EmailDevConfig>()
                 ?? throw new Exception("Falta configuración Email:Dev");

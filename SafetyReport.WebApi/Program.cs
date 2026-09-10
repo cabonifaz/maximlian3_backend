@@ -161,7 +161,7 @@ builder.Services.AddSafetyReportApplication(options =>
     options.FrontendUrl = builder.Configuration.GetSection("Cors:AllowedOrigins").GetChildren().FirstOrDefault()?.Value
         ?? string.Empty;
 });
-builder.Services.AddSafetyReportInfrastructure(builder.Configuration, builder.Environment);
+builder.Services.AddSafetyReportInfrastructure(builder.Configuration);
 builder.Services.AddHostedService<SafetyReport.WebApi.Workers.SincronizacionFacturacionWorker>();
 
 var app = builder.Build();
