@@ -249,13 +249,6 @@ namespace SafetyReport.WebApi.Controllers
             return Ok(respuesta);
         }
 
-        [HttpPut("estado/{idPedido:int}")]
-        public async Task<IActionResult> ActualizarEstadoFacturacion(int idPedido, [FromQuery] int idEstadoFacturacion)
-        {
-            var respuesta = await _pedidoFacturaHandler.ActualizarEstadoFacturacionAsync(UsuarioLogueado, idPedido, idEstadoFacturacion);
-            return Ok(respuesta);
-        }
-
         [HttpPost("anular")]
         public async Task<IActionResult> Anular([FromBody] AnularFacturasRequest request)
         {

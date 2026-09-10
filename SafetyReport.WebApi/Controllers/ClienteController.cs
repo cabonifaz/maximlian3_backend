@@ -94,11 +94,5 @@ namespace SafetyReport.WebApi.Controllers
             return Ok(respuesta);
         }
 
-        [HttpGet("listarPedidosFacturacion")]
-        public async Task<IActionResult> ListarPedidosFacturacion([FromQuery] FiltroClientePedidosFacturacion request)
-        {
-            var respuesta = await _clienteHandler.ListarPedidosFacturacionClienteAsync(UsuarioLogueado, request.idCliente, request.busqueda, request.numPag);
-            return Ok(respuesta);
-        }
     }
 }

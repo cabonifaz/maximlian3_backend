@@ -12,6 +12,5 @@ public interface IClienteRepository
     Task<Respuesta> ActivarDesactivarClienteAsync(UsuarioGeneral usuarioLogueado, int idCliente, int idEstado);
     Task<Respuesta> ListarClienteShortAsync(UsuarioGeneral usuarioLogueado, string? correoBusqueda);
     Task<Respuesta> ListarClientesFacturacionAsync(UsuarioGeneral usuarioLogueado, string? busqueda, int? numPag, int? emitirPrefactura, int? idIdiomaFacturacion);
-    Task<Respuesta> ListarPedidosFacturacionClienteAsync(UsuarioGeneral usuarioLogueado, int idCliente, string? busqueda, int? numPag);
     Task<Respuesta> ObtenerResumenClientesAsync(UsuarioGeneral usuarioLogueado);
 }

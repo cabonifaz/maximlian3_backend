@@ -6,7 +6,6 @@ namespace SafetyReport.Application.Puertos.PedidoFactura
         Task<Respuesta> ObtenerIdDocumentoElectronicoAsync(UsuarioGeneral usuarioLogueado, int idPedido);
         Task<Respuesta> RegistrarEnvioAsync(UsuarioGeneral usuarioLogueado, List<int> idsLinea, int idDocumentoElectronico);
         Task<Respuesta> DesvincularAsync(UsuarioGeneral usuarioLogueado, int idDocumentoElectronico, List<int> idsLineaMantener);
-        Task<Respuesta> ActualizarEstadoAsync(UsuarioGeneral usuarioLogueado, int idPedido, int idEstadoFacturacion);
         Task<Respuesta> ObtenerCheckpointsSincronizacionAsync();
         Task<Respuesta> ActualizarCheckpointSincronizacionAsync(List<(int IdEmpresa, int UltimoIdEvento)> checkpoints);
         Task<Respuesta> ActualizarEstadoPorDocumentoAsync(int idEmpresa, List<(int IdDocumentoElectronico, int IdEstadoFacturacion)> documentosConEstado);

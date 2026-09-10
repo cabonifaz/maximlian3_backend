@@ -208,25 +208,6 @@ namespace SafetyReport.Application.CasosDeUso
             }
         }
 
-        public async Task<Respuesta> ListarPedidosFacturacionClienteAsync(UsuarioGeneral usuarioLogueado, int idCliente, string? busqueda, int? numPag)
-        {
-            try
-            {
-                return await _repository.ListarPedidosFacturacionClienteAsync(usuarioLogueado, idCliente, busqueda, numPag);
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Error no controlado en la capa de negocio.");
-
-                return new Respuesta
-                {
-                    IdTipoMensaje = 3,
-                    Mensaje = ex.Message,
-                    Result = new ClientePedidosFacturacionResult()
-                };
-            }
-        }
-
         public async Task<Respuesta> ObtenerResumenClientesAsync(UsuarioGeneral usuarioLogueado)
         {
             try
