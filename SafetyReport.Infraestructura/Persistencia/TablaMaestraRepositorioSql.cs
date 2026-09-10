@@ -138,62 +138,6 @@ namespace SafetyReport.Infrastructure.Persistencia
             }
         }
 
-        public async Task<Respuesta> ListarInventarioAsync(UsuarioGeneral usuarioLogueado, int? idMaestro)
-        {
-            try
-            {
-                using SqlConnection cn = new(_dbConfig.ConnectionString);
-                using SqlCommand cmd = new("SP_InventarioMaestros_Listar", cn);
-
-                cmd.CommandType = CommandType.StoredProcedure;
-                cmd.Parameters.Add("@intIdUsuario", SqlDbType.Int).Value = usuarioLogueado.IdUsuario;
-                cmd.Parameters.Add("@vchUsuario", SqlDbType.VarChar, 32).Value = usuarioLogueado.Usuario;
-                cmd.Parameters.Add("@intIdEmpresa", SqlDbType.Int).Value = usuarioLogueado.IdEmpresa;
-                cmd.Parameters.Add("@intIdRol", SqlDbType.Int).Value = usuarioLogueado.IdRol;
-                cmd.Parameters.Add("@intIdMaestro", SqlDbType.Int).Value = (object?)idMaestro ?? DBNull.Value;
-
-                await cn.OpenAsync();
-
-                using var dr = await cmd.ExecuteReaderAsync();
-                var respuesta = await LeerCabeceraAsync(dr, cmd.CommandText);
-
-                var lista = new List<InventarioMaestroItem>();
-                if (respuesta.IdTipoMensaje == 2 && await dr.NextResultAsync())
-                {
-                    while (await dr.ReadAsync())
-                        lista.Add(new InventarioMaestroItem
-                        {
-                            IdInventario = Convert.ToInt32(dr["IdInventario"]),
-                            IdMaestro = Convert.ToInt32(dr["IdMaestro"]),
-                            Descripcion = GetNullableString(dr, "Descripcion"),
-                            Num1 = GetNullableString(dr, "Num1"),
-                            Num2 = GetNullableString(dr, "Num2"),
-                            Num3 = GetNullableString(dr, "Num3"),
-                            String1 = GetNullableString(dr, "String1"),
-                            String2 = GetNullableString(dr, "String2"),
-                            String3 = GetNullableString(dr, "String3"),
-                            Date1 = GetNullableString(dr, "Date1"),
-                            Date2 = GetNullableString(dr, "Date2"),
-                            Date3 = GetNullableString(dr, "Date3")
-                        });
-                }
-
-                respuesta.Result = lista;
-                return respuesta;
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Error no controlado en la capa de datos.");
-
-                return new Respuesta
-                {
-                    IdTipoMensaje = 3,
-                    Mensaje = ex.Message,
-                    Result = new List<InventarioMaestroItem>()
-                };
-            }
-        }
-
         public async Task<Respuesta> ListaCortaAsync(UsuarioGeneral usuarioLogueado, int idMaestro)
         {
             try
