@@ -39,10 +39,6 @@ public static class DependencyInjection
         this IServiceCollection services,
         IConfiguration configuration)
     {
-        services.AddScoped<IUsuarioIdentityProvider, CognitoUsuarioIdentityProvider>();
-        services.AddScoped<CognitoTokenValidator>();
-        services.AddScoped<ITokenValidator, CognitoTokenValidator>();
-
         services.AddScoped<IPedidoPrefacturaExcelExporter, PedidoPrefacturaExcelExporter>();
         services.AddScoped<ICompaniaNoticiasDetalleExcelExporter, CompaniaNoticiasDetalleExcelExporter>();
 
@@ -51,14 +47,53 @@ public static class DependencyInjection
         services.AddScoped<PdfGeneratorService>();
         services.AddScoped<IInformePdfGenerator, PdfGeneratorService>();
 
+        var awsConfig = AddAwsConfig(services, configuration);
+        AddSeguridad(services, configuration);
         AddPersistencia(services, configuration);
-        AddStorage(services, configuration);
+        AddStorage(services, awsConfig);
         AddTranslation(services, configuration);
         AddAutomation(services, configuration);
         AddEmail(services, configuration);
         AddFacturacionElectronica(services, configuration);
 
         return services;
+    }
+
+    private static AwsConfig AddAwsConfig(IServiceCollection services, IConfiguration configuration)
+    {
+        var awsConfig = configuration.GetSection("AWS").Get<AwsConfig>()
+            ?? throw new Exception("Falta configuración AWS");
+
+        if (string.IsNullOrWhiteSpace(awsConfig.Region))
+            throw new Exception("Falta configuración AWS:Region");
+
+        if (string.IsNullOrWhiteSpace(awsConfig.BucketName))
+            throw new Exception("Falta configuración AWS:BucketName");
+
+        if (string.IsNullOrWhiteSpace(awsConfig.AccessKey) || string.IsNullOrWhiteSpace(awsConfig.SecretKey))
+            throw new Exception("Falta configuración AWS:AccessKey o AWS:SecretKey");
+
+        services.AddSingleton(awsConfig);
+        return awsConfig;
+    }
+
+    private static void AddSeguridad(IServiceCollection services, IConfiguration configuration)
+    {
+        var cognitoConfig = configuration.GetSection("Cognito").Get<CognitoConfig>()
+            ?? throw new Exception("Falta configuración Cognito");
+
+        if (string.IsNullOrWhiteSpace(cognitoConfig.UserPoolId))
+            throw new Exception("Falta configuración Cognito:UserPoolId");
+
+        if (string.IsNullOrWhiteSpace(cognitoConfig.ClientIdFrontend)
+            || string.IsNullOrWhiteSpace(cognitoConfig.ClientIdBackend)
+            || string.IsNullOrWhiteSpace(cognitoConfig.ClientIdN8n))
+            throw new Exception("Falta configuración de clientes Cognito");
+
+        services.AddSingleton(cognitoConfig);
+        services.AddScoped<IUsuarioIdentityProvider, CognitoUsuarioIdentityProvider>();
+        services.AddScoped<CognitoTokenValidator>();
+        services.AddScoped<ITokenValidator, CognitoTokenValidator>();
     }
 
     private static void AddPersistencia(IServiceCollection services, IConfiguration configuration)
@@ -109,26 +144,12 @@ public static class DependencyInjection
         services.AddScoped<IPedidoArchivoRepository, PedidoArchivoDAO>();
     }
 
-    private static void AddStorage(IServiceCollection services, IConfiguration configuration)
+    private static void AddStorage(IServiceCollection services, AwsConfig awsConfig)
     {
-        var awsRegion = configuration["AWS:Region"];
-        var awsBucketName = configuration["AWS:BucketName"];
-        var awsAccessKey = configuration["AWS:AccessKey"];
-        var awsSecretKey = configuration["AWS:SecretKey"];
-
-        if (string.IsNullOrWhiteSpace(awsRegion))
-            throw new Exception("Falta configuración AWS:Region");
-
-        if (string.IsNullOrWhiteSpace(awsBucketName))
-            throw new Exception("Falta configuración AWS:BucketName");
-
-        if (string.IsNullOrWhiteSpace(awsAccessKey) || string.IsNullOrWhiteSpace(awsSecretKey))
-            throw new Exception("Falta configuración AWS:AccessKey o AWS:SecretKey");
-
         services.AddSingleton<IAmazonS3>(sp =>
         {
-            var regionEndpoint = Amazon.RegionEndpoint.GetBySystemName(awsRegion);
-            var credenciales = new Amazon.Runtime.BasicAWSCredentials(awsAccessKey, awsSecretKey);
+            var regionEndpoint = Amazon.RegionEndpoint.GetBySystemName(awsConfig.Region);
+            var credenciales = new Amazon.Runtime.BasicAWSCredentials(awsConfig.AccessKey, awsConfig.SecretKey);
             return new AmazonS3Client(credenciales, regionEndpoint);
         });
 

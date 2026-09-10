@@ -2,18 +2,20 @@ using Amazon;
 using Amazon.CognitoIdentityProvider;
 using Amazon.CognitoIdentityProvider.Model;
 using Amazon.Runtime;
-using Microsoft.Extensions.Configuration;
 using SafetyReport.Application.Puertos.Usuario;
+using SafetyReport.Infrastructure.Almacenamiento;
 
 namespace SafetyReport.Infrastructure.Seguridad;
 
 public class CognitoUsuarioIdentityProvider : IUsuarioIdentityProvider
 {
-    private readonly IConfiguration _config;
+    private readonly AwsConfig _awsConfig;
+    private readonly CognitoConfig _cognitoConfig;
 
-    public CognitoUsuarioIdentityProvider(IConfiguration config)
+    public CognitoUsuarioIdentityProvider(AwsConfig awsConfig, CognitoConfig cognitoConfig)
     {
-        _config = config;
+        _awsConfig = awsConfig;
+        _cognitoConfig = cognitoConfig;
     }
 
     public async Task<string?> CrearUsuarioAsync(UsuarioGeneral usuarioLogueado, UsuarioCrear request, UsuarioCreado usuarioCreado)
@@ -22,7 +24,7 @@ public class CognitoUsuarioIdentityProvider : IUsuarioIdentityProvider
 
         var respuestaCognito = await clienteCognito.AdminCreateUserAsync(new AdminCreateUserRequest
         {
-            UserPoolId = _config["Cognito:UserPoolId"],
+            UserPoolId = _cognitoConfig.UserPoolId,
             Username = usuarioCreado.Usuario,
             DesiredDeliveryMediums = new List<string> { "EMAIL" },
             UserAttributes = new List<AttributeType>
@@ -44,18 +46,18 @@ public class CognitoUsuarioIdentityProvider : IUsuarioIdentityProvider
 
         await clienteCognito.AdminDeleteUserAsync(new AdminDeleteUserRequest
         {
-            UserPoolId = _config["Cognito:UserPoolId"],
+            UserPoolId = _cognitoConfig.UserPoolId,
             Username = usuario
         });
     }
 
     private AmazonCognitoIdentityProviderClient CrearClienteCognito()
     {
-        var credenciales = new BasicAWSCredentials(_config["AWS:AccessKey"], _config["AWS:SecretKey"]);
+        var credenciales = new BasicAWSCredentials(_awsConfig.AccessKey, _awsConfig.SecretKey);
 
         return new AmazonCognitoIdentityProviderClient(
             credenciales,
-            RegionEndpoint.GetBySystemName(_config["AWS:Region"])
+            RegionEndpoint.GetBySystemName(_awsConfig.Region)
         );
     }
 }

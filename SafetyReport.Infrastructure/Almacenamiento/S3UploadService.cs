@@ -1,6 +1,5 @@
 ﻿using Amazon.S3;
 using Amazon.S3.Model;
-using Microsoft.Extensions.Configuration;
 using SafetyReport.Application.Puertos.Almacenamiento;
 
 namespace SafetyReport.Infrastructure.Almacenamiento;
@@ -8,16 +7,14 @@ namespace SafetyReport.Infrastructure.Almacenamiento;
 public class S3UploadService : IPedidoArchivoStorage, IInformeLocalImagenStorage, IInformeArchivoStorage, ICompaniaNoticiaStorage, IInformeStorage, ILogStorage
 {
     private readonly IAmazonS3 _s3Client;
-    private readonly IConfiguration _configuration;
     private readonly string _bucketName;
     private readonly int _s3ExpirationMinutes;
 
-    public S3UploadService(IAmazonS3 s3Client, IConfiguration configuration)
+    public S3UploadService(IAmazonS3 s3Client, AwsConfig config)
     {
         _s3Client = s3Client;
-        _configuration = configuration;
-        _bucketName = _configuration["AWS:BucketName"] ?? throw new Exception("Falta AWS:BucketName");
-        _s3ExpirationMinutes = int.TryParse(_configuration["AWS:S3ExpirationTime"], out var exp) ? exp : 15;
+        _bucketName = config.BucketName;
+        _s3ExpirationMinutes = config.S3ExpirationTime;
     }
 
     public string GenerarRutaPedidoArchivo(int idPedido, string nombreArchivo, int idArchivo)

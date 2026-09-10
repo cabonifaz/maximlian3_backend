@@ -1,9 +1,8 @@
-using Microsoft.Extensions.Configuration;
 using Microsoft.IdentityModel.Protocols;
 using Microsoft.IdentityModel.Protocols.OpenIdConnect;
 using Microsoft.IdentityModel.Tokens;
 using SafetyReport.Application.Puertos.Login;
-using SafetyReport.Application.Puertos.Informe;
+using SafetyReport.Infrastructure.Almacenamiento;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 
@@ -11,23 +10,20 @@ namespace SafetyReport.Infrastructure.Seguridad
 {
     public class CognitoTokenValidator : ITokenValidator
     {
-        private readonly IConfiguration _configuration;
+        private readonly AwsConfig _awsConfig;
+        private readonly CognitoConfig _cognitoConfig;
 
-        public CognitoTokenValidator(IConfiguration configuration)
+        public CognitoTokenValidator(AwsConfig awsConfig, CognitoConfig cognitoConfig)
         {
-            _configuration = configuration;
+            _awsConfig = awsConfig;
+            _cognitoConfig = cognitoConfig;
         }
 
         public async Task<UsuarioGeneral?> ValidarTokenAsync(string token)
         {
-            var region = _configuration["AWS:Region"];
-            var idPoolUsuarios = _configuration["Cognito:UserPoolId"];
-            var clientIdFrontend = _configuration["Cognito:ClientIdFrontend"];
-            var clientIdBackend = _configuration["Cognito:ClientIdBackend"];
-            var clientIdN8n = _configuration["Cognito:ClientIdN8n"];
-            var validClientIds = new[] { clientIdFrontend, clientIdBackend, clientIdN8n };
+            var validClientIds = new[] { _cognitoConfig.ClientIdFrontend, _cognitoConfig.ClientIdBackend, _cognitoConfig.ClientIdN8n };
 
-            var issuer = $"https://cognito-idp.{region}.amazonaws.com/{idPoolUsuarios}";
+            var issuer = $"https://cognito-idp.{_awsConfig.Region}.amazonaws.com/{_cognitoConfig.UserPoolId}";
             var metadataAddress = $"{issuer}/.well-known/openid-configuration";
 
             var configManager = new ConfigurationManager<OpenIdConnectConfiguration>(
