@@ -361,7 +361,7 @@ namespace SafetyReport.Infrastructure.Persistencia
             try
             {
                 using SqlConnection cn = new(_dbConfig.ConnectionString);
-                using SqlCommand cmd = new("SP_Usuario_Listar_Corta", cn);
+                using SqlCommand cmd = new("SP_Usuario_ListaCorta", cn);
 
                 cmd.CommandType = CommandType.StoredProcedure;
                 cmd.Parameters.Add("@intIdUsuario", SqlDbType.Int).Value = usuarioActual.IdUsuario;
@@ -410,7 +410,7 @@ namespace SafetyReport.Infrastructure.Persistencia
             }
         }
 
-        // Separado de ListarCortaAsync (SP_Usuario_Listar_Corta, sigue igual) — este llama a
+        // Separado de ListarCortaAsync (SP_Usuario_ListaCorta, sigue igual) — este llama a
         // SP_Usuario_ListaCortaDashboard, que acepta varios roles a la vez.
         public async Task<Respuesta> ListarCortaDashboardAsync(UsuarioGeneral usuarioActual, List<int>? idsRolFiltro)
         {
