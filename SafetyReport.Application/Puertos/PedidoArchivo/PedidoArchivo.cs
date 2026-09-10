@@ -1,6 +1,4 @@
-﻿using Microsoft.AspNetCore.Http;
-
-namespace SafetyReport.Application.Puertos.PedidoArchivo
+﻿namespace SafetyReport.Application.Puertos.PedidoArchivo
 {
     public class PedidoArchivoCrear
     {
@@ -92,7 +90,7 @@ namespace SafetyReport.Application.Puertos.PedidoArchivo
         public string NombreArchivo { get; set; } = string.Empty;
         public string TipoArchivo { get; set; } = string.Empty;
         public long TamanoArchivo { get; set; }
-        public IFormFile Archivo { get; set; } = default!;
+        public ArchivoEntrada Archivo { get; set; } = new();
     }
 
     public class PedidoArchivoItem

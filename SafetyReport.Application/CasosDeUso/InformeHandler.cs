@@ -1,5 +1,3 @@
-using Microsoft.AspNetCore.Http;
-using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using SafetyReport.Application.Puertos.Informe;
 using SafetyReport.Application.Puertos.InformeLocalImagen;
@@ -29,7 +27,7 @@ namespace SafetyReport.Application.CasosDeUso
             IInformeDocxGenerator docxGenerator,
             IInformePdfGenerator pdfGenerator,
             IInformeEmailSender emailSender,
-            IConfiguration configuration,
+            OpcionesAplicacion opciones,
             ILogger<InformeHandler> logger)
         {
             _informeRepository = informeRepository;
@@ -39,7 +37,7 @@ namespace SafetyReport.Application.CasosDeUso
             _docxGenerator = docxGenerator;
             _pdfGenerator = pdfGenerator;
             _emailSender = emailSender;
-            _s3ExpirationMinutes = int.TryParse(configuration["AWS:S3ExpirationTime"], out var exp) ? exp : 15;
+            _s3ExpirationMinutes = opciones.S3ExpirationMinutes;
             _logger = logger;
         }
 
@@ -585,23 +583,22 @@ namespace SafetyReport.Application.CasosDeUso
             }
         }
 
-        public async Task<Respuesta> ExtraerDocumentoAsync(IFormFile archivo, string secciones, string? prompt)
+        public async Task<Respuesta> ExtraerDocumentoAsync(ArchivoEntrada archivo, string secciones, string? prompt)
         {
             try
             {
-                if (archivo is null || archivo.Length == 0)
+                if (archivo is null || archivo.TamanoBytes == 0)
                     return new Respuesta { IdTipoMensaje = 1, Mensaje = "El archivo es requerido.", Result = null };
 
                 JsonNode? seccionesJson;
                 try { seccionesJson = JsonNode.Parse(secciones); }
                 catch { return new Respuesta { IdTipoMensaje = 1, Mensaje = "El campo Secciones no es un JSON válido.", Result = null }; }
 
-                var extension = Path.GetExtension(archivo.FileName);
+                var extension = Path.GetExtension(archivo.NombreArchivo);
                 var fileKey = $"autocompletado/{Guid.NewGuid()}{extension}";
-                using var archivoStream = archivo.OpenReadStream();
-                await _informeStorage.UploadStreamAsync(fileKey, archivoStream, archivo.ContentType);
+                await _informeStorage.UploadStreamAsync(fileKey, archivo.Contenido, archivo.TipoContenido);
 
-                var payload = new { fileKey, mimeType = archivo.ContentType, secciones = seccionesJson, prompt = prompt ?? string.Empty };
+                var payload = new { fileKey, mimeType = archivo.TipoContenido, secciones = seccionesJson, prompt = prompt ?? string.Empty };
                 var n8nRespuesta = await _informeAutomationGateway.ObtenerCamposAsync(payload);
 
                 return new Respuesta

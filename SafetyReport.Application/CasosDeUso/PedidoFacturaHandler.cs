@@ -1,4 +1,3 @@
-using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using SafetyReport.Application.Puertos.Cliente;
 using SafetyReport.Application.Puertos.Pedido;
@@ -18,7 +17,7 @@ namespace SafetyReport.Application.CasosDeUso
         private readonly IClienteRepository _clienteRepository;
         private readonly IFacturacionElectronicaGateway _facturacionGateway;
         private readonly IPedidoPrefacturaExcelExporter _prefacturaExcelExporter;
-        private readonly IConfiguration _configuration;
+        private readonly OpcionesAplicacion _opciones;
         private readonly ILogger<PedidoFacturaHandler> _logger;
 
         public PedidoFacturaHandler(
@@ -29,7 +28,7 @@ namespace SafetyReport.Application.CasosDeUso
             IClienteRepository clienteRepository,
             IFacturacionElectronicaGateway facturacionGateway,
             IPedidoPrefacturaExcelExporter prefacturaExcelExporter,
-            IConfiguration configuration,
+            OpcionesAplicacion opciones,
             ILogger<PedidoFacturaHandler> logger)
         {
             _pedidoFacturaRepository = pedidoFacturaRepository;
@@ -39,7 +38,7 @@ namespace SafetyReport.Application.CasosDeUso
             _clienteRepository = clienteRepository;
             _facturacionGateway = facturacionGateway;
             _prefacturaExcelExporter = prefacturaExcelExporter;
-            _configuration = configuration;
+            _opciones = opciones;
             _logger = logger;
         }
 
@@ -253,8 +252,9 @@ namespace SafetyReport.Application.CasosDeUso
                     return new Respuesta { IdTipoMensaje = resultado?.IdTipoMensaje ?? 3, Mensaje = resultado?.Mensaje ?? "No se pudo obtener el link de verificación." };
                 }
 
-                var frontendUrl = _configuration.GetSection("Cors:AllowedOrigins").GetChildren().FirstOrDefault()?.Value
-                    ?? throw new InvalidOperationException("No se configuró Cors:AllowedOrigins.");
+                var frontendUrl = string.IsNullOrWhiteSpace(_opciones.FrontendUrl)
+                    ? throw new InvalidOperationException("No se configuró Cors:AllowedOrigins.")
+                    : _opciones.FrontendUrl;
 
                 var url = $"{frontendUrl.TrimEnd('/')}/factura/{resultado.Datos}";
                 return new Respuesta { IdTipoMensaje = 2, Mensaje = "Consulta exitosa.", Result = url };

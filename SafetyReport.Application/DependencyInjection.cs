@@ -1,12 +1,19 @@
 using Microsoft.Extensions.DependencyInjection;
+using SafetyReport.Application.Comun;
 using SafetyReport.Application.CasosDeUso;
 
 namespace SafetyReport.Application;
 
 public static class DependencyInjection
 {
-    public static IServiceCollection AddSafetyReportApplication(this IServiceCollection services)
+    public static IServiceCollection AddSafetyReportApplication(
+        this IServiceCollection services,
+        Action<OpcionesAplicacion>? configureOptions = null)
     {
+        var opciones = new OpcionesAplicacion();
+        configureOptions?.Invoke(opciones);
+        services.AddSingleton(opciones);
+
         services.AddScoped<AsignacionHandler>();
         services.AddScoped<BancoHandler>();
         services.AddScoped<ClienteContactoHandler>();

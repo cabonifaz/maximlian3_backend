@@ -155,7 +155,12 @@ builder.Services.AddCors(options =>
     });
 });
 
-builder.Services.AddSafetyReportApplication();
+builder.Services.AddSafetyReportApplication(options =>
+{
+    options.S3ExpirationMinutes = int.TryParse(builder.Configuration["AWS:S3ExpirationTime"], out var exp) ? exp : 15;
+    options.FrontendUrl = builder.Configuration.GetSection("Cors:AllowedOrigins").GetChildren().FirstOrDefault()?.Value
+        ?? string.Empty;
+});
 builder.Services.AddSafetyReportInfrastructure(builder.Configuration);
 builder.Services.AddHostedService<SafetyReport.WebApi.Workers.SincronizacionFacturacionWorker>();
 

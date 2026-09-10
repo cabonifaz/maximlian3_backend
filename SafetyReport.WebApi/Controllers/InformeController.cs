@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http.Timeouts;
 using Microsoft.AspNetCore.Mvc;
 using SafetyReport.Application.CasosDeUso;
+using SafetyReport.Application.Comun;
 using SafetyReport.Application.Puertos.Informe;
 
 namespace SafetyReport.WebApi.Controllers
@@ -143,7 +144,16 @@ namespace SafetyReport.WebApi.Controllers
             [FromForm] string secciones,
             [FromForm] string? prompt)
         {
-            var respuesta = await _informeHandler.ExtraerDocumentoAsync(archivo, secciones, prompt);
+            using var contenido = archivo.OpenReadStream();
+            var archivoEntrada = new ArchivoEntrada
+            {
+                NombreArchivo = archivo.FileName,
+                TipoContenido = archivo.ContentType,
+                TamanoBytes = archivo.Length,
+                Contenido = contenido
+            };
+
+            var respuesta = await _informeHandler.ExtraerDocumentoAsync(archivoEntrada, secciones, prompt);
             return Ok(respuesta);
         }
 
