@@ -228,37 +228,31 @@ public static class DependencyInjection
         var isProduction = string.Equals(configuration["Environment"], "Production", StringComparison.OrdinalIgnoreCase);
         if (!isProduction)
         {
-            var devConfig = configuration.GetSection("Email:Dev").Get<EmailDevConfig>()
-                ?? throw new Exception("Falta configuración Email:Dev");
+            var devConfig = configuration.GetSection("Email:Dev").Get<EmailDevConfig>() ?? new EmailDevConfig();
 
-            if (string.IsNullOrWhiteSpace(devConfig.ClientId))
-                throw new Exception("Falta configuración Email:Dev:ClientId");
-
-            if (string.IsNullOrWhiteSpace(devConfig.Tenant))
-                throw new Exception("Falta configuración Email:Dev:Tenant");
-
-            if (string.IsNullOrWhiteSpace(devConfig.TokenCacheS3Key))
-                throw new Exception("Falta configuración Email:Dev:TokenCacheS3Key");
+            if (string.IsNullOrWhiteSpace(devConfig.ClientId) ||
+                string.IsNullOrWhiteSpace(devConfig.Tenant) ||
+                string.IsNullOrWhiteSpace(devConfig.TokenCacheS3Key))
+            {
+                services.AddSingleton<IInformeEmailSender, EmailServiceNoop>();
+                return;
+            }
 
             services.AddSingleton(devConfig);
             services.AddSingleton<IInformeEmailSender, EmailServiceDev>();
             return;
         }
 
-        var prodConfig = configuration.GetSection("Email:Prod").Get<EmailProdConfig>()
-            ?? throw new Exception("Falta configuración Email:Prod");
+        var prodConfig = configuration.GetSection("Email:Prod").Get<EmailProdConfig>() ?? new EmailProdConfig();
 
-        if (string.IsNullOrWhiteSpace(prodConfig.TenantId))
-            throw new Exception("Falta configuración Email:Prod:TenantId");
-
-        if (string.IsNullOrWhiteSpace(prodConfig.ClientId))
-            throw new Exception("Falta configuración Email:Prod:ClientId");
-
-        if (string.IsNullOrWhiteSpace(prodConfig.ClientSecret))
-            throw new Exception("Falta configuración Email:Prod:ClientSecret");
-
-        if (string.IsNullOrWhiteSpace(prodConfig.SenderMailbox))
-            throw new Exception("Falta configuración Email:Prod:SenderMailbox");
+        if (string.IsNullOrWhiteSpace(prodConfig.TenantId) ||
+            string.IsNullOrWhiteSpace(prodConfig.ClientId) ||
+            string.IsNullOrWhiteSpace(prodConfig.ClientSecret) ||
+            string.IsNullOrWhiteSpace(prodConfig.SenderMailbox))
+        {
+            services.AddSingleton<IInformeEmailSender, EmailServiceNoop>();
+            return;
+        }
 
         services.AddSingleton(prodConfig);
         services.AddSingleton<IInformeEmailSender, EmailServiceProd>();

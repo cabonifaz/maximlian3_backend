@@ -168,6 +168,34 @@ var app = builder.Build();
 
 S3FallbackTarget.UploadService = app.Services.GetRequiredService<ILogStorage>();
 
+var nlogConfiguration = LogManager.Configuration
+    ?? throw new InvalidOperationException("La configuracion de NLog no se cargo.");
+var consoleTarget = nlogConfiguration.FindTargetByName("console");
+if (consoleTarget is not null)
+{
+    // Reusa Logging:LogLevel:Default (convención estándar de .NET) en vez de una clave
+    // propia. Los nombres de nivel de Microsoft.Extensions.Logging no coinciden 1:1 con
+    // los de NLog (Information/Warning/Critical/None vs Info/Warn/Fatal/Off), de ahí el mapeo.
+    var consoleMinLevel = (builder.Configuration["Logging:LogLevel:Default"] ?? "Warning") switch
+    {
+        "Trace" => NLog.LogLevel.Trace,
+        "Debug" => NLog.LogLevel.Debug,
+        "Information" => NLog.LogLevel.Info,
+        "Warning" => NLog.LogLevel.Warn,
+        "Error" => NLog.LogLevel.Error,
+        "Critical" => NLog.LogLevel.Fatal,
+        "None" => NLog.LogLevel.Off,
+        _ => NLog.LogLevel.Warn
+    };
+
+    nlogConfiguration.RemoveRuleByName("console");
+    nlogConfiguration.LoggingRules.Add(new NLog.Config.LoggingRule("*", consoleMinLevel, NLog.LogLevel.Fatal, consoleTarget)
+    {
+        RuleName = "console"
+    });
+    LogManager.ReconfigExistingLoggers();
+}
+
 app.UseSwagger();
 app.UseSwaggerUI();
 
