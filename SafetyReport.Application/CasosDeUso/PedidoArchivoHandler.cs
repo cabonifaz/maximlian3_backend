@@ -109,6 +109,15 @@ namespace SafetyReport.Application.CasosDeUso
                     return respuestaObtener;
 
                 var existente = (respuestaObtener.Result as List<PedidoArchivoConsulta>)?.FirstOrDefault();
+                if (existente is null)
+                {
+                    return new Respuesta
+                    {
+                        IdTipoMensaje = 1,
+                        Mensaje = "No se encontró el archivo del pedido.",
+                        Result = new List<PedidoArchivoConsulta>()
+                    };
+                }
 
                 // Mantener TamanoArchivo existente si no se proporciona uno nuevo
                 if (request.TamanoArchivo == 0)
@@ -206,6 +215,15 @@ namespace SafetyReport.Application.CasosDeUso
                     return respuestaObtener;
 
                 var existente = (respuestaObtener.Result as List<PedidoArchivoConsulta>)?.FirstOrDefault();
+                if (existente is null)
+                {
+                    return new Respuesta
+                    {
+                        IdTipoMensaje = 1,
+                        Mensaje = "No se encontró el archivo del pedido.",
+                        Result = new List<PedidoArchivoEliminado>()
+                    };
+                }
 
                 var daoRespuesta = await _repository.EliminarAsync(usuarioLogueado, request);
 

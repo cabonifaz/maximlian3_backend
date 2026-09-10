@@ -16,6 +16,7 @@ namespace SafetyReport.Application.CasosDeUso
         private readonly IInformeDocxGenerator _docxGenerator;
         private readonly IInformePdfGenerator _pdfGenerator;
         private readonly IInformeEmailSender _emailSender;
+        private readonly IArchivoRemotoDownloader _archivoRemotoDownloader;
         private readonly int _s3ExpirationMinutes;
         private readonly ILogger<InformeHandler> _logger;
 
@@ -27,6 +28,7 @@ namespace SafetyReport.Application.CasosDeUso
             IInformeDocxGenerator docxGenerator,
             IInformePdfGenerator pdfGenerator,
             IInformeEmailSender emailSender,
+            IArchivoRemotoDownloader archivoRemotoDownloader,
             OpcionesAplicacion opciones,
             ILogger<InformeHandler> logger)
         {
@@ -37,6 +39,7 @@ namespace SafetyReport.Application.CasosDeUso
             _docxGenerator = docxGenerator;
             _pdfGenerator = pdfGenerator;
             _emailSender = emailSender;
+            _archivoRemotoDownloader = archivoRemotoDownloader;
             _s3ExpirationMinutes = opciones.S3ExpirationMinutes;
             _logger = logger;
         }
@@ -161,6 +164,9 @@ namespace SafetyReport.Application.CasosDeUso
                 foreach (var imagen in local.Imagenes)
                     if (imagen.IdInformeLocalImagen is null or 0)
                     {
+                        if (string.IsNullOrWhiteSpace(imagen.Nombre))
+                            return "El nombre del archivo de imagen es requerido.";
+
                         var ext = Path.GetExtension(imagen.Nombre);
                         if (!_extensionesImagenPermitidas.Contains(ext))
                             return $"El archivo '{imagen.Nombre}' no es una imagen válida. Extensiones permitidas: {string.Join(", ", _extensionesImagenPermitidas)}.";
@@ -174,6 +180,9 @@ namespace SafetyReport.Application.CasosDeUso
                 foreach (var imagen in local.Imagenes)
                     if (imagen.IdInformeLocalImagen is null or 0)
                     {
+                        if (string.IsNullOrWhiteSpace(imagen.Nombre))
+                            return "El nombre del archivo de imagen es requerido.";
+
                         var ext = Path.GetExtension(imagen.Nombre);
                         if (!_extensionesImagenPermitidas.Contains(ext))
                             return $"El archivo '{imagen.Nombre}' no es una imagen válida. Extensiones permitidas: {string.Join(", ", _extensionesImagenPermitidas)}.";
@@ -783,7 +792,6 @@ namespace SafetyReport.Application.CasosDeUso
             var assets = estructura?["assets"]?.AsObject();
             if (assets is null) return result;
             var seen = new Dictionary<string, byte[]>();
-            using var http = new HttpClient();
             foreach (var kv in assets)
             {
                 var s3Key = kv.Value?.GetValue<string>();
@@ -796,7 +804,7 @@ namespace SafetyReport.Application.CasosDeUso
                         if (bytes is null || bytes.Length == 0)
                         {
                             var url = _informeStorage.GenerarDownloadUrl(s3Key);
-                            bytes = await http.GetByteArrayAsync(url);
+                            bytes = await _archivoRemotoDownloader.DescargarBytesAsync(url);
                         }
                         seen[s3Key] = bytes;
                     }

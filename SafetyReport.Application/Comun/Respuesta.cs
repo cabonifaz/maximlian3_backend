@@ -4,7 +4,7 @@
     {
         public int IdTipoMensaje { get; set; }
 
-        public string Mensaje { get; set; }
+        public string Mensaje { get; set; } = string.Empty;
 
         public object? Result { get; set; }
     }

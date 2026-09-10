@@ -139,6 +139,7 @@ public static class DependencyInjection
         services.AddSingleton<ICompaniaNoticiaStorage>(sp => sp.GetRequiredService<S3UploadService>());
         services.AddSingleton<IInformeStorage>(sp => sp.GetRequiredService<S3UploadService>());
         services.AddSingleton<ILogStorage>(sp => sp.GetRequiredService<S3UploadService>());
+        services.AddHttpClient<IArchivoRemotoDownloader, ArchivoRemotoDownloader>();
     }
 
     private static void AddTranslation(IServiceCollection services, IConfiguration configuration)
