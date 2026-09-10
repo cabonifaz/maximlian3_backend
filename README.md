@@ -61,6 +61,9 @@ ASPNETCORE_ENVIRONMENT=Development dotnet run \
   --no-launch-profile \
   --urls http://localhost:5080
 ```
+or
+
+dotnet run --project SafetyReport.WebApi/SafetyReport.WebApi.csproj
 
 This command builds and starts the API using your local configuration. `--no-launch-profile` prevents the settings in `launchSettings.json` from overriding your local integration settings.
 
