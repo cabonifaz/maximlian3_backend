@@ -196,8 +196,12 @@ if (consoleTarget is not null)
     LogManager.ReconfigExistingLoggers();
 }
 
-app.UseSwagger();
-app.UseSwaggerUI();
+var isDevelopment = string.Equals(builder.Configuration["Environment"], "Development", StringComparison.OrdinalIgnoreCase);
+if (isDevelopment)
+{
+    app.UseSwagger();
+    app.UseSwaggerUI();
+}
 
 app.UseCors("LocalDev");
 app.UseRequestTimeouts();
