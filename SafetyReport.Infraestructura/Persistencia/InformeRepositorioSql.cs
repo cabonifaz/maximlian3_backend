@@ -1,4 +1,4 @@
-using Microsoft.Data.SqlClient;
+using MySqlConnector;
 using Microsoft.Extensions.Logging;
 using SafetyReport.Application.Puertos.Informe;
 using SafetyReport.Application.Puertos.InformeArchivo;
@@ -862,7 +862,7 @@ namespace SafetyReport.Infrastructure.Persistencia
         // ── Reader helper ─────────────────────────────────────────────────────────
 
         // Lee el result set 1 (siempre presente): IdTipoMensaje, Mensaje. Sin columna Result.
-        private async Task<Respuesta> LeerCabeceraAsync(SqlDataReader dr, string procedimiento)
+        private async Task<Respuesta> LeerCabeceraAsync(MySqlDataReader dr, string procedimiento)
         {
             var respuesta = new Respuesta();
 
@@ -884,24 +884,24 @@ namespace SafetyReport.Infrastructure.Persistencia
             return respuesta;
         }
 
-        private static int? GetNullableInt(SqlDataReader dr, string columna) =>
+        private static int? GetNullableInt(MySqlDataReader dr, string columna) =>
             dr[columna] == DBNull.Value ? null : Convert.ToInt32(dr[columna]);
 
-        private static decimal? GetNullableDecimal(SqlDataReader dr, string columna) =>
+        private static decimal? GetNullableDecimal(MySqlDataReader dr, string columna) =>
             dr[columna] == DBNull.Value ? null : Convert.ToDecimal(dr[columna]);
 
-        private static bool? GetNullableBool(SqlDataReader dr, string columna) =>
+        private static bool? GetNullableBool(MySqlDataReader dr, string columna) =>
             dr[columna] == DBNull.Value ? null : Convert.ToBoolean(dr[columna]);
 
-        private static DateTime? GetNullableDateTime(SqlDataReader dr, string columna) =>
+        private static DateTime? GetNullableDateTime(MySqlDataReader dr, string columna) =>
             dr[columna] == DBNull.Value ? null : Convert.ToDateTime(dr[columna]);
 
-        private static string? GetNullableString(SqlDataReader dr, string columna) =>
+        private static string? GetNullableString(MySqlDataReader dr, string columna) =>
             dr[columna] == DBNull.Value ? null : dr[columna].ToString();
 
         // Lee el result set de imagenes pendientes (IdInformeLocalImagen, ImagenURL, Nombre)
         // que Informe_Insertar/Informe_Actualizar emiten como su ultimo result set en exito.
-        private static async Task<List<InformeLocalImagenPendiente>> LeerImagenesPendientesAsync(SqlDataReader dr)
+        private static async Task<List<InformeLocalImagenPendiente>> LeerImagenesPendientesAsync(MySqlDataReader dr)
         {
             var imagenes = new List<InformeLocalImagenPendiente>();
             while (await dr.ReadAsync())
@@ -917,51 +917,88 @@ namespace SafetyReport.Infrastructure.Persistencia
 
         // ── Helpers para agregar TVPs ─────────────────────────────────────────────
 
-        private static void AgregarTvp(SqlCommand cmd, string paramName, DataTable table, string typeName)
+        // Serializa un DataTable a JSON (array de objetos, una entrada por columna) para pasarlo como
+        // parámetro JSON — los nombres de columna ya coinciden 1:1 con los PATH de JSON_TABLE en el SP
+        // migrado (mismas columnas que la TVP original), así que no hace falta tocar los ConstruirTablaX.
+        private static string DataTableToJson(DataTable table)
         {
-            var p = cmd.Parameters.AddWithValue(paramName, table);
-            p.SqlDbType = SqlDbType.Structured;
-            p.TypeName = typeName;
+            var rows = new List<Dictionary<string, object?>>();
+            foreach (DataRow row in table.Rows)
+            {
+                var obj = new Dictionary<string, object?>();
+                foreach (DataColumn col in table.Columns)
+                {
+                    var value = row[col];
+                    obj[col.ColumnName] = value == DBNull.Value ? null : value;
+                }
+                rows.Add(obj);
+            }
+            return JsonSerializer.Serialize(rows);
         }
 
-        private static void AgregarParametrosAuditoria(SqlCommand cmd, UsuarioGeneral u)
+        private static void AgregarTvp(MySqlCommand cmd, string paramName, DataTable table)
         {
-            cmd.Parameters.Add("@intIdUsuario", SqlDbType.Int).Value = u.IdUsuario;
-            cmd.Parameters.Add("@vchUsuario", SqlDbType.VarChar, 32).Value = u.Usuario;
-            cmd.Parameters.Add("@intIdEmpresa", SqlDbType.Int).Value = u.IdEmpresa;
-            cmd.Parameters.Add("@intIdRol", SqlDbType.Int).Value = u.IdRol;
+            cmd.Parameters.Add(paramName, MySqlDbType.JSON).Value = DataTableToJson(table);
         }
 
-        private static void AgregarParametrosCampos(SqlCommand cmd, InformeCrear r)
+        // Para las 6 TVPs "de una sola fila" (Identificacion/AspectosLegales/RamoOperaciones/
+        // InformacionFinanciera/BancosProveedores/DatosGenerales): el SP las lee con JSON_TABLE(..., '$'
+        // COLUMNS (...)) — un objeto plano, no un array — así que se serializa sin envolver en [].
+        private static string DataTableRowToJsonObject(DataTable table)
         {
-            cmd.Parameters.Add("@intIdPedido", SqlDbType.Int).Value = (object?)r.IdPedido ?? DBNull.Value;
-            cmd.Parameters.Add("@bitFlgTieneInformacion", SqlDbType.Bit).Value = (object?)r.FlgTieneInformacion ?? DBNull.Value;
-            cmd.Parameters.Add("@intIdEstadoInforme", SqlDbType.Int).Value = (object?)r.IdEstadoInforme ?? DBNull.Value;
-            cmd.Parameters.Add("@intIdFormatoFecha", SqlDbType.Int).Value = (object?)r.IdFormatoFecha ?? DBNull.Value;
+            var obj = new Dictionary<string, object?>();
+            var row = table.Rows[0];
+            foreach (DataColumn col in table.Columns)
+            {
+                var value = row[col];
+                obj[col.ColumnName] = value == DBNull.Value ? null : value;
+            }
+            return JsonSerializer.Serialize(obj);
         }
 
-        private static void AgregarTvpsCampos(SqlCommand cmd, InformeCrear r)
+        private static void AgregarTvpObjeto(MySqlCommand cmd, string paramName, DataTable table)
         {
-            AgregarTvp(cmd, "@tvpIdentificacion", ConstruirTablaIdentificacion(r), "INFORME_IDENTIFICACION");
-            AgregarTvp(cmd, "@tvpAspectosLegales", ConstruirTablaAspectosLegales(r), "INFORME_ASPECTOS_LEGALES");
-            AgregarTvp(cmd, "@tvpRamoOperaciones", ConstruirTablaRamoOperaciones(r), "INFORME_RAMO_OPERACIONES");
-            AgregarTvp(cmd, "@tvpInformacionFinanciera", ConstruirTablaInformacionFinanciera(r), "INFORME_INFORMACION_FINANCIERA");
-            AgregarTvp(cmd, "@tvpBancosProveedores", ConstruirTablaBancosProveedores(r), "INFORME_BANCOS_PROVEEDORES");
-            AgregarTvp(cmd, "@tvpDatosGenerales", ConstruirTablaDatosGenerales(r), "INFORME_DATOS_GENERALES");
+            cmd.Parameters.Add(paramName, MySqlDbType.JSON).Value = DataTableRowToJsonObject(table);
+        }
 
-            AgregarTvp(cmd, "@lstBalances", ConstruirTablaBalances(r.lstBalances), "LISTA_INFORME_BALANCE");
-            AgregarTvp(cmd, "@lstBalancesDesagregado", ConstruirTablaBalancesDesagregado(r.lstBalancesDesagregado), "LISTA_INFORME_BALANCE_DESAGREGADO");
-            AgregarTvp(cmd, "@lstBalancesTotalizado", ConstruirTablaBalancesTotalizado(r.lstBalancesTotalizado), "LISTA_INFORME_BALANCE_TOTALIZADO");
-            AgregarTvp(cmd, "@lstBalancesBanco", ConstruirTablaBalancesBanco(r.lstBalancesBanco), "LISTA_INFORME_BALANCE_BANCO");
-            AgregarTvp(cmd, "@lstBalancesSeguro", ConstruirTablaBalancesSeguro(r.lstBalancesSeguro), "LISTA_INFORME_BALANCE_SEGURO");
-            AgregarTvp(cmd, "@lstBalancesTurquia", ConstruirTablaBalancesTurquia(r.lstBalancesTurquia), "LISTA_INFORME_BALANCE_TURQUIA");
-            AgregarTvp(cmd, "@lstBancos", ConstruirTablaBancos(r.lstBancos), "LISTA_INFORME_BANCO");
-            AgregarTvp(cmd, "@lstCompanias", ConstruirTablaCompanias(r.lstCompaniasRelacionadas), "LISTA_INFORME_COMPANIA_RELACIONADA");
-            AgregarTvp(cmd, "@lstExpImp", ConstruirTablaExpImp(r.lstExportacionesImportaciones), "LISTA_INFORME_EXPORTACION_IMPORTACION");
-            AgregarTvp(cmd, "@lstProveedores", ConstruirTablaProveedores(r.lstProveedores), "LISTA_INFORME_PROVEEDOR");
-            AgregarTvp(cmd, "@lstDirectoriosEjecutivos", ConstruirTablaDirectoriosEjecutivos(r.lstDirectoriosEjecutivos), "LISTA_INFORME_DIRECTORIO_EJECUTIVO");
-            AgregarTvp(cmd, "@lstLocales", ConstruirTablaLocales(r.lstLocales), "LISTA_INFORME_LOCAL");
-            AgregarTvp(cmd, "@lstLocalImagenes", ConstruirTablaLocalImagenes(r.lstLocales), "LISTA_INFORME_LOCAL_IMAGEN");
+        private static void AgregarParametrosAuditoria(MySqlCommand cmd, UsuarioGeneral u)
+        {
+            cmd.Parameters.Add("@p_intIdUsuario", MySqlDbType.Int32).Value = u.IdUsuario;
+            cmd.Parameters.Add("@p_vchUsuario", MySqlDbType.VarChar, 32).Value = u.Usuario;
+            cmd.Parameters.Add("@p_intIdEmpresa", MySqlDbType.Int32).Value = u.IdEmpresa;
+            cmd.Parameters.Add("@p_intIdRol", MySqlDbType.Int32).Value = u.IdRol;
+        }
+
+        private static void AgregarParametrosCampos(MySqlCommand cmd, InformeCrear r)
+        {
+            cmd.Parameters.Add("@p_intIdPedido", MySqlDbType.Int32).Value = (object?)r.IdPedido ?? DBNull.Value;
+            cmd.Parameters.Add("@p_bitFlgTieneInformacion", MySqlDbType.Bool).Value = (object?)r.FlgTieneInformacion ?? DBNull.Value;
+            cmd.Parameters.Add("@p_intIdEstadoInforme", MySqlDbType.Int32).Value = (object?)r.IdEstadoInforme ?? DBNull.Value;
+            cmd.Parameters.Add("@p_intIdFormatoFecha", MySqlDbType.Int32).Value = (object?)r.IdFormatoFecha ?? DBNull.Value;
+        }
+
+        private static void AgregarTvpsCampos(MySqlCommand cmd, InformeCrear r)
+        {
+            AgregarTvpObjeto(cmd, "@p_jsonIdentificacion", ConstruirTablaIdentificacion(r));
+            AgregarTvpObjeto(cmd, "@p_jsonAspectosLegales", ConstruirTablaAspectosLegales(r));
+            AgregarTvpObjeto(cmd, "@p_jsonRamoOperaciones", ConstruirTablaRamoOperaciones(r));
+            AgregarTvpObjeto(cmd, "@p_jsonInformacionFinanciera", ConstruirTablaInformacionFinanciera(r));
+            AgregarTvpObjeto(cmd, "@p_jsonBancosProveedores", ConstruirTablaBancosProveedores(r));
+            AgregarTvpObjeto(cmd, "@p_jsonDatosGenerales", ConstruirTablaDatosGenerales(r));
+
+            AgregarTvp(cmd, "@p_jsonBalances", ConstruirTablaBalances(r.lstBalances));
+            AgregarTvp(cmd, "@p_jsonBalancesDesagregado", ConstruirTablaBalancesDesagregado(r.lstBalancesDesagregado));
+            AgregarTvp(cmd, "@p_jsonBalancesTotalizado", ConstruirTablaBalancesTotalizado(r.lstBalancesTotalizado));
+            AgregarTvp(cmd, "@p_jsonBalancesBanco", ConstruirTablaBalancesBanco(r.lstBalancesBanco));
+            AgregarTvp(cmd, "@p_jsonBalancesSeguro", ConstruirTablaBalancesSeguro(r.lstBalancesSeguro));
+            AgregarTvp(cmd, "@p_jsonBalancesTurquia", ConstruirTablaBalancesTurquia(r.lstBalancesTurquia));
+            AgregarTvp(cmd, "@p_jsonBancos", ConstruirTablaBancos(r.lstBancos));
+            AgregarTvp(cmd, "@p_jsonCompanias", ConstruirTablaCompanias(r.lstCompaniasRelacionadas));
+            AgregarTvp(cmd, "@p_jsonExpImp", ConstruirTablaExpImp(r.lstExportacionesImportaciones));
+            AgregarTvp(cmd, "@p_jsonProveedores", ConstruirTablaProveedores(r.lstProveedores));
+            AgregarTvp(cmd, "@p_jsonDirectoriosEjecutivos", ConstruirTablaDirectoriosEjecutivos(r.lstDirectoriosEjecutivos));
+            AgregarTvp(cmd, "@p_jsonLocales", ConstruirTablaLocales(r.lstLocales));
+            AgregarTvp(cmd, "@p_jsonLocalImagenes", ConstruirTablaLocalImagenes(r.lstLocales));
         }
 
         // ── CRUD ─────────────────────────────────────────────────────────────────
@@ -970,8 +1007,8 @@ namespace SafetyReport.Infrastructure.Persistencia
         {
             try
             {
-                using SqlConnection cn = new(_dbConfig.ConnectionString);
-                using SqlCommand cmd = new("SP_Informe_Insertar", cn) { CommandType = CommandType.StoredProcedure };
+                using MySqlConnection cn = new(_dbConfig.ConnectionString);
+                using MySqlCommand cmd = new("SP_Informe_Insertar", cn) { CommandType = CommandType.StoredProcedure };
                 AgregarParametrosAuditoria(cmd, u);
                 AgregarParametrosCampos(cmd, request);
                 AgregarTvpsCampos(cmd, request);
@@ -1006,10 +1043,10 @@ namespace SafetyReport.Infrastructure.Persistencia
         {
             try
             {
-                using SqlConnection cn = new(_dbConfig.ConnectionString);
-                using SqlCommand cmd = new("SP_Informe_Actualizar", cn) { CommandType = CommandType.StoredProcedure };
+                using MySqlConnection cn = new(_dbConfig.ConnectionString);
+                using MySqlCommand cmd = new("SP_Informe_Actualizar", cn) { CommandType = CommandType.StoredProcedure };
                 AgregarParametrosAuditoria(cmd, u);
-                cmd.Parameters.Add("@intIdInforme", SqlDbType.Int).Value = request.IdInforme;
+                cmd.Parameters.Add("@p_intIdInforme", MySqlDbType.Int32).Value = request.IdInforme;
                 AgregarParametrosCampos(cmd, request);
                 AgregarTvpsCampos(cmd, request);
                 await cn.OpenAsync();
@@ -1043,7 +1080,7 @@ namespace SafetyReport.Infrastructure.Persistencia
         // Lee un result set de detalle de balance (una fila por IdInformeBalance) hacia un
         // diccionario IdInformeBalance -> JsonElement con el resto de columnas, para poblar
         // InformeBalanceConsulta.CuentaBalance sin depender de JSON_QUERY en el SP.
-        private static async Task<Dictionary<int, JsonElement>> LeerDetalleBalanceAsync(SqlDataReader dr)
+        private static async Task<Dictionary<int, JsonElement>> LeerDetalleBalanceAsync(MySqlDataReader dr)
         {
             var resultado = new Dictionary<int, JsonElement>();
             var columnas = Enumerable.Range(0, dr.FieldCount)
@@ -1068,11 +1105,11 @@ namespace SafetyReport.Infrastructure.Persistencia
         {
             try
             {
-                using SqlConnection cn = new(_dbConfig.ConnectionString);
-                using SqlCommand cmd = new("SP_Informe_Obtener", cn) { CommandType = CommandType.StoredProcedure };
+                using MySqlConnection cn = new(_dbConfig.ConnectionString);
+                using MySqlCommand cmd = new("SP_Informe_Obtener", cn) { CommandType = CommandType.StoredProcedure };
                 AgregarParametrosAuditoria(cmd, u);
-                cmd.Parameters.Add("@intIdPedido", SqlDbType.Int).Value = idPedido;
-                cmd.Parameters.Add("@intIdInforme", SqlDbType.Int).Value = idInforme;
+                cmd.Parameters.Add("@p_intIdPedido", MySqlDbType.Int32).Value = idPedido;
+                cmd.Parameters.Add("@p_intIdInforme", MySqlDbType.Int32).Value = idInforme;
                 await cn.OpenAsync();
 
                 using var dr = await cmd.ExecuteReaderAsync();
@@ -1399,11 +1436,11 @@ namespace SafetyReport.Infrastructure.Persistencia
         {
             try
             {
-                using SqlConnection cn = new(_dbConfig.ConnectionString);
-                using SqlCommand cmd = new("SP_Pedido_GenerarDocumento", cn) { CommandType = CommandType.StoredProcedure };
+                using MySqlConnection cn = new(_dbConfig.ConnectionString);
+                using MySqlCommand cmd = new("SP_Pedido_GenerarDocumento", cn) { CommandType = CommandType.StoredProcedure };
                 AgregarParametrosAuditoria(cmd, u);
-                cmd.Parameters.Add("@intIdInforme", SqlDbType.Int).Value = idInforme;
-                cmd.Parameters.Add("@intIdPedido", SqlDbType.Int).Value = idPedido;
+                cmd.Parameters.Add("@p_intIdInforme", MySqlDbType.Int32).Value = idInforme;
+                cmd.Parameters.Add("@p_intIdPedido", MySqlDbType.Int32).Value = idPedido;
                 await cn.OpenAsync();
 
                 var respuesta = new Respuesta();
@@ -1443,11 +1480,11 @@ namespace SafetyReport.Infrastructure.Persistencia
         {
             try
             {
-                using SqlConnection cn = new(_dbConfig.ConnectionString);
-                using SqlCommand cmd = new("SP_Pedido_GenerarDocumentoXml", cn) { CommandType = CommandType.StoredProcedure };
+                using MySqlConnection cn = new(_dbConfig.ConnectionString);
+                using MySqlCommand cmd = new("SP_Pedido_GenerarDocumentoXml", cn) { CommandType = CommandType.StoredProcedure };
                 AgregarParametrosAuditoria(cmd, u);
-                cmd.Parameters.Add("@intIdInforme", SqlDbType.Int).Value = idInforme;
-                cmd.Parameters.Add("@intIdPedido", SqlDbType.Int).Value = idPedido;
+                cmd.Parameters.Add("@p_intIdInforme", MySqlDbType.Int32).Value = idInforme;
+                cmd.Parameters.Add("@p_intIdPedido", MySqlDbType.Int32).Value = idPedido;
                 await cn.OpenAsync();
 
                 var respuesta = new Respuesta();
@@ -1481,11 +1518,11 @@ namespace SafetyReport.Infrastructure.Persistencia
         {
             try
             {
-                using SqlConnection cn = new(_dbConfig.ConnectionString);
-                using SqlCommand cmd = new("SP_Informe_ObtenerDocumento", cn) { CommandType = CommandType.StoredProcedure };
+                using MySqlConnection cn = new(_dbConfig.ConnectionString);
+                using MySqlCommand cmd = new("SP_Informe_ObtenerDocumento", cn) { CommandType = CommandType.StoredProcedure };
                 AgregarParametrosAuditoria(cmd, u);
-                cmd.Parameters.Add("@intIdInforme", SqlDbType.Int).Value = idInforme;
-                cmd.Parameters.Add("@intIdPedido", SqlDbType.Int).Value = idPedido;
+                cmd.Parameters.Add("@p_intIdInforme", MySqlDbType.Int32).Value = idInforme;
+                cmd.Parameters.Add("@p_intIdPedido", MySqlDbType.Int32).Value = idPedido;
                 await cn.OpenAsync();
 
                 using var dr = await cmd.ExecuteReaderAsync();
@@ -1516,11 +1553,11 @@ namespace SafetyReport.Infrastructure.Persistencia
         {
             try
             {
-                using SqlConnection cn = new(_dbConfig.ConnectionString);
-                using SqlCommand cmd = new("SP_Informe_ActualizarEstado", cn) { CommandType = CommandType.StoredProcedure };
+                using MySqlConnection cn = new(_dbConfig.ConnectionString);
+                using MySqlCommand cmd = new("SP_Informe_ActualizarEstado", cn) { CommandType = CommandType.StoredProcedure };
                 AgregarParametrosAuditoria(cmd, u);
-                cmd.Parameters.Add("@intIdInforme", SqlDbType.Int).Value = idInforme;
-                cmd.Parameters.Add("@intIdEstadoInforme", SqlDbType.Int).Value = idEstadoInforme;
+                cmd.Parameters.Add("@p_intIdInforme", MySqlDbType.Int32).Value = idInforme;
+                cmd.Parameters.Add("@p_intIdEstadoInforme", MySqlDbType.Int32).Value = idEstadoInforme;
                 await cn.OpenAsync();
 
                 using var dr = await cmd.ExecuteReaderAsync();
@@ -1538,11 +1575,11 @@ namespace SafetyReport.Infrastructure.Persistencia
         {
             try
             {
-                using SqlConnection cn = new(_dbConfig.ConnectionString);
-                using SqlCommand cmd = new("SP_Informe_ObtenerDatosNotificacionInforme", cn) { CommandType = CommandType.StoredProcedure };
+                using MySqlConnection cn = new(_dbConfig.ConnectionString);
+                using MySqlCommand cmd = new("SP_Informe_ObtenerDatosNotificacionInforme", cn) { CommandType = CommandType.StoredProcedure };
                 AgregarParametrosAuditoria(cmd, u);
-                cmd.Parameters.Add("@intIdInforme", SqlDbType.Int).Value = idInforme;
-                cmd.Parameters.Add("@intIdEstadoInforme", SqlDbType.Int).Value = 4;
+                cmd.Parameters.Add("@p_intIdInforme", MySqlDbType.Int32).Value = idInforme;
+                cmd.Parameters.Add("@p_intIdEstadoInforme", MySqlDbType.Int32).Value = 4;
                 await cn.OpenAsync();
 
                 using var dr = await cmd.ExecuteReaderAsync();
@@ -1586,11 +1623,11 @@ namespace SafetyReport.Infrastructure.Persistencia
         {
             try
             {
-                using SqlConnection cn = new(_dbConfig.ConnectionString);
-                using SqlCommand cmd = new("SP_InformeEnvio_Registrar", cn) { CommandType = CommandType.StoredProcedure };
+                using MySqlConnection cn = new(_dbConfig.ConnectionString);
+                using MySqlCommand cmd = new("SP_InformeEnvio_Registrar", cn) { CommandType = CommandType.StoredProcedure };
                 AgregarParametrosAuditoria(cmd, u);
-                cmd.Parameters.Add("@intIdInforme", SqlDbType.Int).Value = idInforme;
-                cmd.Parameters.Add("@intIdPedido", SqlDbType.Int).Value = idPedido;
+                cmd.Parameters.Add("@p_intIdInforme", MySqlDbType.Int32).Value = idInforme;
+                cmd.Parameters.Add("@p_intIdPedido", MySqlDbType.Int32).Value = idPedido;
                 await cn.OpenAsync();
 
                 using var dr = await cmd.ExecuteReaderAsync();
@@ -1608,11 +1645,11 @@ namespace SafetyReport.Infrastructure.Persistencia
         {
             try
             {
-                using SqlConnection cn = new(_dbConfig.ConnectionString);
-                using SqlCommand cmd = new("SP_Informe_ObtenerRutaDocumento", cn) { CommandType = CommandType.StoredProcedure };
+                using MySqlConnection cn = new(_dbConfig.ConnectionString);
+                using MySqlCommand cmd = new("SP_Informe_ObtenerRutaDocumento", cn) { CommandType = CommandType.StoredProcedure };
                 AgregarParametrosAuditoria(cmd, u);
-                cmd.Parameters.Add("@intIdInforme", SqlDbType.Int).Value = idInforme;
-                cmd.Parameters.Add("@intIdPedido", SqlDbType.Int).Value = idPedido;
+                cmd.Parameters.Add("@p_intIdInforme", MySqlDbType.Int32).Value = idInforme;
+                cmd.Parameters.Add("@p_intIdPedido", MySqlDbType.Int32).Value = idPedido;
                 await cn.OpenAsync();
 
                 using var dr = await cmd.ExecuteReaderAsync();
@@ -1635,11 +1672,11 @@ namespace SafetyReport.Infrastructure.Persistencia
         {
             try
             {
-                using SqlConnection cn = new(_dbConfig.ConnectionString);
-                using SqlCommand cmd = new("SP_Informe_ActualizarDocumento", cn) { CommandType = CommandType.StoredProcedure };
+                using MySqlConnection cn = new(_dbConfig.ConnectionString);
+                using MySqlCommand cmd = new("SP_Informe_ActualizarDocumento", cn) { CommandType = CommandType.StoredProcedure };
                 AgregarParametrosAuditoria(cmd, u);
-                cmd.Parameters.Add("@intIdInforme", SqlDbType.Int).Value = idInforme;
-                cmd.Parameters.Add("@vchUrlDocumento", SqlDbType.VarChar, 500).Value = urlDocumento;
+                cmd.Parameters.Add("@p_intIdInforme", MySqlDbType.Int32).Value = idInforme;
+                cmd.Parameters.Add("@p_vchUrlDocumento", MySqlDbType.VarChar, 500).Value = urlDocumento;
                 await cn.OpenAsync();
 
                 using var dr = await cmd.ExecuteReaderAsync();
@@ -1657,15 +1694,15 @@ namespace SafetyReport.Infrastructure.Persistencia
         {
             try
             {
-                using SqlConnection cn = new(_dbConfig.ConnectionString);
-                using SqlCommand cmd = new("SP_Informe_Listar", cn) { CommandType = CommandType.StoredProcedure };
+                using MySqlConnection cn = new(_dbConfig.ConnectionString);
+                using MySqlCommand cmd = new("SP_Informe_Listar", cn) { CommandType = CommandType.StoredProcedure };
                 AgregarParametrosAuditoria(cmd, u);
-                cmd.Parameters.Add("@vchBusqueda", SqlDbType.VarChar, 255).Value = (object?)filtro.Busqueda ?? DBNull.Value;
-                cmd.Parameters.Add("@intIdPedido", SqlDbType.Int).Value = (object?)filtro.IdPedido ?? DBNull.Value;
-                cmd.Parameters.Add("@vchIdEstado", SqlDbType.VarChar, 255).Value = (object?)filtro.IdEstado ?? DBNull.Value;
-                cmd.Parameters.Add("@vchIdPlantilla", SqlDbType.VarChar, 255).Value = (object?)filtro.IdPlantilla ?? DBNull.Value;
-                cmd.Parameters.Add("@vchIdTipoTramite", SqlDbType.VarChar, 255).Value = (object?)filtro.IdTipoTramite ?? DBNull.Value;
-                cmd.Parameters.Add("@numPag", SqlDbType.Int).Value = (object?)filtro.NumPag ?? DBNull.Value;
+                cmd.Parameters.Add("@p_vchBusqueda", MySqlDbType.VarChar, 255).Value = (object?)filtro.Busqueda ?? DBNull.Value;
+                cmd.Parameters.Add("@p_intIdPedido", MySqlDbType.Int32).Value = (object?)filtro.IdPedido ?? DBNull.Value;
+                cmd.Parameters.Add("@p_vchIdEstado", MySqlDbType.VarChar, 255).Value = (object?)filtro.IdEstado ?? DBNull.Value;
+                cmd.Parameters.Add("@p_vchIdPlantilla", MySqlDbType.VarChar, 255).Value = (object?)filtro.IdPlantilla ?? DBNull.Value;
+                cmd.Parameters.Add("@p_vchIdTipoTramite", MySqlDbType.VarChar, 255).Value = (object?)filtro.IdTipoTramite ?? DBNull.Value;
+                cmd.Parameters.Add("@p_numPag", MySqlDbType.Int32).Value = (object?)filtro.NumPag ?? DBNull.Value;
                 await cn.OpenAsync();
 
                 using var dr = await cmd.ExecuteReaderAsync();
@@ -1725,13 +1762,13 @@ namespace SafetyReport.Infrastructure.Persistencia
         {
             try
             {
-                using SqlConnection cn = new(_dbConfig.ConnectionString);
-                using SqlCommand cmd = new("SP_Informe_ListarIdPorCompania", cn) { CommandType = CommandType.StoredProcedure };
+                using MySqlConnection cn = new(_dbConfig.ConnectionString);
+                using MySqlCommand cmd = new("SP_Informe_ListarIdPorCompania", cn) { CommandType = CommandType.StoredProcedure };
                 AgregarParametrosAuditoria(cmd, u);
-                cmd.Parameters.Add("@intIdCompania", SqlDbType.Int).Value = filtro.IdCompania;
-                cmd.Parameters.Add("@dtmFchInicio", SqlDbType.Date).Value = (object?)filtro.FchInicio ?? DBNull.Value;
-                cmd.Parameters.Add("@dtmFchFin", SqlDbType.Date).Value = (object?)filtro.FchFin ?? DBNull.Value;
-                cmd.Parameters.Add("@numPag", SqlDbType.Int).Value = (object?)filtro.NumPag ?? DBNull.Value;
+                cmd.Parameters.Add("@p_intIdCompania", MySqlDbType.Int32).Value = filtro.IdCompania;
+                cmd.Parameters.Add("@p_dtmFchInicio", MySqlDbType.Date).Value = (object?)filtro.FchInicio ?? DBNull.Value;
+                cmd.Parameters.Add("@p_dtmFchFin", MySqlDbType.Date).Value = (object?)filtro.FchFin ?? DBNull.Value;
+                cmd.Parameters.Add("@p_numPag", MySqlDbType.Int32).Value = (object?)filtro.NumPag ?? DBNull.Value;
                 await cn.OpenAsync();
 
                 using var dr = await cmd.ExecuteReaderAsync();
@@ -1777,66 +1814,66 @@ namespace SafetyReport.Infrastructure.Persistencia
         {
             try
             {
-                using SqlConnection cn = new(_dbConfig.ConnectionString);
-                using SqlCommand cmd = new("SP_Informe_Balance_Desagregado_Calcular", cn) { CommandType = CommandType.StoredProcedure };
-                cmd.Parameters.Add("@intIdUsuario",                              SqlDbType.Int).Value     = u.IdUsuario;
-                cmd.Parameters.Add("@vchUsuario",                                SqlDbType.VarChar, 32).Value = u.Usuario;
-                cmd.Parameters.Add("@intIdEmpresa",                              SqlDbType.Int).Value     = u.IdEmpresa;
-                cmd.Parameters.Add("@intIdRol",                                  SqlDbType.Int).Value     = u.IdRol;
-                cmd.Parameters.Add("@decEfectivoEquivalente",                    SqlDbType.Decimal).Value = D2(r.EfectivoEquivalente);
-                cmd.Parameters.Add("@decOtrosActivosFinancierosCorriente",       SqlDbType.Decimal).Value = D2(r.OtrosActivosFinancierosCorriente);
-                cmd.Parameters.Add("@decCuentasCobrarCorriente",                 SqlDbType.Decimal).Value = D2(r.CuentasCobrarCorriente);
-                cmd.Parameters.Add("@decInventariosCorriente",                   SqlDbType.Decimal).Value = D2(r.InventariosCorriente);
-                cmd.Parameters.Add("@decActivosBiologicosCorriente",             SqlDbType.Decimal).Value = D2(r.ActivosBiologicosCorriente);
-                cmd.Parameters.Add("@decActivosImpuestosGanancias",              SqlDbType.Decimal).Value = D2(r.ActivosImpuestosGanancias);
-                cmd.Parameters.Add("@decOtrosActivosNoFinancierosCorriente",     SqlDbType.Decimal).Value = D2(r.OtrosActivosNoFinancierosCorriente);
-                cmd.Parameters.Add("@decOtrosActivosFinancierosNoCorriente",     SqlDbType.Decimal).Value = D2(r.OtrosActivosFinancierosNoCorriente);
-                cmd.Parameters.Add("@decInversionesSubsidiarias",                SqlDbType.Decimal).Value = D2(r.InversionesSubsidiarias);
-                cmd.Parameters.Add("@decCuentasCobrarNoCorriente",               SqlDbType.Decimal).Value = D2(r.CuentasCobrarNoCorriente);
-                cmd.Parameters.Add("@decInventariosNoCorriente",                 SqlDbType.Decimal).Value = D2(r.InventariosNoCorriente);
-                cmd.Parameters.Add("@decActivosBiologicosNoCorriente",           SqlDbType.Decimal).Value = D2(r.ActivosBiologicosNoCorriente);
-                cmd.Parameters.Add("@decPropiedadesInversion",                   SqlDbType.Decimal).Value = D2(r.PropiedadesInversion);
-                cmd.Parameters.Add("@decPropiedadesPlantaEquipo",                SqlDbType.Decimal).Value = D2(r.PropiedadesPlantaEquipo);
-                cmd.Parameters.Add("@decIntangibles",                            SqlDbType.Decimal).Value = D2(r.Intangibles);
-                cmd.Parameters.Add("@decActivosImpuestosDiferidos",              SqlDbType.Decimal).Value = D2(r.ActivosImpuestosDiferidos);
-                cmd.Parameters.Add("@decActivosImpuestosCorrientes",             SqlDbType.Decimal).Value = D2(r.ActivosImpuestosCorrientes);
-                cmd.Parameters.Add("@decPlusvalia",                              SqlDbType.Decimal).Value = D2(r.Plusvalia);
-                cmd.Parameters.Add("@decOtrosActivosNoFinancierosNoCorriente",   SqlDbType.Decimal).Value = D2(r.OtrosActivosNoFinancierosNoCorriente);
-                cmd.Parameters.Add("@decOtrosPasivosFinancierosCorriente",       SqlDbType.Decimal).Value = D2(r.OtrosPasivosFinancierosCorriente);
-                cmd.Parameters.Add("@decCuentasPagarCorriente",                  SqlDbType.Decimal).Value = D2(r.CuentasPagarCorriente);
-                cmd.Parameters.Add("@decBeneficiosEmpleadosCorriente",           SqlDbType.Decimal).Value = D2(r.BeneficiosEmpleadosCorriente);
-                cmd.Parameters.Add("@decOtrasProvisionesCorriente",              SqlDbType.Decimal).Value = D2(r.OtrasProvisionesCorriente);
-                cmd.Parameters.Add("@decImpuestosGananciasCorriente",            SqlDbType.Decimal).Value = D2(r.ImpuestosGananciasCorriente);
-                cmd.Parameters.Add("@decOtrosPasivosNoFinancierosCorriente",     SqlDbType.Decimal).Value = D2(r.OtrosPasivosNoFinancierosCorriente);
-                cmd.Parameters.Add("@decOtrosPasivosFinancierosNoCorriente",     SqlDbType.Decimal).Value = D2(r.OtrosPasivosFinancierosNoCorriente);
-                cmd.Parameters.Add("@decCuentasPagarNoCorriente",                SqlDbType.Decimal).Value = D2(r.CuentasPagarNoCorriente);
-                cmd.Parameters.Add("@decBeneficiosEmpleadosNoCorriente",         SqlDbType.Decimal).Value = D2(r.BeneficiosEmpleadosNoCorriente);
-                cmd.Parameters.Add("@decOtrasProvisionesNoCorriente",            SqlDbType.Decimal).Value = D2(r.OtrasProvisionesNoCorriente);
-                cmd.Parameters.Add("@decImpuestosDiferidosNoCorriente",          SqlDbType.Decimal).Value = D2(r.ImpuestosDiferidosNoCorriente);
-                cmd.Parameters.Add("@decImpuestosCorrientesNoCorriente",         SqlDbType.Decimal).Value = D2(r.ImpuestosCorrientesNoCorriente);
-                cmd.Parameters.Add("@decOtrosPasivosNoFinancierosNoCorriente",   SqlDbType.Decimal).Value = D2(r.OtrosPasivosNoFinancierosNoCorriente);
-                cmd.Parameters.Add("@decCapitalEmitido",                         SqlDbType.Decimal).Value = D2(r.CapitalEmitido);
-                cmd.Parameters.Add("@decPrimasEmision",                          SqlDbType.Decimal).Value = D2(r.PrimasEmision);
-                cmd.Parameters.Add("@decAccionesInversion",                      SqlDbType.Decimal).Value = D2(r.AccionesInversion);
-                cmd.Parameters.Add("@decAccionesCartera",                        SqlDbType.Decimal).Value = D2(r.AccionesCartera);
-                cmd.Parameters.Add("@decOtrasReservasCapital",                   SqlDbType.Decimal).Value = D2(r.OtrasReservasCapital);
-                cmd.Parameters.Add("@decResultadosAcumulados",                   SqlDbType.Decimal).Value = D2(r.ResultadosAcumulados);
-                cmd.Parameters.Add("@decOtrasReservasPatrimonio",                SqlDbType.Decimal).Value = D2(r.OtrasReservasPatrimonio);
-                cmd.Parameters.Add("@decIngresosOrdinarios",                     SqlDbType.Decimal).Value = D2(r.IngresosOrdinarios);
-                cmd.Parameters.Add("@decCostoVentas",                            SqlDbType.Decimal).Value = D2(r.CostoVentas);
-                cmd.Parameters.Add("@decGastosVentas",                           SqlDbType.Decimal).Value = D2(r.GastosVentas);
-                cmd.Parameters.Add("@decGastosAdministracion",                   SqlDbType.Decimal).Value = D2(r.GastosAdministracion);
-                cmd.Parameters.Add("@decOtrosIngresosOperativos",                SqlDbType.Decimal).Value = D2(r.OtrosIngresosOperativos);
-                cmd.Parameters.Add("@decOtrosGastosOperativos",                  SqlDbType.Decimal).Value = D2(r.OtrosGastosOperativos);
-                cmd.Parameters.Add("@decOtrasGananciasPerdidas",                 SqlDbType.Decimal).Value = D2(r.OtrasGananciasPerdidas);
-                cmd.Parameters.Add("@decIngresosFinancieros",                    SqlDbType.Decimal).Value = D2(r.IngresosFinancieros);
-                cmd.Parameters.Add("@decIngresosIntereses",                      SqlDbType.Decimal).Value = D2(r.IngresosIntereses);
-                cmd.Parameters.Add("@decGastosFinancieros",                      SqlDbType.Decimal).Value = D2(r.GastosFinancieros);
-                cmd.Parameters.Add("@decDeterioroValor",                         SqlDbType.Decimal).Value = D2(r.DeterioroValor);
-                cmd.Parameters.Add("@decOtrosIngresosSubsidiarias",              SqlDbType.Decimal).Value = D2(r.OtrosIngresosSubsidiarias);
-                cmd.Parameters.Add("@decDiferenciasCambio",                      SqlDbType.Decimal).Value = D2(r.DiferenciasCambio);
-                cmd.Parameters.Add("@decIngresoGastoImpuesto",                   SqlDbType.Decimal).Value = D2(r.IngresoGastoImpuesto);
-                cmd.Parameters.Add("@decOperacionesDescontinuadas",              SqlDbType.Decimal).Value = D2(r.OperacionesDescontinuadas);
+                using MySqlConnection cn = new(_dbConfig.ConnectionString);
+                using MySqlCommand cmd = new("SP_Informe_Balance_Desagregado_Calcular", cn) { CommandType = CommandType.StoredProcedure };
+                cmd.Parameters.Add("@p_intIdUsuario",                              MySqlDbType.Int32).Value     = u.IdUsuario;
+                cmd.Parameters.Add("@p_vchUsuario",                                MySqlDbType.VarChar, 32).Value = u.Usuario;
+                cmd.Parameters.Add("@p_intIdEmpresa",                              MySqlDbType.Int32).Value     = u.IdEmpresa;
+                cmd.Parameters.Add("@p_intIdRol",                                  MySqlDbType.Int32).Value     = u.IdRol;
+                cmd.Parameters.Add("@p_decEfectivoEquivalente",                    MySqlDbType.Decimal).Value = D2(r.EfectivoEquivalente);
+                cmd.Parameters.Add("@p_decOtrosActivosFinancierosCorriente",       MySqlDbType.Decimal).Value = D2(r.OtrosActivosFinancierosCorriente);
+                cmd.Parameters.Add("@p_decCuentasCobrarCorriente",                 MySqlDbType.Decimal).Value = D2(r.CuentasCobrarCorriente);
+                cmd.Parameters.Add("@p_decInventariosCorriente",                   MySqlDbType.Decimal).Value = D2(r.InventariosCorriente);
+                cmd.Parameters.Add("@p_decActivosBiologicosCorriente",             MySqlDbType.Decimal).Value = D2(r.ActivosBiologicosCorriente);
+                cmd.Parameters.Add("@p_decActivosImpuestosGanancias",              MySqlDbType.Decimal).Value = D2(r.ActivosImpuestosGanancias);
+                cmd.Parameters.Add("@p_decOtrosActivosNoFinancierosCorriente",     MySqlDbType.Decimal).Value = D2(r.OtrosActivosNoFinancierosCorriente);
+                cmd.Parameters.Add("@p_decOtrosActivosFinancierosNoCorriente",     MySqlDbType.Decimal).Value = D2(r.OtrosActivosFinancierosNoCorriente);
+                cmd.Parameters.Add("@p_decInversionesSubsidiarias",                MySqlDbType.Decimal).Value = D2(r.InversionesSubsidiarias);
+                cmd.Parameters.Add("@p_decCuentasCobrarNoCorriente",               MySqlDbType.Decimal).Value = D2(r.CuentasCobrarNoCorriente);
+                cmd.Parameters.Add("@p_decInventariosNoCorriente",                 MySqlDbType.Decimal).Value = D2(r.InventariosNoCorriente);
+                cmd.Parameters.Add("@p_decActivosBiologicosNoCorriente",           MySqlDbType.Decimal).Value = D2(r.ActivosBiologicosNoCorriente);
+                cmd.Parameters.Add("@p_decPropiedadesInversion",                   MySqlDbType.Decimal).Value = D2(r.PropiedadesInversion);
+                cmd.Parameters.Add("@p_decPropiedadesPlantaEquipo",                MySqlDbType.Decimal).Value = D2(r.PropiedadesPlantaEquipo);
+                cmd.Parameters.Add("@p_decIntangibles",                            MySqlDbType.Decimal).Value = D2(r.Intangibles);
+                cmd.Parameters.Add("@p_decActivosImpuestosDiferidos",              MySqlDbType.Decimal).Value = D2(r.ActivosImpuestosDiferidos);
+                cmd.Parameters.Add("@p_decActivosImpuestosCorrientes",             MySqlDbType.Decimal).Value = D2(r.ActivosImpuestosCorrientes);
+                cmd.Parameters.Add("@p_decPlusvalia",                              MySqlDbType.Decimal).Value = D2(r.Plusvalia);
+                cmd.Parameters.Add("@p_decOtrosActivosNoFinancierosNoCorriente",   MySqlDbType.Decimal).Value = D2(r.OtrosActivosNoFinancierosNoCorriente);
+                cmd.Parameters.Add("@p_decOtrosPasivosFinancierosCorriente",       MySqlDbType.Decimal).Value = D2(r.OtrosPasivosFinancierosCorriente);
+                cmd.Parameters.Add("@p_decCuentasPagarCorriente",                  MySqlDbType.Decimal).Value = D2(r.CuentasPagarCorriente);
+                cmd.Parameters.Add("@p_decBeneficiosEmpleadosCorriente",           MySqlDbType.Decimal).Value = D2(r.BeneficiosEmpleadosCorriente);
+                cmd.Parameters.Add("@p_decOtrasProvisionesCorriente",              MySqlDbType.Decimal).Value = D2(r.OtrasProvisionesCorriente);
+                cmd.Parameters.Add("@p_decImpuestosGananciasCorriente",            MySqlDbType.Decimal).Value = D2(r.ImpuestosGananciasCorriente);
+                cmd.Parameters.Add("@p_decOtrosPasivosNoFinancierosCorriente",     MySqlDbType.Decimal).Value = D2(r.OtrosPasivosNoFinancierosCorriente);
+                cmd.Parameters.Add("@p_decOtrosPasivosFinancierosNoCorriente",     MySqlDbType.Decimal).Value = D2(r.OtrosPasivosFinancierosNoCorriente);
+                cmd.Parameters.Add("@p_decCuentasPagarNoCorriente",                MySqlDbType.Decimal).Value = D2(r.CuentasPagarNoCorriente);
+                cmd.Parameters.Add("@p_decBeneficiosEmpleadosNoCorriente",         MySqlDbType.Decimal).Value = D2(r.BeneficiosEmpleadosNoCorriente);
+                cmd.Parameters.Add("@p_decOtrasProvisionesNoCorriente",            MySqlDbType.Decimal).Value = D2(r.OtrasProvisionesNoCorriente);
+                cmd.Parameters.Add("@p_decImpuestosDiferidosNoCorriente",          MySqlDbType.Decimal).Value = D2(r.ImpuestosDiferidosNoCorriente);
+                cmd.Parameters.Add("@p_decImpuestosCorrientesNoCorriente",         MySqlDbType.Decimal).Value = D2(r.ImpuestosCorrientesNoCorriente);
+                cmd.Parameters.Add("@p_decOtrosPasivosNoFinancierosNoCorriente",   MySqlDbType.Decimal).Value = D2(r.OtrosPasivosNoFinancierosNoCorriente);
+                cmd.Parameters.Add("@p_decCapitalEmitido",                         MySqlDbType.Decimal).Value = D2(r.CapitalEmitido);
+                cmd.Parameters.Add("@p_decPrimasEmision",                          MySqlDbType.Decimal).Value = D2(r.PrimasEmision);
+                cmd.Parameters.Add("@p_decAccionesInversion",                      MySqlDbType.Decimal).Value = D2(r.AccionesInversion);
+                cmd.Parameters.Add("@p_decAccionesCartera",                        MySqlDbType.Decimal).Value = D2(r.AccionesCartera);
+                cmd.Parameters.Add("@p_decOtrasReservasCapital",                   MySqlDbType.Decimal).Value = D2(r.OtrasReservasCapital);
+                cmd.Parameters.Add("@p_decResultadosAcumulados",                   MySqlDbType.Decimal).Value = D2(r.ResultadosAcumulados);
+                cmd.Parameters.Add("@p_decOtrasReservasPatrimonio",                MySqlDbType.Decimal).Value = D2(r.OtrasReservasPatrimonio);
+                cmd.Parameters.Add("@p_decIngresosOrdinarios",                     MySqlDbType.Decimal).Value = D2(r.IngresosOrdinarios);
+                cmd.Parameters.Add("@p_decCostoVentas",                            MySqlDbType.Decimal).Value = D2(r.CostoVentas);
+                cmd.Parameters.Add("@p_decGastosVentas",                           MySqlDbType.Decimal).Value = D2(r.GastosVentas);
+                cmd.Parameters.Add("@p_decGastosAdministracion",                   MySqlDbType.Decimal).Value = D2(r.GastosAdministracion);
+                cmd.Parameters.Add("@p_decOtrosIngresosOperativos",                MySqlDbType.Decimal).Value = D2(r.OtrosIngresosOperativos);
+                cmd.Parameters.Add("@p_decOtrosGastosOperativos",                  MySqlDbType.Decimal).Value = D2(r.OtrosGastosOperativos);
+                cmd.Parameters.Add("@p_decOtrasGananciasPerdidas",                 MySqlDbType.Decimal).Value = D2(r.OtrasGananciasPerdidas);
+                cmd.Parameters.Add("@p_decIngresosFinancieros",                    MySqlDbType.Decimal).Value = D2(r.IngresosFinancieros);
+                cmd.Parameters.Add("@p_decIngresosIntereses",                      MySqlDbType.Decimal).Value = D2(r.IngresosIntereses);
+                cmd.Parameters.Add("@p_decGastosFinancieros",                      MySqlDbType.Decimal).Value = D2(r.GastosFinancieros);
+                cmd.Parameters.Add("@p_decDeterioroValor",                         MySqlDbType.Decimal).Value = D2(r.DeterioroValor);
+                cmd.Parameters.Add("@p_decOtrosIngresosSubsidiarias",              MySqlDbType.Decimal).Value = D2(r.OtrosIngresosSubsidiarias);
+                cmd.Parameters.Add("@p_decDiferenciasCambio",                      MySqlDbType.Decimal).Value = D2(r.DiferenciasCambio);
+                cmd.Parameters.Add("@p_decIngresoGastoImpuesto",                   MySqlDbType.Decimal).Value = D2(r.IngresoGastoImpuesto);
+                cmd.Parameters.Add("@p_decOperacionesDescontinuadas",              MySqlDbType.Decimal).Value = D2(r.OperacionesDescontinuadas);
                 await cn.OpenAsync();
 
                 using var dr = await cmd.ExecuteReaderAsync();
@@ -1881,32 +1918,32 @@ namespace SafetyReport.Infrastructure.Persistencia
         {
             try
             {
-                using SqlConnection cn = new(_dbConfig.ConnectionString);
-                using SqlCommand cmd = new("SP_Informe_Balance_Seguro_Calcular", cn) { CommandType = CommandType.StoredProcedure };
-                cmd.Parameters.Add("@intIdUsuario",                          SqlDbType.Int).Value        = u.IdUsuario;
-                cmd.Parameters.Add("@vchUsuario",                            SqlDbType.VarChar, 32).Value = u.Usuario;
-                cmd.Parameters.Add("@intIdEmpresa",                          SqlDbType.Int).Value        = u.IdEmpresa;
-                cmd.Parameters.Add("@intIdRol",                              SqlDbType.Int).Value        = u.IdRol;
-                cmd.Parameters.Add("@decEfectivoDisponible",                 SqlDbType.Decimal).Value    = D2(r.EfectivoDisponible);
-                cmd.Parameters.Add("@decInversionesFinancieras",             SqlDbType.Decimal).Value    = D2(r.InversionesFinancieras);
-                cmd.Parameters.Add("@decPrestamosInteresesNetos",            SqlDbType.Decimal).Value    = D2(r.PrestamosInteresesNetos);
-                cmd.Parameters.Add("@decPrimasCobrar",                       SqlDbType.Decimal).Value    = D2(r.PrimasCobrar);
-                cmd.Parameters.Add("@decDeudasReaseguradores",               SqlDbType.Decimal).Value    = D2(r.DeudasReaseguradores);
-                cmd.Parameters.Add("@decActivosVenta",                       SqlDbType.Decimal).Value    = D2(r.ActivosVenta);
-                cmd.Parameters.Add("@decPropiedadesInversion",               SqlDbType.Decimal).Value    = D2(r.PropiedadesInversion);
-                cmd.Parameters.Add("@decPropiedadPlantaEquipo",              SqlDbType.Decimal).Value    = D2(r.PropiedadPlantaEquipo);
-                cmd.Parameters.Add("@decOtrosActivos",                       SqlDbType.Decimal).Value    = D2(r.OtrosActivos);
-                cmd.Parameters.Add("@decObligacionesAsegurados",             SqlDbType.Decimal).Value    = D2(r.ObligacionesAsegurados);
-                cmd.Parameters.Add("@decReservasSiniestros",                 SqlDbType.Decimal).Value    = D2(r.ReservasSiniestros);
-                cmd.Parameters.Add("@decReservasTecnicas",                   SqlDbType.Decimal).Value    = D2(r.ReservasTecnicas);
-                cmd.Parameters.Add("@decObligacionesReaseguradores",         SqlDbType.Decimal).Value    = D2(r.ObligacionesReaseguradores);
-                cmd.Parameters.Add("@decObligacionesFinancieras",            SqlDbType.Decimal).Value    = D2(r.ObligacionesFinancieras);
-                cmd.Parameters.Add("@decCuentasPagar",                       SqlDbType.Decimal).Value    = D2(r.CuentasPagar);
-                cmd.Parameters.Add("@decOtrosPasivos",                       SqlDbType.Decimal).Value    = D2(r.OtrosPasivos);
-                cmd.Parameters.Add("@decCapitalSocial",                      SqlDbType.Decimal).Value    = D2(r.CapitalSocial);
-                cmd.Parameters.Add("@decAportesCapitalNoCapitalizados",      SqlDbType.Decimal).Value    = D2(r.AportesCapitalNoCapitalizados);
-                cmd.Parameters.Add("@decResultadosAcumulados",               SqlDbType.Decimal).Value    = D2(r.ResultadosAcumulados);
-                cmd.Parameters.Add("@decPatrimonioRestringido",              SqlDbType.Decimal).Value    = D2(r.PatrimonioRestringido);
+                using MySqlConnection cn = new(_dbConfig.ConnectionString);
+                using MySqlCommand cmd = new("SP_Informe_Balance_Seguro_Calcular", cn) { CommandType = CommandType.StoredProcedure };
+                cmd.Parameters.Add("@p_intIdUsuario",                          MySqlDbType.Int32).Value        = u.IdUsuario;
+                cmd.Parameters.Add("@p_vchUsuario",                            MySqlDbType.VarChar, 32).Value = u.Usuario;
+                cmd.Parameters.Add("@p_intIdEmpresa",                          MySqlDbType.Int32).Value        = u.IdEmpresa;
+                cmd.Parameters.Add("@p_intIdRol",                              MySqlDbType.Int32).Value        = u.IdRol;
+                cmd.Parameters.Add("@p_decEfectivoDisponible",                 MySqlDbType.Decimal).Value    = D2(r.EfectivoDisponible);
+                cmd.Parameters.Add("@p_decInversionesFinancieras",             MySqlDbType.Decimal).Value    = D2(r.InversionesFinancieras);
+                cmd.Parameters.Add("@p_decPrestamosInteresesNetos",            MySqlDbType.Decimal).Value    = D2(r.PrestamosInteresesNetos);
+                cmd.Parameters.Add("@p_decPrimasCobrar",                       MySqlDbType.Decimal).Value    = D2(r.PrimasCobrar);
+                cmd.Parameters.Add("@p_decDeudasReaseguradores",               MySqlDbType.Decimal).Value    = D2(r.DeudasReaseguradores);
+                cmd.Parameters.Add("@p_decActivosVenta",                       MySqlDbType.Decimal).Value    = D2(r.ActivosVenta);
+                cmd.Parameters.Add("@p_decPropiedadesInversion",               MySqlDbType.Decimal).Value    = D2(r.PropiedadesInversion);
+                cmd.Parameters.Add("@p_decPropiedadPlantaEquipo",              MySqlDbType.Decimal).Value    = D2(r.PropiedadPlantaEquipo);
+                cmd.Parameters.Add("@p_decOtrosActivos",                       MySqlDbType.Decimal).Value    = D2(r.OtrosActivos);
+                cmd.Parameters.Add("@p_decObligacionesAsegurados",             MySqlDbType.Decimal).Value    = D2(r.ObligacionesAsegurados);
+                cmd.Parameters.Add("@p_decReservasSiniestros",                 MySqlDbType.Decimal).Value    = D2(r.ReservasSiniestros);
+                cmd.Parameters.Add("@p_decReservasTecnicas",                   MySqlDbType.Decimal).Value    = D2(r.ReservasTecnicas);
+                cmd.Parameters.Add("@p_decObligacionesReaseguradores",         MySqlDbType.Decimal).Value    = D2(r.ObligacionesReaseguradores);
+                cmd.Parameters.Add("@p_decObligacionesFinancieras",            MySqlDbType.Decimal).Value    = D2(r.ObligacionesFinancieras);
+                cmd.Parameters.Add("@p_decCuentasPagar",                       MySqlDbType.Decimal).Value    = D2(r.CuentasPagar);
+                cmd.Parameters.Add("@p_decOtrosPasivos",                       MySqlDbType.Decimal).Value    = D2(r.OtrosPasivos);
+                cmd.Parameters.Add("@p_decCapitalSocial",                      MySqlDbType.Decimal).Value    = D2(r.CapitalSocial);
+                cmd.Parameters.Add("@p_decAportesCapitalNoCapitalizados",      MySqlDbType.Decimal).Value    = D2(r.AportesCapitalNoCapitalizados);
+                cmd.Parameters.Add("@p_decResultadosAcumulados",               MySqlDbType.Decimal).Value    = D2(r.ResultadosAcumulados);
+                cmd.Parameters.Add("@p_decPatrimonioRestringido",              MySqlDbType.Decimal).Value    = D2(r.PatrimonioRestringido);
                 await cn.OpenAsync();
 
                 using var dr = await cmd.ExecuteReaderAsync();
@@ -1939,33 +1976,33 @@ namespace SafetyReport.Infrastructure.Persistencia
         {
             try
             {
-                using SqlConnection cn = new(_dbConfig.ConnectionString);
-                using SqlCommand cmd = new("SP_Informe_Balance_Banco_Calcular", cn) { CommandType = CommandType.StoredProcedure };
-                cmd.Parameters.Add("@intIdUsuario",                      SqlDbType.Int).Value        = u.IdUsuario;
-                cmd.Parameters.Add("@vchUsuario",                        SqlDbType.VarChar, 32).Value = u.Usuario;
-                cmd.Parameters.Add("@intIdEmpresa",                      SqlDbType.Int).Value        = u.IdEmpresa;
-                cmd.Parameters.Add("@intIdRol",                          SqlDbType.Int).Value        = u.IdRol;
-                cmd.Parameters.Add("@decDisponible",                     SqlDbType.Decimal).Value    = D2(r.Disponible);
-                cmd.Parameters.Add("@decFondosInterbancarios",           SqlDbType.Decimal).Value    = D2(r.FondosInterbancarios);
-                cmd.Parameters.Add("@decInversionesValorRazonable",      SqlDbType.Decimal).Value    = D2(r.InversionesValorRazonable);
-                cmd.Parameters.Add("@decCarteraCreditos",                SqlDbType.Decimal).Value    = D2(r.CarteraCreditos);
-                cmd.Parameters.Add("@decDerivadosNegociacionActivo",     SqlDbType.Decimal).Value    = D2(r.DerivadosNegociacionActivo);
-                cmd.Parameters.Add("@decDerivadosCoberturaActivo",       SqlDbType.Decimal).Value    = D2(r.DerivadosCoberturaActivo);
-                cmd.Parameters.Add("@decBienesRealizables",              SqlDbType.Decimal).Value    = D2(r.BienesRealizables);
-                cmd.Parameters.Add("@decParticipacionesSubsidiarias",    SqlDbType.Decimal).Value    = D2(r.ParticipacionesSubsidiarias);
-                cmd.Parameters.Add("@decInmuebleMobiliarioEquipo",       SqlDbType.Decimal).Value    = D2(r.InmuebleMobiliarioEquipo);
-                cmd.Parameters.Add("@decImpuestoRentaDiferido",          SqlDbType.Decimal).Value    = D2(r.ImpuestoRentaDiferido);
-                cmd.Parameters.Add("@decOtrosActivos",                   SqlDbType.Decimal).Value    = D2(r.OtrosActivos);
-                cmd.Parameters.Add("@decObligacionesPublico",            SqlDbType.Decimal).Value    = D2(r.ObligacionesPublico);
-                cmd.Parameters.Add("@decFondosInterbancariosPasivo",     SqlDbType.Decimal).Value    = D2(r.FondosInterbancariosPasivo);
-                cmd.Parameters.Add("@decAdeudosFinancieras",             SqlDbType.Decimal).Value    = D2(r.AdeudosFinancieras);
-                cmd.Parameters.Add("@decDerivadosNegociacionPasivo",     SqlDbType.Decimal).Value    = D2(r.DerivadosNegociacionPasivo);
-                cmd.Parameters.Add("@decDerivadosCoberturaPasivo",       SqlDbType.Decimal).Value    = D2(r.DerivadosCoberturaPasivo);
-                cmd.Parameters.Add("@decCuentasPagarProvisiones",        SqlDbType.Decimal).Value    = D2(r.CuentasPagarProvisiones);
-                cmd.Parameters.Add("@decCapitalSocial",                  SqlDbType.Decimal).Value    = D2(r.CapitalSocial);
-                cmd.Parameters.Add("@decReservas",                       SqlDbType.Decimal).Value    = D2(r.Reservas);
-                cmd.Parameters.Add("@decResultadosNoRealizados",         SqlDbType.Decimal).Value    = D2(r.ResultadosNoRealizados);
-                cmd.Parameters.Add("@decResultadoEjercicio",             SqlDbType.Decimal).Value    = D2(r.ResultadoEjercicio);
+                using MySqlConnection cn = new(_dbConfig.ConnectionString);
+                using MySqlCommand cmd = new("SP_Informe_Balance_Banco_Calcular", cn) { CommandType = CommandType.StoredProcedure };
+                cmd.Parameters.Add("@p_intIdUsuario",                      MySqlDbType.Int32).Value        = u.IdUsuario;
+                cmd.Parameters.Add("@p_vchUsuario",                        MySqlDbType.VarChar, 32).Value = u.Usuario;
+                cmd.Parameters.Add("@p_intIdEmpresa",                      MySqlDbType.Int32).Value        = u.IdEmpresa;
+                cmd.Parameters.Add("@p_intIdRol",                          MySqlDbType.Int32).Value        = u.IdRol;
+                cmd.Parameters.Add("@p_decDisponible",                     MySqlDbType.Decimal).Value    = D2(r.Disponible);
+                cmd.Parameters.Add("@p_decFondosInterbancarios",           MySqlDbType.Decimal).Value    = D2(r.FondosInterbancarios);
+                cmd.Parameters.Add("@p_decInversionesValorRazonable",      MySqlDbType.Decimal).Value    = D2(r.InversionesValorRazonable);
+                cmd.Parameters.Add("@p_decCarteraCreditos",                MySqlDbType.Decimal).Value    = D2(r.CarteraCreditos);
+                cmd.Parameters.Add("@p_decDerivadosNegociacionActivo",     MySqlDbType.Decimal).Value    = D2(r.DerivadosNegociacionActivo);
+                cmd.Parameters.Add("@p_decDerivadosCoberturaActivo",       MySqlDbType.Decimal).Value    = D2(r.DerivadosCoberturaActivo);
+                cmd.Parameters.Add("@p_decBienesRealizables",              MySqlDbType.Decimal).Value    = D2(r.BienesRealizables);
+                cmd.Parameters.Add("@p_decParticipacionesSubsidiarias",    MySqlDbType.Decimal).Value    = D2(r.ParticipacionesSubsidiarias);
+                cmd.Parameters.Add("@p_decInmuebleMobiliarioEquipo",       MySqlDbType.Decimal).Value    = D2(r.InmuebleMobiliarioEquipo);
+                cmd.Parameters.Add("@p_decImpuestoRentaDiferido",          MySqlDbType.Decimal).Value    = D2(r.ImpuestoRentaDiferido);
+                cmd.Parameters.Add("@p_decOtrosActivos",                   MySqlDbType.Decimal).Value    = D2(r.OtrosActivos);
+                cmd.Parameters.Add("@p_decObligacionesPublico",            MySqlDbType.Decimal).Value    = D2(r.ObligacionesPublico);
+                cmd.Parameters.Add("@p_decFondosInterbancariosPasivo",     MySqlDbType.Decimal).Value    = D2(r.FondosInterbancariosPasivo);
+                cmd.Parameters.Add("@p_decAdeudosFinancieras",             MySqlDbType.Decimal).Value    = D2(r.AdeudosFinancieras);
+                cmd.Parameters.Add("@p_decDerivadosNegociacionPasivo",     MySqlDbType.Decimal).Value    = D2(r.DerivadosNegociacionPasivo);
+                cmd.Parameters.Add("@p_decDerivadosCoberturaPasivo",       MySqlDbType.Decimal).Value    = D2(r.DerivadosCoberturaPasivo);
+                cmd.Parameters.Add("@p_decCuentasPagarProvisiones",        MySqlDbType.Decimal).Value    = D2(r.CuentasPagarProvisiones);
+                cmd.Parameters.Add("@p_decCapitalSocial",                  MySqlDbType.Decimal).Value    = D2(r.CapitalSocial);
+                cmd.Parameters.Add("@p_decReservas",                       MySqlDbType.Decimal).Value    = D2(r.Reservas);
+                cmd.Parameters.Add("@p_decResultadosNoRealizados",         MySqlDbType.Decimal).Value    = D2(r.ResultadosNoRealizados);
+                cmd.Parameters.Add("@p_decResultadoEjercicio",             MySqlDbType.Decimal).Value    = D2(r.ResultadoEjercicio);
                 await cn.OpenAsync();
 
                 using var dr = await cmd.ExecuteReaderAsync();
@@ -1998,42 +2035,42 @@ namespace SafetyReport.Infrastructure.Persistencia
         {
             try
             {
-                using SqlConnection cn = new(_dbConfig.ConnectionString);
-                using SqlCommand cmd = new("SP_Informe_Balance_Turquia_Calcular", cn) { CommandType = CommandType.StoredProcedure };
-                cmd.Parameters.Add("@intIdUsuario",                SqlDbType.Int).Value         = u.IdUsuario;
-                cmd.Parameters.Add("@vchUsuario",                  SqlDbType.VarChar, 32).Value = u.Usuario;
-                cmd.Parameters.Add("@intIdEmpresa",                SqlDbType.Int).Value         = u.IdEmpresa;
-                cmd.Parameters.Add("@intIdRol",                    SqlDbType.Int).Value         = u.IdRol;
-                cmd.Parameters.Add("@decEfectivo",                 SqlDbType.Decimal).Value     = D2(r.Efectivo);
-                cmd.Parameters.Add("@decExistencias",              SqlDbType.Decimal).Value     = D2(r.Existencias);
-                cmd.Parameters.Add("@decDeudores",                 SqlDbType.Decimal).Value     = D2(r.Deudores);
-                cmd.Parameters.Add("@decBienesTongibles",          SqlDbType.Decimal).Value     = D2(r.BienesTongibles);
-                cmd.Parameters.Add("@decActivosIntangibles",       SqlDbType.Decimal).Value     = D2(r.ActivosIntangibles);
-                cmd.Parameters.Add("@decPrestamos",                SqlDbType.Decimal).Value     = D2(r.Prestamos);
-                cmd.Parameters.Add("@decAcreedores",               SqlDbType.Decimal).Value     = D2(r.Acreedores);
-                cmd.Parameters.Add("@decPasivosNoCorrientes",      SqlDbType.Decimal).Value     = D2(r.PasivosNoCorrientes);
-                cmd.Parameters.Add("@decPasivosLargoPlazo",        SqlDbType.Decimal).Value     = D2(r.PasivosLargoPlazo);
-                cmd.Parameters.Add("@decPatrimonio",               SqlDbType.Decimal).Value     = D2(r.Patrimonio);
-                cmd.Parameters.Add("@decReservas",                 SqlDbType.Decimal).Value     = D2(r.Reservas);
-                cmd.Parameters.Add("@decResultadosAcumulados",     SqlDbType.Decimal).Value     = D2(r.ResultadosAcumulados);
-                cmd.Parameters.Add("@decPerdidaGanancias",         SqlDbType.Decimal).Value     = D2(r.PerdidaGanancias);
-                cmd.Parameters.Add("@decOtrasCuentas",             SqlDbType.Decimal).Value     = D2(r.OtrasCuentas);
-                cmd.Parameters.Add("@decVentasNetas",              SqlDbType.Decimal).Value     = D2(r.VentasNetas);
-                cmd.Parameters.Add("@decCostoVentas",              SqlDbType.Decimal).Value     = D2(r.CostoVentas);
-                cmd.Parameters.Add("@decOtrosGastosOperativos",    SqlDbType.Decimal).Value     = D2(r.OtrosGastosOperativos);
-                cmd.Parameters.Add("@decCostoEmpleados",           SqlDbType.Decimal).Value     = D2(r.CostoEmpleados);
-                cmd.Parameters.Add("@decDepreciacion",             SqlDbType.Decimal).Value     = D2(r.Depreciacion);
-                cmd.Parameters.Add("@decIngresosFinancieros",      SqlDbType.Decimal).Value     = D2(r.IngresosFinancieros);
-                cmd.Parameters.Add("@decGastosFinancieros",        SqlDbType.Decimal).Value     = D2(r.GastosFinancieros);
-                cmd.Parameters.Add("@decIngresosExtraordinarios",  SqlDbType.Decimal).Value     = D2(r.IngresosExtraordinarios);
-                cmd.Parameters.Add("@decGastosExtraordinarios",    SqlDbType.Decimal).Value     = D2(r.GastosExtraordinarios);
-                cmd.Parameters.Add("@decImpuestos",                SqlDbType.Decimal).Value     = D2(r.Impuestos);
-                cmd.Parameters.Add("@decCostoMateriales",          SqlDbType.Decimal).Value     = D2(r.CostoMateriales);
-                cmd.Parameters.Add("@decInteresesPagados",         SqlDbType.Decimal).Value     = D2(r.InteresesPagados);
-                cmd.Parameters.Add("@decCapital",                  SqlDbType.Decimal).Value     = D2(r.Capital);
-                cmd.Parameters.Add("@decEbit",                     SqlDbType.Decimal).Value     = D2(r.Ebit);
-                cmd.Parameters.Add("@decEbitda",                   SqlDbType.Decimal).Value     = D2(r.Ebitda);
-                cmd.Parameters.Add("@decGanancia",                 SqlDbType.Decimal).Value     = D2(r.Ganancia);
+                using MySqlConnection cn = new(_dbConfig.ConnectionString);
+                using MySqlCommand cmd = new("SP_Informe_Balance_Turquia_Calcular", cn) { CommandType = CommandType.StoredProcedure };
+                cmd.Parameters.Add("@p_intIdUsuario",                MySqlDbType.Int32).Value         = u.IdUsuario;
+                cmd.Parameters.Add("@p_vchUsuario",                  MySqlDbType.VarChar, 32).Value = u.Usuario;
+                cmd.Parameters.Add("@p_intIdEmpresa",                MySqlDbType.Int32).Value         = u.IdEmpresa;
+                cmd.Parameters.Add("@p_intIdRol",                    MySqlDbType.Int32).Value         = u.IdRol;
+                cmd.Parameters.Add("@p_decEfectivo",                 MySqlDbType.Decimal).Value     = D2(r.Efectivo);
+                cmd.Parameters.Add("@p_decExistencias",              MySqlDbType.Decimal).Value     = D2(r.Existencias);
+                cmd.Parameters.Add("@p_decDeudores",                 MySqlDbType.Decimal).Value     = D2(r.Deudores);
+                cmd.Parameters.Add("@p_decBienesTongibles",          MySqlDbType.Decimal).Value     = D2(r.BienesTongibles);
+                cmd.Parameters.Add("@p_decActivosIntangibles",       MySqlDbType.Decimal).Value     = D2(r.ActivosIntangibles);
+                cmd.Parameters.Add("@p_decPrestamos",                MySqlDbType.Decimal).Value     = D2(r.Prestamos);
+                cmd.Parameters.Add("@p_decAcreedores",               MySqlDbType.Decimal).Value     = D2(r.Acreedores);
+                cmd.Parameters.Add("@p_decPasivosNoCorrientes",      MySqlDbType.Decimal).Value     = D2(r.PasivosNoCorrientes);
+                cmd.Parameters.Add("@p_decPasivosLargoPlazo",        MySqlDbType.Decimal).Value     = D2(r.PasivosLargoPlazo);
+                cmd.Parameters.Add("@p_decPatrimonio",               MySqlDbType.Decimal).Value     = D2(r.Patrimonio);
+                cmd.Parameters.Add("@p_decReservas",                 MySqlDbType.Decimal).Value     = D2(r.Reservas);
+                cmd.Parameters.Add("@p_decResultadosAcumulados",     MySqlDbType.Decimal).Value     = D2(r.ResultadosAcumulados);
+                cmd.Parameters.Add("@p_decPerdidaGanancias",         MySqlDbType.Decimal).Value     = D2(r.PerdidaGanancias);
+                cmd.Parameters.Add("@p_decOtrasCuentas",             MySqlDbType.Decimal).Value     = D2(r.OtrasCuentas);
+                cmd.Parameters.Add("@p_decVentasNetas",              MySqlDbType.Decimal).Value     = D2(r.VentasNetas);
+                cmd.Parameters.Add("@p_decCostoVentas",              MySqlDbType.Decimal).Value     = D2(r.CostoVentas);
+                cmd.Parameters.Add("@p_decOtrosGastosOperativos",    MySqlDbType.Decimal).Value     = D2(r.OtrosGastosOperativos);
+                cmd.Parameters.Add("@p_decCostoEmpleados",           MySqlDbType.Decimal).Value     = D2(r.CostoEmpleados);
+                cmd.Parameters.Add("@p_decDepreciacion",             MySqlDbType.Decimal).Value     = D2(r.Depreciacion);
+                cmd.Parameters.Add("@p_decIngresosFinancieros",      MySqlDbType.Decimal).Value     = D2(r.IngresosFinancieros);
+                cmd.Parameters.Add("@p_decGastosFinancieros",        MySqlDbType.Decimal).Value     = D2(r.GastosFinancieros);
+                cmd.Parameters.Add("@p_decIngresosExtraordinarios",  MySqlDbType.Decimal).Value     = D2(r.IngresosExtraordinarios);
+                cmd.Parameters.Add("@p_decGastosExtraordinarios",    MySqlDbType.Decimal).Value     = D2(r.GastosExtraordinarios);
+                cmd.Parameters.Add("@p_decImpuestos",                MySqlDbType.Decimal).Value     = D2(r.Impuestos);
+                cmd.Parameters.Add("@p_decCostoMateriales",          MySqlDbType.Decimal).Value     = D2(r.CostoMateriales);
+                cmd.Parameters.Add("@p_decInteresesPagados",         MySqlDbType.Decimal).Value     = D2(r.InteresesPagados);
+                cmd.Parameters.Add("@p_decCapital",                  MySqlDbType.Decimal).Value     = D2(r.Capital);
+                cmd.Parameters.Add("@p_decEbit",                     MySqlDbType.Decimal).Value     = D2(r.Ebit);
+                cmd.Parameters.Add("@p_decEbitda",                   MySqlDbType.Decimal).Value     = D2(r.Ebitda);
+                cmd.Parameters.Add("@p_decGanancia",                 MySqlDbType.Decimal).Value     = D2(r.Ganancia);
                 await cn.OpenAsync();
 
                 using var dr = await cmd.ExecuteReaderAsync();
@@ -2081,19 +2118,19 @@ namespace SafetyReport.Infrastructure.Persistencia
         {
             try
             {
-                using SqlConnection cn = new(_dbConfig.ConnectionString);
-                using SqlCommand cmd = new("SP_Informe_Balance_Totalizado_Calcular", cn) { CommandType = CommandType.StoredProcedure };
-                cmd.Parameters.Add("@intIdUsuario",              SqlDbType.Int).Value        = u.IdUsuario;
-                cmd.Parameters.Add("@vchUsuario",                SqlDbType.VarChar, 32).Value = u.Usuario;
-                cmd.Parameters.Add("@intIdEmpresa",              SqlDbType.Int).Value        = u.IdEmpresa;
-                cmd.Parameters.Add("@intIdRol",                  SqlDbType.Int).Value        = u.IdRol;
-                cmd.Parameters.Add("@decTotalActivoCorriente",   SqlDbType.Decimal).Value    = D2(r.TotalActivoCorriente);
-                cmd.Parameters.Add("@decTotalActivoNoCorriente", SqlDbType.Decimal).Value    = D2(r.TotalActivoNoCorriente);
-                cmd.Parameters.Add("@decTotalPasivoCorriente",   SqlDbType.Decimal).Value    = D2(r.TotalPasivoCorriente);
-                cmd.Parameters.Add("@decTotalPasivoNoCorriente", SqlDbType.Decimal).Value    = D2(r.TotalPasivoNoCorriente);
-                cmd.Parameters.Add("@decTotalPatrimonio",        SqlDbType.Decimal).Value    = D2(r.TotalPatrimonio);
-                cmd.Parameters.Add("@decIngresosOrdinarios",     SqlDbType.Decimal).Value    = D2(r.IngresosOrdinarios);
-                cmd.Parameters.Add("@decGananciaNeta",           SqlDbType.Decimal).Value    = D2(r.GananciaNeta);
+                using MySqlConnection cn = new(_dbConfig.ConnectionString);
+                using MySqlCommand cmd = new("SP_Informe_Balance_Totalizado_Calcular", cn) { CommandType = CommandType.StoredProcedure };
+                cmd.Parameters.Add("@p_intIdUsuario",              MySqlDbType.Int32).Value        = u.IdUsuario;
+                cmd.Parameters.Add("@p_vchUsuario",                MySqlDbType.VarChar, 32).Value = u.Usuario;
+                cmd.Parameters.Add("@p_intIdEmpresa",              MySqlDbType.Int32).Value        = u.IdEmpresa;
+                cmd.Parameters.Add("@p_intIdRol",                  MySqlDbType.Int32).Value        = u.IdRol;
+                cmd.Parameters.Add("@p_decTotalActivoCorriente",   MySqlDbType.Decimal).Value    = D2(r.TotalActivoCorriente);
+                cmd.Parameters.Add("@p_decTotalActivoNoCorriente", MySqlDbType.Decimal).Value    = D2(r.TotalActivoNoCorriente);
+                cmd.Parameters.Add("@p_decTotalPasivoCorriente",   MySqlDbType.Decimal).Value    = D2(r.TotalPasivoCorriente);
+                cmd.Parameters.Add("@p_decTotalPasivoNoCorriente", MySqlDbType.Decimal).Value    = D2(r.TotalPasivoNoCorriente);
+                cmd.Parameters.Add("@p_decTotalPatrimonio",        MySqlDbType.Decimal).Value    = D2(r.TotalPatrimonio);
+                cmd.Parameters.Add("@p_decIngresosOrdinarios",     MySqlDbType.Decimal).Value    = D2(r.IngresosOrdinarios);
+                cmd.Parameters.Add("@p_decGananciaNeta",           MySqlDbType.Decimal).Value    = D2(r.GananciaNeta);
                 await cn.OpenAsync();
 
                 using var dr = await cmd.ExecuteReaderAsync();
@@ -2129,10 +2166,10 @@ namespace SafetyReport.Infrastructure.Persistencia
         {
             try
             {
-                using SqlConnection cn = new(_dbConfig.ConnectionString);
-                using SqlCommand cmd = new("SP_Informe_ObtenerOCrear", cn) { CommandType = CommandType.StoredProcedure };
+                using MySqlConnection cn = new(_dbConfig.ConnectionString);
+                using MySqlCommand cmd = new("SP_Informe_ObtenerOCrear", cn) { CommandType = CommandType.StoredProcedure };
                 AgregarParametrosAuditoria(cmd, u);
-                cmd.Parameters.Add("@intIdPedido", SqlDbType.Int).Value = idPedido;
+                cmd.Parameters.Add("@p_intIdPedido", MySqlDbType.Int32).Value = idPedido;
                 await cn.OpenAsync();
 
                 using var dr = await cmd.ExecuteReaderAsync();
@@ -2157,10 +2194,10 @@ namespace SafetyReport.Infrastructure.Persistencia
         {
             try
             {
-                using SqlConnection cn = new(_dbConfig.ConnectionString);
-                using SqlCommand cmd = new("SP_Informe_Eliminar", cn) { CommandType = CommandType.StoredProcedure };
+                using MySqlConnection cn = new(_dbConfig.ConnectionString);
+                using MySqlCommand cmd = new("SP_Informe_Eliminar", cn) { CommandType = CommandType.StoredProcedure };
                 AgregarParametrosAuditoria(cmd, u);
-                cmd.Parameters.Add("@intIdInforme", SqlDbType.Int).Value = idInforme;
+                cmd.Parameters.Add("@p_intIdInforme", MySqlDbType.Int32).Value = idInforme;
                 await cn.OpenAsync();
 
                 using var dr = await cmd.ExecuteReaderAsync();
@@ -2185,14 +2222,14 @@ namespace SafetyReport.Infrastructure.Persistencia
         {
             try
             {
-                using SqlConnection cn = new(_dbConfig.ConnectionString);
-                using SqlCommand cmd = new("SP_Informe_EvolucionDashboard", cn) { CommandType = CommandType.StoredProcedure };
+                using MySqlConnection cn = new(_dbConfig.ConnectionString);
+                using MySqlCommand cmd = new("SP_Informe_EvolucionDashboard", cn) { CommandType = CommandType.StoredProcedure };
                 AgregarParametrosAuditoria(cmd, usuarioLogueado);
-                cmd.Parameters.Add("@intIdColaborador", SqlDbType.Int).Value = (object?)filtro.idColaborador ?? DBNull.Value;
-                cmd.Parameters.Add("@intIdRolInforme", SqlDbType.Int).Value = (object?)filtro.rol ?? DBNull.Value;
-                cmd.Parameters.Add("@dtmFechaDesde", SqlDbType.Date).Value = (object?)filtro.fechaDesde ?? DBNull.Value;
-                cmd.Parameters.Add("@dtmFechaHasta", SqlDbType.Date).Value = (object?)filtro.fechaHasta ?? DBNull.Value;
-                cmd.Parameters.Add("@intGranularidad", SqlDbType.Int).Value = filtro.granularidad;
+                cmd.Parameters.Add("@p_intIdColaborador", MySqlDbType.Int32).Value = (object?)filtro.idColaborador ?? DBNull.Value;
+                cmd.Parameters.Add("@p_intIdRolInforme", MySqlDbType.Int32).Value = (object?)filtro.rol ?? DBNull.Value;
+                cmd.Parameters.Add("@p_dtmFechaDesde", MySqlDbType.Date).Value = (object?)filtro.fechaDesde ?? DBNull.Value;
+                cmd.Parameters.Add("@p_dtmFechaHasta", MySqlDbType.Date).Value = (object?)filtro.fechaHasta ?? DBNull.Value;
+                cmd.Parameters.Add("@p_intGranularidad", MySqlDbType.Int32).Value = filtro.granularidad;
 
                 await cn.OpenAsync();
 

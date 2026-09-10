@@ -1,7 +1,8 @@
-using Microsoft.Data.SqlClient;
+using MySqlConnector;
 using Microsoft.Extensions.Logging;
 using SafetyReport.Application.Puertos.Usuario;
 using System.Data;
+using System.Text.Json;
 
 namespace SafetyReport.Infrastructure.Persistencia
 {
@@ -16,26 +17,13 @@ namespace SafetyReport.Infrastructure.Persistencia
             _logger = logger;
         }
 
-        private static DataTable ConstruirTablaListaGeneralNum(List<int>? valores)
-        {
-            var table = new DataTable();
-            table.Columns.Add("ID", typeof(int));
-            table.Columns.Add("NUM1", typeof(int));
-
-            int i = 1;
-            if (valores != null)
-            {
-                foreach (var valor in valores)
-                {
-                    table.Rows.Add(i++, valor);
-                }
-            }
-
-            return table;
-        }
+        // Shape esperado por los SP_Usuario_*/SP_UsuarioAsignacion_ListaCorta (LISTA_GENERAL_NUM): array
+        // de {NUM1} — solo se usa en cursores/IN()/JOIN por valor, no requiere ID ni orden.
+        private static string ConstruirJsonListaGeneralNum(List<int>? valores) =>
+            JsonSerializer.Serialize((valores ?? new List<int>()).Select(v => new { NUM1 = v }));
 
         // Lee el result set 1 (siempre presente): IdTipoMensaje, Mensaje. Sin columna Result.
-        private async Task<Respuesta> LeerCabeceraAsync(SqlDataReader dr, string procedimiento)
+        private async Task<Respuesta> LeerCabeceraAsync(MySqlDataReader dr, string procedimiento)
         {
             var respuesta = new Respuesta();
 
@@ -57,45 +45,38 @@ namespace SafetyReport.Infrastructure.Persistencia
             return respuesta;
         }
 
-        private static int? GetNullableInt(SqlDataReader dr, string columna) =>
+        private static int? GetNullableInt(MySqlDataReader dr, string columna) =>
             dr[columna] == DBNull.Value ? null : Convert.ToInt32(dr[columna]);
 
-        private static string? GetNullableString(SqlDataReader dr, string columna) =>
+        private static string? GetNullableString(MySqlDataReader dr, string columna) =>
             dr[columna] == DBNull.Value ? null : dr[columna].ToString();
 
-        private static decimal? GetNullableDecimal(SqlDataReader dr, string columna) =>
+        private static decimal? GetNullableDecimal(MySqlDataReader dr, string columna) =>
             dr[columna] == DBNull.Value ? null : Convert.ToDecimal(dr[columna]);
 
         public async Task<Respuesta> CrearUsuarioAsync(UsuarioGeneral usuarioLogueado, UsuarioCrear request)
         {
             try
             {
-                using SqlConnection cn = new(_dbConfig.ConnectionString);
-                using SqlCommand cmd = new("SP_Usuario_Insertar", cn);
+                using MySqlConnection cn = new(_dbConfig.ConnectionString);
+                using MySqlCommand cmd = new("SP_Usuario_Insertar", cn);
 
                 cmd.CommandType = CommandType.StoredProcedure;
-                cmd.Parameters.Add("@intIdUsuario", SqlDbType.Int).Value = usuarioLogueado.IdUsuario;
-                cmd.Parameters.Add("@vchUsuario", SqlDbType.VarChar, 32).Value = usuarioLogueado.Usuario;
-                cmd.Parameters.Add("@intIdEmpresa", SqlDbType.Int).Value = usuarioLogueado.IdEmpresa;
-                cmd.Parameters.Add("@intIdRol", SqlDbType.Int).Value = usuarioLogueado.IdRol;
-                cmd.Parameters.Add("@vchNombres", SqlDbType.VarChar, 50).Value = request.Nombres;
-                cmd.Parameters.Add("@vchApellidoPaterno", SqlDbType.VarChar, 50).Value = request.ApellidoPaterno;
-                cmd.Parameters.Add("@vchApellidoMaterno", SqlDbType.VarChar, 50).Value = (object?)request.ApellidoMaterno ?? DBNull.Value;
-                cmd.Parameters.Add("@vchCorreo", SqlDbType.VarChar, 100).Value = request.Correo;
-                cmd.Parameters.Add("@vchUsuarioCreado", SqlDbType.VarChar, 32).Value = request.usuarioCreacion;
+                cmd.Parameters.Add("@p_intIdUsuario", MySqlDbType.Int32).Value = usuarioLogueado.IdUsuario;
+                cmd.Parameters.Add("@p_vchUsuario", MySqlDbType.VarChar, 32).Value = usuarioLogueado.Usuario;
+                cmd.Parameters.Add("@p_intIdEmpresa", MySqlDbType.Int32).Value = usuarioLogueado.IdEmpresa;
+                cmd.Parameters.Add("@p_intIdRol", MySqlDbType.Int32).Value = usuarioLogueado.IdRol;
+                cmd.Parameters.Add("@p_vchNombres", MySqlDbType.VarChar, 50).Value = request.Nombres;
+                cmd.Parameters.Add("@p_vchApellidoPaterno", MySqlDbType.VarChar, 50).Value = request.ApellidoPaterno;
+                cmd.Parameters.Add("@p_vchApellidoMaterno", MySqlDbType.VarChar, 50).Value = (object?)request.ApellidoMaterno ?? DBNull.Value;
+                cmd.Parameters.Add("@p_vchCorreo", MySqlDbType.VarChar, 100).Value = request.Correo;
+                cmd.Parameters.Add("@p_vchUsuarioCreado", MySqlDbType.VarChar, 32).Value = request.usuarioCreacion;
 
-                var tableRoles = ConstruirTablaListaGeneralNum(request.Roles);
-                var tvpRoles = cmd.Parameters.AddWithValue("@lstRoles", tableRoles);
-                tvpRoles.SqlDbType = SqlDbType.Structured;
-                tvpRoles.TypeName = "LISTA_GENERAL_NUM";
-
-                var tableIdiomas = ConstruirTablaListaGeneralNum(request.Idiomas);
-                var tvpIdiomas = cmd.Parameters.AddWithValue("@lstIdiomas", tableIdiomas);
-                tvpIdiomas.SqlDbType = SqlDbType.Structured;
-                tvpIdiomas.TypeName = "LISTA_GENERAL_NUM";
+                cmd.Parameters.Add("@p_jsonRoles", MySqlDbType.JSON).Value = ConstruirJsonListaGeneralNum(request.Roles);
+                cmd.Parameters.Add("@p_jsonIdiomas", MySqlDbType.JSON).Value = ConstruirJsonListaGeneralNum(request.Idiomas);
 
                 await cn.OpenAsync();
-                using SqlDataReader dr = await cmd.ExecuteReaderAsync();
+                using MySqlDataReader dr = await cmd.ExecuteReaderAsync();
 
                 var respuesta = await LeerCabeceraAsync(dr, cmd.CommandText);
 
@@ -126,32 +107,25 @@ namespace SafetyReport.Infrastructure.Persistencia
         {
             try
             {
-                using SqlConnection cn = new(_dbConfig.ConnectionString);
-                using SqlCommand cmd = new("SP_Usuario_Actualizar", cn);
+                using MySqlConnection cn = new(_dbConfig.ConnectionString);
+                using MySqlCommand cmd = new("SP_Usuario_Actualizar", cn);
 
                 cmd.CommandType = CommandType.StoredProcedure;
-                cmd.Parameters.Add("@intIdUsuario", SqlDbType.Int).Value = usuarioLogueado.IdUsuario;
-                cmd.Parameters.Add("@vchUsuarioMOD", SqlDbType.VarChar, 32).Value = usuarioLogueado.Usuario;
-                cmd.Parameters.Add("@intIdEmpresa", SqlDbType.Int).Value = usuarioLogueado.IdEmpresa;
-                cmd.Parameters.Add("@intIdRol", SqlDbType.Int).Value = usuarioLogueado.IdRol;
-                cmd.Parameters.Add("@intIdUsuarioEditar", SqlDbType.Int).Value = request.IdUsuario;
-                cmd.Parameters.Add("@vchNombres", SqlDbType.VarChar, 50).Value = request.Nombres;
-                cmd.Parameters.Add("@vchApellidoPaterno", SqlDbType.VarChar, 50).Value = request.ApellidoPaterno;
-                cmd.Parameters.Add("@vchApellidoMaterno", SqlDbType.VarChar, 50).Value = (object?)request.ApellidoMaterno ?? DBNull.Value;
-                cmd.Parameters.Add("@intIdEstado", SqlDbType.Int).Value = request.IdEstado;
+                cmd.Parameters.Add("@p_intIdUsuario", MySqlDbType.Int32).Value = usuarioLogueado.IdUsuario;
+                cmd.Parameters.Add("@p_vchUsuarioMOD", MySqlDbType.VarChar, 32).Value = usuarioLogueado.Usuario;
+                cmd.Parameters.Add("@p_intIdEmpresa", MySqlDbType.Int32).Value = usuarioLogueado.IdEmpresa;
+                cmd.Parameters.Add("@p_intIdRol", MySqlDbType.Int32).Value = usuarioLogueado.IdRol;
+                cmd.Parameters.Add("@p_intIdUsuarioEditar", MySqlDbType.Int32).Value = request.IdUsuario;
+                cmd.Parameters.Add("@p_vchNombres", MySqlDbType.VarChar, 50).Value = request.Nombres;
+                cmd.Parameters.Add("@p_vchApellidoPaterno", MySqlDbType.VarChar, 50).Value = request.ApellidoPaterno;
+                cmd.Parameters.Add("@p_vchApellidoMaterno", MySqlDbType.VarChar, 50).Value = (object?)request.ApellidoMaterno ?? DBNull.Value;
+                cmd.Parameters.Add("@p_intIdEstado", MySqlDbType.Int32).Value = request.IdEstado;
 
-                var tableRoles = ConstruirTablaListaGeneralNum(request.Roles);
-                var tvpRoles = cmd.Parameters.AddWithValue("@lstRoles", tableRoles);
-                tvpRoles.SqlDbType = SqlDbType.Structured;
-                tvpRoles.TypeName = "LISTA_GENERAL_NUM";
-
-                var tableIdiomas = ConstruirTablaListaGeneralNum(request.Idiomas);
-                var tvpIdiomas = cmd.Parameters.AddWithValue("@lstIdiomas", tableIdiomas);
-                tvpIdiomas.SqlDbType = SqlDbType.Structured;
-                tvpIdiomas.TypeName = "LISTA_GENERAL_NUM";
+                cmd.Parameters.Add("@p_jsonRoles", MySqlDbType.JSON).Value = ConstruirJsonListaGeneralNum(request.Roles);
+                cmd.Parameters.Add("@p_jsonIdiomas", MySqlDbType.JSON).Value = ConstruirJsonListaGeneralNum(request.Idiomas);
 
                 await cn.OpenAsync();
-                using SqlDataReader dr = await cmd.ExecuteReaderAsync();
+                using MySqlDataReader dr = await cmd.ExecuteReaderAsync();
 
                 var respuesta = await LeerCabeceraAsync(dr, cmd.CommandText);
 
@@ -182,18 +156,18 @@ namespace SafetyReport.Infrastructure.Persistencia
         {
             try
             {
-                using SqlConnection cn = new(_dbConfig.ConnectionString);
-                using SqlCommand cmd = new("SP_Usuario_Eliminar", cn);
+                using MySqlConnection cn = new(_dbConfig.ConnectionString);
+                using MySqlCommand cmd = new("SP_Usuario_Eliminar", cn);
 
                 cmd.CommandType = CommandType.StoredProcedure;
-                cmd.Parameters.Add("@intIdUsuario", SqlDbType.Int).Value = usuarioActual.IdUsuario;
-                cmd.Parameters.Add("@vchUsuario", SqlDbType.VarChar, 32).Value = usuarioActual.Usuario;
-                cmd.Parameters.Add("@intIdEmpresa", SqlDbType.Int).Value = usuarioActual.IdEmpresa;
-                cmd.Parameters.Add("@intIdRol", SqlDbType.Int).Value = usuarioActual.IdRol;
-                cmd.Parameters.Add("@intIdUsuarioEliminar", SqlDbType.Int).Value = idUsuarioEliminar;
+                cmd.Parameters.Add("@p_intIdUsuario", MySqlDbType.Int32).Value = usuarioActual.IdUsuario;
+                cmd.Parameters.Add("@p_vchUsuario", MySqlDbType.VarChar, 32).Value = usuarioActual.Usuario;
+                cmd.Parameters.Add("@p_intIdEmpresa", MySqlDbType.Int32).Value = usuarioActual.IdEmpresa;
+                cmd.Parameters.Add("@p_intIdRol", MySqlDbType.Int32).Value = usuarioActual.IdRol;
+                cmd.Parameters.Add("@p_intIdUsuarioEliminar", MySqlDbType.Int32).Value = idUsuarioEliminar;
 
                 await cn.OpenAsync();
-                using SqlDataReader dr = await cmd.ExecuteReaderAsync();
+                using MySqlDataReader dr = await cmd.ExecuteReaderAsync();
 
                 var respuesta = await LeerCabeceraAsync(dr, cmd.CommandText);
 
@@ -224,20 +198,20 @@ namespace SafetyReport.Infrastructure.Persistencia
         {
             try
             {
-                using SqlConnection cn = new(_dbConfig.ConnectionString);
-                using SqlCommand cmd = new("SP_Usuario_Listar", cn);
+                using MySqlConnection cn = new(_dbConfig.ConnectionString);
+                using MySqlCommand cmd = new("SP_Usuario_Listar", cn);
 
                 cmd.CommandType = CommandType.StoredProcedure;
-                cmd.Parameters.Add("@intIdUsuario", SqlDbType.Int).Value = usuarioActual.IdUsuario;
-                cmd.Parameters.Add("@vchUsuario", SqlDbType.VarChar, 32).Value = usuarioActual.Usuario;
-                cmd.Parameters.Add("@intIdEmpresa", SqlDbType.Int).Value = usuarioActual.IdEmpresa;
-                cmd.Parameters.Add("@intIdRol", SqlDbType.Int).Value = usuarioActual.IdRol;
-                cmd.Parameters.Add("@vchFiltro", SqlDbType.VarChar, 255).Value = (object?)filtro ?? DBNull.Value;
-                cmd.Parameters.Add("@intIdEstado", SqlDbType.Int).Value = (object?)idEstado ?? DBNull.Value;
-                cmd.Parameters.Add("@numPag", SqlDbType.Int).Value = (object?)numPag ?? DBNull.Value;
+                cmd.Parameters.Add("@p_intIdUsuario", MySqlDbType.Int32).Value = usuarioActual.IdUsuario;
+                cmd.Parameters.Add("@p_vchUsuario", MySqlDbType.VarChar, 32).Value = usuarioActual.Usuario;
+                cmd.Parameters.Add("@p_intIdEmpresa", MySqlDbType.Int32).Value = usuarioActual.IdEmpresa;
+                cmd.Parameters.Add("@p_intIdRol", MySqlDbType.Int32).Value = usuarioActual.IdRol;
+                cmd.Parameters.Add("@p_vchFiltro", MySqlDbType.VarChar, 255).Value = (object?)filtro ?? DBNull.Value;
+                cmd.Parameters.Add("@p_intIdEstado", MySqlDbType.Int32).Value = (object?)idEstado ?? DBNull.Value;
+                cmd.Parameters.Add("@p_numPag", MySqlDbType.Int32).Value = (object?)numPag ?? DBNull.Value;
 
                 await cn.OpenAsync();
-                using SqlDataReader dr = await cmd.ExecuteReaderAsync();
+                using MySqlDataReader dr = await cmd.ExecuteReaderAsync();
 
                 var respuesta = await LeerCabeceraAsync(dr, cmd.CommandText);
 
@@ -291,18 +265,18 @@ namespace SafetyReport.Infrastructure.Persistencia
         {
             try
             {
-                using SqlConnection cn = new(_dbConfig.ConnectionString);
-                using SqlCommand cmd = new("SP_Usuario_Obtener", cn);
+                using MySqlConnection cn = new(_dbConfig.ConnectionString);
+                using MySqlCommand cmd = new("SP_Usuario_Obtener", cn);
 
                 cmd.CommandType = CommandType.StoredProcedure;
-                cmd.Parameters.Add("@intIdUsuario", SqlDbType.Int).Value = usuarioActual.IdUsuario;
-                cmd.Parameters.Add("@vchUsuario", SqlDbType.VarChar, 32).Value = usuarioActual.Usuario;
-                cmd.Parameters.Add("@intIdEmpresa", SqlDbType.Int).Value = usuarioActual.IdEmpresa;
-                cmd.Parameters.Add("@intIdRol", SqlDbType.Int).Value = usuarioActual.IdRol;
-                cmd.Parameters.Add("@intIdUsuarioConsulta", SqlDbType.Int).Value = idUsuarioConsulta;
+                cmd.Parameters.Add("@p_intIdUsuario", MySqlDbType.Int32).Value = usuarioActual.IdUsuario;
+                cmd.Parameters.Add("@p_vchUsuario", MySqlDbType.VarChar, 32).Value = usuarioActual.Usuario;
+                cmd.Parameters.Add("@p_intIdEmpresa", MySqlDbType.Int32).Value = usuarioActual.IdEmpresa;
+                cmd.Parameters.Add("@p_intIdRol", MySqlDbType.Int32).Value = usuarioActual.IdRol;
+                cmd.Parameters.Add("@p_intIdUsuarioConsulta", MySqlDbType.Int32).Value = idUsuarioConsulta;
 
                 await cn.OpenAsync();
-                using SqlDataReader dr = await cmd.ExecuteReaderAsync();
+                using MySqlDataReader dr = await cmd.ExecuteReaderAsync();
 
                 var respuesta = await LeerCabeceraAsync(dr, cmd.CommandText);
 
@@ -360,18 +334,18 @@ namespace SafetyReport.Infrastructure.Persistencia
         {
             try
             {
-                using SqlConnection cn = new(_dbConfig.ConnectionString);
-                using SqlCommand cmd = new("SP_Usuario_ListaCorta", cn);
+                using MySqlConnection cn = new(_dbConfig.ConnectionString);
+                using MySqlCommand cmd = new("SP_Usuario_ListaCorta", cn);
 
                 cmd.CommandType = CommandType.StoredProcedure;
-                cmd.Parameters.Add("@intIdUsuario", SqlDbType.Int).Value = usuarioActual.IdUsuario;
-                cmd.Parameters.Add("@vchUsuario", SqlDbType.VarChar, 32).Value = usuarioActual.Usuario;
-                cmd.Parameters.Add("@intIdEmpresa", SqlDbType.Int).Value = usuarioActual.IdEmpresa;
-                cmd.Parameters.Add("@intIdRol", SqlDbType.Int).Value = usuarioActual.IdRol;
-                cmd.Parameters.Add("@intIdRolFiltro", SqlDbType.Int).Value = idRolFiltro;
+                cmd.Parameters.Add("@p_intIdUsuario", MySqlDbType.Int32).Value = usuarioActual.IdUsuario;
+                cmd.Parameters.Add("@p_vchUsuario", MySqlDbType.VarChar, 32).Value = usuarioActual.Usuario;
+                cmd.Parameters.Add("@p_intIdEmpresa", MySqlDbType.Int32).Value = usuarioActual.IdEmpresa;
+                cmd.Parameters.Add("@p_intIdRol", MySqlDbType.Int32).Value = usuarioActual.IdRol;
+                cmd.Parameters.Add("@p_intIdRolFiltro", MySqlDbType.Int32).Value = idRolFiltro;
 
                 await cn.OpenAsync();
-                using SqlDataReader dr = await cmd.ExecuteReaderAsync();
+                using MySqlDataReader dr = await cmd.ExecuteReaderAsync();
 
                 var respuesta = await LeerCabeceraAsync(dr, cmd.CommandText);
 
@@ -416,19 +390,19 @@ namespace SafetyReport.Infrastructure.Persistencia
         {
             try
             {
-                using SqlConnection cn = new(_dbConfig.ConnectionString);
-                using SqlCommand cmd = new("SP_Usuario_ListaCortaDashboard", cn);
+                using MySqlConnection cn = new(_dbConfig.ConnectionString);
+                using MySqlCommand cmd = new("SP_Usuario_ListaCortaDashboard", cn);
 
                 cmd.CommandType = CommandType.StoredProcedure;
-                cmd.Parameters.Add("@intIdUsuario", SqlDbType.Int).Value = usuarioActual.IdUsuario;
-                cmd.Parameters.Add("@vchUsuario", SqlDbType.VarChar, 32).Value = usuarioActual.Usuario;
-                cmd.Parameters.Add("@intIdEmpresa", SqlDbType.Int).Value = usuarioActual.IdEmpresa;
-                cmd.Parameters.Add("@intIdRol", SqlDbType.Int).Value = usuarioActual.IdRol;
-                cmd.Parameters.Add("@vchIdRolFiltro", SqlDbType.VarChar, 200).Value =
+                cmd.Parameters.Add("@p_intIdUsuario", MySqlDbType.Int32).Value = usuarioActual.IdUsuario;
+                cmd.Parameters.Add("@p_vchUsuario", MySqlDbType.VarChar, 32).Value = usuarioActual.Usuario;
+                cmd.Parameters.Add("@p_intIdEmpresa", MySqlDbType.Int32).Value = usuarioActual.IdEmpresa;
+                cmd.Parameters.Add("@p_intIdRol", MySqlDbType.Int32).Value = usuarioActual.IdRol;
+                cmd.Parameters.Add("@p_vchIdRolFiltro", MySqlDbType.VarChar, 200).Value =
                     idsRolFiltro is { Count: > 0 } ? (object)string.Join(",", idsRolFiltro) : DBNull.Value;
 
                 await cn.OpenAsync();
-                using SqlDataReader dr = await cmd.ExecuteReaderAsync();
+                using MySqlDataReader dr = await cmd.ExecuteReaderAsync();
 
                 var respuesta = await LeerCabeceraAsync(dr, cmd.CommandText);
 
@@ -471,25 +445,22 @@ namespace SafetyReport.Infrastructure.Persistencia
         {
             try
             {
-                using SqlConnection cn = new(_dbConfig.ConnectionString);
-                using SqlCommand cmd = new("SP_UsuarioAsignacion_ListaCorta", cn);
+                using MySqlConnection cn = new(_dbConfig.ConnectionString);
+                using MySqlCommand cmd = new("SP_UsuarioAsignacion_ListaCorta", cn);
 
                 cmd.CommandType = CommandType.StoredProcedure;
-                cmd.Parameters.Add("@intIdUsuario", SqlDbType.Int).Value = usuarioActual.IdUsuario;
-                cmd.Parameters.Add("@vchUsuario", SqlDbType.VarChar, 32).Value = usuarioActual.Usuario;
-                cmd.Parameters.Add("@intIdEmpresa", SqlDbType.Int).Value = usuarioActual.IdEmpresa;
-                cmd.Parameters.Add("@intIdRol", SqlDbType.Int).Value = usuarioActual.IdRol;
-                cmd.Parameters.Add("@intIdRolFiltro", SqlDbType.Int).Value = idRolFiltro;
-                cmd.Parameters.Add("@vchFiltro", SqlDbType.VarChar, 255).Value = (object?)filtro ?? DBNull.Value;
-                cmd.Parameters.Add("@bitEsTraductor", SqlDbType.Bit).Value = esTraductor;
+                cmd.Parameters.Add("@p_intIdUsuario", MySqlDbType.Int32).Value = usuarioActual.IdUsuario;
+                cmd.Parameters.Add("@p_vchUsuario", MySqlDbType.VarChar, 32).Value = usuarioActual.Usuario;
+                cmd.Parameters.Add("@p_intIdEmpresa", MySqlDbType.Int32).Value = usuarioActual.IdEmpresa;
+                cmd.Parameters.Add("@p_intIdRol", MySqlDbType.Int32).Value = usuarioActual.IdRol;
+                cmd.Parameters.Add("@p_intIdRolFiltro", MySqlDbType.Int32).Value = idRolFiltro;
+                cmd.Parameters.Add("@p_vchFiltro", MySqlDbType.VarChar, 255).Value = (object?)filtro ?? DBNull.Value;
+                cmd.Parameters.Add("@p_bitEsTraductor", MySqlDbType.Bool).Value = esTraductor;
 
-                var tableIdiomas = ConstruirTablaListaGeneralNum(idiomasPedido);
-                var tvpIdiomas = cmd.Parameters.AddWithValue("@lstIdiomasPedido", tableIdiomas);
-                tvpIdiomas.SqlDbType = SqlDbType.Structured;
-                tvpIdiomas.TypeName = "LISTA_GENERAL_NUM";
+                cmd.Parameters.Add("@p_jsonIdiomasPedido", MySqlDbType.JSON).Value = ConstruirJsonListaGeneralNum(idiomasPedido);
 
                 await cn.OpenAsync();
-                using SqlDataReader dr = await cmd.ExecuteReaderAsync();
+                using MySqlDataReader dr = await cmd.ExecuteReaderAsync();
 
                 var respuesta = await LeerCabeceraAsync(dr, cmd.CommandText);
 
@@ -534,19 +505,19 @@ namespace SafetyReport.Infrastructure.Persistencia
         {
             try
             {
-                using SqlConnection cn = new(_dbConfig.ConnectionString);
-                using SqlCommand cmd = new("SP_Usuario_Actualizar_Cognito", cn);
+                using MySqlConnection cn = new(_dbConfig.ConnectionString);
+                using MySqlCommand cmd = new("SP_Usuario_Actualizar_Cognito", cn);
 
                 cmd.CommandType = CommandType.StoredProcedure;
-                cmd.Parameters.Add("@intIdUsuario", SqlDbType.Int).Value = usuarioActual.IdUsuario;
-                cmd.Parameters.Add("@vchUsuario", SqlDbType.VarChar, 32).Value = usuarioActual.Usuario;
-                cmd.Parameters.Add("@intIdEmpresa", SqlDbType.Int).Value = usuarioActual.IdEmpresa;
-                cmd.Parameters.Add("@intIdRol", SqlDbType.Int).Value = usuarioActual.IdRol;
-                cmd.Parameters.Add("@intIdUsuarioActualizar", SqlDbType.Int).Value = idUsuarioActualizar;
-                cmd.Parameters.Add("@vchSub", SqlDbType.VarChar, 255).Value = sub;
+                cmd.Parameters.Add("@p_intIdUsuario", MySqlDbType.Int32).Value = usuarioActual.IdUsuario;
+                cmd.Parameters.Add("@p_vchUsuario", MySqlDbType.VarChar, 32).Value = usuarioActual.Usuario;
+                cmd.Parameters.Add("@p_intIdEmpresa", MySqlDbType.Int32).Value = usuarioActual.IdEmpresa;
+                cmd.Parameters.Add("@p_intIdRol", MySqlDbType.Int32).Value = usuarioActual.IdRol;
+                cmd.Parameters.Add("@p_intIdUsuarioActualizar", MySqlDbType.Int32).Value = idUsuarioActualizar;
+                cmd.Parameters.Add("@p_vchSub", MySqlDbType.VarChar, 255).Value = sub;
 
                 await cn.OpenAsync();
-                using SqlDataReader dr = await cmd.ExecuteReaderAsync();
+                using MySqlDataReader dr = await cmd.ExecuteReaderAsync();
 
                 return await LeerCabeceraAsync(dr, cmd.CommandText);
             }
@@ -566,19 +537,19 @@ namespace SafetyReport.Infrastructure.Persistencia
         {
             try
             {
-                using SqlConnection cn = new(_dbConfig.ConnectionString);
-                using SqlCommand cmd = new("SP_Usuario_Resumen", cn);
+                using MySqlConnection cn = new(_dbConfig.ConnectionString);
+                using MySqlCommand cmd = new("SP_Usuario_Resumen", cn);
 
                 cmd.CommandType = CommandType.StoredProcedure;
-                cmd.Parameters.Add("@intIdUsuario", SqlDbType.Int).Value = usuarioLogueado.IdUsuario;
-                cmd.Parameters.Add("@vchUsuario", SqlDbType.VarChar, 32).Value = usuarioLogueado.Usuario;
-                cmd.Parameters.Add("@intIdEmpresa", SqlDbType.Int).Value = usuarioLogueado.IdEmpresa;
-                cmd.Parameters.Add("@intIdRol", SqlDbType.Int).Value = usuarioLogueado.IdRol;
-                cmd.Parameters.Add("@dtFchDesde", SqlDbType.Date).Value = (object?)filtro.fchDesde ?? DBNull.Value;
-                cmd.Parameters.Add("@dtFchHasta", SqlDbType.Date).Value = (object?)filtro.fchHasta ?? DBNull.Value;
-                cmd.Parameters.Add("@intIdColaborador", SqlDbType.Int).Value = (object?)filtro.idColaborador ?? DBNull.Value;
-                cmd.Parameters.Add("@intIdRolAsignado", SqlDbType.Int).Value = (object?)filtro.idRolAsignado ?? DBNull.Value;
-                cmd.Parameters.Add("@numPag", SqlDbType.Int).Value = (object?)filtro.numPag ?? DBNull.Value;
+                cmd.Parameters.Add("@p_intIdUsuario", MySqlDbType.Int32).Value = usuarioLogueado.IdUsuario;
+                cmd.Parameters.Add("@p_vchUsuario", MySqlDbType.VarChar, 32).Value = usuarioLogueado.Usuario;
+                cmd.Parameters.Add("@p_intIdEmpresa", MySqlDbType.Int32).Value = usuarioLogueado.IdEmpresa;
+                cmd.Parameters.Add("@p_intIdRol", MySqlDbType.Int32).Value = usuarioLogueado.IdRol;
+                cmd.Parameters.Add("@p_dtFchDesde", MySqlDbType.Date).Value = (object?)filtro.fchDesde ?? DBNull.Value;
+                cmd.Parameters.Add("@p_dtFchHasta", MySqlDbType.Date).Value = (object?)filtro.fchHasta ?? DBNull.Value;
+                cmd.Parameters.Add("@p_intIdColaborador", MySqlDbType.Int32).Value = (object?)filtro.idColaborador ?? DBNull.Value;
+                cmd.Parameters.Add("@p_intIdRolAsignado", MySqlDbType.Int32).Value = (object?)filtro.idRolAsignado ?? DBNull.Value;
+                cmd.Parameters.Add("@p_numPag", MySqlDbType.Int32).Value = (object?)filtro.numPag ?? DBNull.Value;
 
                 await cn.OpenAsync();
 

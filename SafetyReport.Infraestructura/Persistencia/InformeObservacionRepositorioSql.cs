@@ -1,8 +1,9 @@
-using Microsoft.Data.SqlClient;
+using MySqlConnector;
 using Microsoft.Extensions.Logging;
 using SafetyReport.Application.Puertos.Informe;
 using SafetyReport.Application.Puertos.InformeObservacion;
 using System.Data;
+using System.Text.Json;
 
 namespace SafetyReport.Infrastructure.Persistencia
 {
@@ -21,10 +22,10 @@ namespace SafetyReport.Infrastructure.Persistencia
         {
             try
             {
-                using SqlConnection cn = new(_dbConfig.ConnectionString);
-                using SqlCommand cmd = new("SP_InformeObservacion_Listar", cn) { CommandType = CommandType.StoredProcedure };
+                using MySqlConnection cn = new(_dbConfig.ConnectionString);
+                using MySqlCommand cmd = new("SP_InformeObservacion_Listar", cn) { CommandType = CommandType.StoredProcedure };
                 AgregarParametrosAuditoria(cmd, u);
-                cmd.Parameters.Add("@intIdPedido", SqlDbType.Int).Value = idPedido;
+                cmd.Parameters.Add("@p_intIdPedido", MySqlDbType.Int32).Value = idPedido;
                 await cn.OpenAsync();
 
                 using var dr = await cmd.ExecuteReaderAsync();
@@ -59,18 +60,13 @@ namespace SafetyReport.Infrastructure.Persistencia
         {
             try
             {
-                var t = new DataTable();
-                t.Columns.Add("Observacion", typeof(string));
-                t.Columns.Add("Checked", typeof(bool));
-                foreach (var o in observaciones)
-                    t.Rows.Add((object?)o.Observacion ?? DBNull.Value, o.Checked);
-
-                using SqlConnection cn = new(_dbConfig.ConnectionString);
-                using SqlCommand cmd = new("SP_InformeObservacion_InsertarLote", cn) { CommandType = CommandType.StoredProcedure };
+                using MySqlConnection cn = new(_dbConfig.ConnectionString);
+                using MySqlCommand cmd = new("SP_InformeObservacion_InsertarLote", cn) { CommandType = CommandType.StoredProcedure };
                 AgregarParametrosAuditoria(cmd, u);
-                cmd.Parameters.Add("@intIdInforme", SqlDbType.Int).Value = idInforme;
-                cmd.Parameters.Add("@intIdPedido", SqlDbType.Int).Value = idPedido;
-                AgregarTvp(cmd, "@lstObservaciones", t, "LISTA_INFORME_OBSERVACION");
+                cmd.Parameters.Add("@p_intIdInforme", MySqlDbType.Int32).Value = idInforme;
+                cmd.Parameters.Add("@p_intIdPedido", MySqlDbType.Int32).Value = idPedido;
+                var json = JsonSerializer.Serialize(observaciones.Select(o => new { o.Observacion, o.Checked }));
+                cmd.Parameters.Add("@p_jsonObservaciones", MySqlDbType.JSON).Value = json;
                 await cn.OpenAsync();
 
                 using var dr = await cmd.ExecuteReaderAsync();
@@ -95,12 +91,12 @@ namespace SafetyReport.Infrastructure.Persistencia
         {
             try
             {
-                using SqlConnection cn = new(_dbConfig.ConnectionString);
-                using SqlCommand cmd = new("SP_InformeObservacion_Editar", cn) { CommandType = CommandType.StoredProcedure };
+                using MySqlConnection cn = new(_dbConfig.ConnectionString);
+                using MySqlCommand cmd = new("SP_InformeObservacion_Editar", cn) { CommandType = CommandType.StoredProcedure };
                 AgregarParametrosAuditoria(cmd, u);
-                cmd.Parameters.Add("@intIdInformeObservacion", SqlDbType.Int).Value = request.IdInformeObservacion;
-                cmd.Parameters.Add("@vchObservacion", SqlDbType.VarChar, 500).Value = (object?)request.Observacion ?? DBNull.Value;
-                cmd.Parameters.Add("@bitChecked", SqlDbType.Bit).Value = request.Checked;
+                cmd.Parameters.Add("@p_intIdInformeObservacion", MySqlDbType.Int32).Value = request.IdInformeObservacion;
+                cmd.Parameters.Add("@p_vchObservacion", MySqlDbType.VarChar, 500).Value = (object?)request.Observacion ?? DBNull.Value;
+                cmd.Parameters.Add("@p_bitChecked", MySqlDbType.Bool).Value = request.Checked;
                 await cn.OpenAsync();
 
                 using var dr = await cmd.ExecuteReaderAsync();
@@ -125,10 +121,10 @@ namespace SafetyReport.Infrastructure.Persistencia
         {
             try
             {
-                using SqlConnection cn = new(_dbConfig.ConnectionString);
-                using SqlCommand cmd = new("SP_InformeObservacion_Eliminar", cn) { CommandType = CommandType.StoredProcedure };
+                using MySqlConnection cn = new(_dbConfig.ConnectionString);
+                using MySqlCommand cmd = new("SP_InformeObservacion_Eliminar", cn) { CommandType = CommandType.StoredProcedure };
                 AgregarParametrosAuditoria(cmd, u);
-                cmd.Parameters.Add("@intIdInformeObservacion", SqlDbType.Int).Value = idInformeObservacion;
+                cmd.Parameters.Add("@p_intIdInformeObservacion", MySqlDbType.Int32).Value = idInformeObservacion;
                 await cn.OpenAsync();
 
                 using var dr = await cmd.ExecuteReaderAsync();
@@ -150,7 +146,7 @@ namespace SafetyReport.Infrastructure.Persistencia
         }
 
         // Lee el result set 1 (siempre presente): IdTipoMensaje, Mensaje. Sin columna Result.
-        private async Task<Respuesta> LeerCabeceraAsync(SqlDataReader dr, string procedimiento)
+        private async Task<Respuesta> LeerCabeceraAsync(MySqlDataReader dr, string procedimiento)
         {
             var respuesta = new Respuesta();
 
@@ -172,22 +168,15 @@ namespace SafetyReport.Infrastructure.Persistencia
             return respuesta;
         }
 
-        private static string? GetNullableString(SqlDataReader dr, string columna) =>
+        private static string? GetNullableString(MySqlDataReader dr, string columna) =>
             dr[columna] == DBNull.Value ? null : dr[columna].ToString();
 
-        private static void AgregarTvp(SqlCommand cmd, string paramName, DataTable table, string typeName)
+        private static void AgregarParametrosAuditoria(MySqlCommand cmd, UsuarioGeneral u)
         {
-            var p = cmd.Parameters.AddWithValue(paramName, table);
-            p.SqlDbType = SqlDbType.Structured;
-            p.TypeName = typeName;
-        }
-
-        private static void AgregarParametrosAuditoria(SqlCommand cmd, UsuarioGeneral u)
-        {
-            cmd.Parameters.Add("@intIdUsuario", SqlDbType.Int).Value = u.IdUsuario;
-            cmd.Parameters.Add("@vchUsuario", SqlDbType.VarChar, 32).Value = u.Usuario;
-            cmd.Parameters.Add("@intIdEmpresa", SqlDbType.Int).Value = u.IdEmpresa;
-            cmd.Parameters.Add("@intIdRol", SqlDbType.Int).Value = u.IdRol;
+            cmd.Parameters.Add("@p_intIdUsuario", MySqlDbType.Int32).Value = u.IdUsuario;
+            cmd.Parameters.Add("@p_vchUsuario", MySqlDbType.VarChar, 32).Value = u.Usuario;
+            cmd.Parameters.Add("@p_intIdEmpresa", MySqlDbType.Int32).Value = u.IdEmpresa;
+            cmd.Parameters.Add("@p_intIdRol", MySqlDbType.Int32).Value = u.IdRol;
         }
     }
 }

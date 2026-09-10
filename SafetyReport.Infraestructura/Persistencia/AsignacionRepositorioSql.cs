@@ -1,7 +1,8 @@
-using Microsoft.Data.SqlClient;
+using MySqlConnector;
 using Microsoft.Extensions.Logging;
 using SafetyReport.Application.Puertos.Asignacion;
 using System.Data;
+using System.Text.Json;
 
 namespace SafetyReport.Infrastructure.Persistencia
 {
@@ -16,49 +17,26 @@ namespace SafetyReport.Infrastructure.Persistencia
             _logger = logger;
         }
 
-        private static DataTable ConstruirTablaListaGeneralNum(List<int>? valores)
-        {
-            var table = new DataTable();
-            table.Columns.Add("ID", typeof(int));
-            table.Columns.Add("NUM1", typeof(int));
+        // Shape esperado por SP_Asignacion_Insertar (p_json_ids_pedido): array de {ID, NUM1} — el SP recorre
+        // el JSON con un cursor "ORDER BY jt.ID", así que el orden de inserción debe viajar explícito.
+        private static string ConstruirJsonListaGeneralNum(List<int>? valores) =>
+            JsonSerializer.Serialize((valores ?? new List<int>()).Select((valor, i) => new { ID = i + 1, NUM1 = valor }));
 
-            int i = 1;
-            if (valores != null)
-            {
-                foreach (var valor in valores)
-                {
-                    table.Rows.Add(i++, valor);
-                }
-            }
-
-            return table;
-        }
-
-        private static DataTable ConstruirTablaAsignados(List<AsignacionUsuario> asignados)
-        {
-            var table = new DataTable();
-            table.Columns.Add("ID", typeof(int));
-            table.Columns.Add("IdUsuarioAsignado", typeof(int));
-            table.Columns.Add("IdRolAsignado", typeof(int));
-            table.Columns.Add("IdEstado", typeof(int));
-
-            int i = 1;
-            foreach (var a in asignados)
-                table.Rows.Add(i++, a.IdUsuarioAsignado, a.IdRolAsignado, a.IdEstado);
-
-            return table;
-        }
+        // Shape esperado por SP_Asignacion_Insertar/_Actualizar (p_json_asignados): array de
+        // {ID, IdUsuarioAsignado, IdRolAsignado, IdEstado} — mismo motivo de ID explícito que arriba.
+        private static string ConstruirJsonAsignados(List<AsignacionUsuario> asignados) =>
+            JsonSerializer.Serialize(asignados.Select((a, i) => new { ID = i + 1, a.IdUsuarioAsignado, a.IdRolAsignado, a.IdEstado }));
 
         // ── Reader helpers ────────────────────────────────────────────────────────
 
-        private static int? GetNullableInt(SqlDataReader dr, string columna) =>
+        private static int? GetNullableInt(MySqlDataReader dr, string columna) =>
             dr[columna] == DBNull.Value ? null : Convert.ToInt32(dr[columna]);
 
-        private static string? GetNullableString(SqlDataReader dr, string columna) =>
+        private static string? GetNullableString(MySqlDataReader dr, string columna) =>
             dr[columna] == DBNull.Value ? null : dr[columna].ToString();
 
         // Lee el result set 1 (siempre presente): IdTipoMensaje, Mensaje.
-        private async Task<Respuesta> LeerCabeceraAsync(SqlDataReader dr, string procedimiento)
+        private async Task<Respuesta> LeerCabeceraAsync(MySqlDataReader dr, string procedimiento)
         {
             var respuesta = new Respuesta();
 
@@ -81,7 +59,7 @@ namespace SafetyReport.Infrastructure.Persistencia
         }
 
         // Lee un result set de una sola columna IdAsignacion (result set 2 en éxito).
-        private static async Task<List<T>> LeerIdAsignacionesAsync<T>(SqlDataReader dr, Func<int, T> map)
+        private static async Task<List<T>> LeerIdAsignacionesAsync<T>(MySqlDataReader dr, Func<int, T> map)
         {
             var lista = new List<T>();
             while (await dr.ReadAsync())
@@ -94,24 +72,17 @@ namespace SafetyReport.Infrastructure.Persistencia
         {
             try
             {
-                using SqlConnection cn = new(_dbConfig.ConnectionString);
-                using SqlCommand cmd = new("SP_Asignacion_Insertar", cn);
+                using MySqlConnection cn = new(_dbConfig.ConnectionString);
+                using MySqlCommand cmd = new("SP_Asignacion_Insertar", cn);
 
                 cmd.CommandType = CommandType.StoredProcedure;
-                cmd.Parameters.Add("@intIdUsuario", SqlDbType.Int).Value = usuarioActual.IdUsuario;
-                cmd.Parameters.Add("@vchUsuario", SqlDbType.VarChar, 32).Value = usuarioActual.Usuario;
-                cmd.Parameters.Add("@intIdEmpresa", SqlDbType.Int).Value = usuarioActual.IdEmpresa;
-                cmd.Parameters.Add("@intIdRol", SqlDbType.Int).Value = usuarioActual.IdRol;
+                cmd.Parameters.Add("@p_intIdUsuario", MySqlDbType.Int32).Value = usuarioActual.IdUsuario;
+                cmd.Parameters.Add("@p_vchUsuario", MySqlDbType.VarChar, 32).Value = usuarioActual.Usuario;
+                cmd.Parameters.Add("@p_intIdEmpresa", MySqlDbType.Int32).Value = usuarioActual.IdEmpresa;
+                cmd.Parameters.Add("@p_intIdRol", MySqlDbType.Int32).Value = usuarioActual.IdRol;
 
-                var tableIdsPedido = ConstruirTablaListaGeneralNum(request.IdsPedido);
-                var tvpIdsPedido = cmd.Parameters.AddWithValue("@lstIdsPedido", tableIdsPedido);
-                tvpIdsPedido.SqlDbType = SqlDbType.Structured;
-                tvpIdsPedido.TypeName = "LISTA_GENERAL_NUM";
-
-                var tableAsignados = ConstruirTablaAsignados(request.Asignados);
-                var tvpAsignados = cmd.Parameters.AddWithValue("@lstAsignados", tableAsignados);
-                tvpAsignados.SqlDbType = SqlDbType.Structured;
-                tvpAsignados.TypeName = "LISTA_ASIGNADOS";
+                cmd.Parameters.Add("@p_json_ids_pedido", MySqlDbType.JSON).Value = ConstruirJsonListaGeneralNum(request.IdsPedido);
+                cmd.Parameters.Add("@p_json_asignados", MySqlDbType.JSON).Value = ConstruirJsonAsignados(request.Asignados);
 
                 await cn.OpenAsync();
 
@@ -142,19 +113,16 @@ namespace SafetyReport.Infrastructure.Persistencia
         {
             try
             {
-                using SqlConnection cn = new(_dbConfig.ConnectionString);
-                using SqlCommand cmd = new("SP_Asignacion_Actualizar", cn);
+                using MySqlConnection cn = new(_dbConfig.ConnectionString);
+                using MySqlCommand cmd = new("SP_Asignacion_Actualizar", cn);
 
                 cmd.CommandType = CommandType.StoredProcedure;
-                cmd.Parameters.Add("@intIdUsuario", SqlDbType.Int).Value = usuarioActual.IdUsuario;
-                cmd.Parameters.Add("@vchUsuario", SqlDbType.VarChar, 32).Value = usuarioActual.Usuario;
-                cmd.Parameters.Add("@intIdEmpresa", SqlDbType.Int).Value = usuarioActual.IdEmpresa;
-                cmd.Parameters.Add("@intIdRol", SqlDbType.Int).Value = usuarioActual.IdRol;
-                cmd.Parameters.Add("@intIdPedido", SqlDbType.Int).Value = request.IdPedido;
-                var tableAsignados = ConstruirTablaAsignados(request.Asignados);
-                var tvpAsignados = cmd.Parameters.AddWithValue("@lstAsignados", tableAsignados);
-                tvpAsignados.SqlDbType = SqlDbType.Structured;
-                tvpAsignados.TypeName = "LISTA_ASIGNADOS";
+                cmd.Parameters.Add("@p_intIdUsuario", MySqlDbType.Int32).Value = usuarioActual.IdUsuario;
+                cmd.Parameters.Add("@p_vchUsuario", MySqlDbType.VarChar, 32).Value = usuarioActual.Usuario;
+                cmd.Parameters.Add("@p_intIdEmpresa", MySqlDbType.Int32).Value = usuarioActual.IdEmpresa;
+                cmd.Parameters.Add("@p_intIdRol", MySqlDbType.Int32).Value = usuarioActual.IdRol;
+                cmd.Parameters.Add("@p_intIdPedido", MySqlDbType.Int32).Value = request.IdPedido;
+                cmd.Parameters.Add("@p_json_asignados", MySqlDbType.JSON).Value = ConstruirJsonAsignados(request.Asignados);
 
                 await cn.OpenAsync();
 
@@ -185,17 +153,17 @@ namespace SafetyReport.Infrastructure.Persistencia
         {
             try
             {
-                using SqlConnection cn = new(_dbConfig.ConnectionString);
-                using SqlCommand cmd = new("SP_Asignacion_Listar", cn);
+                using MySqlConnection cn = new(_dbConfig.ConnectionString);
+                using MySqlCommand cmd = new("SP_Asignacion_Listar", cn);
 
                 cmd.CommandType = CommandType.StoredProcedure;
-                cmd.Parameters.Add("@intIdUsuario", SqlDbType.Int).Value = usuarioActual.IdUsuario;
-                cmd.Parameters.Add("@vchUsuario", SqlDbType.VarChar, 32).Value = usuarioActual.Usuario;
-                cmd.Parameters.Add("@intIdEmpresa", SqlDbType.Int).Value = usuarioActual.IdEmpresa;
-                cmd.Parameters.Add("@intIdRol", SqlDbType.Int).Value = usuarioActual.IdRol;
-                cmd.Parameters.Add("@vchBusqueda", SqlDbType.VarChar, 255).Value = (object?)request.busqueda ?? DBNull.Value;
-                cmd.Parameters.Add("@intIdEstado", SqlDbType.Int).Value = (object?)request.idEstado ?? DBNull.Value;
-                cmd.Parameters.Add("@numPag", SqlDbType.Int).Value = (object?)request.numPag ?? DBNull.Value;
+                cmd.Parameters.Add("@p_intIdUsuario", MySqlDbType.Int32).Value = usuarioActual.IdUsuario;
+                cmd.Parameters.Add("@p_vchUsuario", MySqlDbType.VarChar, 32).Value = usuarioActual.Usuario;
+                cmd.Parameters.Add("@p_intIdEmpresa", MySqlDbType.Int32).Value = usuarioActual.IdEmpresa;
+                cmd.Parameters.Add("@p_intIdRol", MySqlDbType.Int32).Value = usuarioActual.IdRol;
+                cmd.Parameters.Add("@p_vchBusqueda", MySqlDbType.VarChar, 255).Value = (object?)request.busqueda ?? DBNull.Value;
+                cmd.Parameters.Add("@p_intIdEstado", MySqlDbType.Int32).Value = (object?)request.idEstado ?? DBNull.Value;
+                cmd.Parameters.Add("@p_numPag", MySqlDbType.Int32).Value = (object?)request.numPag ?? DBNull.Value;
 
                 await cn.OpenAsync();
 
@@ -258,15 +226,15 @@ namespace SafetyReport.Infrastructure.Persistencia
         {
             try
             {
-                using SqlConnection cn = new(_dbConfig.ConnectionString);
-                using SqlCommand cmd = new("SP_Asignacion_Obtener", cn);
+                using MySqlConnection cn = new(_dbConfig.ConnectionString);
+                using MySqlCommand cmd = new("SP_Asignacion_Obtener", cn);
 
                 cmd.CommandType = CommandType.StoredProcedure;
-                cmd.Parameters.Add("@intIdUsuario", SqlDbType.Int).Value = usuarioActual.IdUsuario;
-                cmd.Parameters.Add("@vchUsuario", SqlDbType.VarChar, 32).Value = usuarioActual.Usuario;
-                cmd.Parameters.Add("@intIdEmpresa", SqlDbType.Int).Value = usuarioActual.IdEmpresa;
-                cmd.Parameters.Add("@intIdRol", SqlDbType.Int).Value = usuarioActual.IdRol;
-                cmd.Parameters.Add("@intIdAsignacion", SqlDbType.Int).Value = idAsignacion;
+                cmd.Parameters.Add("@p_intIdUsuario", MySqlDbType.Int32).Value = usuarioActual.IdUsuario;
+                cmd.Parameters.Add("@p_vchUsuario", MySqlDbType.VarChar, 32).Value = usuarioActual.Usuario;
+                cmd.Parameters.Add("@p_intIdEmpresa", MySqlDbType.Int32).Value = usuarioActual.IdEmpresa;
+                cmd.Parameters.Add("@p_intIdRol", MySqlDbType.Int32).Value = usuarioActual.IdRol;
+                cmd.Parameters.Add("@p_intIdAsignacion", MySqlDbType.Int32).Value = idAsignacion;
 
                 await cn.OpenAsync();
 
@@ -316,16 +284,16 @@ namespace SafetyReport.Infrastructure.Persistencia
         {
             try
             {
-                using SqlConnection cn = new(_dbConfig.ConnectionString);
-                using SqlCommand cmd = new("SP_Asignacion_Bandeja", cn);
+                using MySqlConnection cn = new(_dbConfig.ConnectionString);
+                using MySqlCommand cmd = new("SP_Asignacion_Bandeja", cn);
 
                 cmd.CommandType = CommandType.StoredProcedure;
-                cmd.Parameters.Add("@intIdUsuario", SqlDbType.Int).Value = usuarioActual.IdUsuario;
-                cmd.Parameters.Add("@vchUsuario", SqlDbType.VarChar, 32).Value = usuarioActual.Usuario;
-                cmd.Parameters.Add("@intIdEmpresa", SqlDbType.Int).Value = usuarioActual.IdEmpresa;
-                cmd.Parameters.Add("@intIdRol", SqlDbType.Int).Value = usuarioActual.IdRol;
-                cmd.Parameters.Add("@vchBusqueda", SqlDbType.VarChar, 255).Value = (object?)filtro.Busqueda ?? DBNull.Value;
-                cmd.Parameters.Add("@intNumPag", SqlDbType.Int).Value = filtro.NumPag;
+                cmd.Parameters.Add("@p_intIdUsuario", MySqlDbType.Int32).Value = usuarioActual.IdUsuario;
+                cmd.Parameters.Add("@p_vchUsuario", MySqlDbType.VarChar, 32).Value = usuarioActual.Usuario;
+                cmd.Parameters.Add("@p_intIdEmpresa", MySqlDbType.Int32).Value = usuarioActual.IdEmpresa;
+                cmd.Parameters.Add("@p_intIdRol", MySqlDbType.Int32).Value = usuarioActual.IdRol;
+                cmd.Parameters.Add("@p_vchBusqueda", MySqlDbType.VarChar, 255).Value = (object?)filtro.Busqueda ?? DBNull.Value;
+                cmd.Parameters.Add("@p_intNumPag", MySqlDbType.Int32).Value = filtro.NumPag;
 
                 await cn.OpenAsync();
 
@@ -391,15 +359,15 @@ namespace SafetyReport.Infrastructure.Persistencia
         {
             try
             {
-                using SqlConnection cn = new(_dbConfig.ConnectionString);
-                using SqlCommand cmd = new("SP_Asignacion_Eliminar", cn);
+                using MySqlConnection cn = new(_dbConfig.ConnectionString);
+                using MySqlCommand cmd = new("SP_Asignacion_Eliminar", cn);
 
                 cmd.CommandType = CommandType.StoredProcedure;
-                cmd.Parameters.Add("@intIdUsuario", SqlDbType.Int).Value = usuarioActual.IdUsuario;
-                cmd.Parameters.Add("@vchUsuario", SqlDbType.VarChar, 32).Value = usuarioActual.Usuario;
-                cmd.Parameters.Add("@intIdEmpresa", SqlDbType.Int).Value = usuarioActual.IdEmpresa;
-                cmd.Parameters.Add("@intIdRol", SqlDbType.Int).Value = usuarioActual.IdRol;
-                cmd.Parameters.Add("@intIdAsignacion", SqlDbType.Int).Value = request.IdAsignacion;
+                cmd.Parameters.Add("@p_intIdUsuario", MySqlDbType.Int32).Value = usuarioActual.IdUsuario;
+                cmd.Parameters.Add("@p_vchUsuario", MySqlDbType.VarChar, 32).Value = usuarioActual.Usuario;
+                cmd.Parameters.Add("@p_intIdEmpresa", MySqlDbType.Int32).Value = usuarioActual.IdEmpresa;
+                cmd.Parameters.Add("@p_intIdRol", MySqlDbType.Int32).Value = usuarioActual.IdRol;
+                cmd.Parameters.Add("@p_intIdAsignacion", MySqlDbType.Int32).Value = request.IdAsignacion;
 
                 await cn.OpenAsync();
 

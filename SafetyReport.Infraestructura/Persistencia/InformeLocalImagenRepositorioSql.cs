@@ -1,8 +1,9 @@
-using Microsoft.Data.SqlClient;
+using MySqlConnector;
 using Microsoft.Extensions.Logging;
 using SafetyReport.Application.Puertos.InformeLocalImagen;
 using SafetyReport.Application.Puertos.Informe;
 using System.Data;
+using System.Text.Json;
 
 namespace SafetyReport.Infrastructure.Persistencia
 {
@@ -17,13 +18,13 @@ namespace SafetyReport.Infrastructure.Persistencia
             _logger = logger;
         }
 
-        private static string? GetNullableString(SqlDataReader dr, string columnName)
+        private static string? GetNullableString(MySqlDataReader dr, string columnName)
         {
             var value = dr[columnName];
             return value == DBNull.Value ? null : value.ToString();
         }
 
-        private async Task<Respuesta> LeerCabeceraAsync(SqlDataReader dr, string commandText)
+        private async Task<Respuesta> LeerCabeceraAsync(MySqlDataReader dr, string commandText)
         {
             var respuesta = new Respuesta();
 
@@ -50,15 +51,10 @@ namespace SafetyReport.Infrastructure.Persistencia
         {
             try
             {
-                var t = new DataTable();
-                t.Columns.Add("IdInformeLocalImagen", typeof(int));
-                foreach (var id in ids)
-                    t.Rows.Add(id);
-
-                using SqlConnection cn = new(_dbConfig.ConnectionString);
-                using SqlCommand cmd = new("SP_InformeLocalImagen_ObtenerUrls", cn) { CommandType = CommandType.StoredProcedure };
+                using MySqlConnection cn = new(_dbConfig.ConnectionString);
+                using MySqlCommand cmd = new("SP_InformeLocalImagen_ObtenerUrls", cn) { CommandType = CommandType.StoredProcedure };
                 AgregarParametrosAuditoria(cmd, u);
-                AgregarTvp(cmd, "@lstIds", t, "LISTA_INFORME_LOCAL_IMAGEN_ID");
+                cmd.Parameters.Add("@p_jsonIds", MySqlDbType.JSON).Value = ConstruirJsonIds(ids);
                 await cn.OpenAsync();
 
                 using var dr = await cmd.ExecuteReaderAsync();
@@ -99,15 +95,10 @@ namespace SafetyReport.Infrastructure.Persistencia
         {
             try
             {
-                var t = new DataTable();
-                t.Columns.Add("IdInformeLocalImagen", typeof(int));
-                foreach (var id in ids)
-                    t.Rows.Add(id);
-
-                using SqlConnection cn = new(_dbConfig.ConnectionString);
-                using SqlCommand cmd = new("SP_InformeLocalImagen_ActualizarEstadoCarga", cn) { CommandType = CommandType.StoredProcedure };
+                using MySqlConnection cn = new(_dbConfig.ConnectionString);
+                using MySqlCommand cmd = new("SP_InformeLocalImagen_ActualizarEstadoCarga", cn) { CommandType = CommandType.StoredProcedure };
                 AgregarParametrosAuditoria(cmd, u);
-                AgregarTvp(cmd, "@lstIds", t, "LISTA_INFORME_LOCAL_IMAGEN_ID");
+                cmd.Parameters.Add("@p_jsonIds", MySqlDbType.JSON).Value = ConstruirJsonIds(ids);
                 await cn.OpenAsync();
 
                 using var dr = await cmd.ExecuteReaderAsync();
@@ -126,11 +117,11 @@ namespace SafetyReport.Infrastructure.Persistencia
 
         public async Task ActualizarImagenUrlAsync(UsuarioGeneral u, int idInformeLocalImagen, string imagenUrl)
         {
-            using SqlConnection cn = new(_dbConfig.ConnectionString);
-            using SqlCommand cmd = new("SP_InformeLocalImagen_ActualizarUrl", cn) { CommandType = CommandType.StoredProcedure };
+            using MySqlConnection cn = new(_dbConfig.ConnectionString);
+            using MySqlCommand cmd = new("SP_InformeLocalImagen_ActualizarUrl", cn) { CommandType = CommandType.StoredProcedure };
             AgregarParametrosAuditoria(cmd, u);
-            cmd.Parameters.Add("@intIdInformeLocalImagen", SqlDbType.Int).Value = idInformeLocalImagen;
-            cmd.Parameters.Add("@vchImagenURL", SqlDbType.VarChar, 2048).Value = imagenUrl;
+            cmd.Parameters.Add("@p_intIdInformeLocalImagen", MySqlDbType.Int32).Value = idInformeLocalImagen;
+            cmd.Parameters.Add("@p_vchImagenURL", MySqlDbType.VarChar, 2048).Value = imagenUrl;
             await cn.OpenAsync();
 
             using var dr = await cmd.ExecuteReaderAsync();
@@ -142,19 +133,17 @@ namespace SafetyReport.Infrastructure.Persistencia
             }
         }
 
-        private static void AgregarTvp(SqlCommand cmd, string paramName, DataTable table, string typeName)
-        {
-            var p = cmd.Parameters.AddWithValue(paramName, table);
-            p.SqlDbType = SqlDbType.Structured;
-            p.TypeName = typeName;
-        }
+        // Shape esperado por SP_InformeLocalImagen_ObtenerUrls/_ActualizarEstadoCarga (p_jsonIds):
+        // array de {IdInformeLocalImagen}.
+        private static string ConstruirJsonIds(List<int> ids) =>
+            JsonSerializer.Serialize(ids.Select(id => new { IdInformeLocalImagen = id }));
 
-        private static void AgregarParametrosAuditoria(SqlCommand cmd, UsuarioGeneral u)
+        private static void AgregarParametrosAuditoria(MySqlCommand cmd, UsuarioGeneral u)
         {
-            cmd.Parameters.Add("@intIdUsuario", SqlDbType.Int).Value = u.IdUsuario;
-            cmd.Parameters.Add("@vchUsuario", SqlDbType.VarChar, 32).Value = u.Usuario;
-            cmd.Parameters.Add("@intIdEmpresa", SqlDbType.Int).Value = u.IdEmpresa;
-            cmd.Parameters.Add("@intIdRol", SqlDbType.Int).Value = u.IdRol;
+            cmd.Parameters.Add("@p_intIdUsuario", MySqlDbType.Int32).Value = u.IdUsuario;
+            cmd.Parameters.Add("@p_vchUsuario", MySqlDbType.VarChar, 32).Value = u.Usuario;
+            cmd.Parameters.Add("@p_intIdEmpresa", MySqlDbType.Int32).Value = u.IdEmpresa;
+            cmd.Parameters.Add("@p_intIdRol", MySqlDbType.Int32).Value = u.IdRol;
         }
     }
 }

@@ -1,7 +1,8 @@
-using Microsoft.Data.SqlClient;
+using MySqlConnector;
 using Microsoft.Extensions.Logging;
 using SafetyReport.Application.Puertos.PedidoFacturaLinea;
 using System.Data;
+using System.Text.Json;
 
 namespace SafetyReport.Infrastructure.Persistencia
 {
@@ -19,20 +20,11 @@ namespace SafetyReport.Infrastructure.Persistencia
             _logger = logger;
         }
 
-        private static DataTable ConstruirTablaListaGeneralNum(List<int> valores)
-        {
-            var table = new DataTable();
-            table.Columns.Add("ID", typeof(int));
-            table.Columns.Add("NUM1", typeof(int));
+        // Shape esperado por SP_PedidoFacturaLinea_Crear/_ActualizarPedidos/_ObtenerParaBorrador (solo NUM1).
+        private static string ConstruirJsonListaGeneralNum(List<int> valores) =>
+            JsonSerializer.Serialize(valores.Select(v => new { NUM1 = v }));
 
-            int i = 1;
-            foreach (var valor in valores)
-                table.Rows.Add(i++, valor);
-
-            return table;
-        }
-
-        private async Task<Respuesta> LeerCabeceraAsync(SqlDataReader dr, string procedimiento)
+        private async Task<Respuesta> LeerCabeceraAsync(MySqlDataReader dr, string procedimiento)
         {
             var respuesta = new Respuesta();
 
@@ -54,13 +46,13 @@ namespace SafetyReport.Infrastructure.Persistencia
             return respuesta;
         }
 
-        private static string? GetNullableString(SqlDataReader dr, string columna) =>
+        private static string? GetNullableString(MySqlDataReader dr, string columna) =>
             dr[columna] == DBNull.Value ? null : dr[columna].ToString();
 
-        private static int? GetNullableInt(SqlDataReader dr, string columna) =>
+        private static int? GetNullableInt(MySqlDataReader dr, string columna) =>
             dr[columna] == DBNull.Value ? null : Convert.ToInt32(dr[columna]);
 
-        private static decimal? GetNullableDecimal(SqlDataReader dr, string columna) =>
+        private static decimal? GetNullableDecimal(MySqlDataReader dr, string columna) =>
             dr[columna] == DBNull.Value ? null : Convert.ToDecimal(dr[columna]);
 
         // Agrupa idPedidos (mismo cliente/mes/tarifa, validado en el SP) bajo una línea nueva.
@@ -72,21 +64,19 @@ namespace SafetyReport.Infrastructure.Persistencia
         {
             try
             {
-                using SqlConnection cn = new(_dbConfig.ConnectionString);
-                using SqlCommand cmd = new("SP_PedidoFacturaLinea_Crear", cn);
+                using MySqlConnection cn = new(_dbConfig.ConnectionString);
+                using MySqlCommand cmd = new("SP_PedidoFacturaLinea_Crear", cn);
 
                 cmd.CommandType = CommandType.StoredProcedure;
-                cmd.Parameters.Add("@intIdUsuario", SqlDbType.Int).Value = usuarioLogueado.IdUsuario;
-                cmd.Parameters.Add("@vchUsuario", SqlDbType.VarChar, 32).Value = usuarioLogueado.Usuario;
-                cmd.Parameters.Add("@intIdEmpresa", SqlDbType.Int).Value = usuarioLogueado.IdEmpresa;
-                cmd.Parameters.Add("@intIdRol", SqlDbType.Int).Value = usuarioLogueado.IdRol;
-                cmd.Parameters.Add("@intIdCliente", SqlDbType.Int).Value = idCliente;
-                cmd.Parameters.Add("@vchCodigo", SqlDbType.VarChar, 30).Value = (object?)codigo ?? DBNull.Value;
-                cmd.Parameters.Add("@vchDescripcion", SqlDbType.VarChar, 500).Value = descripcion;
+                cmd.Parameters.Add("@p_intIdUsuario", MySqlDbType.Int32).Value = usuarioLogueado.IdUsuario;
+                cmd.Parameters.Add("@p_vchUsuario", MySqlDbType.VarChar, 32).Value = usuarioLogueado.Usuario;
+                cmd.Parameters.Add("@p_intIdEmpresa", MySqlDbType.Int32).Value = usuarioLogueado.IdEmpresa;
+                cmd.Parameters.Add("@p_intIdRol", MySqlDbType.Int32).Value = usuarioLogueado.IdRol;
+                cmd.Parameters.Add("@p_intIdCliente", MySqlDbType.Int32).Value = idCliente;
+                cmd.Parameters.Add("@p_vchCodigo", MySqlDbType.VarChar, 30).Value = (object?)codigo ?? DBNull.Value;
+                cmd.Parameters.Add("@p_vchDescripcion", MySqlDbType.VarChar, 500).Value = descripcion;
 
-                var tvpIdPedido = cmd.Parameters.AddWithValue("@lstIdPedido", ConstruirTablaListaGeneralNum(idPedidos));
-                tvpIdPedido.SqlDbType = SqlDbType.Structured;
-                tvpIdPedido.TypeName = "LISTA_GENERAL_NUM";
+                cmd.Parameters.Add("@p_jsonIdPedido", MySqlDbType.JSON).Value = ConstruirJsonListaGeneralNum(idPedidos);
 
                 await cn.OpenAsync();
 
@@ -122,43 +112,31 @@ namespace SafetyReport.Infrastructure.Persistencia
         {
             try
             {
-                using SqlConnection cn = new(_dbConfig.ConnectionString);
-                using SqlCommand cmd = new("SP_PedidoFacturaLinea_CrearLote", cn);
+                using MySqlConnection cn = new(_dbConfig.ConnectionString);
+                using MySqlCommand cmd = new("SP_PedidoFacturaLinea_CrearLote", cn);
 
                 cmd.CommandType = CommandType.StoredProcedure;
-                cmd.Parameters.Add("@intIdUsuario", SqlDbType.Int).Value = usuarioLogueado.IdUsuario;
-                cmd.Parameters.Add("@vchUsuario", SqlDbType.VarChar, 32).Value = usuarioLogueado.Usuario;
-                cmd.Parameters.Add("@intIdEmpresa", SqlDbType.Int).Value = usuarioLogueado.IdEmpresa;
-                cmd.Parameters.Add("@intIdRol", SqlDbType.Int).Value = usuarioLogueado.IdRol;
-                cmd.Parameters.Add("@intIdCliente", SqlDbType.Int).Value = idCliente;
+                cmd.Parameters.Add("@p_intIdUsuario", MySqlDbType.Int32).Value = usuarioLogueado.IdUsuario;
+                cmd.Parameters.Add("@p_vchUsuario", MySqlDbType.VarChar, 32).Value = usuarioLogueado.Usuario;
+                cmd.Parameters.Add("@p_intIdEmpresa", MySqlDbType.Int32).Value = usuarioLogueado.IdEmpresa;
+                cmd.Parameters.Add("@p_intIdRol", MySqlDbType.Int32).Value = usuarioLogueado.IdRol;
+                cmd.Parameters.Add("@p_intIdCliente", MySqlDbType.Int32).Value = idCliente;
 
-                var tablaLineas = new DataTable();
-                tablaLineas.Columns.Add("IdGrupo", typeof(int));
-                tablaLineas.Columns.Add("Codigo", typeof(string));
-                tablaLineas.Columns.Add("Descripcion", typeof(string));
-                tablaLineas.Columns.Add("ValorUnitario", typeof(decimal));
-                tablaLineas.Columns.Add("Descuento", typeof(decimal));
-
-                var tablaPedidos = new DataTable();
-                tablaPedidos.Columns.Add("ID", typeof(int));
-                tablaPedidos.Columns.Add("NUM1", typeof(int));
-
+                var jsonLineas = new List<object>();
+                var jsonPedidos = new List<object>();
                 var idGrupo = 1;
                 foreach (var grupo in grupos)
                 {
-                    tablaLineas.Rows.Add(idGrupo, (object?)grupo.codigo ?? DBNull.Value, grupo.descripcion, grupo.valorUnitario, grupo.descuento);
+                    jsonLineas.Add(new { IdGrupo = idGrupo, Codigo = grupo.codigo, Descripcion = grupo.descripcion, ValorUnitario = grupo.valorUnitario, Descuento = grupo.descuento });
                     foreach (var idPedido in grupo.idsPedido)
-                        tablaPedidos.Rows.Add(idGrupo, idPedido);
+                        jsonPedidos.Add(new { ID = idGrupo, NUM1 = idPedido });
                     idGrupo++;
                 }
 
-                var tvpLineas = cmd.Parameters.AddWithValue("@tvpLineas", tablaLineas);
-                tvpLineas.SqlDbType = SqlDbType.Structured;
-                tvpLineas.TypeName = "LISTA_LINEA_LOTE";
-
-                var tvpIdPedido = cmd.Parameters.AddWithValue("@lstIdPedido", tablaPedidos);
-                tvpIdPedido.SqlDbType = SqlDbType.Structured;
-                tvpIdPedido.TypeName = "LISTA_GENERAL_NUM";
+                // p_jsonLineas: [{IdGrupo,Codigo,Descripcion,ValorUnitario,Descuento}]
+                // p_jsonIdPedido: ID = IdGrupo, NUM1 = IdPedido (correlaciona ambos JSON por IdGrupo)
+                cmd.Parameters.Add("@p_jsonLineas", MySqlDbType.JSON).Value = JsonSerializer.Serialize(jsonLineas);
+                cmd.Parameters.Add("@p_jsonIdPedido", MySqlDbType.JSON).Value = JsonSerializer.Serialize(jsonPedidos);
 
                 await cn.OpenAsync();
 
@@ -196,19 +174,19 @@ namespace SafetyReport.Infrastructure.Persistencia
         {
             try
             {
-                using SqlConnection cn = new(_dbConfig.ConnectionString);
-                using SqlCommand cmd = new("SP_PedidoFacturaLinea_ActualizarDatos", cn);
+                using MySqlConnection cn = new(_dbConfig.ConnectionString);
+                using MySqlCommand cmd = new("SP_PedidoFacturaLinea_ActualizarDatos", cn);
 
                 cmd.CommandType = CommandType.StoredProcedure;
-                cmd.Parameters.Add("@intIdUsuario", SqlDbType.Int).Value = usuarioLogueado.IdUsuario;
-                cmd.Parameters.Add("@vchUsuario", SqlDbType.VarChar, 32).Value = usuarioLogueado.Usuario;
-                cmd.Parameters.Add("@intIdEmpresa", SqlDbType.Int).Value = usuarioLogueado.IdEmpresa;
-                cmd.Parameters.Add("@intIdRol", SqlDbType.Int).Value = usuarioLogueado.IdRol;
-                cmd.Parameters.Add("@intIdPedidoFacturaLinea", SqlDbType.Int).Value = idPedidoFacturaLinea;
-                cmd.Parameters.Add("@vchCodigo", SqlDbType.VarChar, 30).Value = (object?)codigo ?? DBNull.Value;
-                cmd.Parameters.Add("@vchDescripcion", SqlDbType.VarChar, 500).Value = descripcion;
-                cmd.Parameters.Add("@decValorUnitario", SqlDbType.Decimal).Value = valorUnitario;
-                cmd.Parameters.Add("@decDescuento", SqlDbType.Decimal).Value = descuento;
+                cmd.Parameters.Add("@p_intIdUsuario", MySqlDbType.Int32).Value = usuarioLogueado.IdUsuario;
+                cmd.Parameters.Add("@p_vchUsuario", MySqlDbType.VarChar, 32).Value = usuarioLogueado.Usuario;
+                cmd.Parameters.Add("@p_intIdEmpresa", MySqlDbType.Int32).Value = usuarioLogueado.IdEmpresa;
+                cmd.Parameters.Add("@p_intIdRol", MySqlDbType.Int32).Value = usuarioLogueado.IdRol;
+                cmd.Parameters.Add("@p_intIdPedidoFacturaLinea", MySqlDbType.Int32).Value = idPedidoFacturaLinea;
+                cmd.Parameters.Add("@p_vchCodigo", MySqlDbType.VarChar, 30).Value = (object?)codigo ?? DBNull.Value;
+                cmd.Parameters.Add("@p_vchDescripcion", MySqlDbType.VarChar, 500).Value = descripcion;
+                cmd.Parameters.Add("@p_decValorUnitario", MySqlDbType.Decimal).Value = valorUnitario;
+                cmd.Parameters.Add("@p_decDescuento", MySqlDbType.Decimal).Value = descuento;
 
                 await cn.OpenAsync();
                 using var dr = await cmd.ExecuteReaderAsync();
@@ -244,20 +222,18 @@ namespace SafetyReport.Infrastructure.Persistencia
         {
             try
             {
-                using SqlConnection cn = new(_dbConfig.ConnectionString);
-                using SqlCommand cmd = new("SP_PedidoFacturaLinea_ActualizarPedidos", cn);
+                using MySqlConnection cn = new(_dbConfig.ConnectionString);
+                using MySqlCommand cmd = new("SP_PedidoFacturaLinea_ActualizarPedidos", cn);
 
                 cmd.CommandType = CommandType.StoredProcedure;
-                cmd.Parameters.Add("@intIdUsuario", SqlDbType.Int).Value = usuarioLogueado.IdUsuario;
-                cmd.Parameters.Add("@vchUsuario", SqlDbType.VarChar, 32).Value = usuarioLogueado.Usuario;
-                cmd.Parameters.Add("@intIdEmpresa", SqlDbType.Int).Value = usuarioLogueado.IdEmpresa;
-                cmd.Parameters.Add("@intIdRol", SqlDbType.Int).Value = usuarioLogueado.IdRol;
-                cmd.Parameters.Add("@intIdPedidoFacturaLinea", SqlDbType.Int).Value = idPedidoFacturaLinea;
-                cmd.Parameters.Add("@intIdCliente", SqlDbType.Int).Value = idCliente;
+                cmd.Parameters.Add("@p_intIdUsuario", MySqlDbType.Int32).Value = usuarioLogueado.IdUsuario;
+                cmd.Parameters.Add("@p_vchUsuario", MySqlDbType.VarChar, 32).Value = usuarioLogueado.Usuario;
+                cmd.Parameters.Add("@p_intIdEmpresa", MySqlDbType.Int32).Value = usuarioLogueado.IdEmpresa;
+                cmd.Parameters.Add("@p_intIdRol", MySqlDbType.Int32).Value = usuarioLogueado.IdRol;
+                cmd.Parameters.Add("@p_intIdPedidoFacturaLinea", MySqlDbType.Int32).Value = idPedidoFacturaLinea;
+                cmd.Parameters.Add("@p_intIdCliente", MySqlDbType.Int32).Value = idCliente;
 
-                var tvpIdPedido = cmd.Parameters.AddWithValue("@lstIdPedido", ConstruirTablaListaGeneralNum(idPedidos));
-                tvpIdPedido.SqlDbType = SqlDbType.Structured;
-                tvpIdPedido.TypeName = "LISTA_GENERAL_NUM";
+                cmd.Parameters.Add("@p_jsonIdPedido", MySqlDbType.JSON).Value = ConstruirJsonListaGeneralNum(idPedidos);
 
                 await cn.OpenAsync();
                 using var dr = await cmd.ExecuteReaderAsync();
@@ -291,19 +267,19 @@ namespace SafetyReport.Infrastructure.Persistencia
         {
             try
             {
-                using SqlConnection cn = new(_dbConfig.ConnectionString);
-                using SqlCommand cmd = new("SP_PedidoFacturaLinea_Listar", cn);
+                using MySqlConnection cn = new(_dbConfig.ConnectionString);
+                using MySqlCommand cmd = new("SP_PedidoFacturaLinea_Listar", cn);
 
                 cmd.CommandType = CommandType.StoredProcedure;
-                cmd.Parameters.Add("@intIdUsuario", SqlDbType.Int).Value = usuarioLogueado.IdUsuario;
-                cmd.Parameters.Add("@vchUsuario", SqlDbType.VarChar, 32).Value = usuarioLogueado.Usuario;
-                cmd.Parameters.Add("@intIdEmpresa", SqlDbType.Int).Value = usuarioLogueado.IdEmpresa;
-                cmd.Parameters.Add("@intIdRol", SqlDbType.Int).Value = usuarioLogueado.IdRol;
-                cmd.Parameters.Add("@intIdCliente", SqlDbType.Int).Value = request.idCliente;
-                cmd.Parameters.Add("@intAnio", SqlDbType.Int).Value = (object?)request.anio ?? DBNull.Value;
-                cmd.Parameters.Add("@intMes", SqlDbType.Int).Value = (object?)request.mes ?? DBNull.Value;
-                cmd.Parameters.Add("@intIdDocumentoElectronico", SqlDbType.Int).Value = (object?)request.idDocumentoElectronico ?? DBNull.Value;
-                cmd.Parameters.Add("@intIdMoneda", SqlDbType.Int).Value = (object?)request.idMoneda ?? DBNull.Value;
+                cmd.Parameters.Add("@p_intIdUsuario", MySqlDbType.Int32).Value = usuarioLogueado.IdUsuario;
+                cmd.Parameters.Add("@p_vchUsuario", MySqlDbType.VarChar, 32).Value = usuarioLogueado.Usuario;
+                cmd.Parameters.Add("@p_intIdEmpresa", MySqlDbType.Int32).Value = usuarioLogueado.IdEmpresa;
+                cmd.Parameters.Add("@p_intIdRol", MySqlDbType.Int32).Value = usuarioLogueado.IdRol;
+                cmd.Parameters.Add("@p_intIdCliente", MySqlDbType.Int32).Value = request.idCliente;
+                cmd.Parameters.Add("@p_intAnio", MySqlDbType.Int32).Value = (object?)request.anio ?? DBNull.Value;
+                cmd.Parameters.Add("@p_intMes", MySqlDbType.Int32).Value = (object?)request.mes ?? DBNull.Value;
+                cmd.Parameters.Add("@p_intIdDocumentoElectronico", MySqlDbType.Int32).Value = (object?)request.idDocumentoElectronico ?? DBNull.Value;
+                cmd.Parameters.Add("@p_intIdMoneda", MySqlDbType.Int32).Value = (object?)request.idMoneda ?? DBNull.Value;
 
                 await cn.OpenAsync();
 
@@ -345,13 +321,13 @@ namespace SafetyReport.Infrastructure.Persistencia
         {
             try
             {
-                using SqlConnection cn = new(_dbConfig.ConnectionString);
-                using SqlCommand cmd = new("SP_PedidoFactura_DesvincularLinea", cn);
+                using MySqlConnection cn = new(_dbConfig.ConnectionString);
+                using MySqlCommand cmd = new("SP_PedidoFactura_DesvincularLinea", cn);
 
                 cmd.CommandType = CommandType.StoredProcedure;
-                cmd.Parameters.Add("@intIdEmpresa", SqlDbType.Int).Value = usuarioLogueado.IdEmpresa;
-                cmd.Parameters.Add("@vchUsuario", SqlDbType.VarChar, 32).Value = usuarioLogueado.Usuario;
-                cmd.Parameters.Add("@intIdPedidoFacturaLinea", SqlDbType.Int).Value = idPedidoFacturaLinea;
+                cmd.Parameters.Add("@p_intIdEmpresa", MySqlDbType.Int32).Value = usuarioLogueado.IdEmpresa;
+                cmd.Parameters.Add("@p_vchUsuario", MySqlDbType.VarChar, 32).Value = usuarioLogueado.Usuario;
+                cmd.Parameters.Add("@p_intIdPedidoFacturaLinea", MySqlDbType.Int32).Value = idPedidoFacturaLinea;
 
                 await cn.OpenAsync();
                 using var dr = await cmd.ExecuteReaderAsync();
@@ -375,21 +351,19 @@ namespace SafetyReport.Infrastructure.Persistencia
         {
             try
             {
-                using SqlConnection cn = new(_dbConfig.ConnectionString);
-                using SqlCommand cmd = new("SP_PedidoFacturaLinea_ObtenerParaBorrador", cn);
+                using MySqlConnection cn = new(_dbConfig.ConnectionString);
+                using MySqlCommand cmd = new("SP_PedidoFacturaLinea_ObtenerParaBorrador", cn);
 
                 cmd.CommandType = CommandType.StoredProcedure;
-                cmd.Parameters.Add("@intIdUsuario", SqlDbType.Int).Value = usuarioLogueado.IdUsuario;
-                cmd.Parameters.Add("@vchUsuario", SqlDbType.VarChar, 32).Value = usuarioLogueado.Usuario;
-                cmd.Parameters.Add("@intIdEmpresa", SqlDbType.Int).Value = usuarioLogueado.IdEmpresa;
-                cmd.Parameters.Add("@intIdRol", SqlDbType.Int).Value = usuarioLogueado.IdRol;
-                cmd.Parameters.Add("@intIdCliente", SqlDbType.Int).Value = idCliente;
-                cmd.Parameters.Add("@intIdMoneda", SqlDbType.Int).Value = idMoneda;
-                cmd.Parameters.Add("@intIdDocumentoElectronico", SqlDbType.Int).Value = (object?)idDocumentoElectronico ?? DBNull.Value;
+                cmd.Parameters.Add("@p_intIdUsuario", MySqlDbType.Int32).Value = usuarioLogueado.IdUsuario;
+                cmd.Parameters.Add("@p_vchUsuario", MySqlDbType.VarChar, 32).Value = usuarioLogueado.Usuario;
+                cmd.Parameters.Add("@p_intIdEmpresa", MySqlDbType.Int32).Value = usuarioLogueado.IdEmpresa;
+                cmd.Parameters.Add("@p_intIdRol", MySqlDbType.Int32).Value = usuarioLogueado.IdRol;
+                cmd.Parameters.Add("@p_intIdCliente", MySqlDbType.Int32).Value = idCliente;
+                cmd.Parameters.Add("@p_intIdMoneda", MySqlDbType.Int32).Value = idMoneda;
+                cmd.Parameters.Add("@p_intIdDocumentoElectronico", MySqlDbType.Int32).Value = (object?)idDocumentoElectronico ?? DBNull.Value;
 
-                var tvpIdLinea = cmd.Parameters.AddWithValue("@lstIdPedidoFacturaLinea", ConstruirTablaListaGeneralNum(idsLinea));
-                tvpIdLinea.SqlDbType = SqlDbType.Structured;
-                tvpIdLinea.TypeName = "LISTA_GENERAL_NUM";
+                cmd.Parameters.Add("@p_jsonIdPedidoFacturaLinea", MySqlDbType.JSON).Value = ConstruirJsonListaGeneralNum(idsLinea);
 
                 await cn.OpenAsync();
 

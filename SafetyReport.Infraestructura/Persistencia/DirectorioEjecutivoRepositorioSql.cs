@@ -1,7 +1,8 @@
-using Microsoft.Data.SqlClient;
+using MySqlConnector;
 using Microsoft.Extensions.Logging;
 using SafetyReport.Application.Puertos.DirectorioEjecutivo;
 using System.Data;
+using System.Text.Json;
 
 namespace SafetyReport.Infrastructure.Persistencia
 {
@@ -16,25 +17,25 @@ namespace SafetyReport.Infrastructure.Persistencia
             _logger = logger;
         }
 
-        private static int? GetNullableInt(SqlDataReader dr, string columnName)
+        private static int? GetNullableInt(MySqlDataReader dr, string columnName)
         {
             var value = dr[columnName];
             return value == DBNull.Value ? (int?)null : Convert.ToInt32(value);
         }
 
-        private static string? GetNullableString(SqlDataReader dr, string columnName)
+        private static string? GetNullableString(MySqlDataReader dr, string columnName)
         {
             var value = dr[columnName];
             return value == DBNull.Value ? null : value.ToString();
         }
 
-        private static DateTime? GetNullableDateTime(SqlDataReader dr, string columnName)
+        private static DateTime? GetNullableDateTime(MySqlDataReader dr, string columnName)
         {
             var value = dr[columnName];
             return value == DBNull.Value ? (DateTime?)null : Convert.ToDateTime(value);
         }
 
-        private async Task<Respuesta> LeerCabeceraAsync(SqlDataReader dr, string commandText)
+        private async Task<Respuesta> LeerCabeceraAsync(MySqlDataReader dr, string commandText)
         {
             var respuesta = new Respuesta();
 
@@ -57,7 +58,7 @@ namespace SafetyReport.Infrastructure.Persistencia
             return respuesta;
         }
 
-        private static async Task<List<T>> LeerIdsAsync<T>(SqlDataReader dr, string columnName, Func<int?, T> factory)
+        private static async Task<List<T>> LeerIdsAsync<T>(MySqlDataReader dr, string columnName, Func<int?, T> factory)
         {
             var lista = new List<T>();
 
@@ -69,7 +70,7 @@ namespace SafetyReport.Infrastructure.Persistencia
             return lista;
         }
 
-        private static DirectorioEjecutivoConsulta LeerConsulta(SqlDataReader dr)
+        private static DirectorioEjecutivoConsulta LeerConsulta(MySqlDataReader dr)
         {
             return new DirectorioEjecutivoConsulta
             {
@@ -98,7 +99,7 @@ namespace SafetyReport.Infrastructure.Persistencia
             };
         }
 
-        private static DirectorioEjecutivoListaConsulta LeerConsultaLista(SqlDataReader dr)
+        private static DirectorioEjecutivoListaConsulta LeerConsultaLista(MySqlDataReader dr)
         {
             return new DirectorioEjecutivoListaConsulta
             {
@@ -115,51 +116,32 @@ namespace SafetyReport.Infrastructure.Persistencia
         {
             try
             {
-                using SqlConnection cn = new(_dbConfig.ConnectionString);
-                using SqlCommand cmd = new("SP_DirectorioEjecutivo_Insertar", cn) { CommandType = CommandType.StoredProcedure };
-                cmd.Parameters.Add("@intIdUsuario", SqlDbType.Int).Value = usuarioLogueado.IdUsuario;
-                cmd.Parameters.Add("@vchUsuario", SqlDbType.VarChar, 32).Value = usuarioLogueado.Usuario;
-                cmd.Parameters.Add("@intIdEmpresa", SqlDbType.Int).Value = usuarioLogueado.IdEmpresa;
-                cmd.Parameters.Add("@intIdRol", SqlDbType.Int).Value = usuarioLogueado.IdRol;
+                using MySqlConnection cn = new(_dbConfig.ConnectionString);
+                using MySqlCommand cmd = new("SP_DirectorioEjecutivo_Insertar", cn) { CommandType = CommandType.StoredProcedure };
+                cmd.Parameters.Add("@p_intIdUsuario", MySqlDbType.Int32).Value = usuarioLogueado.IdUsuario;
+                cmd.Parameters.Add("@p_vchUsuario", MySqlDbType.VarChar, 32).Value = usuarioLogueado.Usuario;
+                cmd.Parameters.Add("@p_intIdEmpresa", MySqlDbType.Int32).Value = usuarioLogueado.IdEmpresa;
+                cmd.Parameters.Add("@p_intIdRol", MySqlDbType.Int32).Value = usuarioLogueado.IdRol;
 
-                var tvp = new DataTable();
-                tvp.Columns.Add("IdTipoPersona", typeof(int));
-                tvp.Columns.Add("NombreCompleto", typeof(string));
-                tvp.Columns.Add("IdPais", typeof(int));
-                tvp.Columns.Add("Direccion", typeof(string));
-                tvp.Columns.Add("Ubigeo", typeof(string));
-                tvp.Columns.Add("CodigoPostal", typeof(string));
-                tvp.Columns.Add("IdTipoDocumento", typeof(int));
-                tvp.Columns.Add("NumeroDocumento", typeof(string));
-                tvp.Columns.Add("TaxIdType", typeof(int));
-                tvp.Columns.Add("TaxNum", typeof(string));
-                tvp.Columns.Add("IdNacionalidad", typeof(int));
-                tvp.Columns.Add("FechaNacimiento", typeof(DateTime));
-                tvp.Columns.Add("IdEstadoCivil", typeof(int));
-                tvp.Columns.Add("IdProfesion", typeof(int));
-                tvp.Columns.Add("Referencias", typeof(string));
-
-                foreach (var item in lstDirectorios)
-                    tvp.Rows.Add(
-                        (object?)item.IdTipoPersona    ?? DBNull.Value,
-                        (object?)item.NombreCompleto   ?? DBNull.Value,
-                        (object?)item.IdPais           ?? DBNull.Value,
-                        (object?)item.Direccion        ?? DBNull.Value,
-                        (object?)item.Ubigeo           ?? DBNull.Value,
-                        (object?)item.CodigoPostal     ?? DBNull.Value,
-                        (object?)item.IdTipoDocumento  ?? DBNull.Value,
-                        (object?)item.NumeroDocumento  ?? DBNull.Value,
-                        (object?)item.TaxIdType        ?? DBNull.Value,
-                        (object?)item.TaxNum           ?? DBNull.Value,
-                        (object?)item.IdNacionalidad   ?? DBNull.Value,
-                        (object?)item.FechaNacimiento  ?? DBNull.Value,
-                        (object?)item.IdEstadoCivil    ?? DBNull.Value,
-                        (object?)item.IdProfesion      ?? DBNull.Value,
-                        (object?)item.Referencias      ?? DBNull.Value);
-
-                var paramTvp = cmd.Parameters.Add("@tvpDirectorios", SqlDbType.Structured);
-                paramTvp.TypeName = "LISTA_DIRECTORIO_EJECUTIVO_INSERTAR";
-                paramTvp.Value = tvp;
+                var json = JsonSerializer.Serialize(lstDirectorios.Select(item => new
+                {
+                    item.IdTipoPersona,
+                    item.NombreCompleto,
+                    item.IdPais,
+                    item.Direccion,
+                    item.Ubigeo,
+                    item.CodigoPostal,
+                    item.IdTipoDocumento,
+                    item.NumeroDocumento,
+                    item.TaxIdType,
+                    item.TaxNum,
+                    item.IdNacionalidad,
+                    item.FechaNacimiento,
+                    item.IdEstadoCivil,
+                    item.IdProfesion,
+                    item.Referencias
+                }));
+                cmd.Parameters.Add("@p_jsonDirectorios", MySqlDbType.JSON).Value = json;
 
                 await cn.OpenAsync();
 
@@ -189,28 +171,28 @@ namespace SafetyReport.Infrastructure.Persistencia
         {
             try
             {
-                using SqlConnection cn = new(_dbConfig.ConnectionString);
-                using SqlCommand cmd = new("SP_DirectorioEjecutivo_Actualizar", cn) { CommandType = CommandType.StoredProcedure };
-                cmd.Parameters.Add("@intIdUsuario", SqlDbType.Int).Value = usuarioLogueado.IdUsuario;
-                cmd.Parameters.Add("@vchUsuario", SqlDbType.VarChar, 32).Value = usuarioLogueado.Usuario;
-                cmd.Parameters.Add("@intIdEmpresa", SqlDbType.Int).Value = usuarioLogueado.IdEmpresa;
-                cmd.Parameters.Add("@intIdRol", SqlDbType.Int).Value = usuarioLogueado.IdRol;
-                cmd.Parameters.Add("@intIdDirectorioEjecutivo", SqlDbType.Int).Value = request.IdDirectorioEjecutivo;
-                cmd.Parameters.Add("@intIdTipoPersona", SqlDbType.Int).Value = (object?)request.IdTipoPersona ?? DBNull.Value;
-                cmd.Parameters.Add("@vchNombreCompleto", SqlDbType.VarChar, 255).Value = (object?)request.NombreCompleto ?? DBNull.Value;
-                cmd.Parameters.Add("@intIdPais", SqlDbType.Int).Value = (object?)request.IdPais ?? DBNull.Value;
-                cmd.Parameters.Add("@vchDireccion", SqlDbType.VarChar, 255).Value = (object?)request.Direccion ?? DBNull.Value;
-                cmd.Parameters.Add("@vchUbigeo", SqlDbType.VarChar, 150).Value = (object?)request.Ubigeo ?? DBNull.Value;
-                cmd.Parameters.Add("@vchCodigoPostal", SqlDbType.VarChar, 50).Value = (object?)request.CodigoPostal ?? DBNull.Value;
-                cmd.Parameters.Add("@intIdTipoDocumento", SqlDbType.Int).Value = (object?)request.IdTipoDocumento ?? DBNull.Value;
-                cmd.Parameters.Add("@vchNumeroDocumento", SqlDbType.VarChar, 100).Value = (object?)request.NumeroDocumento ?? DBNull.Value;
-                cmd.Parameters.Add("@intTaxIdType", SqlDbType.Int).Value = (object?)request.TaxIdType ?? DBNull.Value;
-                cmd.Parameters.Add("@vchTaxNum", SqlDbType.VarChar, 100).Value = (object?)request.TaxNum ?? DBNull.Value;
-                cmd.Parameters.Add("@intIdNacionalidad", SqlDbType.Int).Value = (object?)request.IdNacionalidad ?? DBNull.Value;
-                cmd.Parameters.Add("@dtmFechaNacimiento", SqlDbType.DateTime).Value = (object?)request.FechaNacimiento ?? DBNull.Value;
-                cmd.Parameters.Add("@intIdEstadoCivil", SqlDbType.Int).Value = (object?)request.IdEstadoCivil ?? DBNull.Value;
-                cmd.Parameters.Add("@intIdProfesion", SqlDbType.Int).Value = (object?)request.IdProfesion ?? DBNull.Value;
-                cmd.Parameters.Add("@vchReferencias", SqlDbType.VarChar, 255).Value = (object?)request.Referencias ?? DBNull.Value;
+                using MySqlConnection cn = new(_dbConfig.ConnectionString);
+                using MySqlCommand cmd = new("SP_DirectorioEjecutivo_Actualizar", cn) { CommandType = CommandType.StoredProcedure };
+                cmd.Parameters.Add("@p_intIdUsuario", MySqlDbType.Int32).Value = usuarioLogueado.IdUsuario;
+                cmd.Parameters.Add("@p_vchUsuario", MySqlDbType.VarChar, 32).Value = usuarioLogueado.Usuario;
+                cmd.Parameters.Add("@p_intIdEmpresa", MySqlDbType.Int32).Value = usuarioLogueado.IdEmpresa;
+                cmd.Parameters.Add("@p_intIdRol", MySqlDbType.Int32).Value = usuarioLogueado.IdRol;
+                cmd.Parameters.Add("@p_intIdDirectorioEjecutivo", MySqlDbType.Int32).Value = request.IdDirectorioEjecutivo;
+                cmd.Parameters.Add("@p_intIdTipoPersona", MySqlDbType.Int32).Value = (object?)request.IdTipoPersona ?? DBNull.Value;
+                cmd.Parameters.Add("@p_vchNombreCompleto", MySqlDbType.VarChar, 255).Value = (object?)request.NombreCompleto ?? DBNull.Value;
+                cmd.Parameters.Add("@p_intIdPais", MySqlDbType.Int32).Value = (object?)request.IdPais ?? DBNull.Value;
+                cmd.Parameters.Add("@p_vchDireccion", MySqlDbType.VarChar, 255).Value = (object?)request.Direccion ?? DBNull.Value;
+                cmd.Parameters.Add("@p_vchUbigeo", MySqlDbType.VarChar, 150).Value = (object?)request.Ubigeo ?? DBNull.Value;
+                cmd.Parameters.Add("@p_vchCodigoPostal", MySqlDbType.VarChar, 50).Value = (object?)request.CodigoPostal ?? DBNull.Value;
+                cmd.Parameters.Add("@p_intIdTipoDocumento", MySqlDbType.Int32).Value = (object?)request.IdTipoDocumento ?? DBNull.Value;
+                cmd.Parameters.Add("@p_vchNumeroDocumento", MySqlDbType.VarChar, 100).Value = (object?)request.NumeroDocumento ?? DBNull.Value;
+                cmd.Parameters.Add("@p_intTaxIdType", MySqlDbType.Int32).Value = (object?)request.TaxIdType ?? DBNull.Value;
+                cmd.Parameters.Add("@p_vchTaxNum", MySqlDbType.VarChar, 100).Value = (object?)request.TaxNum ?? DBNull.Value;
+                cmd.Parameters.Add("@p_intIdNacionalidad", MySqlDbType.Int32).Value = (object?)request.IdNacionalidad ?? DBNull.Value;
+                cmd.Parameters.Add("@p_dtmFechaNacimiento", MySqlDbType.DateTime).Value = (object?)request.FechaNacimiento ?? DBNull.Value;
+                cmd.Parameters.Add("@p_intIdEstadoCivil", MySqlDbType.Int32).Value = (object?)request.IdEstadoCivil ?? DBNull.Value;
+                cmd.Parameters.Add("@p_intIdProfesion", MySqlDbType.Int32).Value = (object?)request.IdProfesion ?? DBNull.Value;
+                cmd.Parameters.Add("@p_vchReferencias", MySqlDbType.VarChar, 255).Value = (object?)request.Referencias ?? DBNull.Value;
 
                 await cn.OpenAsync();
 
@@ -240,15 +222,15 @@ namespace SafetyReport.Infrastructure.Persistencia
         {
             try
             {
-                using SqlConnection cn = new(_dbConfig.ConnectionString);
-                using SqlCommand cmd = new("SP_DirectorioEjecutivo_Obtener", cn) { CommandType = CommandType.StoredProcedure };
-                cmd.Parameters.Add("@intIdUsuario", SqlDbType.Int).Value = usuarioLogueado.IdUsuario;
-                cmd.Parameters.Add("@vchUsuario", SqlDbType.VarChar, 32).Value = usuarioLogueado.Usuario;
-                cmd.Parameters.Add("@intIdEmpresa", SqlDbType.Int).Value = usuarioLogueado.IdEmpresa;
-                cmd.Parameters.Add("@intIdRol", SqlDbType.Int).Value = usuarioLogueado.IdRol;
-                cmd.Parameters.Add("@intIdDirectorioEjecutivo", SqlDbType.Int).Value = (object?)request.IdDirectorioEjecutivo ?? DBNull.Value;
-                cmd.Parameters.Add("@vchNombreCompleto", SqlDbType.VarChar, 255).Value = (object?)request.NombreCompleto ?? DBNull.Value;
-                cmd.Parameters.Add("@vchNumeroDocumento", SqlDbType.VarChar, 100).Value = (object?)request.NumeroDocumento ?? DBNull.Value;
+                using MySqlConnection cn = new(_dbConfig.ConnectionString);
+                using MySqlCommand cmd = new("SP_DirectorioEjecutivo_Obtener", cn) { CommandType = CommandType.StoredProcedure };
+                cmd.Parameters.Add("@p_intIdUsuario", MySqlDbType.Int32).Value = usuarioLogueado.IdUsuario;
+                cmd.Parameters.Add("@p_vchUsuario", MySqlDbType.VarChar, 32).Value = usuarioLogueado.Usuario;
+                cmd.Parameters.Add("@p_intIdEmpresa", MySqlDbType.Int32).Value = usuarioLogueado.IdEmpresa;
+                cmd.Parameters.Add("@p_intIdRol", MySqlDbType.Int32).Value = usuarioLogueado.IdRol;
+                cmd.Parameters.Add("@p_intIdDirectorioEjecutivo", MySqlDbType.Int32).Value = (object?)request.IdDirectorioEjecutivo ?? DBNull.Value;
+                cmd.Parameters.Add("@p_vchNombreCompleto", MySqlDbType.VarChar, 255).Value = (object?)request.NombreCompleto ?? DBNull.Value;
+                cmd.Parameters.Add("@p_vchNumeroDocumento", MySqlDbType.VarChar, 100).Value = (object?)request.NumeroDocumento ?? DBNull.Value;
 
                 await cn.OpenAsync();
 
@@ -285,14 +267,14 @@ namespace SafetyReport.Infrastructure.Persistencia
         {
             try
             {
-                using SqlConnection cn = new(_dbConfig.ConnectionString);
-                using SqlCommand cmd = new("SP_DirectorioEjecutivo_Listar", cn) { CommandType = CommandType.StoredProcedure };
-                cmd.Parameters.Add("@intIdUsuario", SqlDbType.Int).Value = usuarioLogueado.IdUsuario;
-                cmd.Parameters.Add("@vchUsuario", SqlDbType.VarChar, 32).Value = usuarioLogueado.Usuario;
-                cmd.Parameters.Add("@intIdEmpresa", SqlDbType.Int).Value = usuarioLogueado.IdEmpresa;
-                cmd.Parameters.Add("@intIdRol", SqlDbType.Int).Value = usuarioLogueado.IdRol;
-                cmd.Parameters.Add("@vchBusqueda", SqlDbType.VarChar, 255).Value = (object?)filtro.Busqueda ?? DBNull.Value;
-                cmd.Parameters.Add("@numPag", SqlDbType.Int).Value = filtro.NumPag;
+                using MySqlConnection cn = new(_dbConfig.ConnectionString);
+                using MySqlCommand cmd = new("SP_DirectorioEjecutivo_Listar", cn) { CommandType = CommandType.StoredProcedure };
+                cmd.Parameters.Add("@p_intIdUsuario", MySqlDbType.Int32).Value = usuarioLogueado.IdUsuario;
+                cmd.Parameters.Add("@p_vchUsuario", MySqlDbType.VarChar, 32).Value = usuarioLogueado.Usuario;
+                cmd.Parameters.Add("@p_intIdEmpresa", MySqlDbType.Int32).Value = usuarioLogueado.IdEmpresa;
+                cmd.Parameters.Add("@p_intIdRol", MySqlDbType.Int32).Value = usuarioLogueado.IdRol;
+                cmd.Parameters.Add("@p_vchBusqueda", MySqlDbType.VarChar, 255).Value = (object?)filtro.Busqueda ?? DBNull.Value;
+                cmd.Parameters.Add("@p_numPag", MySqlDbType.Int32).Value = filtro.NumPag;
 
                 await cn.OpenAsync();
 
@@ -338,13 +320,13 @@ namespace SafetyReport.Infrastructure.Persistencia
         {
             try
             {
-                using SqlConnection cn = new(_dbConfig.ConnectionString);
-                using SqlCommand cmd = new("SP_DirectorioEjecutivo_Eliminar", cn) { CommandType = CommandType.StoredProcedure };
-                cmd.Parameters.Add("@intIdUsuario", SqlDbType.Int).Value = usuarioLogueado.IdUsuario;
-                cmd.Parameters.Add("@vchUsuario", SqlDbType.VarChar, 32).Value = usuarioLogueado.Usuario;
-                cmd.Parameters.Add("@intIdEmpresa", SqlDbType.Int).Value = usuarioLogueado.IdEmpresa;
-                cmd.Parameters.Add("@intIdRol", SqlDbType.Int).Value = usuarioLogueado.IdRol;
-                cmd.Parameters.Add("@intIdDirectorioEjecutivo", SqlDbType.Int).Value = idDirectorioEjecutivo;
+                using MySqlConnection cn = new(_dbConfig.ConnectionString);
+                using MySqlCommand cmd = new("SP_DirectorioEjecutivo_Eliminar", cn) { CommandType = CommandType.StoredProcedure };
+                cmd.Parameters.Add("@p_intIdUsuario", MySqlDbType.Int32).Value = usuarioLogueado.IdUsuario;
+                cmd.Parameters.Add("@p_vchUsuario", MySqlDbType.VarChar, 32).Value = usuarioLogueado.Usuario;
+                cmd.Parameters.Add("@p_intIdEmpresa", MySqlDbType.Int32).Value = usuarioLogueado.IdEmpresa;
+                cmd.Parameters.Add("@p_intIdRol", MySqlDbType.Int32).Value = usuarioLogueado.IdRol;
+                cmd.Parameters.Add("@p_intIdDirectorioEjecutivo", MySqlDbType.Int32).Value = idDirectorioEjecutivo;
 
                 await cn.OpenAsync();
 

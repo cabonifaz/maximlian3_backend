@@ -133,7 +133,6 @@ public static class DependencyInjection
         services.AddScoped<IInformeLocalImagenRepository, InformeLocalImagenRepositorioSql>();
         services.AddScoped<InformeArchivoRepositorioSql>();
         services.AddScoped<IInformeArchivoRepository, InformeArchivoRepositorioSql>();
-        services.AddScoped<PlantillaDocumentoRepositorioSql>();
         services.AddScoped<BancoRepositorioSql>();
         services.AddScoped<IBancoRepository, BancoRepositorioSql>();
         services.AddScoped<CompaniaRepositorioSql>();

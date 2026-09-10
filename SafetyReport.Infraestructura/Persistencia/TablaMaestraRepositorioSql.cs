@@ -1,4 +1,4 @@
-﻿using Microsoft.Data.SqlClient;
+﻿using MySqlConnector;
 using Microsoft.Extensions.Logging;
 using SafetyReport.Application.Puertos.TablaMaestra;
 using System.Data;
@@ -17,7 +17,7 @@ namespace SafetyReport.Infrastructure.Persistencia
         }
 
         // Lee el result set 1 (siempre presente): IdTipoMensaje, Mensaje. Sin columna Result.
-        private async Task<Respuesta> LeerCabeceraAsync(SqlDataReader dr, string procedimiento)
+        private async Task<Respuesta> LeerCabeceraAsync(MySqlDataReader dr, string procedimiento)
         {
             var respuesta = new Respuesta();
 
@@ -39,19 +39,19 @@ namespace SafetyReport.Infrastructure.Persistencia
             return respuesta;
         }
 
-        private static int? GetNullableInt(SqlDataReader dr, string columna) =>
+        private static int? GetNullableInt(MySqlDataReader dr, string columna) =>
             dr[columna] == DBNull.Value ? null : Convert.ToInt32(dr[columna]);
 
-        private static decimal? GetNullableDecimal(SqlDataReader dr, string columna) =>
+        private static decimal? GetNullableDecimal(MySqlDataReader dr, string columna) =>
             dr[columna] == DBNull.Value ? null : Convert.ToDecimal(dr[columna]);
 
-        private static DateTime? GetNullableDateTime(SqlDataReader dr, string columna) =>
+        private static DateTime? GetNullableDateTime(MySqlDataReader dr, string columna) =>
             dr[columna] == DBNull.Value ? null : Convert.ToDateTime(dr[columna]);
 
-        private static string? GetNullableString(SqlDataReader dr, string columna) =>
+        private static string? GetNullableString(MySqlDataReader dr, string columna) =>
             dr[columna] == DBNull.Value ? null : dr[columna].ToString();
 
-        private static TablaMaestraItem LeerTablaMaestraItem(SqlDataReader dr) => new()
+        private static TablaMaestraItem LeerTablaMaestraItem(MySqlDataReader dr) => new()
         {
             IdEmpresa = GetNullableInt(dr, "IdEmpresa"),
             IdTablaMaestra = GetNullableInt(dr, "IdTablaMaestra"),
@@ -76,17 +76,17 @@ namespace SafetyReport.Infrastructure.Persistencia
         {
             try
             {
-                using SqlConnection cn = new(_dbConfig.ConnectionString);
-                using SqlCommand cmd = new("SP_TablaMaestra_Listar", cn);
+                using MySqlConnection cn = new(_dbConfig.ConnectionString);
+                using MySqlCommand cmd = new("SP_TablaMaestra_Listar", cn);
 
                 cmd.CommandType = CommandType.StoredProcedure;
-                cmd.Parameters.Add("@intIdUsuario", SqlDbType.Int).Value = usuarioLogueado.IdUsuario;
-                cmd.Parameters.Add("@vchUsuario", SqlDbType.VarChar, 32).Value = usuarioLogueado.Usuario;
-                cmd.Parameters.Add("@intIdEmpresa", SqlDbType.Int).Value = usuarioLogueado.IdEmpresa;
-                cmd.Parameters.Add("@intIdRol", SqlDbType.Int).Value = usuarioLogueado.IdRol;
-                cmd.Parameters.Add("@vchIdsMaestro", SqlDbType.VarChar, -1).Value = (object?)idsMaestro ?? DBNull.Value;
-                cmd.Parameters.Add("@vchBusqueda", SqlDbType.VarChar, 255).Value = (object?)busqueda ?? DBNull.Value;
-                cmd.Parameters.Add("@numPag", SqlDbType.Int).Value = (object?)numPag ?? DBNull.Value;
+                cmd.Parameters.Add("@p_intIdUsuario", MySqlDbType.Int32).Value = usuarioLogueado.IdUsuario;
+                cmd.Parameters.Add("@p_vchUsuario", MySqlDbType.VarChar, 32).Value = usuarioLogueado.Usuario;
+                cmd.Parameters.Add("@p_intIdEmpresa", MySqlDbType.Int32).Value = usuarioLogueado.IdEmpresa;
+                cmd.Parameters.Add("@p_intIdRol", MySqlDbType.Int32).Value = usuarioLogueado.IdRol;
+                cmd.Parameters.Add("@p_vchIdsMaestro", MySqlDbType.VarChar, -1).Value = (object?)idsMaestro ?? DBNull.Value;
+                cmd.Parameters.Add("@p_vchBusqueda", MySqlDbType.VarChar, 255).Value = (object?)busqueda ?? DBNull.Value;
+                cmd.Parameters.Add("@p_numPag", MySqlDbType.Int32).Value = (object?)numPag ?? DBNull.Value;
 
                 await cn.OpenAsync();
 
@@ -142,15 +142,15 @@ namespace SafetyReport.Infrastructure.Persistencia
         {
             try
             {
-                using SqlConnection cn = new(_dbConfig.ConnectionString);
-                using SqlCommand cmd = new("SP_TablaMaestra_ListaCorta", cn);
+                using MySqlConnection cn = new(_dbConfig.ConnectionString);
+                using MySqlCommand cmd = new("SP_TablaMaestra_ListaCorta", cn);
 
                 cmd.CommandType = CommandType.StoredProcedure;
-                cmd.Parameters.Add("@intIdUsuario", SqlDbType.Int).Value = usuarioLogueado.IdUsuario;
-                cmd.Parameters.Add("@vchUsuario", SqlDbType.VarChar, 32).Value = usuarioLogueado.Usuario;
-                cmd.Parameters.Add("@intIdEmpresa", SqlDbType.Int).Value = usuarioLogueado.IdEmpresa;
-                cmd.Parameters.Add("@intIdRol", SqlDbType.Int).Value = usuarioLogueado.IdRol;
-                cmd.Parameters.Add("@intIdMaestro", SqlDbType.Int).Value = idMaestro;
+                cmd.Parameters.Add("@p_intIdUsuario", MySqlDbType.Int32).Value = usuarioLogueado.IdUsuario;
+                cmd.Parameters.Add("@p_vchUsuario", MySqlDbType.VarChar, 32).Value = usuarioLogueado.Usuario;
+                cmd.Parameters.Add("@p_intIdEmpresa", MySqlDbType.Int32).Value = usuarioLogueado.IdEmpresa;
+                cmd.Parameters.Add("@p_intIdRol", MySqlDbType.Int32).Value = usuarioLogueado.IdRol;
+                cmd.Parameters.Add("@p_intIdMaestro", MySqlDbType.Int32).Value = idMaestro;
 
                 await cn.OpenAsync();
 
@@ -190,37 +190,37 @@ namespace SafetyReport.Infrastructure.Persistencia
         {
             try
             {
-                using SqlConnection cn = new(_dbConfig.ConnectionString);
-                using SqlCommand cmd = new("SP_TablaMaestra_Insertar", cn);
+                using MySqlConnection cn = new(_dbConfig.ConnectionString);
+                using MySqlCommand cmd = new("SP_TablaMaestra_Insertar", cn);
 
                 cmd.CommandType = CommandType.StoredProcedure;
-                cmd.Parameters.Add("@intIdUsuario", SqlDbType.Int).Value = usuarioLogueado.IdUsuario;
-                cmd.Parameters.Add("@vchUsuario", SqlDbType.VarChar, 32).Value = usuarioLogueado.Usuario;
-                cmd.Parameters.Add("@intIdEmpresa", SqlDbType.Int).Value = usuarioLogueado.IdEmpresa;
-                cmd.Parameters.Add("@intIdRol", SqlDbType.Int).Value = usuarioLogueado.IdRol;
+                cmd.Parameters.Add("@p_intIdUsuario", MySqlDbType.Int32).Value = usuarioLogueado.IdUsuario;
+                cmd.Parameters.Add("@p_vchUsuario", MySqlDbType.VarChar, 32).Value = usuarioLogueado.Usuario;
+                cmd.Parameters.Add("@p_intIdEmpresa", MySqlDbType.Int32).Value = usuarioLogueado.IdEmpresa;
+                cmd.Parameters.Add("@p_intIdRol", MySqlDbType.Int32).Value = usuarioLogueado.IdRol;
 
-                cmd.Parameters.Add("@intIdMaestro", SqlDbType.Int).Value = request.IdMaestro;
-                cmd.Parameters.Add("@vchDescripcion", SqlDbType.VarChar, 255).Value = request.Descripcion;
-                cmd.Parameters.Add("@intNum1", SqlDbType.Int).Value = (object?)request.Num1 ?? DBNull.Value;
+                cmd.Parameters.Add("@p_intIdMaestro", MySqlDbType.Int32).Value = request.IdMaestro;
+                cmd.Parameters.Add("@p_vchDescripcion", MySqlDbType.VarChar, 255).Value = request.Descripcion;
+                cmd.Parameters.Add("@p_intNum1", MySqlDbType.Int32).Value = (object?)request.Num1 ?? DBNull.Value;
 
-                cmd.Parameters.Add("@decNum2", SqlDbType.Decimal).Value = (object?)request.Num2 ?? DBNull.Value;
-                cmd.Parameters["@decNum2"].Precision = 18;
-                cmd.Parameters["@decNum2"].Scale = 6;
+                cmd.Parameters.Add("@p_decNum2", MySqlDbType.Decimal).Value = (object?)request.Num2 ?? DBNull.Value;
+                cmd.Parameters["@p_decNum2"].Precision = 18;
+                cmd.Parameters["@p_decNum2"].Scale = 6;
 
-                cmd.Parameters.Add("@decNum3", SqlDbType.Decimal).Value = (object?)request.Num3 ?? DBNull.Value;
-                cmd.Parameters["@decNum3"].Precision = 18;
-                cmd.Parameters["@decNum3"].Scale = 6;
+                cmd.Parameters.Add("@p_decNum3", MySqlDbType.Decimal).Value = (object?)request.Num3 ?? DBNull.Value;
+                cmd.Parameters["@p_decNum3"].Precision = 18;
+                cmd.Parameters["@p_decNum3"].Scale = 6;
 
-                cmd.Parameters.Add("@vchString1", SqlDbType.VarChar, 255).Value = (object?)request.String1 ?? DBNull.Value;
-                cmd.Parameters.Add("@vchString2", SqlDbType.VarChar, 255).Value = (object?)request.String2 ?? DBNull.Value;
-                cmd.Parameters.Add("@vchString3", SqlDbType.NVarChar, 255).Value = (object?)request.String3 ?? DBNull.Value;
-                cmd.Parameters.Add("@vchString4", SqlDbType.VarChar, 255).Value = (object?)request.String4 ?? DBNull.Value;
-                cmd.Parameters.Add("@vchString5", SqlDbType.VarChar, 255).Value = (object?)request.String5 ?? DBNull.Value;
-                cmd.Parameters.Add("@vchString6", SqlDbType.VarChar, 255).Value = (object?)request.String6 ?? DBNull.Value;
-                cmd.Parameters.Add("@vchString7", SqlDbType.VarChar, 255).Value = (object?)request.String7 ?? DBNull.Value;
-                cmd.Parameters.Add("@dtDate1", SqlDbType.DateTime).Value = (object?)request.Date1 ?? DBNull.Value;
-                cmd.Parameters.Add("@dtDate2", SqlDbType.DateTime).Value = (object?)request.Date2 ?? DBNull.Value;
-                cmd.Parameters.Add("@dtDate3", SqlDbType.DateTime).Value = (object?)request.Date3 ?? DBNull.Value;
+                cmd.Parameters.Add("@p_vchString1", MySqlDbType.VarChar, 255).Value = (object?)request.String1 ?? DBNull.Value;
+                cmd.Parameters.Add("@p_vchString2", MySqlDbType.VarChar, 255).Value = (object?)request.String2 ?? DBNull.Value;
+                cmd.Parameters.Add("@p_vchString3", MySqlDbType.VarChar, 255).Value = (object?)request.String3 ?? DBNull.Value;
+                cmd.Parameters.Add("@p_vchString4", MySqlDbType.VarChar, 255).Value = (object?)request.String4 ?? DBNull.Value;
+                cmd.Parameters.Add("@p_vchString5", MySqlDbType.VarChar, 255).Value = (object?)request.String5 ?? DBNull.Value;
+                cmd.Parameters.Add("@p_vchString6", MySqlDbType.VarChar, 255).Value = (object?)request.String6 ?? DBNull.Value;
+                cmd.Parameters.Add("@p_vchString7", MySqlDbType.VarChar, 255).Value = (object?)request.String7 ?? DBNull.Value;
+                cmd.Parameters.Add("@p_dtDate1", MySqlDbType.DateTime).Value = (object?)request.Date1 ?? DBNull.Value;
+                cmd.Parameters.Add("@p_dtDate2", MySqlDbType.DateTime).Value = (object?)request.Date2 ?? DBNull.Value;
+                cmd.Parameters.Add("@p_dtDate3", MySqlDbType.DateTime).Value = (object?)request.Date3 ?? DBNull.Value;
 
                 await cn.OpenAsync();
 
@@ -251,36 +251,36 @@ namespace SafetyReport.Infrastructure.Persistencia
         {
             try
             {
-                using SqlConnection cn = new(_dbConfig.ConnectionString);
-                using SqlCommand cmd = new("SP_TablaMaestra_Actualizar", cn);
+                using MySqlConnection cn = new(_dbConfig.ConnectionString);
+                using MySqlCommand cmd = new("SP_TablaMaestra_Actualizar", cn);
 
                 cmd.CommandType = CommandType.StoredProcedure;
-                cmd.Parameters.Add("@intIdUsuario", SqlDbType.Int).Value = usuarioLogueado.IdUsuario;
-                cmd.Parameters.Add("@vchUsuario", SqlDbType.VarChar, 32).Value = usuarioLogueado.Usuario;
-                cmd.Parameters.Add("@intIdEmpresa", SqlDbType.Int).Value = usuarioLogueado.IdEmpresa;
-                cmd.Parameters.Add("@intIdRol", SqlDbType.Int).Value = usuarioLogueado.IdRol;
+                cmd.Parameters.Add("@p_intIdUsuario", MySqlDbType.Int32).Value = usuarioLogueado.IdUsuario;
+                cmd.Parameters.Add("@p_vchUsuario", MySqlDbType.VarChar, 32).Value = usuarioLogueado.Usuario;
+                cmd.Parameters.Add("@p_intIdEmpresa", MySqlDbType.Int32).Value = usuarioLogueado.IdEmpresa;
+                cmd.Parameters.Add("@p_intIdRol", MySqlDbType.Int32).Value = usuarioLogueado.IdRol;
 
-                cmd.Parameters.Add("@intIdMaestro", SqlDbType.Int).Value = request.IdMaestro;
-                cmd.Parameters.Add("@intNum1", SqlDbType.Int).Value = (object?)request.Num1 ?? DBNull.Value;
+                cmd.Parameters.Add("@p_intIdMaestro", MySqlDbType.Int32).Value = request.IdMaestro;
+                cmd.Parameters.Add("@p_intNum1", MySqlDbType.Int32).Value = (object?)request.Num1 ?? DBNull.Value;
 
-                cmd.Parameters.Add("@decNum2", SqlDbType.Decimal).Value = (object?)request.Num2 ?? DBNull.Value;
-                cmd.Parameters["@decNum2"].Precision = 18;
-                cmd.Parameters["@decNum2"].Scale = 6;
+                cmd.Parameters.Add("@p_decNum2", MySqlDbType.Decimal).Value = (object?)request.Num2 ?? DBNull.Value;
+                cmd.Parameters["@p_decNum2"].Precision = 18;
+                cmd.Parameters["@p_decNum2"].Scale = 6;
 
-                cmd.Parameters.Add("@decNum3", SqlDbType.Decimal).Value = (object?)request.Num3 ?? DBNull.Value;
-                cmd.Parameters["@decNum3"].Precision = 18;
-                cmd.Parameters["@decNum3"].Scale = 6;
+                cmd.Parameters.Add("@p_decNum3", MySqlDbType.Decimal).Value = (object?)request.Num3 ?? DBNull.Value;
+                cmd.Parameters["@p_decNum3"].Precision = 18;
+                cmd.Parameters["@p_decNum3"].Scale = 6;
 
-                cmd.Parameters.Add("@vchString1", SqlDbType.VarChar, 255).Value = (object?)request.String1 ?? DBNull.Value;
-                cmd.Parameters.Add("@vchString2", SqlDbType.VarChar, 255).Value = (object?)request.String2 ?? DBNull.Value;
-                cmd.Parameters.Add("@vchString3", SqlDbType.NVarChar, 255).Value = (object?)request.String3 ?? DBNull.Value;
-                cmd.Parameters.Add("@vchString4", SqlDbType.VarChar, 255).Value = (object?)request.String4 ?? DBNull.Value;
-                cmd.Parameters.Add("@vchString5", SqlDbType.VarChar, 255).Value = (object?)request.String5 ?? DBNull.Value;
-                cmd.Parameters.Add("@vchString6", SqlDbType.VarChar, 255).Value = (object?)request.String6 ?? DBNull.Value;
-                cmd.Parameters.Add("@vchString7", SqlDbType.VarChar, 255).Value = (object?)request.String7 ?? DBNull.Value;
-                cmd.Parameters.Add("@dtDate1", SqlDbType.DateTime).Value = (object?)request.Date1 ?? DBNull.Value;
-                cmd.Parameters.Add("@dtDate2", SqlDbType.DateTime).Value = (object?)request.Date2 ?? DBNull.Value;
-                cmd.Parameters.Add("@dtDate3", SqlDbType.DateTime).Value = (object?)request.Date3 ?? DBNull.Value;
+                cmd.Parameters.Add("@p_vchString1", MySqlDbType.VarChar, 255).Value = (object?)request.String1 ?? DBNull.Value;
+                cmd.Parameters.Add("@p_vchString2", MySqlDbType.VarChar, 255).Value = (object?)request.String2 ?? DBNull.Value;
+                cmd.Parameters.Add("@p_vchString3", MySqlDbType.VarChar, 255).Value = (object?)request.String3 ?? DBNull.Value;
+                cmd.Parameters.Add("@p_vchString4", MySqlDbType.VarChar, 255).Value = (object?)request.String4 ?? DBNull.Value;
+                cmd.Parameters.Add("@p_vchString5", MySqlDbType.VarChar, 255).Value = (object?)request.String5 ?? DBNull.Value;
+                cmd.Parameters.Add("@p_vchString6", MySqlDbType.VarChar, 255).Value = (object?)request.String6 ?? DBNull.Value;
+                cmd.Parameters.Add("@p_vchString7", MySqlDbType.VarChar, 255).Value = (object?)request.String7 ?? DBNull.Value;
+                cmd.Parameters.Add("@p_dtDate1", MySqlDbType.DateTime).Value = (object?)request.Date1 ?? DBNull.Value;
+                cmd.Parameters.Add("@p_dtDate2", MySqlDbType.DateTime).Value = (object?)request.Date2 ?? DBNull.Value;
+                cmd.Parameters.Add("@p_dtDate3", MySqlDbType.DateTime).Value = (object?)request.Date3 ?? DBNull.Value;
 
                 await cn.OpenAsync();
 
@@ -311,17 +311,17 @@ namespace SafetyReport.Infrastructure.Persistencia
         {
             try
             {
-                using SqlConnection cn = new(_dbConfig.ConnectionString);
-                using SqlCommand cmd = new("SP_TablaMaestra_Obtener", cn);
+                using MySqlConnection cn = new(_dbConfig.ConnectionString);
+                using MySqlCommand cmd = new("SP_TablaMaestra_Obtener", cn);
 
                 cmd.CommandType = CommandType.StoredProcedure;
-                cmd.Parameters.Add("@intIdUsuario",  SqlDbType.Int).Value         = usuarioLogueado.IdUsuario;
-                cmd.Parameters.Add("@vchUsuario",    SqlDbType.VarChar, 32).Value = usuarioLogueado.Usuario;
-                cmd.Parameters.Add("@intIdEmpresa",  SqlDbType.Int).Value         = usuarioLogueado.IdEmpresa;
-                cmd.Parameters.Add("@intIdRol",      SqlDbType.Int).Value         = usuarioLogueado.IdRol;
-                cmd.Parameters.Add("@intIdMaestro",  SqlDbType.Int).Value         = request.idMaestro;
-                cmd.Parameters.Add("@intIdBusqueda", SqlDbType.Int).Value         = (object?)request.idBusqueda ?? DBNull.Value;
-                cmd.Parameters.Add("@vchBusqueda",   SqlDbType.VarChar).Value     = (object?)request.vchBusqueda ?? DBNull.Value;
+                cmd.Parameters.Add("@p_intIdUsuario",  MySqlDbType.Int32).Value         = usuarioLogueado.IdUsuario;
+                cmd.Parameters.Add("@p_vchUsuario",    MySqlDbType.VarChar, 32).Value = usuarioLogueado.Usuario;
+                cmd.Parameters.Add("@p_intIdEmpresa",  MySqlDbType.Int32).Value         = usuarioLogueado.IdEmpresa;
+                cmd.Parameters.Add("@p_intIdRol",      MySqlDbType.Int32).Value         = usuarioLogueado.IdRol;
+                cmd.Parameters.Add("@p_intIdMaestro",  MySqlDbType.Int32).Value         = request.idMaestro;
+                cmd.Parameters.Add("@p_intIdBusqueda", MySqlDbType.Int32).Value         = (object?)request.idBusqueda ?? DBNull.Value;
+                cmd.Parameters.Add("@p_vchBusqueda",   MySqlDbType.VarChar).Value     = (object?)request.vchBusqueda ?? DBNull.Value;
 
                 await cn.OpenAsync();
 
@@ -355,15 +355,15 @@ namespace SafetyReport.Infrastructure.Persistencia
         {
             try
             {
-                using SqlConnection cn = new(_dbConfig.ConnectionString);
-                using SqlCommand cmd = new("SP_TablaMaestra_Eliminar", cn);
+                using MySqlConnection cn = new(_dbConfig.ConnectionString);
+                using MySqlCommand cmd = new("SP_TablaMaestra_Eliminar", cn);
 
                 cmd.CommandType = CommandType.StoredProcedure;
-                cmd.Parameters.Add("@intIdUsuario", SqlDbType.Int).Value = usuarioLogueado.IdUsuario;
-                cmd.Parameters.Add("@vchUsuario", SqlDbType.VarChar, 32).Value = usuarioLogueado.Usuario;
-                cmd.Parameters.Add("@intIdEmpresa", SqlDbType.Int).Value = usuarioLogueado.IdEmpresa;
-                cmd.Parameters.Add("@intIdRol", SqlDbType.Int).Value = usuarioLogueado.IdRol;
-                cmd.Parameters.Add("@intIdTablaMaestra", SqlDbType.Int).Value = idTablaMaestra;
+                cmd.Parameters.Add("@p_intIdUsuario", MySqlDbType.Int32).Value = usuarioLogueado.IdUsuario;
+                cmd.Parameters.Add("@p_vchUsuario", MySqlDbType.VarChar, 32).Value = usuarioLogueado.Usuario;
+                cmd.Parameters.Add("@p_intIdEmpresa", MySqlDbType.Int32).Value = usuarioLogueado.IdEmpresa;
+                cmd.Parameters.Add("@p_intIdRol", MySqlDbType.Int32).Value = usuarioLogueado.IdRol;
+                cmd.Parameters.Add("@p_intIdTablaMaestra", MySqlDbType.Int32).Value = idTablaMaestra;
 
                 await cn.OpenAsync();
 
