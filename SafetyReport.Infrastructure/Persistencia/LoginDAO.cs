@@ -44,7 +44,7 @@ namespace SafetyReport.Infrastructure.Persistencia
                         ? Convert.ToInt32(dr["IdTipoMensaje"])
                         : 3;
 
-                    respuesta.Mensaje = dr["Mensaje"]?.ToString();
+                    respuesta.Mensaje = dr["Mensaje"]?.ToString() ?? string.Empty;
 
                     var lista = new List<UsuarioLoginResponse>();
 

@@ -381,7 +381,7 @@ public class PdfGeneratorService : IInformePdfGenerator
         if (wmContent is PdfDictionary wmDict)
         {
             var stream = wmDict.Stream;
-            stream.TryUnfilter();
+            stream.TryUncompress();
             var str = System.Text.Encoding.Latin1.GetString(stream.Value);
             str = str.Replace("/GS0 gs", "");
             str = $"q /{gsName} gs\n" + str + "\nQ\n";
@@ -636,7 +636,11 @@ public class PdfGeneratorService : IInformePdfGenerator
                 var textW = Math.Max(0, cellW - padL - padR);
                 var align = MapXAlign(css.GetValueOrDefault("text-align", cls == "sr-pie-pagnum" ? "center" : "left"));
                 var font = CrearFuente(css, fontSize);
-                var colorHex = cls == "sr-pie-pagnum" ? pageColorHex : css.GetValueOrDefault("color", null);
+                string? colorHex = cls == "sr-pie-pagnum"
+                    ? pageColorHex
+                    : css.TryGetValue("color", out var cssColor)
+                        ? cssColor
+                        : null;
                 XBrush brush = string.IsNullOrEmpty(colorHex)
                     ? XBrushes.Black
                     : new XSolidBrush(XColor.FromArgb(

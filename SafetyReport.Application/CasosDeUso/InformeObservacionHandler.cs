@@ -1,6 +1,5 @@
 using Microsoft.Extensions.Logging;
 using SafetyReport.Application.Puertos.InformeObservacion;
-using SafetyReport.Application.Puertos.Informe;
 
 namespace SafetyReport.Application.CasosDeUso
 {

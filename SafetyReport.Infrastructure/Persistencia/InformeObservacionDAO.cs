@@ -1,7 +1,7 @@
 using Microsoft.Data.SqlClient;
 using Microsoft.Extensions.Logging;
-using SafetyReport.Application.Puertos.InformeObservacion;
 using SafetyReport.Application.Puertos.Informe;
+using SafetyReport.Application.Puertos.InformeObservacion;
 using System.Data;
 
 namespace SafetyReport.Infrastructure.Persistencia

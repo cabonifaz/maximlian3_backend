@@ -28,10 +28,6 @@ public partial class DocxGeneratorService : IInformeDocxGenerator
     private FooterPart? _firstFooterPart;
     private HeaderPart? _firstHeaderPart;
     private uint _nextDrawingId = 100;
-    // Max measured last-cell width across all auto-width right-aligned keyValue tables,
-    // used to normalize value cells into a uniform column.
-    private int _rightAlignedMaxLastCellW = 0;
-
     public MemoryStream GenerarDocx(JsonNode json, Dictionary<string, byte[]>? assets = null)
     {
         var ms = new MemoryStream();
@@ -871,9 +867,9 @@ public partial class DocxGeneratorService : IInformeDocxGenerator
         var gapBefore = CssToTwips(config?["footer"]?["gapBefore"]?.GetValue<string>() ?? "0");
         var footerMBottom = CssToTwips(config?["footer"]?["marginBottom"]?.GetValue<string>() ?? "0");
         var showPageNumber = config?["footer"]?["showPageNumber"]?.GetValue<bool>() ?? true;
-        var footerPageW = CssToTwips(config?["pageSize"]?["width"]?.GetValue<string>());
-        var footerMl = CssToTwips(config?["margins"]?["left"]?.GetValue<string>());
-        var footerMr = CssToTwips(config?["margins"]?["right"]?.GetValue<string>());
+        var footerPageW = CssToTwips(config?["pageSize"]?["width"]?.GetValue<string>() ?? "0");
+        var footerMl = CssToTwips(config?["margins"]?["left"]?.GetValue<string>() ?? "0");
+        var footerMr = CssToTwips(config?["margins"]?["right"]?.GetValue<string>() ?? "0");
         var footerExtend = CssToTwips(config?["footer"]?["footerExtend"]?.GetValue<string>() ?? "0");
         var footerBaseWidth = footerPageW - footerMl - footerMr;
         var footerTableWidth = footerBaseWidth + footerExtend * 2;
@@ -931,7 +927,7 @@ public partial class DocxGeneratorService : IInformeDocxGenerator
             new TableIndentation { Width = normalFooterTableInd, Type = TableWidthUnitValues.Dxa },
             new TableLayout { Type = TableLayoutValues.Fixed }));
 
-        var footerBoxHeight = CssToTwips(config?["margins"]?["bottom"]?.GetValue<string>()) - footerMBottom - gapBefore;
+        var footerBoxHeight = CssToTwips(config?["margins"]?["bottom"]?.GetValue<string>() ?? "0") - footerMBottom - gapBefore;
 
         var footerRow = new TableRow();
         footerRow.Append(new TableRowProperties(

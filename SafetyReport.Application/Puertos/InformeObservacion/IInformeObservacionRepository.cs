@@ -1,5 +1,3 @@
-using SafetyReport.Application.Puertos.Informe;
-
 namespace SafetyReport.Application.Puertos.InformeObservacion;
 
 public interface IInformeObservacionRepository
