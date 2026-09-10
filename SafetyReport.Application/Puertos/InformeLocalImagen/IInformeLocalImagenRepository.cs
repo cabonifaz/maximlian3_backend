@@ -1,5 +1,3 @@
-using SafetyReport.Application.Puertos.Informe;
-
 namespace SafetyReport.Application.Puertos.InformeLocalImagen;
 
 public interface IInformeLocalImagenRepository

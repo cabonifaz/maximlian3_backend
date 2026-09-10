@@ -1,7 +1,7 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using SafetyReport.Application.CasosDeUso;
-using SafetyReport.Application.Puertos.Informe;
+using SafetyReport.Application.Puertos.InformeLocalImagen;
 
 namespace SafetyReport.WebApi.Controllers
 {

@@ -1,4 +1,4 @@
-using SafetyReport.Application.Puertos.Informe;
+using SafetyReport.Application.Puertos.InformeLocalImagen;
 
 namespace SafetyReport.Application.Puertos.Informe;
 
