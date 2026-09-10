@@ -15,10 +15,6 @@ FROM mcr.microsoft.com/dotnet/aspnet:10.0
 WORKDIR /app
 COPY --from=build /app/publish ./
 
-# EmailService escribe el token cache de MSAL en una ruta relativa (Email:TokenCachePath
-# = App_Data/email_token_cache.bin); sin el directorio, File.WriteAllBytes revienta.
-RUN mkdir -p /app/App_Data
-
 ENV ASPNETCORE_ENVIRONMENT=Production
 EXPOSE 8080
 

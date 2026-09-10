@@ -2,6 +2,7 @@ using Amazon.BedrockRuntime;
 using Amazon.S3;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Hosting;
 using SafetyReport.Application.Puertos.Asignacion;
 using SafetyReport.Application.Puertos.Banco;
 using SafetyReport.Application.Puertos.Cliente;
@@ -37,7 +38,8 @@ public static class DependencyInjection
 {
     public static IServiceCollection AddSafetyReportInfrastructure(
         this IServiceCollection services,
-        IConfiguration configuration)
+        IConfiguration configuration,
+        IHostEnvironment environment)
     {
         services.AddScoped<IPedidoPrefacturaExcelExporter, PedidoPrefacturaExcelExporter>();
         services.AddScoped<ICompaniaNoticiasDetalleExcelExporter, CompaniaNoticiasDetalleExcelExporter>();
@@ -53,7 +55,7 @@ public static class DependencyInjection
         AddStorage(services, awsConfig);
         AddTranslation(services, configuration, awsConfig);
         AddAutomation(services, configuration);
-        AddEmail(services, configuration);
+        AddEmail(services, configuration, environment);
         AddFacturacionElectronica(services, configuration);
 
         return services;
@@ -220,22 +222,47 @@ public static class DependencyInjection
             sp.GetRequiredService<N8nService>());
     }
 
-    private static void AddEmail(IServiceCollection services, IConfiguration configuration)
+    private static void AddEmail(IServiceCollection services, IConfiguration configuration, IHostEnvironment environment)
     {
-        var emailConfig = configuration.GetSection("Email").Get<EmailConfig>()
-            ?? throw new Exception("Falta configuración Email");
+        // Solo el ambiente "Production" real (buzon organizacional) usa auth app-only.
+        // Cualquier otro nombre de ambiente (Development, Staging/PreProd, etc.) envia
+        // desde la cuenta Hotmail de pruebas via auth delegada.
+        if (!environment.IsProduction())
+        {
+            var devConfig = configuration.GetSection("Email:Dev").Get<EmailDevConfig>()
+                ?? throw new Exception("Falta configuración Email:Dev");
 
-        if (string.IsNullOrWhiteSpace(emailConfig.ClientId))
-            throw new Exception("Falta configuración Email:ClientId");
+            if (string.IsNullOrWhiteSpace(devConfig.ClientId))
+                throw new Exception("Falta configuración Email:Dev:ClientId");
 
-        if (string.IsNullOrWhiteSpace(emailConfig.Tenant))
-            throw new Exception("Falta configuración Email:Tenant");
+            if (string.IsNullOrWhiteSpace(devConfig.Tenant))
+                throw new Exception("Falta configuración Email:Dev:Tenant");
 
-        if (string.IsNullOrWhiteSpace(emailConfig.TokenCachePath))
-            throw new Exception("Falta configuración Email:TokenCachePath");
+            if (string.IsNullOrWhiteSpace(devConfig.TokenCacheS3Key))
+                throw new Exception("Falta configuración Email:Dev:TokenCacheS3Key");
 
-        services.AddSingleton(emailConfig);
-        services.AddSingleton<IInformeEmailSender, EmailService>();
+            services.AddSingleton(devConfig);
+            services.AddSingleton<IInformeEmailSender, EmailServiceDev>();
+            return;
+        }
+
+        var prodConfig = configuration.GetSection("Email:Prod").Get<EmailProdConfig>()
+            ?? throw new Exception("Falta configuración Email:Prod");
+
+        if (string.IsNullOrWhiteSpace(prodConfig.TenantId))
+            throw new Exception("Falta configuración Email:Prod:TenantId");
+
+        if (string.IsNullOrWhiteSpace(prodConfig.ClientId))
+            throw new Exception("Falta configuración Email:Prod:ClientId");
+
+        if (string.IsNullOrWhiteSpace(prodConfig.ClientSecret))
+            throw new Exception("Falta configuración Email:Prod:ClientSecret");
+
+        if (string.IsNullOrWhiteSpace(prodConfig.SenderMailbox))
+            throw new Exception("Falta configuración Email:Prod:SenderMailbox");
+
+        services.AddSingleton(prodConfig);
+        services.AddSingleton<IInformeEmailSender, EmailServiceProd>();
     }
 
     private static void AddFacturacionElectronica(IServiceCollection services, IConfiguration configuration)
