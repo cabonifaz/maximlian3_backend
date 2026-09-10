@@ -1,5 +1,4 @@
 using SafetyReport.Application.Puertos.Informe;
-using SafetyReport.Models;
 using System.Text.Json;
 
 namespace SafetyReport.Infrastructure.Traduccion

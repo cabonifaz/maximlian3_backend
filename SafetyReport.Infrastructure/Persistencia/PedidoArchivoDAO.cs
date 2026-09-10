@@ -1,7 +1,6 @@
 ﻿using Microsoft.Data.SqlClient;
 using Microsoft.Extensions.Logging;
 using SafetyReport.Application.Puertos.PedidoArchivo;
-using SafetyReport.Models;
 using System.Data;
 
 namespace SafetyReport.Infrastructure.Persistencia

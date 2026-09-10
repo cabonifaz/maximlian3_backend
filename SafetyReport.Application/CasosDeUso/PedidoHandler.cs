@@ -2,7 +2,6 @@
 using SafetyReport.Application.Puertos.Pedido;
 using SafetyReport.Application.Puertos.PedidoArchivo;
 using SafetyReport.Application.Puertos.Almacenamiento;
-using SafetyReport.Models;
 
 namespace SafetyReport.Application.CasosDeUso
 {

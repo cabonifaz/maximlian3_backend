@@ -1,4 +1,4 @@
-namespace SafetyReport.Models
+namespace SafetyReport.Application.Puertos.PedidoFactura
 {
     public class CampoExtraRequest
     {
@@ -442,5 +442,15 @@ namespace SafetyReport.Models
     {
         public int IdDocumentoElectronico { get; set; }
         public string MotivoDescripcion { get; set; } = string.Empty;
+    }
+
+    public class ResumenPedidoFacturaConsulta
+    {
+        public DateOnly FechaDesde { get; set; }
+        public DateOnly FechaHasta { get; set; }
+        public decimal MontoTotalMensual { get; set; }
+        public int CantidadFacturasEmitidas { get; set; }
+        public decimal? PromedioIngresoMensual { get; set; }
+        public string MonedaIcono { get; set; } = string.Empty;
     }
 }

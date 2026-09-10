@@ -1,4 +1,4 @@
-namespace SafetyReport.Models
+namespace SafetyReport.Application.Puertos.PedidoFacturaLinea
 {
     // Body de POST — SP_PedidoFacturaLinea_Crear. Toda línea nace libre (IdDocumentoElectronico
     // NULL); la asociación a un documento pasa exclusivamente por RegistrarEnvio (ver

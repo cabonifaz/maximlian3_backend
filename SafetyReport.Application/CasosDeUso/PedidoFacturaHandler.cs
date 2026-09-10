@@ -4,7 +4,6 @@ using SafetyReport.Application.Puertos.Cliente;
 using SafetyReport.Application.Puertos.Pedido;
 using SafetyReport.Application.Puertos.PedidoFactura;
 using SafetyReport.Application.Puertos.PedidoFacturaLinea;
-using SafetyReport.Models;
 using System.Globalization;
 using System.Text;
 

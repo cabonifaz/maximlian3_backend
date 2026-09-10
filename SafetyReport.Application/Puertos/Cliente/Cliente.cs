@@ -1,5 +1,5 @@
 ﻿using SafetyReport.Application.Puertos.ClienteContacto;
-using SafetyReport.Models;
+using SafetyReport.Application.Puertos.PedidoFacturaLinea;
 
 namespace SafetyReport.Application.Puertos.Cliente
 {

@@ -3,7 +3,6 @@ using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Spreadsheet;
 using SafetyReport.Application.Puertos.PedidoFactura;
-using SafetyReport.Models;
 
 namespace SafetyReport.Infrastructure.Exportacion;
 

@@ -1,5 +1,4 @@
 using SafetyReport.Application.Puertos.PedidoFactura;
-using SafetyReport.Models;
 
 namespace SafetyReport.WebApi.Workers
 {

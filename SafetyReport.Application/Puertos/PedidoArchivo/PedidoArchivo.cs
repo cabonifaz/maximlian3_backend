@@ -1,6 +1,6 @@
 ﻿using Microsoft.AspNetCore.Http;
 
-namespace SafetyReport.Models
+namespace SafetyReport.Application.Puertos.PedidoArchivo
 {
     public class PedidoArchivoCrear
     {

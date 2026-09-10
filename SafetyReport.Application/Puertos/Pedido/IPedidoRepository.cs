@@ -1,10 +1,10 @@
-using SafetyReport.Models;
+using SafetyReport.Application.Puertos.PedidoFactura;
 
 namespace SafetyReport.Application.Puertos.Pedido;
 
 public interface IPedidoRepository
 {
-    Task<Respuesta> CrearAsync(UsuarioGeneral usuarioLogueado, Models.Pedido request);
+    Task<Respuesta> CrearAsync(UsuarioGeneral usuarioLogueado, Pedido request);
     Task<Respuesta> EditarAsync(UsuarioGeneral usuarioLogueado, EditarPedido request);
     Task<Respuesta> ObtenerAsync(UsuarioGeneral usuarioLogueado, FiltroPedidoObtener request);
     Task<Respuesta> ListarAsync(UsuarioGeneral usuarioLogueado, FiltroPedido request);

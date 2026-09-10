@@ -2,6 +2,7 @@ using Microsoft.Data.SqlClient;
 using Microsoft.Extensions.Logging;
 using SafetyReport.Application.Puertos.Cliente;
 using SafetyReport.Application.Puertos.ClienteContacto;
+using SafetyReport.Application.Puertos.PedidoFacturaLinea;
 using SafetyReport.Models;
 using System.Data;
 

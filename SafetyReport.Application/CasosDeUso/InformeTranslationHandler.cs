@@ -1,5 +1,4 @@
 using SafetyReport.Application.Puertos.Informe;
-using SafetyReport.Models;
 
 namespace SafetyReport.Application.CasosDeUso
 {

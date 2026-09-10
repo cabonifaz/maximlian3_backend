@@ -1,5 +1,3 @@
-using SafetyReport.Models;
-
 namespace SafetyReport.Application.Puertos.PedidoFacturaLinea
 {
     public interface IPedidoFacturaLineaRepository
