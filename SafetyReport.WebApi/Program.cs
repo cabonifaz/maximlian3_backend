@@ -22,6 +22,7 @@ builder.Host.UseNLog();
 
 builder.Services.AddControllers(options =>
     options.Filters.Add<SanitizeErrorFilter>());
+builder.Services.AddHealthChecks();
 builder.Services.AddRequestTimeouts();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddHttpContextAccessor();
@@ -210,6 +211,7 @@ app.UseAuthentication();
 app.UseAuthorization();
 
 app.MapControllers();
+app.MapHealthChecks("/health");
 
 app.Run();
 
