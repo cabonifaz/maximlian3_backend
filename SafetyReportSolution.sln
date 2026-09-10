@@ -5,11 +5,11 @@ VisualStudioVersion = 17.0.31903.59
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SafetyReport.WebApi", "SafetyReport.WebApi\SafetyReport.WebApi.csproj", "{04E9B175-0C4A-46EF-9FF3-40B928D3F2F8}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SafetyReport.Domain", "SafetyReport.Domain\SafetyReport.Domain.csproj", "{D149BEBB-62EC-4A82-A3B4-E391AC4F2584}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SafetyReport.Domain", "SafetyReport.Dominio\SafetyReport.Domain.csproj", "{D149BEBB-62EC-4A82-A3B4-E391AC4F2584}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SafetyReport.Application", "SafetyReport.Application\SafetyReport.Application.csproj", "{E2A6BC74-65FB-40BD-9483-EAA3C5E74FDE}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SafetyReport.Application", "SafetyReport.Aplicacion\SafetyReport.Application.csproj", "{E2A6BC74-65FB-40BD-9483-EAA3C5E74FDE}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SafetyReport.Infrastructure", "SafetyReport.Infrastructure\SafetyReport.Infrastructure.csproj", "{21928EDD-3487-48C1-8901-75A8BBAB8D95}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SafetyReport.Infrastructure", "SafetyReport.Infraestructura\SafetyReport.Infrastructure.csproj", "{21928EDD-3487-48C1-8901-75A8BBAB8D95}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

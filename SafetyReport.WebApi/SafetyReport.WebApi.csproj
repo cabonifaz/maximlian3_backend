@@ -15,8 +15,8 @@
 	</ItemGroup>
 
 	<ItemGroup>
-		<ProjectReference Include="..\SafetyReport.Application\SafetyReport.Application.csproj" />
-		<ProjectReference Include="..\SafetyReport.Infrastructure\SafetyReport.Infrastructure.csproj" />
+		<ProjectReference Include="..\SafetyReport.Aplicacion\SafetyReport.Application.csproj" />
+		<ProjectReference Include="..\SafetyReport.Infraestructura\SafetyReport.Infrastructure.csproj" />
 	</ItemGroup>
 
 	<ItemGroup>
