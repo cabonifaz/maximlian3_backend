@@ -399,6 +399,7 @@ namespace SafetyReport.Application.CasosDeUso
                 if (respuestaRegistro.IdTipoMensaje != 2)
                     _logger.LogError("El correo de notificacion se envio pero no se pudo registrar en INFORME_ENVIO para el informe {IdInforme}: {Mensaje}", request.IdInforme, respuestaRegistro.Mensaje);
 
+                respuesta.Mensaje = "Se realizó el envío del informe correctamente.";
                 respuesta.Result = new List<object>();
                 return respuesta;
             }
