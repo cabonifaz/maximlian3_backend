@@ -187,6 +187,8 @@ namespace SafetyReport.Application.Puertos.Informe
         public string? Email { get; set; }
         public string? PaginaWeb { get; set; }
         public int? IdEstadoManual { get; set; }
+        public int? IdClasificacion { get; set; }
+        public int? IdExperienciaPago { get; set; }
         public string? DatosAdicionales { get; set; }
         public string? ObservacionesIdentificacion { get; set; }
         public int? IdTipoEmpresa { get; set; }
@@ -241,6 +243,8 @@ namespace SafetyReport.Application.Puertos.Informe
         public int? NumeroEmpleados { get; set; }
         public string? NumeroEmpleadosText { get; set; }
         public string? ComentariosOperaciones { get; set; }
+        public string? Clientes { get; set; }
+        public string? Competidores { get; set; }
         public string? ContenidoInformacionFinanciera { get; set; }
         public string? ComentarioInformacionFinanciera { get; set; }
         public string? ActivosFijos { get; set; }

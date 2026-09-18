@@ -663,6 +663,8 @@ namespace SafetyReport.Infrastructure.Persistencia
             t.Columns.Add("Email", typeof(string));
             t.Columns.Add("PaginaWeb", typeof(string));
             t.Columns.Add("IdEstadoManual", typeof(int));
+            t.Columns.Add("IdClasificacion", typeof(int));
+            t.Columns.Add("IdExperienciaPago", typeof(int));
             t.Columns.Add("DatosAdicionales", typeof(string));
             t.Columns.Add("ObservacionesIdentificacion", typeof(string));
             t.Rows.Add(
@@ -681,6 +683,8 @@ namespace SafetyReport.Infrastructure.Persistencia
                 (object?)r.Email ?? DBNull.Value,
                 (object?)r.PaginaWeb ?? DBNull.Value,
                 (object?)r.IdEstadoManual ?? DBNull.Value,
+                (object?)r.IdClasificacion ?? DBNull.Value,
+                (object?)r.IdExperienciaPago ?? DBNull.Value,
                 (object?)r.DatosAdicionales ?? DBNull.Value,
                 (object?)r.ObservacionesIdentificacion ?? DBNull.Value
             );
@@ -771,6 +775,8 @@ namespace SafetyReport.Infrastructure.Persistencia
             t.Columns.Add("NumeroEmpleados", typeof(int));
             t.Columns.Add("NumeroEmpleadosText", typeof(string));
             t.Columns.Add("ComentariosOperaciones", typeof(string));
+            t.Columns.Add("Clientes", typeof(string));
+            t.Columns.Add("Competidores", typeof(string));
             t.Rows.Add(
                 (object?)r.IdSector ?? DBNull.Value,
                 (object?)r.Actividad ?? DBNull.Value,
@@ -802,7 +808,9 @@ namespace SafetyReport.Infrastructure.Persistencia
                 (object?)r.IdComprasCreditoInternacionalesTiempo ?? DBNull.Value,
                 (object?)r.NumeroEmpleados ?? DBNull.Value,
                 (object?)r.NumeroEmpleadosText ?? DBNull.Value,
-                (object?)r.ComentariosOperaciones ?? DBNull.Value
+                (object?)r.ComentariosOperaciones ?? DBNull.Value,
+                (object?)r.Clientes ?? DBNull.Value,
+                (object?)r.Competidores ?? DBNull.Value
             );
             return t;
         }
@@ -1143,6 +1151,8 @@ namespace SafetyReport.Infrastructure.Persistencia
                             Email = GetNullableString(dr, "Email"),
                             PaginaWeb = GetNullableString(dr, "PaginaWeb"),
                             IdEstadoManual = GetNullableInt(dr, "IdEstadoManual"),
+                            IdClasificacion = GetNullableInt(dr, "IdClasificacion"),
+                            IdExperienciaPago = GetNullableInt(dr, "IdExperienciaPago"),
                             DatosAdicionales = GetNullableString(dr, "DatosAdicionales"),
                             ObservacionesIdentificacion = GetNullableString(dr, "ObservacionesIdentificacion"),
                             IdTipoEmpresa = GetNullableInt(dr, "IdTipoEmpresa"),
@@ -1197,6 +1207,8 @@ namespace SafetyReport.Infrastructure.Persistencia
                             NumeroEmpleados = GetNullableInt(dr, "NumeroEmpleados"),
                             NumeroEmpleadosText = GetNullableString(dr, "NumeroEmpleadosText"),
                             ComentariosOperaciones = GetNullableString(dr, "ComentariosOperaciones"),
+                            Clientes = GetNullableString(dr, "Clientes"),
+                            Competidores = GetNullableString(dr, "Competidores"),
                             ContenidoInformacionFinanciera = GetNullableString(dr, "ContenidoInformacionFinanciera"),
                             ComentarioInformacionFinanciera = GetNullableString(dr, "ComentarioInformacionFinanciera"),
                             ActivosFijos = GetNullableString(dr, "ActivosFijos"),
