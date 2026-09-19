@@ -189,7 +189,6 @@ namespace SafetyReport.Application.Puertos.Informe
         public int? IdEstadoManual { get; set; }
         public int? IdClasificacion { get; set; }
         public int? IdExperienciaPago { get; set; }
-        public string? DatosAdicionales { get; set; }
         public string? ObservacionesIdentificacion { get; set; }
         public int? IdTipoEmpresa { get; set; }
         public DateTime? FechaConstitucion { get; set; }

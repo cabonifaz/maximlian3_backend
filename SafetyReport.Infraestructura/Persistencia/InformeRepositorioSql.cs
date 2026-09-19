@@ -665,7 +665,6 @@ namespace SafetyReport.Infrastructure.Persistencia
             t.Columns.Add("IdEstadoManual", typeof(int));
             t.Columns.Add("IdClasificacion", typeof(int));
             t.Columns.Add("IdExperienciaPago", typeof(int));
-            t.Columns.Add("DatosAdicionales", typeof(string));
             t.Columns.Add("ObservacionesIdentificacion", typeof(string));
             t.Rows.Add(
                 (object?)r.IdTipoPersona ?? DBNull.Value,
@@ -685,7 +684,6 @@ namespace SafetyReport.Infrastructure.Persistencia
                 (object?)r.IdEstadoManual ?? DBNull.Value,
                 (object?)r.IdClasificacion ?? DBNull.Value,
                 (object?)r.IdExperienciaPago ?? DBNull.Value,
-                (object?)r.DatosAdicionales ?? DBNull.Value,
                 (object?)r.ObservacionesIdentificacion ?? DBNull.Value
             );
             return t;
@@ -1153,7 +1151,6 @@ namespace SafetyReport.Infrastructure.Persistencia
                             IdEstadoManual = GetNullableInt(dr, "IdEstadoManual"),
                             IdClasificacion = GetNullableInt(dr, "IdClasificacion"),
                             IdExperienciaPago = GetNullableInt(dr, "IdExperienciaPago"),
-                            DatosAdicionales = GetNullableString(dr, "DatosAdicionales"),
                             ObservacionesIdentificacion = GetNullableString(dr, "ObservacionesIdentificacion"),
                             IdTipoEmpresa = GetNullableInt(dr, "IdTipoEmpresa"),
                             FechaConstitucion = GetNullableDateTime(dr, "FechaConstitucion"),
