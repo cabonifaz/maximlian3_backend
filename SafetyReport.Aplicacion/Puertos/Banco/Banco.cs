@@ -39,7 +39,7 @@ namespace SafetyReport.Application.Puertos.Banco
     public class BancoConsulta
     {
         public int IdBanco { get; set; }
-        public int IdPais { get; set; }
+        public int? IdPais { get; set; }
         public string? Pais { get; set; }
         public string Nombre { get; set; } = string.Empty;
         public string? Telefono { get; set; }
