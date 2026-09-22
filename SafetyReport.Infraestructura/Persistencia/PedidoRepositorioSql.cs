@@ -100,7 +100,6 @@ namespace SafetyReport.Infrastructure.Persistencia
 
                 cmd.Parameters.Add("@p_intPlazoCredito", MySqlDbType.Int32).Value = (object?)request.PlazoCredito ?? DBNull.Value;
                 cmd.Parameters.Add("@p_intIdTipoPlazoCredito", MySqlDbType.Int32).Value = (object?)request.IdTipoPlazoCredito ?? DBNull.Value;
-                cmd.Parameters.Add("@p_vchTipoPlazoCredito", MySqlDbType.VarChar).Value = (object?)request.TipoPlazoCredito ?? DBNull.Value;
                 cmd.Parameters.Add("@p_dtFchDesde", MySqlDbType.DateTime).Value = (object?)request.FchDesde ?? DBNull.Value;
                 cmd.Parameters.Add("@p_dtFchHasta", MySqlDbType.DateTime).Value = (object?)request.FchHasta ?? DBNull.Value;
                 cmd.Parameters.Add("@p_vchComentario", MySqlDbType.VarChar).Value = (object?)request.Comentario ?? DBNull.Value;
@@ -166,7 +165,6 @@ namespace SafetyReport.Infrastructure.Persistencia
 
                 cmd.Parameters.Add("@p_intPlazoCredito", MySqlDbType.Int32).Value = (object?)request.PlazoCredito ?? DBNull.Value;
                 cmd.Parameters.Add("@p_intIdTipoPlazoCredito", MySqlDbType.Int32).Value = (object?)request.IdTipoPlazoCredito ?? DBNull.Value;
-                cmd.Parameters.Add("@p_vchTipoPlazoCredito", MySqlDbType.VarChar).Value = (object?)request.TipoPlazoCredito ?? DBNull.Value;
                 cmd.Parameters.Add("@p_dtFchDesde", MySqlDbType.DateTime).Value = (object?)request.FchDesde ?? DBNull.Value;
                 cmd.Parameters.Add("@p_dtFchHasta", MySqlDbType.DateTime).Value = (object?)request.FchHasta ?? DBNull.Value;
                 cmd.Parameters.Add("@p_vchComentario", MySqlDbType.VarChar).Value = (object?)request.Comentario ?? DBNull.Value;

@@ -5,7 +5,7 @@ namespace SafetyReport.Application.Puertos.Informe
     public class InformeLocalItem
     {
         public int? IdInformeLocal { get; set; }
-        public int? IdTipoLocal { get; set; }
+        public string? TipoLocal { get; set; }
         public string? Comentario { get; set; }
         public List<InformeLocalImagenItem> Imagenes { get; set; } = new();
     }
@@ -15,7 +15,6 @@ namespace SafetyReport.Application.Puertos.Informe
         public int? IdInformeBanco { get; set; }
         public int IdBanco { get; set; }
         public string? NumeroCuenta { get; set; }
-        public int? IdSector { get; set; }
         public string? Sectorista { get; set; }
         public string? ReferenciaBanco { get; set; }
     }
@@ -43,7 +42,6 @@ namespace SafetyReport.Application.Puertos.Informe
     public class InformeProveedorItem
     {
         public int? IdInformeProveedor { get; set; }
-        public int? IdBancoProveedor { get; set; }
         public int IdTipoPersona { get; set; }
         public string Nombre { get; set; } = string.Empty;
         public int? IdPais { get; set; }
@@ -53,14 +51,12 @@ namespace SafetyReport.Application.Puertos.Informe
         public DateTime? FechaInicio { get; set; }
         public int? IdLimiteCredito { get; set; }
         public decimal? PromedioMensual { get; set; }
-        public string? PlazoCredito { get; set; }
         public string? Productos { get; set; }
         public int? IdCalificacion { get; set; }
         public string? Comentarios { get; set; }
         public string? NombreContacto { get; set; }
         public string? Telefono { get; set; }
         public string? ComienzoNegociaciones { get; set; }
-        public int? IdPlazoCredito { get; set; }
         public bool? EsTieneReferenciaComercial { get; set; }
         public decimal? TipoCambio { get; set; }
     }

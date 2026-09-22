@@ -9,7 +9,6 @@ namespace SafetyReport.Application.Puertos.Informe
         public string? Nombre { get; set; }
         public string? NombreComercial { get; set; }
         public int? IdPais { get; set; }
-        public int? OperacionesTCMoneda { get; set; }
         public int? TaxIdType { get; set; }
         public string? TaxNum { get; set; }
         public string? Direccion { get; set; }
@@ -26,12 +25,11 @@ namespace SafetyReport.Application.Puertos.Informe
         public string? ObservacionesIdentificacion { get; set; }
         public int? IdTipoEmpresa { get; set; }
         public DateTime? FechaConstitucion { get; set; }
-        public int? IdCiudadRegistro { get; set; }
+        public string? CiudadRegistro { get; set; }
         public string? IdNotaria { get; set; }
         public string? IdNotario { get; set; }
         public string? IdRegistro { get; set; }
         public string? IdPlazo { get; set; }
-        public int? IdOperacionesCambioDivisas { get; set; }
         public decimal? CapitalInicial { get; set; }
         public decimal? CapitalPagado { get; set; }
         public DateTime? FechaUltimoIncremento { get; set; }

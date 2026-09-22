@@ -6,8 +6,6 @@ namespace SafetyReport.Application.Puertos.Informe
     {
         public int? IdInformeBalance { get; set; }
         public DateTime FechaBalance { get; set; }
-        public DateTime? FechaHasta { get; set; }
-        public bool FlgActualidad { get; set; }
         public decimal? TipoCambio { get; set; }
         public int IdMoneda { get; set; }
         public int IdTipoBalance { get; set; }
@@ -467,8 +465,6 @@ namespace SafetyReport.Application.Puertos.Informe
     {
         public int IdInformeBalance { get; set; }
         public DateTime FechaBalance { get; set; }
-        public DateTime? FechaHasta { get; set; }
-        public bool FlgActualidad { get; set; }
         public decimal? TipoCambio { get; set; }
         public int IdMoneda { get; set; }
         public int IdTipoBalance { get; set; }

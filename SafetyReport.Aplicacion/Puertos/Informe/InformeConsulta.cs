@@ -107,7 +107,7 @@ namespace SafetyReport.Application.Puertos.Informe
     public class InformeLocalConsulta
     {
         public int IdInformeLocal { get; set; }
-        public int? IdTipoLocal { get; set; }
+        public string? TipoLocal { get; set; }
         public string? Comentario { get; set; }
         public List<InformeLocalImagenConsulta> Imagenes { get; set; } = new();
     }
@@ -117,7 +117,6 @@ namespace SafetyReport.Application.Puertos.Informe
         public int IdIformeBanco { get; set; }
         public int IdBanco { get; set; }
         public string? NumeroCuenta { get; set; }
-        public int? IdSector { get; set; }
         public string? Sectorista { get; set; }
         public string? ReferenciaBanco { get; set; }
     }
@@ -145,7 +144,6 @@ namespace SafetyReport.Application.Puertos.Informe
     public class InformeProveedorConsulta
     {
         public int IdInformeProveedor { get; set; }
-        public int? IdBancoProveedor { get; set; }
         public int IdTipoPersona { get; set; }
         public string Nombre { get; set; } = string.Empty;
         public int? IdPais { get; set; }
@@ -155,14 +153,12 @@ namespace SafetyReport.Application.Puertos.Informe
         public DateTime? FechaInicio { get; set; }
         public int? IdLimiteCredito { get; set; }
         public decimal? PromedioMensual { get; set; }
-        public string? PlazoCredito { get; set; }
         public string? Productos { get; set; }
         public int? IdCalificacion { get; set; }
         public string? Comentarios { get; set; }
         public string? NombreContacto { get; set; }
         public string? Telefono { get; set; }
         public string? ComienzoNegociaciones { get; set; }
-        public int? IdPlazoCredito { get; set; }
         public bool? EsTieneReferenciaComercial { get; set; }
         public decimal? TipoCambio { get; set; }
     }
@@ -176,7 +172,6 @@ namespace SafetyReport.Application.Puertos.Informe
         public string? Nombre { get; set; }
         public string? NombreComercial { get; set; }
         public int? IdPais { get; set; }
-        public int? OperacionesTCMoneda { get; set; }
         public int? TaxIdType { get; set; }
         public string? TaxNum { get; set; }
         public string? Direccion { get; set; }
@@ -192,12 +187,11 @@ namespace SafetyReport.Application.Puertos.Informe
         public string? ObservacionesIdentificacion { get; set; }
         public int? IdTipoEmpresa { get; set; }
         public DateTime? FechaConstitucion { get; set; }
-        public int? IdCiudadRegistro { get; set; }
+        public string? CiudadRegistro { get; set; }
         public string? IdNotaria { get; set; }
         public string? IdNotario { get; set; }
         public string? IdRegistro { get; set; }
         public string? IdPlazo { get; set; }
-        public int? IdOperacionesCambioDivisas { get; set; }
         public decimal? CapitalInicial { get; set; }
         public decimal? CapitalPagado { get; set; }
         public DateTime? FechaUltimoIncremento { get; set; }
