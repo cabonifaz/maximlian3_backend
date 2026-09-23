@@ -121,7 +121,7 @@ namespace SafetyReport.Infrastructure.Persistencia
             using MySqlCommand cmd = new("SP_InformeLocalImagen_ActualizarUrl", cn) { CommandType = CommandType.StoredProcedure };
             AgregarParametrosAuditoria(cmd, u);
             cmd.Parameters.Add("@p_intIdInformeLocalImagen", MySqlDbType.Int32).Value = idInformeLocalImagen;
-            cmd.Parameters.Add("@p_vchImagenURL", MySqlDbType.VarChar, 2048).Value = imagenUrl;
+            cmd.Parameters.Add("@p_vchImagenURL", MySqlDbType.VarChar, 255).Value = imagenUrl;
             await cn.OpenAsync();
 
             using var dr = await cmd.ExecuteReaderAsync();
