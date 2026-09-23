@@ -50,13 +50,11 @@ namespace SafetyReport.Infrastructure.Persistencia
             t.Columns.Add("IdBanco", typeof(int));
             t.Columns.Add("NumeroCuenta", typeof(string));
             t.Columns.Add("Sectorista", typeof(string));
-            t.Columns.Add("ReferenciaBanco", typeof(string));
             int i = 1;
             foreach (var x in items)
                 t.Rows.Add(i++, (object?)x.IdInformeBanco ?? DBNull.Value, x.IdBanco,
                     (object?)x.NumeroCuenta ?? DBNull.Value,
-                    (object?)x.Sectorista ?? DBNull.Value,
-                    (object?)x.ReferenciaBanco ?? DBNull.Value);
+                    (object?)x.Sectorista ?? DBNull.Value);
             return t;
         }
 
@@ -1263,8 +1261,7 @@ namespace SafetyReport.Infrastructure.Persistencia
                                     IdIformeBanco = Convert.ToInt32(dr["IdInformeBanco"]),
                                     IdBanco = Convert.ToInt32(dr["IdBanco"]),
                                     NumeroCuenta = GetNullableString(dr, "NumeroCuenta"),
-                                    Sectorista = GetNullableString(dr, "Sectorista"),
-                                    ReferenciaBanco = GetNullableString(dr, "ReferenciaBanco")
+                                    Sectorista = GetNullableString(dr, "Sectorista")
                                 });
                         }
 

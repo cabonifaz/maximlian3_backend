@@ -118,7 +118,6 @@ namespace SafetyReport.Application.Puertos.Informe
         public int IdBanco { get; set; }
         public string? NumeroCuenta { get; set; }
         public string? Sectorista { get; set; }
-        public string? ReferenciaBanco { get; set; }
     }
 
     public class InformeCompaniaRelacionadaConsulta
