@@ -77,7 +77,7 @@ namespace SafetyReport.Application.Puertos.Informe
     {
         // De INFORME_DIRECTORIO_EJECUTIVO
         public int IdInformeDirectorioEjecutivo { get; set; }
-        public int? IdCargo { get; set; }
+        public string? Cargo { get; set; }
         public DateTime? VinculadoDesde { get; set; }
         public string? CompaniaAnterior { get; set; }
         public decimal? Participacion { get; set; }
