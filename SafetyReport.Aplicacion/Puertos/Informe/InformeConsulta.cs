@@ -152,6 +152,7 @@ namespace SafetyReport.Application.Puertos.Informe
         public int? IdMoneda { get; set; }
         public DateTime? FechaInicio { get; set; }
         public int? IdLimiteCredito { get; set; }
+        public int? IdTiempoCredito { get; set; }
         public decimal? PromedioMensual { get; set; }
         public string? Productos { get; set; }
         public int? IdCalificacion { get; set; }
