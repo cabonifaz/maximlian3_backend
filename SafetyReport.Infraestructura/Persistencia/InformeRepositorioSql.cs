@@ -685,7 +685,7 @@ namespace SafetyReport.Infrastructure.Persistencia
         {
             var t = new DataTable();
             t.Columns.Add("IdTipoEmpresa", typeof(int));
-            t.Columns.Add("FechaConstitucion", typeof(DateTime));
+            t.Columns.Add("FechaConstitucion", typeof(string));
             t.Columns.Add("CiudadRegistro", typeof(string));
             t.Columns.Add("IdNotaria", typeof(string));
             t.Columns.Add("IdNotario", typeof(string));
@@ -693,7 +693,7 @@ namespace SafetyReport.Infrastructure.Persistencia
             t.Columns.Add("IdPlazo", typeof(string));
             t.Columns.Add("CapitalInicial", typeof(decimal));
             t.Columns.Add("CapitalPagado", typeof(decimal));
-            t.Columns.Add("FechaUltimoIncremento", typeof(DateTime));
+            t.Columns.Add("FechaUltimoIncremento", typeof(string));
             t.Columns.Add("IdTipoIncremento", typeof(int));
             t.Columns.Add("PatrimonioNeto", typeof(decimal));
             t.Columns.Add("TipoAcciones", typeof(string));
@@ -1142,7 +1142,7 @@ namespace SafetyReport.Infrastructure.Persistencia
                             IdExperienciaPago = GetNullableInt(dr, "IdExperienciaPago"),
                             ObservacionesIdentificacion = GetNullableString(dr, "ObservacionesIdentificacion"),
                             IdTipoEmpresa = GetNullableInt(dr, "IdTipoEmpresa"),
-                            FechaConstitucion = GetNullableDateTime(dr, "FechaConstitucion"),
+                            FechaConstitucion = GetNullableString(dr, "FechaConstitucion"),
                             CiudadRegistro = GetNullableString(dr, "CiudadRegistro"),
                             IdNotaria = GetNullableString(dr, "IdNotaria"),
                             IdNotario = GetNullableString(dr, "IdNotario"),
@@ -1150,7 +1150,7 @@ namespace SafetyReport.Infrastructure.Persistencia
                             IdPlazo = GetNullableString(dr, "IdPlazo"),
                             CapitalInicial = GetNullableDecimal(dr, "CapitalInicial"),
                             CapitalPagado = GetNullableDecimal(dr, "CapitalPagado"),
-                            FechaUltimoIncremento = GetNullableDateTime(dr, "FechaUltimoIncremento"),
+                            FechaUltimoIncremento = GetNullableString(dr, "FechaUltimoIncremento"),
                             IdTipoIncremento = GetNullableInt(dr, "IdTipoIncremento"),
                             PatrimonioNeto = GetNullableDecimal(dr, "PatrimonioNeto"),
                             TipoAcciones = GetNullableString(dr, "TipoAcciones"),

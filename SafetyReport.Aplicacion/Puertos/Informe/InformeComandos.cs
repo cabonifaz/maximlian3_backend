@@ -24,7 +24,7 @@ namespace SafetyReport.Application.Puertos.Informe
         public int? IdEstadoInforme { get; set; }
         public string? ObservacionesIdentificacion { get; set; }
         public int? IdTipoEmpresa { get; set; }
-        public DateTime? FechaConstitucion { get; set; }
+        public string? FechaConstitucion { get; set; }
         public string? CiudadRegistro { get; set; }
         public string? IdNotaria { get; set; }
         public string? IdNotario { get; set; }
@@ -32,7 +32,7 @@ namespace SafetyReport.Application.Puertos.Informe
         public string? IdPlazo { get; set; }
         public decimal? CapitalInicial { get; set; }
         public decimal? CapitalPagado { get; set; }
-        public DateTime? FechaUltimoIncremento { get; set; }
+        public string? FechaUltimoIncremento { get; set; }
         public int? IdTipoIncremento { get; set; }
         public decimal? PatrimonioNeto { get; set; }
         public string? TipoAcciones { get; set; }
