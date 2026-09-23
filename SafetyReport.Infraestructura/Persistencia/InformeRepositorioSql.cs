@@ -108,6 +108,7 @@ namespace SafetyReport.Infrastructure.Persistencia
             t.Columns.Add("IdMoneda", typeof(int));
             t.Columns.Add("IdLimiteCredito", typeof(int));
             t.Columns.Add("IdTiempoCredito", typeof(int));
+            t.Columns.Add("CantidadLineaCredito", typeof(decimal));
             t.Columns.Add("PromedioMensual", typeof(decimal));
             t.Columns.Add("Productos", typeof(string));
             t.Columns.Add("IdCalificacion", typeof(int));
@@ -126,6 +127,7 @@ namespace SafetyReport.Infrastructure.Persistencia
                     (object?)x.NumeroDocumento ?? DBNull.Value, (object?)x.IdMoneda ?? DBNull.Value,
                     (object?)x.IdLimiteCredito ?? DBNull.Value,
                     (object?)x.IdTiempoCredito ?? DBNull.Value,
+                    D4(x.CantidadLineaCredito),
                     D4(x.PromedioMensual),
                     (object?)x.Productos ?? DBNull.Value, (object?)x.IdCalificacion ?? DBNull.Value,
                     (object?)x.Comentarios ?? DBNull.Value,
@@ -1310,6 +1312,7 @@ namespace SafetyReport.Infrastructure.Persistencia
                                     IdMoneda = GetNullableInt(dr, "IdMoneda"),
                                     IdLimiteCredito = GetNullableInt(dr, "IdLimiteCredito"),
                                     IdTiempoCredito = GetNullableInt(dr, "IdTiempoCredito"),
+                                    CantidadLineaCredito = GetNullableDecimal(dr, "CantidadLineaCredito"),
                                     PromedioMensual = GetNullableDecimal(dr, "PromedioMensual"),
                                     Productos = GetNullableString(dr, "Productos"),
                                     IdCalificacion = GetNullableInt(dr, "IdCalificacion"),
