@@ -226,7 +226,7 @@ namespace SafetyReport.Infrastructure.Persistencia
                             IdCliente = Convert.ToInt32(dr["IdCliente"]),
                             IdProducto = Convert.ToInt32(dr["IdProducto"]),
                             IdTipoTramite = Convert.ToInt32(dr["IdTipoTramite"]),
-                            IdPais = Convert.ToInt32(dr["IdPais"]),
+                            IdPais = GetNullableInt(dr, "IdPais"),
                             IdMoneda = Convert.ToInt32(dr["IdMoneda"]),
                             DiasMax = Convert.ToInt32(dr["DiasMax"]),
                             DiasMin = Convert.ToInt32(dr["DiasMin"]),

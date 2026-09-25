@@ -129,9 +129,9 @@ namespace SafetyReport.Application.Puertos.Informe
     public class InformeExportacionImportacionConsulta
     {
         public int IdInformeExportacionImportacion { get; set; }
-        public int Anio { get; set; }
-        public int MesInicio { get; set; }
-        public int MesFin { get; set; }
+        public int? Anio { get; set; }
+        public int? MesInicio { get; set; }
+        public int? MesFin { get; set; }
         public int IdMoneda { get; set; }
         public string? Paises { get; set; }
         public decimal? Monto { get; set; }

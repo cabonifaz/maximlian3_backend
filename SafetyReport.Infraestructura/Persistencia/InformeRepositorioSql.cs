@@ -1285,9 +1285,9 @@ namespace SafetyReport.Infrastructure.Persistencia
                                 informe.ExportacionesImportaciones.Add(new InformeExportacionImportacionConsulta
                                 {
                                     IdInformeExportacionImportacion = Convert.ToInt32(dr["IdInformeExportacionImportacion"]),
-                                    Anio = Convert.ToInt32(dr["Anio"]),
-                                    MesInicio = Convert.ToInt32(dr["MesInicio"]),
-                                    MesFin = Convert.ToInt32(dr["MesFin"]),
+                                    Anio = GetNullableInt(dr, "Anio"),
+                                    MesInicio = GetNullableInt(dr, "MesInicio"),
+                                    MesFin = GetNullableInt(dr, "MesFin"),
                                     IdMoneda = Convert.ToInt32(dr["IdMoneda"]),
                                     Paises = GetNullableString(dr, "Paises"),
                                     Monto = GetNullableDecimal(dr, "Monto"),

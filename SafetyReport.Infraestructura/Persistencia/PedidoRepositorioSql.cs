@@ -236,7 +236,7 @@ namespace SafetyReport.Infrastructure.Persistencia
                             IdCompania = Convert.ToInt32(dr["IdCompania"]),
                             NumeroDocumentoInvestigado = GetNullableString(dr, "NumeroDocumentoInvestigado"),
                             InvestigarRazonSocialNombres = GetNullableString(dr, "InvestigarRazonSocialNombres"),
-                            IdTarifario = Convert.ToInt32(dr["IdTarifario"]),
+                            IdTarifario = GetNullableInt(dr, "IdTarifario"),
                             IdPlantilla = Convert.ToInt32(dr["IdPlantilla"]),
                             IdIdioma = Convert.ToInt32(dr["IdIdioma"]),
                             IdClaseInforme = Convert.ToInt32(dr["IdClaseInforme"]),

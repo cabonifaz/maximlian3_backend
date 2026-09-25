@@ -74,7 +74,7 @@ namespace SafetyReport.Application.Puertos.Pedido
         public int IdCompania { get; set; }
         public string? NumeroDocumentoInvestigado { get; set; }
         public string? InvestigarRazonSocialNombres { get; set; }
-        public int IdTarifario { get; set; }
+        public int? IdTarifario { get; set; }
         public int IdPlantilla { get; set; }
         public int IdIdioma { get; set; }
         public int IdClaseInforme { get; set; }
