@@ -34,7 +34,7 @@ namespace SafetyReport.Application.CasosDeUso
         {
             try
             {
-                return await _informeAprobacionRepository.AprobarAsync(usuarioLogueado, request.IdInforme);
+                return await _informeAprobacionRepository.AprobarAsync(usuarioLogueado, request.IdInformes);
             }
             catch (Exception ex)
             {

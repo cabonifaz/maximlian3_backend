@@ -2,6 +2,7 @@ using MySqlConnector;
 using Microsoft.Extensions.Logging;
 using SafetyReport.Application.Puertos.InformeAprobacion;
 using System.Data;
+using System.Text.Json;
 
 namespace SafetyReport.Infrastructure.Persistencia
 {
@@ -23,6 +24,8 @@ namespace SafetyReport.Infrastructure.Persistencia
                 using MySqlConnection cn = new(_dbConfig.ConnectionString);
                 using MySqlCommand cmd = new("SP_InformeAprobacion_ListarPendientes", cn) { CommandType = CommandType.StoredProcedure };
                 AgregarParametrosAuditoria(cmd, u);
+                cmd.Parameters.Add("@p_intIdPais", MySqlDbType.Int32).Value = (object?)filtro.IdPais ?? DBNull.Value;
+                cmd.Parameters.Add("@p_intIdPlantilla", MySqlDbType.Int32).Value = (object?)filtro.IdPlantilla ?? DBNull.Value;
                 cmd.Parameters.Add("@p_numPag", MySqlDbType.Int32).Value = (object?)filtro.NumPag ?? DBNull.Value;
                 await cn.OpenAsync();
 
@@ -45,6 +48,7 @@ namespace SafetyReport.Infrastructure.Persistencia
                             resultado.lstInformes.Add(new InformeAprobacionPendienteConsulta
                             {
                                 IdInforme = Convert.ToInt32(dr["IdInforme"]),
+                                IdPedido = Convert.ToInt32(dr["IdPedido"]),
                                 Investigado = GetNullableString(dr, "Investigado"),
                                 Pais = GetNullableString(dr, "Pais"),
                                 Plantilla = GetNullableString(dr, "Plantilla"),
@@ -67,14 +71,14 @@ namespace SafetyReport.Infrastructure.Persistencia
             }
         }
 
-        public async Task<Respuesta> AprobarAsync(UsuarioGeneral u, int idInforme)
+        public async Task<Respuesta> AprobarAsync(UsuarioGeneral u, List<int> idInformes)
         {
             try
             {
                 using MySqlConnection cn = new(_dbConfig.ConnectionString);
                 using MySqlCommand cmd = new("SP_InformeAprobacion_Aprobar", cn) { CommandType = CommandType.StoredProcedure };
                 AgregarParametrosAuditoria(cmd, u);
-                cmd.Parameters.Add("@p_intIdInforme", MySqlDbType.Int32).Value = idInforme;
+                cmd.Parameters.Add("@p_json_informes", MySqlDbType.JSON).Value = JsonSerializer.Serialize(idInformes ?? new List<int>());
                 await cn.OpenAsync();
 
                 using var dr = await cmd.ExecuteReaderAsync();
