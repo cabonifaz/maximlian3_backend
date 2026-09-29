@@ -27,8 +27,8 @@ namespace SafetyReport.Infrastructure.Persistencia
                 cmd.Parameters.Add("@p_intIdPais", MySqlDbType.Int32).Value = (object?)filtro.IdPais ?? DBNull.Value;
                 cmd.Parameters.Add("@p_intIdPlantilla", MySqlDbType.Int32).Value = (object?)filtro.IdPlantilla ?? DBNull.Value;
                 cmd.Parameters.Add("@p_intIdIdioma", MySqlDbType.Int32).Value = (object?)filtro.IdIdioma ?? DBNull.Value;
-                cmd.Parameters.Add("@p_dtmFchInicio", MySqlDbType.Date).Value = (object?)filtro.FchInicio ?? DBNull.Value;
-                cmd.Parameters.Add("@p_dtmFchFin", MySqlDbType.Date).Value = (object?)filtro.FchFin ?? DBNull.Value;
+                cmd.Parameters.Add("@p_dtmFchInicio", MySqlDbType.DateTime).Value = (object?)filtro.FchInicio?.ToUniversalTime() ?? DBNull.Value;
+                cmd.Parameters.Add("@p_dtmFchFin", MySqlDbType.DateTime).Value = (object?)filtro.FchFin?.ToUniversalTime() ?? DBNull.Value;
                 cmd.Parameters.Add("@p_numPag", MySqlDbType.Int32).Value = (object?)filtro.NumPag ?? DBNull.Value;
                 await cn.OpenAsync();
 
