@@ -66,7 +66,7 @@ namespace SafetyReport.Application.Puertos.Informe
         public int? IdInformeDirectorioEjecutivo { get; set; }
         public int IdDirectorioEjecutivo { get; set; }
         public string? Cargo { get; set; }
-        public DateTime? VinculadoDesde { get; set; }
+        public string? VinculadoDesde { get; set; }
         public string? CompaniaAnterior { get; set; }
         public decimal? Participacion { get; set; }
         public int? Orden { get; set; }

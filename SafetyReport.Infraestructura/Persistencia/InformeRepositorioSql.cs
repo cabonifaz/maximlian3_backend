@@ -576,7 +576,7 @@ namespace SafetyReport.Infrastructure.Persistencia
             t.Columns.Add("IdInformeDirectorioEjecutivo", typeof(int));
             t.Columns.Add("IdDirectorioEjecutivo", typeof(int));
             t.Columns.Add("Cargo", typeof(string));
-            t.Columns.Add("VinculadoDesde", typeof(DateTime));
+            t.Columns.Add("VinculadoDesde", typeof(string));
             t.Columns.Add("CompaniaAnterior", typeof(string));
             t.Columns.Add("Participacion", typeof(decimal));
             t.Columns.Add("Orden", typeof(int));
@@ -1333,7 +1333,7 @@ namespace SafetyReport.Infrastructure.Persistencia
                                 {
                                     IdInformeDirectorioEjecutivo = Convert.ToInt32(dr["IdInformeDirectorioEjecutivo"]),
                                     Cargo = GetNullableString(dr, "Cargo"),
-                                    VinculadoDesde = GetNullableDateTime(dr, "VinculadoDesde"),
+                                    VinculadoDesde = GetNullableString(dr, "VinculadoDesde"),
                                     CompaniaAnterior = GetNullableString(dr, "CompaniaAnterior"),
                                     Participacion = GetNullableDecimal(dr, "Participacion"),
                                     Orden = GetNullableInt(dr, "Orden"),
