@@ -9,6 +9,7 @@ using SafetyReport.Application.Puertos.ClienteContacto;
 using SafetyReport.Application.Puertos.Compania;
 using SafetyReport.Application.Puertos.DirectorioEjecutivo;
 using SafetyReport.Application.Puertos.Informe;
+using SafetyReport.Application.Puertos.InformeAprobacion;
 using SafetyReport.Application.Puertos.InformeArchivo;
 using SafetyReport.Application.Puertos.InformeLocalImagen;
 using SafetyReport.Application.Puertos.InformeObservacion;
@@ -127,6 +128,8 @@ public static class DependencyInjection
         services.AddScoped<InformeRepositorioSql>();
         services.AddScoped<IInformeRepository, InformeRepositorioSql>();
         services.AddScoped<IInformeDraftRepository, InformeRepositorioSql>();
+        services.AddScoped<InformeAprobacionRepositorioSql>();
+        services.AddScoped<IInformeAprobacionRepository, InformeAprobacionRepositorioSql>();
         services.AddScoped<InformeObservacionRepositorioSql>();
         services.AddScoped<IInformeObservacionRepository, InformeObservacionRepositorioSql>();
         services.AddScoped<InformeLocalImagenRepositorioSql>();

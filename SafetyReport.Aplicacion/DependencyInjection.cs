@@ -21,6 +21,7 @@ public static class DependencyInjection
         services.AddScoped<CompaniaHandler>();
         services.AddScoped<DirectorioEjecutivoHandler>();
         services.AddScoped<FormatoDocumentoResolver>();
+        services.AddScoped<InformeAprobacionHandler>();
         services.AddScoped<InformeArchivoHandler>();
         services.AddScoped<InformeHandler>();
         services.AddScoped<InformeLocalImagenHandler>();
