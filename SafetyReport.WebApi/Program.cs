@@ -184,6 +184,8 @@ builder.Services.AddScoped<DocxGeneratorService>();
 builder.Services.AddScoped<PdfGeneratorService>();
 builder.Services.AddScoped<InformeHandler>();
 builder.Services.AddScoped<InformeDAO>();
+builder.Services.AddScoped<InformeAprobacionHandler>();
+builder.Services.AddScoped<InformeAprobacionDAO>();
 builder.Services.AddScoped<InformeObservacionHandler>();
 builder.Services.AddScoped<InformeObservacionDAO>();
 builder.Services.AddScoped<InformeLocalImagenHandler>();
