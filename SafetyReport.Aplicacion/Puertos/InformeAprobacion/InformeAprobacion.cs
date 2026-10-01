@@ -5,6 +5,7 @@ public class FiltroInformeAprobacionPendientes
     public int? IdPais { get; set; }
     public int? IdPlantilla { get; set; }
     public int? IdIdioma { get; set; }
+    public string? Busqueda { get; set; }
     public DateTime? FchInicio { get; set; }
     public DateTime? FchFin { get; set; }
     public int? NumPag { get; set; }
