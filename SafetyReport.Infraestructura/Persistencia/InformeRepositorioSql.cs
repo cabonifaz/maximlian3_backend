@@ -1229,7 +1229,12 @@ namespace SafetyReport.Infrastructure.Persistencia
                             OpinionCredito = GetNullableString(dr, "OpinionCredito"),
                             FlgTieneInformacion = GetNullableBool(dr, "FlgTieneInformacion"),
                             IdEstadoInforme = GetNullableInt(dr, "IdEstadoInforme"),
-                            IdFormatoFecha = GetNullableInt(dr, "IdFormatoFecha")
+                            IdFormatoFecha = GetNullableInt(dr, "IdFormatoFecha"),
+                            IdMonedaLineaRecomendada = GetNullableInt(dr, "IdMonedaLineaRecomendada"),
+                            MontoLineaRecomendada = GetNullableDecimal(dr, "MontoLineaRecomendada"),
+                            IdMonedaLineaMaxima = GetNullableInt(dr, "IdMonedaLineaMaxima"),
+                            MontoLineaMaxima = GetNullableDecimal(dr, "MontoLineaMaxima"),
+                            Terminos = GetNullableString(dr, "Terminos")
                         };
                     }
 

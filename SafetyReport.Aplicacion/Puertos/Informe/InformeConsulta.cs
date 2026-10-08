@@ -250,6 +250,11 @@ namespace SafetyReport.Application.Puertos.Informe
         public string? Superintendecia { get; set; }
         public string? InformacionGeneral { get; set; }
         public string? OpinionCredito { get; set; }
+        public int? IdMonedaLineaRecomendada { get; set; }
+        public decimal? MontoLineaRecomendada { get; set; }
+        public int? IdMonedaLineaMaxima { get; set; }
+        public decimal? MontoLineaMaxima { get; set; }
+        public string? Terminos { get; set; }
         public bool? FlgTieneInformacion { get; set; }
         public int? IdEstadoInforme { get; set; }
         public int? IdFormatoFecha { get; set; }
