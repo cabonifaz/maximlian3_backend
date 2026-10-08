@@ -851,6 +851,24 @@ namespace SafetyReport.Infrastructure.Persistencia
             return t;
         }
 
+        private static DataTable ConstruirTablaCamposExtra(InformeCrear r)
+        {
+            var t = new DataTable();
+            t.Columns.Add("IdMonedaLineaRecomendada", typeof(int));
+            t.Columns.Add("MontoLineaRecomendada", typeof(decimal));
+            t.Columns.Add("IdMonedaLineaMaxima", typeof(int));
+            t.Columns.Add("MontoLineaMaxima", typeof(decimal));
+            t.Columns.Add("Terminos", typeof(string));
+            t.Rows.Add(
+                (object?)r.IdMonedaLineaRecomendada ?? DBNull.Value,
+                D2(r.MontoLineaRecomendada),
+                (object?)r.IdMonedaLineaMaxima ?? DBNull.Value,
+                D2(r.MontoLineaMaxima),
+                (object?)r.Terminos ?? DBNull.Value
+            );
+            return t;
+        }
+
         // ── Decimal rounding helpers (match SQL TVP column precision) ────────────
 
         private static object D2(decimal? v) => v.HasValue ? (object)Math.Round(v.Value, 2, MidpointRounding.AwayFromZero) : DBNull.Value;
@@ -983,6 +1001,7 @@ namespace SafetyReport.Infrastructure.Persistencia
             AgregarTvpObjeto(cmd, "@p_jsonInformacionFinanciera", ConstruirTablaInformacionFinanciera(r));
             AgregarTvpObjeto(cmd, "@p_jsonBancosProveedores", ConstruirTablaBancosProveedores(r));
             AgregarTvpObjeto(cmd, "@p_jsonDatosGenerales", ConstruirTablaDatosGenerales(r));
+            AgregarTvpObjeto(cmd, "@p_jsonCamposExtra", ConstruirTablaCamposExtra(r));
 
             AgregarTvp(cmd, "@p_jsonBalances", ConstruirTablaBalances(r.lstBalances));
             AgregarTvp(cmd, "@p_jsonBalancesDesagregado", ConstruirTablaBalancesDesagregado(r.lstBalancesDesagregado));

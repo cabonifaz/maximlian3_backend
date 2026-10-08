@@ -91,6 +91,13 @@ namespace SafetyReport.Application.Puertos.Informe
         public bool? FlgTieneInformacion { get; set; }
         public int? IdFormatoFecha { get; set; }
 
+        // Campos extra (INFORME_CAMPOS_EXTRA): la fila solo se crea si alguno viene informado
+        public int? IdMonedaLineaRecomendada { get; set; }
+        public decimal? MontoLineaRecomendada { get; set; }
+        public int? IdMonedaLineaMaxima { get; set; }
+        public decimal? MontoLineaMaxima { get; set; }
+        public string? Terminos { get; set; }
+
         // Child lists
         public List<InformeBalanceItem> lstBalances { get; set; } = new();
         public List<InformeBalanceDesagregadoItem> lstBalancesDesagregado { get; set; } = new();
