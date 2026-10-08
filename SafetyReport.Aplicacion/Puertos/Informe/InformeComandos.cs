@@ -97,6 +97,8 @@ namespace SafetyReport.Application.Puertos.Informe
         public int? IdMonedaLineaMaxima { get; set; }
         public decimal? MontoLineaMaxima { get; set; }
         public string? Terminos { get; set; }
+        public string? DomicilioFiscal { get; set; }
+        public string? ContactoInformacion { get; set; }
 
         // Child lists
         public List<InformeBalanceItem> lstBalances { get; set; } = new();

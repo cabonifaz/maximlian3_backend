@@ -859,12 +859,16 @@ namespace SafetyReport.Infrastructure.Persistencia
             t.Columns.Add("IdMonedaLineaMaxima", typeof(int));
             t.Columns.Add("MontoLineaMaxima", typeof(decimal));
             t.Columns.Add("Terminos", typeof(string));
+            t.Columns.Add("DomicilioFiscal", typeof(string));
+            t.Columns.Add("ContactoInformacion", typeof(string));
             t.Rows.Add(
                 (object?)r.IdMonedaLineaRecomendada ?? DBNull.Value,
                 D2(r.MontoLineaRecomendada),
                 (object?)r.IdMonedaLineaMaxima ?? DBNull.Value,
                 D2(r.MontoLineaMaxima),
-                (object?)r.Terminos ?? DBNull.Value
+                (object?)r.Terminos ?? DBNull.Value,
+                (object?)r.DomicilioFiscal ?? DBNull.Value,
+                (object?)r.ContactoInformacion ?? DBNull.Value
             );
             return t;
         }
@@ -1234,7 +1238,9 @@ namespace SafetyReport.Infrastructure.Persistencia
                             MontoLineaRecomendada = GetNullableDecimal(dr, "MontoLineaRecomendada"),
                             IdMonedaLineaMaxima = GetNullableInt(dr, "IdMonedaLineaMaxima"),
                             MontoLineaMaxima = GetNullableDecimal(dr, "MontoLineaMaxima"),
-                            Terminos = GetNullableString(dr, "Terminos")
+                            Terminos = GetNullableString(dr, "Terminos"),
+                            DomicilioFiscal = GetNullableString(dr, "DomicilioFiscal"),
+                            ContactoInformacion = GetNullableString(dr, "ContactoInformacion")
                         };
                     }
 
