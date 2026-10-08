@@ -736,6 +736,7 @@ namespace SafetyReport.Infrastructure.Persistencia
             t.Columns.Add("Actividad", typeof(string));
             t.Columns.Add("IdIsicCategoria", typeof(int));
             t.Columns.Add("IdIsicClase", typeof(int));
+            t.Columns.Add("CodigoNace", typeof(string));
             t.Columns.Add("ActividadPrincipal", typeof(string));
             t.Columns.Add("VentasContado", typeof(decimal));
             t.Columns.Add("VentasContadoText", typeof(string));
@@ -770,6 +771,7 @@ namespace SafetyReport.Infrastructure.Persistencia
                 (object?)r.Actividad ?? DBNull.Value,
                 (object?)r.IdIsicCategoria ?? DBNull.Value,
                 (object?)r.IdIsicClase ?? DBNull.Value,
+                (object?)r.CodigoNace ?? DBNull.Value,
                 (object?)r.ActividadPrincipal ?? DBNull.Value,
                 D2(r.VentasContado),
                 (object?)r.VentasContadoText ?? DBNull.Value,
@@ -1165,6 +1167,7 @@ namespace SafetyReport.Infrastructure.Persistencia
                             Actividad = GetNullableString(dr, "Actividad"),
                             IdIsicCategoria = GetNullableInt(dr, "IdIsicCategoria"),
                             IdIsicClase = GetNullableInt(dr, "IdIsicClase"),
+                            CodigoNace = GetNullableString(dr, "CodigoNace"),
                             ActividadPrincipal = GetNullableString(dr, "ActividadPrincipal"),
                             VentasContado = GetNullableDecimal(dr, "VentasContado"),
                             VentasContadoText = GetNullableString(dr, "VentasContadoText"),

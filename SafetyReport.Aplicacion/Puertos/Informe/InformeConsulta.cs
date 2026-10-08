@@ -209,6 +209,7 @@ namespace SafetyReport.Application.Puertos.Informe
         public string? Actividad { get; set; }
         public int? IdIsicCategoria { get; set; }
         public int? IdIsicClase { get; set; }
+        public string? CodigoNace { get; set; }
         public string? ActividadPrincipal { get; set; }
         public decimal? VentasContado { get; set; }
         public string? VentasContadoText { get; set; }
