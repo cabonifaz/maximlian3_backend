@@ -14,6 +14,15 @@ namespace SafetyReport.Application.Puertos.Informe
         public Dictionary<string, string?> InformacionFinanciera { get; set; } = new();
         public Dictionary<string, string?> BancosProveedores { get; set; } = new();
         public Dictionary<string, string?> DatosGenerales { get; set; } = new();
+        public List<InformeTranslationDirectorioEjecutivo> DirectoriosEjecutivos { get; set; } = new();
+    }
+
+    public class InformeTranslationDirectorioEjecutivo
+    {
+        public int? IdInformeDirectorioEjecutivo { get; set; }
+        public string? Cargo { get; set; }
+        public string? VinculadoDesde { get; set; }
+        public string? Referencias { get; set; }
     }
 
     public class InformeTranslationRamoOperaciones

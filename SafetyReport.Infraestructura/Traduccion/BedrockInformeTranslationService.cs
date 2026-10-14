@@ -40,8 +40,15 @@ namespace SafetyReport.Infrastructure.Traduccion
               }},
               "informacionFinanciera": {{ "fieldName": "translated text", ... }},
               "bancosProveedores": {{ "fieldName": "translated text", ... }},
-              "datosGenerales": {{ "fieldName": "translated text", ... }}
+              "datosGenerales": {{ "fieldName": "translated text", ... }},
+              "directoriosEjecutivos": [
+                {{ "idInformeDirectorioEjecutivo": 0, "cargo": "translated text", "vinculadoDesde": "translated text", "referencias": "translated text" }}
+              ]
             }}
+
+            For "directoriosEjecutivos": return the same number of items in the same order.
+            Copy "idInformeDirectorioEjecutivo" EXACTLY as received (never translate or change it);
+            only translate "cargo", "vinculadoDesde" and "referencias".
 
             Preserve all keys exactly as received. Only translate the values.
             """;
@@ -57,7 +64,7 @@ namespace SafetyReport.Infrastructure.Traduccion
             var config = new BedrockConfig
             {
                 ModelId = _modelId,
-                MaxTokens = 4096,
+                MaxTokens = 8192,
                 Temperature = 0.1F,
                 SystemPrompt = string.Format(SystemPromptTemplate, idioma)
             };
@@ -97,9 +104,38 @@ namespace SafetyReport.Infrastructure.Traduccion
                 },
                 InformacionFinanciera = EnforceKeys(original.InformacionFinanciera, parsed.InformacionFinanciera),
                 BancosProveedores = EnforceKeys(original.BancosProveedores, parsed.BancosProveedores),
-                DatosGenerales = EnforceKeys(original.DatosGenerales, parsed.DatosGenerales)
+                DatosGenerales = EnforceKeys(original.DatosGenerales, parsed.DatosGenerales),
+                DirectoriosEjecutivos = EnforceDirectorios(original.DirectoriosEjecutivos, parsed.DirectoriosEjecutivos)
             };
         }
+
+        // Matches each translated item back to the original by id (falls back to position
+        // when the original has no id). The id always comes from the original.
+        private static List<InformeTranslationDirectorioEjecutivo> EnforceDirectorios(
+            List<InformeTranslationDirectorioEjecutivo> original,
+            List<InformeTranslationDirectorioEjecutivo> parsed)
+        {
+            var result = new List<InformeTranslationDirectorioEjecutivo>();
+            for (var i = 0; i < original.Count; i++)
+            {
+                var src = original[i];
+                var match = src.IdInformeDirectorioEjecutivo.HasValue
+                    ? parsed.FirstOrDefault(p => p.IdInformeDirectorioEjecutivo == src.IdInformeDirectorioEjecutivo)
+                    : (i < parsed.Count ? parsed[i] : null);
+
+                result.Add(new InformeTranslationDirectorioEjecutivo
+                {
+                    IdInformeDirectorioEjecutivo = src.IdInformeDirectorioEjecutivo,
+                    Cargo = Pick(src.Cargo, match?.Cargo),
+                    VinculadoDesde = Pick(src.VinculadoDesde, match?.VinculadoDesde),
+                    Referencias = Pick(src.Referencias, match?.Referencias)
+                });
+            }
+            return result;
+        }
+
+        private static string? Pick(string? original, string? translated) =>
+            string.IsNullOrEmpty(original) ? original : (translated ?? original);
 
         private static Dictionary<string, string?> EnforceKeys(Dictionary<string, string?> original, Dictionary<string, string?> parsed)
         {
