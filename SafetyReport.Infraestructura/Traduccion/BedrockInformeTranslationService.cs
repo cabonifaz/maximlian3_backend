@@ -36,7 +36,11 @@ namespace SafetyReport.Infrastructure.Traduccion
               "ramoOperaciones": {{
                 "campos": {{ "fieldName": "translated text", ... }},
                 "importaciones": {{ "fieldName": "translated text", ... }},
-                "exportaciones": {{ "fieldName": "translated text", ... }}
+                "exportaciones": {{ "fieldName": "translated text", ... }},
+                "locales": [
+                  {{ "idInformeLocal": 0, "tipoLocal": "translated text", "comentario": "translated text",
+                     "imagenes": [ {{ "idInformeLocalImagen": 0, "descripcion": "translated text" }} ] }}
+                ]
               }},
               "informacionFinanciera": {{ "fieldName": "translated text", ... }},
               "bancosProveedores": {{ "fieldName": "translated text", ... }},
@@ -45,6 +49,10 @@ namespace SafetyReport.Infrastructure.Traduccion
                 {{ "idInformeDirectorioEjecutivo": 0, "cargo": "translated text", "vinculadoDesde": "translated text", "referencias": "translated text" }}
               ]
             }}
+
+            For "locales": return the same number of items in the same order, each with the same "imagenes" items in the same order.
+            Copy "idInformeLocal" and "idInformeLocalImagen" EXACTLY as received (never translate or change them);
+            only translate "tipoLocal", "comentario" and "descripcion".
 
             For "directoriosEjecutivos": return the same number of items in the same order.
             Copy "idInformeDirectorioEjecutivo" EXACTLY as received (never translate or change it);
@@ -100,7 +108,8 @@ namespace SafetyReport.Infrastructure.Traduccion
                 {
                     Campos = EnforceKeys(original.RamoOperaciones.Campos, parsed.RamoOperaciones.Campos),
                     Importaciones = EnforceKeys(original.RamoOperaciones.Importaciones, parsed.RamoOperaciones.Importaciones),
-                    Exportaciones = EnforceKeys(original.RamoOperaciones.Exportaciones, parsed.RamoOperaciones.Exportaciones)
+                    Exportaciones = EnforceKeys(original.RamoOperaciones.Exportaciones, parsed.RamoOperaciones.Exportaciones),
+                    Locales = EnforceLocales(original.RamoOperaciones.Locales, parsed.RamoOperaciones.Locales)
                 },
                 InformacionFinanciera = EnforceKeys(original.InformacionFinanciera, parsed.InformacionFinanciera),
                 BancosProveedores = EnforceKeys(original.BancosProveedores, parsed.BancosProveedores),
@@ -129,6 +138,47 @@ namespace SafetyReport.Infrastructure.Traduccion
                     Cargo = Pick(src.Cargo, match?.Cargo),
                     VinculadoDesde = Pick(src.VinculadoDesde, match?.VinculadoDesde),
                     Referencias = Pick(src.Referencias, match?.Referencias)
+                });
+            }
+            return result;
+        }
+
+        // Same matching rules as EnforceDirectorios: by id, falling back to position when the original has no id.
+        private static List<InformeTranslationLocal> EnforceLocales(
+            List<InformeTranslationLocal>? original,
+            List<InformeTranslationLocal>? parsed)
+        {
+            original ??= new();
+            parsed ??= new();
+            var result = new List<InformeTranslationLocal>();
+            for (var i = 0; i < original.Count; i++)
+            {
+                var src = original[i];
+                var match = src.IdInformeLocal.HasValue
+                    ? parsed.FirstOrDefault(p => p.IdInformeLocal == src.IdInformeLocal)
+                    : (i < parsed.Count ? parsed[i] : null);
+                var matchImagenes = match?.Imagenes ?? new();
+
+                var imagenes = new List<InformeTranslationLocalImagen>();
+                for (var j = 0; j < (src.Imagenes?.Count ?? 0); j++)
+                {
+                    var img = src.Imagenes![j];
+                    var imgMatch = img.IdInformeLocalImagen.HasValue
+                        ? matchImagenes.FirstOrDefault(p => p.IdInformeLocalImagen == img.IdInformeLocalImagen)
+                        : (j < matchImagenes.Count ? matchImagenes[j] : null);
+                    imagenes.Add(new InformeTranslationLocalImagen
+                    {
+                        IdInformeLocalImagen = img.IdInformeLocalImagen,
+                        Descripcion = Pick(img.Descripcion, imgMatch?.Descripcion)
+                    });
+                }
+
+                result.Add(new InformeTranslationLocal
+                {
+                    IdInformeLocal = src.IdInformeLocal,
+                    TipoLocal = Pick(src.TipoLocal, match?.TipoLocal),
+                    Comentario = Pick(src.Comentario, match?.Comentario),
+                    Imagenes = imagenes
                 });
             }
             return result;
