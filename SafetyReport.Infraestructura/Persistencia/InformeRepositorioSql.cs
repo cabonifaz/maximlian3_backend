@@ -100,7 +100,7 @@ namespace SafetyReport.Infrastructure.Persistencia
             var t = new DataTable();
             t.Columns.Add("ID", typeof(int));
             t.Columns.Add("IdInformeProveedor", typeof(int));
-            t.Columns.Add("IdTipoPersona", typeof(int));
+            t.Columns.Add("IdTipoProveedor", typeof(int));
             t.Columns.Add("Nombre", typeof(string));
             t.Columns.Add("IdPais", typeof(int));
             t.Columns.Add("IdTipoDocumento", typeof(int));
@@ -122,7 +122,7 @@ namespace SafetyReport.Infrastructure.Persistencia
             foreach (var x in items)
                 t.Rows.Add(i++,
                     (object?)x.IdInformeProveedor ?? DBNull.Value,
-                    x.IdTipoPersona, x.Nombre,
+                    x.IdTipoProveedor, x.Nombre,
                     (object?)x.IdPais ?? DBNull.Value, (object?)x.IdTipoDocumento ?? DBNull.Value,
                     (object?)x.NumeroDocumento ?? DBNull.Value, (object?)x.IdMoneda ?? DBNull.Value,
                     (object?)x.IdLimiteCredito ?? DBNull.Value,
@@ -1337,7 +1337,7 @@ namespace SafetyReport.Infrastructure.Persistencia
                                 informe.Proveedores.Add(new InformeProveedorConsulta
                                 {
                                     IdInformeProveedor = Convert.ToInt32(dr["IdInformeProveedor"]),
-                                    IdTipoPersona = Convert.ToInt32(dr["IdTipoPersona"]),
+                                    IdTipoProveedor = Convert.ToInt32(dr["IdTipoProveedor"]),
                                     Nombre = dr["Nombre"]?.ToString() ?? string.Empty,
                                     IdPais = GetNullableInt(dr, "IdPais"),
                                     IdTipoDocumento = GetNullableInt(dr, "IdTipoDocumento"),
