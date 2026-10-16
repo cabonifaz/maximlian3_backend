@@ -99,6 +99,7 @@ namespace SafetyReport.Application.Puertos.Informe
         public string? Terminos { get; set; }
         public string? DomicilioFiscal { get; set; }
         public string? ContactoInformacion { get; set; }
+        public string? HorasOficina { get; set; }
 
         // Child lists
         public List<InformeBalanceItem> lstBalances { get; set; } = new();

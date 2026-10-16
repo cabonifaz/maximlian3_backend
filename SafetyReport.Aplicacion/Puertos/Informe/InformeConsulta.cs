@@ -257,6 +257,7 @@ namespace SafetyReport.Application.Puertos.Informe
         public string? Terminos { get; set; }
         public string? DomicilioFiscal { get; set; }
         public string? ContactoInformacion { get; set; }
+        public string? HorasOficina { get; set; }
         public bool? FlgTieneInformacion { get; set; }
         public int? IdEstadoInforme { get; set; }
         public int? IdFormatoFecha { get; set; }
