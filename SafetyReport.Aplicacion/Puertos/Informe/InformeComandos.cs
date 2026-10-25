@@ -35,6 +35,7 @@ namespace SafetyReport.Application.Puertos.Informe
         public string? FechaUltimoIncremento { get; set; }
         public int? IdTipoIncremento { get; set; }
         public decimal? PatrimonioNeto { get; set; }
+        public string? ComentarioPatrimonioNeto { get; set; }
         public string? TipoAcciones { get; set; }
         public decimal? ValorAcciones { get; set; }
         public bool? CotizaBolsa { get; set; }

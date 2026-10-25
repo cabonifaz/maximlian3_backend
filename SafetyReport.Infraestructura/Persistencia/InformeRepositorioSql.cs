@@ -696,6 +696,7 @@ namespace SafetyReport.Infrastructure.Persistencia
             t.Columns.Add("FechaUltimoIncremento", typeof(string));
             t.Columns.Add("IdTipoIncremento", typeof(int));
             t.Columns.Add("PatrimonioNeto", typeof(decimal));
+            t.Columns.Add("ComentarioPatrimonioNeto", typeof(string));
             t.Columns.Add("TipoAcciones", typeof(string));
             t.Columns.Add("ValorAcciones", typeof(decimal));
             t.Columns.Add("CotizaBolsa", typeof(bool));
@@ -717,6 +718,7 @@ namespace SafetyReport.Infrastructure.Persistencia
                 (object?)r.FechaUltimoIncremento ?? DBNull.Value,
                 (object?)r.IdTipoIncremento ?? DBNull.Value,
                 D2(r.PatrimonioNeto),
+                (object?)r.ComentarioPatrimonioNeto ?? DBNull.Value,
                 (object?)r.TipoAcciones ?? DBNull.Value,
                 D2(r.ValorAcciones),
                 (object?)r.CotizaBolsa ?? DBNull.Value,
@@ -1180,6 +1182,7 @@ namespace SafetyReport.Infrastructure.Persistencia
                             FechaUltimoIncremento = GetNullableString(dr, "FechaUltimoIncremento"),
                             IdTipoIncremento = GetNullableInt(dr, "IdTipoIncremento"),
                             PatrimonioNeto = GetNullableDecimal(dr, "PatrimonioNeto"),
+                            ComentarioPatrimonioNeto = GetNullableString(dr, "ComentarioPatrimonioNeto"),
                             TipoAcciones = GetNullableString(dr, "TipoAcciones"),
                             ValorAcciones = GetNullableDecimal(dr, "ValorAcciones"),
                             CotizaBolsa = GetNullableBool(dr, "CotizaBolsa"),
