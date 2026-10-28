@@ -314,6 +314,7 @@ namespace SafetyReport.Infrastructure.Persistencia
                                 IdCliente = Convert.ToInt32(dr["IdCliente"]),
                                 Cliente = GetNullableString(dr, "Cliente"),
                                 Investigado = GetNullableString(dr, "Investigado"),
+                                Pais = GetNullableString(dr, "Pais"),
                                 Idioma = GetNullableString(dr, "Idioma"),
                                 RequiereTraduccion = GetNullableInt(dr, "RequiereTraduccion"),
                                 LogoImprimible = GetNullableString(dr, "LogoImprimible"),

@@ -59,8 +59,10 @@ namespace SafetyReport.Application.Puertos.Asignacion
     public class AsignacionListaConsulta
     {
         public int IdPedido { get; set; }
+        public string? FchCre { get; set; }
         public string? Cliente { get; set; }
         public string? Investigado { get; set; }
+        public string? Pais { get; set; }
         public AsignacionPersona? Analista { get; set; }
         public AsignacionPersona? Traductor { get; set; }
         public int? IdEstado { get; set; }
@@ -73,6 +75,7 @@ namespace SafetyReport.Application.Puertos.Asignacion
         public List<AsignacionListaConsulta> lstAsignaciones { get; set; } = new();
         public int TotalRegistros { get; set; }
         public int TotalPaginas { get; set; }
+        public int SinAsignacion { get; set; }
     }
 
     public class FiltroAsignacion

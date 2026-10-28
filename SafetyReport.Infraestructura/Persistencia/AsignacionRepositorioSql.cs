@@ -177,6 +177,7 @@ namespace SafetyReport.Infrastructure.Persistencia
                     {
                         resultado.TotalRegistros = Convert.ToInt32(dr["TotalRegistros"]);
                         resultado.TotalPaginas = Convert.ToInt32(dr["TotalPaginas"]);
+                        resultado.SinAsignacion = Convert.ToInt32(dr["SinAsignacion"]);
                     }
 
                     if (await dr.NextResultAsync())
@@ -186,8 +187,10 @@ namespace SafetyReport.Infrastructure.Persistencia
                             resultado.lstAsignaciones.Add(new AsignacionListaConsulta
                             {
                                 IdPedido = Convert.ToInt32(dr["IdPedido"]),
+                                FchCre = GetNullableString(dr, "FchCre"),
                                 Cliente = GetNullableString(dr, "Cliente"),
                                 Investigado = GetNullableString(dr, "Investigado"),
+                                Pais = GetNullableString(dr, "Pais"),
                                 Analista = new AsignacionPersona
                                 {
                                     IdAsignacion = GetNullableInt(dr, "AnalistaIdAsignacion"),

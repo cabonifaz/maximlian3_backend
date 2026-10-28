@@ -29,6 +29,7 @@ namespace SafetyReport.Application.Puertos.Informe
         public string? Plantilla { get; set; }
         public string? EstadoInforme { get; set; }
         public string? Investigado { get; set; }
+        public string? Pais { get; set; }
         public string? Vigencia { get; set; }
         public string? TipoTramite { get; set; }
         public int? IdInformeOriginal { get; set; }

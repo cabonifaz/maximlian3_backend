@@ -144,6 +144,7 @@ namespace SafetyReport.Application.Puertos.Pedido
         public int IdCliente { get; set; }
         public string? Cliente { get; set; }
         public string? Investigado { get; set; }
+        public string? Pais { get; set; }
         public string? Idioma { get; set; }
         public int? RequiereTraduccion { get; set; }
         public string? LogoImprimible { get; set; }

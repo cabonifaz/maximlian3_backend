@@ -1769,6 +1769,7 @@ namespace SafetyReport.Infrastructure.Persistencia
                                 Plantilla = GetNullableString(dr, "Plantilla"),
                                 EstadoInforme = GetNullableString(dr, "EstadoInforme"),
                                 Investigado = GetNullableString(dr, "Investigado"),
+                                Pais = GetNullableString(dr, "Pais"),
                                 Vigencia = GetNullableString(dr, "Vigencia"),
                                 TipoTramite = GetNullableString(dr, "TipoTramite"),
                                 IdInformeOriginal = GetNullableInt(dr, "IdInformeOriginal"),
