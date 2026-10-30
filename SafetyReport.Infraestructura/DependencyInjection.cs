@@ -201,6 +201,12 @@ public static class DependencyInjection
         });
         services.AddSingleton<IInformeTranslator>(sp =>
             sp.GetRequiredService<BedrockInformeTranslationService>());
+        services.AddSingleton<INoticiaTranslator>(sp =>
+        {
+            var bedrock = sp.GetRequiredService<BedrockService>();
+            var config = sp.GetRequiredService<BedrockTranslationConfig>();
+            return new BedrockNoticiaTranslationService(bedrock, config.Informe);
+        });
     }
 
     private static void AddAutomation(IServiceCollection services, IConfiguration configuration)

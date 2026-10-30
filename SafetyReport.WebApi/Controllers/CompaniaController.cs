@@ -82,6 +82,13 @@ namespace SafetyReport.WebApi.Controllers
             return Ok(respuesta);
         }
 
+        [HttpGet("noticia/traducir")]
+        public async Task<IActionResult> TraducirNoticia([FromQuery] CompaniaNoticiaTraducirRequest request)
+        {
+            var respuesta = await _companiaHandler.TraducirNoticiaAsync(UsuarioLogueado, request);
+            return Ok(respuesta);
+        }
+
         [HttpGet("noticia/obtener")]
         public async Task<IActionResult> ObtenerNoticia([FromQuery] CompaniaNoticiaObtenerRequest request)
         {

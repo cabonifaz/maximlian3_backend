@@ -10,17 +10,25 @@ namespace SafetyReport.Application.CasosDeUso
         private readonly ICompaniaRepository _companiaRepository;
         private readonly ICompaniaNoticiaStorage _companiaNoticiaStorage;
         private readonly ICompaniaNoticiasDetalleExcelExporter _noticiasDetalleExcelExporter;
+        private readonly INoticiaTranslator _noticiaTranslator;
         private readonly ILogger<CompaniaHandler> _logger;
+
+        private const int MaxCaracteresTituloNoticia = 200;
+        private const int MaxCaracteresDescripcionNoticia = 2000;
+        private const int IdIdiomaMinimo = 1;
+        private const int IdIdiomaMaximo = 3;
 
         public CompaniaHandler(
             ICompaniaRepository companiaRepository,
             ICompaniaNoticiaStorage companiaNoticiaStorage,
             ICompaniaNoticiasDetalleExcelExporter noticiasDetalleExcelExporter,
+            INoticiaTranslator noticiaTranslator,
             ILogger<CompaniaHandler> logger)
         {
             _companiaRepository = companiaRepository;
             _companiaNoticiaStorage = companiaNoticiaStorage;
             _noticiasDetalleExcelExporter = noticiasDetalleExcelExporter;
+            _noticiaTranslator = noticiaTranslator;
             _logger = logger;
         }
 
@@ -126,6 +134,10 @@ namespace SafetyReport.Application.CasosDeUso
         {
             try
             {
+                var excedeLimite = ValidarLimiteNoticia(request.Titulo, request.Descripcion);
+                if (excedeLimite != null)
+                    return excedeLimite;
+
                 await PrepararArchivosNoticiaAsync(usuarioLogueado, request.IdCompania, request.Archivos);
                 var respuesta = await _companiaRepository.CrearNoticiaAsync(usuarioLogueado, request);
                 AgregarArchivosPresignados(respuesta, request.Archivos);
@@ -143,6 +155,10 @@ namespace SafetyReport.Application.CasosDeUso
         {
             try
             {
+                var excedeLimite = ValidarLimiteNoticia(request.Titulo, request.Descripcion);
+                if (excedeLimite != null)
+                    return excedeLimite;
+
                 await PrepararArchivosNoticiaAsync(usuarioLogueado, request.IdCompania, request.Archivos);
                 var respuesta = await _companiaRepository.EditarNoticiaAsync(usuarioLogueado, request);
                 AgregarArchivosPresignados(respuesta, request.Archivos);
@@ -168,6 +184,76 @@ namespace SafetyReport.Application.CasosDeUso
 
                 return new Respuesta { IdTipoMensaje = 3, Mensaje = ex.Message, Result = new List<CompaniaNoticiaConsulta>() };
             }
+        }
+
+        public async Task<Respuesta> TraducirNoticiaAsync(UsuarioGeneral usuarioLogueado, CompaniaNoticiaTraducirRequest request)
+        {
+            try
+            {
+                if (request.IdIdiomaDestino < IdIdiomaMinimo || request.IdIdiomaDestino > IdIdiomaMaximo)
+                {
+                    return new Respuesta { IdTipoMensaje = 1, Mensaje = "El idioma de destino no es válido.", Result = new CompaniaNoticiaTraducida() };
+                }
+
+                var obtenida = await _companiaRepository.ObtenerNoticiaAsync(usuarioLogueado, new CompaniaNoticiaObtenerRequest
+                {
+                    IdCompaniaNoticia = request.IdCompaniaNoticia
+                });
+
+                if (obtenida.IdTipoMensaje != 2)
+                    return obtenida;
+
+                var noticia = (obtenida.Result as List<CompaniaNoticiaConsulta>)?.FirstOrDefault();
+                if (noticia == null)
+                {
+                    return new Respuesta { IdTipoMensaje = 1, Mensaje = "No se encontró la noticia.", Result = new CompaniaNoticiaTraducida() };
+                }
+
+                CompaniaNoticiaTraducida traduccion;
+                try
+                {
+                    traduccion = await _noticiaTranslator.TranslateAsync(noticia.Titulo, noticia.Descripcion, request.IdIdiomaDestino);
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogError(ex, "Error al traducir la noticia {IdCompaniaNoticia}.", request.IdCompaniaNoticia);
+
+                    return new Respuesta { IdTipoMensaje = 1, Mensaje = "La traducción de la noticia falló, intente nuevamente.", Result = new CompaniaNoticiaTraducida() };
+                }
+
+                return new Respuesta { IdTipoMensaje = 2, Mensaje = obtenida.Mensaje, Result = traduccion };
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error no controlado en la capa de negocio.");
+
+                return new Respuesta { IdTipoMensaje = 3, Mensaje = ex.Message, Result = new CompaniaNoticiaTraducida() };
+            }
+        }
+
+        private static Respuesta? ValidarLimiteNoticia(string? titulo, string? descripcion)
+        {
+            if (titulo?.Length > MaxCaracteresTituloNoticia)
+            {
+                return new Respuesta
+                {
+                    IdTipoMensaje = 1,
+                    Mensaje = $"El título no puede exceder los {MaxCaracteresTituloNoticia} caracteres.",
+                    Result = new List<CompaniaNoticiaCreada>()
+                };
+            }
+
+            if (descripcion?.Length > MaxCaracteresDescripcionNoticia)
+            {
+                return new Respuesta
+                {
+                    IdTipoMensaje = 1,
+                    Mensaje = $"La descripción no puede exceder los {MaxCaracteresDescripcionNoticia} caracteres.",
+                    Result = new List<CompaniaNoticiaCreada>()
+                };
+            }
+
+            return null;
         }
 
         public async Task<Respuesta> ObtenerNoticiaArchivoAsync(UsuarioGeneral usuarioLogueado, CompaniaNoticiaArchivoIdRequest request)
