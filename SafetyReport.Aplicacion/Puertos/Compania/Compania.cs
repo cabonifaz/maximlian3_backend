@@ -168,6 +168,18 @@ namespace SafetyReport.Application.Puertos.Compania
         public int IdCompaniaNoticia { get; set; }
     }
 
+    public class CompaniaNoticiaTraducirRequest
+    {
+        public int IdCompaniaNoticia { get; set; }
+        public int IdIdiomaDestino { get; set; }
+    }
+
+    public class CompaniaNoticiaTraducida
+    {
+        public string? Titulo { get; set; }
+        public string? Descripcion { get; set; }
+    }
+
     public class CompaniaNoticiaObtenerRequest
     {
         public int? IdCompaniaNoticia { get; set; }
