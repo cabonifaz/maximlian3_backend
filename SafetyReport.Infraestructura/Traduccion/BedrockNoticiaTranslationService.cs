@@ -16,16 +16,17 @@ namespace SafetyReport.Infrastructure.Traduccion
 
         private const string SystemPromptTemplate =
             """
-            You are a translator. You receive a JSON object with the fields "titulo" and "descripcion" of a news item (either may be null).
+            You are a professional translator. You receive a JSON object with the fields "titulo", "descripcion" and "categoria" of a news item (any of them may be null).
 
-            Translate both values into {0}. The source language is detected automatically.
+            The values can be written in ANY language (for example Chinese, Japanese, Korean, Russian or Arabic). The source language is detected automatically. Translate every value into {0}.
 
             Rules:
-            - If a value is already written in {0}, return it unchanged.
+            - Every non-empty value in your answer must be written in {0}. Never answer in the source language.
+            - Return a value unchanged ONLY if it is already written in {0}.
             - If a value is null or "", keep it as is.
             - Keep proper names, company names, figures and dates unchanged.
             - Preserve line breaks.
-            - Respond with ONLY a valid JSON object with EXACTLY the fields "titulo" and "descripcion".
+            - Respond with ONLY a valid JSON object with EXACTLY the fields "titulo", "descripcion" and "categoria".
             - Do NOT wrap in markdown, code blocks, or explanations.
             """;
 
@@ -35,9 +36,9 @@ namespace SafetyReport.Infrastructure.Traduccion
             _modelId = modelId;
         }
 
-        public async Task<CompaniaNoticiaTraducida> TranslateAsync(string? titulo, string? descripcion, int idIdiomaDestino)
+        public async Task<CompaniaNoticiaTraducida> TranslateAsync(string? titulo, string? descripcion, int idIdiomaDestino, string? categoria = null)
         {
-            var clave = $"{idIdiomaDestino}:{Hash(titulo, descripcion)}";
+            var clave = $"{idIdiomaDestino}:{Hash(titulo, descripcion, categoria)}";
             if (_cache.TryGetValue(clave, out var enCache))
                 return enCache;
 
@@ -49,9 +50,14 @@ namespace SafetyReport.Infrastructure.Traduccion
                 SystemPrompt = string.Format(SystemPromptTemplate, NombreIdioma(idIdiomaDestino))
             };
 
-            var userMessage = JsonSerializer.Serialize(new { titulo, descripcion });
+            var userMessage = JsonSerializer.Serialize(new { titulo, descripcion, categoria });
             var responseText = await _bedrock.InvokeAsync(config, userMessage);
             var traduccion = ParseResponse(responseText);
+
+            // Un resultado idéntico al original no se cachea: si el modelo no tradujo, un reintento debe volver a consultarlo.
+            var devolvioSinCambios = traduccion.Titulo == titulo && traduccion.Descripcion == descripcion;
+            if (devolvioSinCambios)
+                return traduccion;
 
             if (_cache.Count >= MaxEntradasCache)
                 _cache.Clear();
@@ -67,9 +73,9 @@ namespace SafetyReport.Infrastructure.Traduccion
             _ => "Spanish"
         };
 
-        private static string Hash(string? titulo, string? descripcion)
+        private static string Hash(string? titulo, string? descripcion, string? categoria)
         {
-            var bytes = SHA256.HashData(Encoding.UTF8.GetBytes($"{titulo}\0{descripcion}"));
+            var bytes = SHA256.HashData(Encoding.UTF8.GetBytes($"{titulo}\0{descripcion}\0{categoria}"));
             return Convert.ToHexString(bytes);
         }
 
@@ -86,7 +92,8 @@ namespace SafetyReport.Infrastructure.Traduccion
             return new CompaniaNoticiaTraducida
             {
                 Titulo = LeerTexto(root, "titulo"),
-                Descripcion = LeerTexto(root, "descripcion")
+                Descripcion = LeerTexto(root, "descripcion"),
+                Categoria = LeerTexto(root, "categoria")
             };
         }
 
