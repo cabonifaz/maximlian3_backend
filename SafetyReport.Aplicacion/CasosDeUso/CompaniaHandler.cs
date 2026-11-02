@@ -15,6 +15,8 @@ namespace SafetyReport.Application.CasosDeUso
 
         private const int MaxCaracteresTituloNoticia = 200;
         private const int MaxCaracteresDescripcionNoticia = 2000;
+        private const int IdIdiomaOtros = 0;
+        private const int IdIdiomaEspanol = 1;
         private const int IdIdiomaMinimo = 1;
         private const int IdIdiomaMaximo = 3;
 
@@ -134,13 +136,20 @@ namespace SafetyReport.Application.CasosDeUso
         {
             try
             {
-                var idiomaInvalido = ValidarIdiomaNoticia(request.IdIdioma);
+                var idiomaInvalido = ValidarIdiomaNoticia(request.IdIdioma, permitirOtros: true);
                 if (idiomaInvalido != null)
                     return idiomaInvalido;
 
                 var excedeLimite = ValidarLimiteNoticia(request.Titulo, request.Descripcion);
                 if (excedeLimite != null)
                     return excedeLimite;
+
+                if (request.IdIdioma == IdIdiomaOtros)
+                {
+                    var errorTraduccion = await TraducirNoticiaOtrosIdiomasAsync(request);
+                    if (errorTraduccion != null)
+                        return errorTraduccion;
+                }
 
                 await PrepararArchivosNoticiaAsync(usuarioLogueado, request.IdCompania, request.Archivos);
                 var respuesta = await _companiaRepository.CrearNoticiaAsync(usuarioLogueado, request);
@@ -255,9 +264,50 @@ namespace SafetyReport.Application.CasosDeUso
             return idIdioma >= IdIdiomaMinimo && idIdioma <= IdIdiomaMaximo;
         }
 
-        private static Respuesta? ValidarIdiomaNoticia(int? idIdioma)
+        private async Task<Respuesta?> TraducirNoticiaOtrosIdiomasAsync(CompaniaNoticiaCrear request)
         {
-            if (idIdioma.HasValue && !EsIdiomaNoticiaValido(idIdioma.Value))
+            if (request.IdNoticia.HasValue)
+            {
+                return new Respuesta
+                {
+                    IdTipoMensaje = 1,
+                    Mensaje = "La opción Otros solo aplica al crear una noticia nueva.",
+                    Result = new List<CompaniaNoticiaCreada>()
+                };
+            }
+
+            CompaniaNoticiaTraducida traduccion;
+            try
+            {
+                traduccion = await _noticiaTranslator.TranslateAsync(request.Titulo, request.Descripcion, IdIdiomaEspanol);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error al traducir al español la noticia creada en otro idioma.");
+
+                return new Respuesta
+                {
+                    IdTipoMensaje = 1,
+                    Mensaje = "La traducción de la noticia falló, intente nuevamente.",
+                    Result = new List<CompaniaNoticiaCreada>()
+                };
+            }
+
+            var excedeLimite = ValidarLimiteNoticia(traduccion.Titulo, traduccion.Descripcion);
+            if (excedeLimite != null)
+                return excedeLimite;
+
+            request.Titulo = traduccion.Titulo;
+            request.Descripcion = traduccion.Descripcion;
+            request.IdIdioma = IdIdiomaEspanol;
+
+            return null;
+        }
+
+        private static Respuesta? ValidarIdiomaNoticia(int? idIdioma, bool permitirOtros = false)
+        {
+            var esOtros = permitirOtros && idIdioma == IdIdiomaOtros;
+            if (idIdioma.HasValue && !esOtros && !EsIdiomaNoticiaValido(idIdioma.Value))
             {
                 return new Respuesta
                 {
