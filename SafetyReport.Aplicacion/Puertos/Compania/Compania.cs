@@ -145,7 +145,8 @@ namespace SafetyReport.Application.Puertos.Compania
 
     public class CompaniaNoticiaEditar
     {
-        public int IdCompaniaNoticia { get; set; }
+        public int IdNoticia { get; set; }
+        public int IdIdioma { get; set; }
         public int IdCompania { get; set; }
         public string? Titulo { get; set; }
         public string? Descripcion { get; set; }
@@ -156,24 +157,27 @@ namespace SafetyReport.Application.Puertos.Compania
 
     public class CompaniaNoticiaCreada
     {
-        public int IdCompaniaNoticia { get; set; }
         public int IdNoticia { get; set; }
+        public int IdIdioma { get; set; }
         public List<CompaniaNoticiaArchivoItem> Archivos { get; set; } = new();
     }
 
     public class CompaniaNoticiaEliminada
     {
-        public int IdCompaniaNoticia { get; set; }
+        public int IdNoticia { get; set; }
+        public int IdIdioma { get; set; }
     }
 
-    public class CompaniaNoticiaIdRequest
+    public class CompaniaNoticiaEliminarRequest
     {
-        public int IdCompaniaNoticia { get; set; }
+        public int IdNoticia { get; set; }
+        public int IdIdioma { get; set; }
     }
 
     public class CompaniaNoticiaTraducirRequest
     {
-        public int IdCompaniaNoticia { get; set; }
+        public int IdNoticia { get; set; }
+        public int IdIdiomaOrigen { get; set; }
         public int IdIdiomaDestino { get; set; }
     }
 
@@ -185,7 +189,6 @@ namespace SafetyReport.Application.Puertos.Compania
 
     public class CompaniaNoticiaObtenerRequest
     {
-        public int? IdCompaniaNoticia { get; set; }
         public int? IdCompania { get; set; }
         public int? IdNoticia { get; set; }
         public int? IdIdioma { get; set; }

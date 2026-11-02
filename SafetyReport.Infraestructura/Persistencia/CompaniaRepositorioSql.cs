@@ -90,8 +90,8 @@ namespace SafetyReport.Infrastructure.Persistencia
             {
                 lista.Add(new CompaniaNoticiaCreada
                 {
-                    IdCompaniaNoticia = GetNullableInt(dr, "IdCompaniaNoticia") ?? 0,
-                    IdNoticia = GetNullableInt(dr, "IdNoticia") ?? 0
+                    IdNoticia = GetNullableInt(dr, "IdNoticia") ?? 0,
+                    IdIdioma = GetNullableInt(dr, "IdIdioma") ?? 0
                 });
             }
 
@@ -505,7 +505,8 @@ namespace SafetyReport.Infrastructure.Persistencia
                 cmd.Parameters.Add("@p_vchUsuario", MySqlDbType.VarChar, 32).Value = usuarioLogueado.Usuario;
                 cmd.Parameters.Add("@p_intIdEmpresa", MySqlDbType.Int32).Value = usuarioLogueado.IdEmpresa;
                 cmd.Parameters.Add("@p_intIdRol", MySqlDbType.Int32).Value = usuarioLogueado.IdRol;
-                cmd.Parameters.Add("@p_intIdCompaniaNoticia", MySqlDbType.Int32).Value = request.IdCompaniaNoticia;
+                cmd.Parameters.Add("@p_intIdNoticia", MySqlDbType.Int32).Value = request.IdNoticia;
+                cmd.Parameters.Add("@p_intIdIdioma", MySqlDbType.Int32).Value = request.IdIdioma;
                 cmd.Parameters.Add("@p_intIdCompania", MySqlDbType.Int32).Value = request.IdCompania;
                 cmd.Parameters.Add("@p_vchTitulo", MySqlDbType.VarChar, 1024).Value = (object?)request.Titulo ?? DBNull.Value;
                 cmd.Parameters.Add("@p_vchDescripcion", MySqlDbType.VarChar, -1).Value = (object?)request.Descripcion ?? DBNull.Value;
@@ -555,7 +556,6 @@ namespace SafetyReport.Infrastructure.Persistencia
                 cmd.Parameters.Add("@p_vchUsuario", MySqlDbType.VarChar, 32).Value = usuarioLogueado.Usuario;
                 cmd.Parameters.Add("@p_intIdEmpresa", MySqlDbType.Int32).Value = usuarioLogueado.IdEmpresa;
                 cmd.Parameters.Add("@p_intIdRol", MySqlDbType.Int32).Value = usuarioLogueado.IdRol;
-                cmd.Parameters.Add("@p_intIdCompaniaNoticia", MySqlDbType.Int32).Value = (object?)request.IdCompaniaNoticia ?? DBNull.Value;
                 cmd.Parameters.Add("@p_intIdCompania", MySqlDbType.Int32).Value = (object?)request.IdCompania ?? DBNull.Value;
                 cmd.Parameters.Add("@p_intIdNoticia", MySqlDbType.Int32).Value = (object?)request.IdNoticia ?? DBNull.Value;
                 cmd.Parameters.Add("@p_intIdIdioma", MySqlDbType.Int32).Value = (object?)request.IdIdioma ?? DBNull.Value;
@@ -792,7 +792,7 @@ namespace SafetyReport.Infrastructure.Persistencia
             }
         }
 
-        public async Task<Respuesta> EliminarNoticiaAsync(UsuarioGeneral usuarioLogueado, int idCompaniaNoticia)
+        public async Task<Respuesta> EliminarNoticiaAsync(UsuarioGeneral usuarioLogueado, int idNoticia, int idIdioma)
         {
             try
             {
@@ -802,7 +802,8 @@ namespace SafetyReport.Infrastructure.Persistencia
                 cmd.Parameters.Add("@p_vchUsuario", MySqlDbType.VarChar, 32).Value = usuarioLogueado.Usuario;
                 cmd.Parameters.Add("@p_intIdEmpresa", MySqlDbType.Int32).Value = usuarioLogueado.IdEmpresa;
                 cmd.Parameters.Add("@p_intIdRol", MySqlDbType.Int32).Value = usuarioLogueado.IdRol;
-                cmd.Parameters.Add("@p_intIdCompaniaNoticia", MySqlDbType.Int32).Value = idCompaniaNoticia;
+                cmd.Parameters.Add("@p_intIdNoticia", MySqlDbType.Int32).Value = idNoticia;
+                cmd.Parameters.Add("@p_intIdIdioma", MySqlDbType.Int32).Value = idIdioma;
 
                 await cn.OpenAsync();
 
@@ -811,7 +812,18 @@ namespace SafetyReport.Infrastructure.Persistencia
 
                 if (respuesta.IdTipoMensaje == 2 && await dr.NextResultAsync())
                 {
-                    respuesta.Result = await LeerIdsAsync(dr, "IdCompaniaNoticia", id => new CompaniaNoticiaEliminada { IdCompaniaNoticia = id ?? 0 });
+                    var eliminadas = new List<CompaniaNoticiaEliminada>();
+
+                    while (await dr.ReadAsync())
+                    {
+                        eliminadas.Add(new CompaniaNoticiaEliminada
+                        {
+                            IdNoticia = GetNullableInt(dr, "IdNoticia") ?? 0,
+                            IdIdioma = GetNullableInt(dr, "IdIdioma") ?? 0
+                        });
+                    }
+
+                    respuesta.Result = eliminadas;
                 }
                 else
                 {

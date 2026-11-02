@@ -195,9 +195,15 @@ namespace SafetyReport.Application.CasosDeUso
                     return new Respuesta { IdTipoMensaje = 1, Mensaje = "El idioma de destino no es válido.", Result = new CompaniaNoticiaTraducida() };
                 }
 
+                if (request.IdIdiomaOrigen == request.IdIdiomaDestino)
+                {
+                    return new Respuesta { IdTipoMensaje = 1, Mensaje = "El idioma de destino debe ser distinto al idioma de origen.", Result = new CompaniaNoticiaTraducida() };
+                }
+
                 var obtenida = await _companiaRepository.ObtenerNoticiaAsync(usuarioLogueado, new CompaniaNoticiaObtenerRequest
                 {
-                    IdCompaniaNoticia = request.IdCompaniaNoticia
+                    IdNoticia = request.IdNoticia,
+                    IdIdioma = request.IdIdiomaOrigen
                 });
 
                 if (obtenida.IdTipoMensaje != 2)
@@ -216,7 +222,7 @@ namespace SafetyReport.Application.CasosDeUso
                 }
                 catch (Exception ex)
                 {
-                    _logger.LogError(ex, "Error al traducir la noticia {IdCompaniaNoticia}.", request.IdCompaniaNoticia);
+                    _logger.LogError(ex, "Error al traducir la noticia {IdNoticia} del idioma {IdIdiomaOrigen}.", request.IdNoticia, request.IdIdiomaOrigen);
 
                     return new Respuesta { IdTipoMensaje = 1, Mensaje = "La traducción de la noticia falló, intente nuevamente.", Result = new CompaniaNoticiaTraducida() };
                 }
@@ -322,16 +328,17 @@ namespace SafetyReport.Application.CasosDeUso
             }
         }
 
-        public async Task<Respuesta> EliminarNoticiaAsync(UsuarioGeneral usuarioLogueado, int idCompaniaNoticia)
+        public async Task<Respuesta> EliminarNoticiaAsync(UsuarioGeneral usuarioLogueado, int idNoticia, int idIdioma)
         {
             try
             {
                 var obtener = await _companiaRepository.ObtenerNoticiaAsync(usuarioLogueado, new CompaniaNoticiaObtenerRequest
                 {
-                    IdCompaniaNoticia = idCompaniaNoticia
+                    IdNoticia = idNoticia,
+                    IdIdioma = idIdioma
                 });
 
-                var respuesta = await _companiaRepository.EliminarNoticiaAsync(usuarioLogueado, idCompaniaNoticia);
+                var respuesta = await _companiaRepository.EliminarNoticiaAsync(usuarioLogueado, idNoticia, idIdioma);
 
                 if (respuesta.IdTipoMensaje == 2)
                     await EliminarArchivosS3Async(obtener);

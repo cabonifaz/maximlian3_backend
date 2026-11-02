@@ -15,7 +15,7 @@ public interface ICompaniaRepository
     Task<Respuesta> ObtenerNoticiaArchivoAsync(UsuarioGeneral usuarioLogueado, int idCompaniaNoticiaArchivo);
     Task<Respuesta> EliminarNoticiaArchivoAsync(UsuarioGeneral usuarioLogueado, int idCompaniaNoticiaArchivo);
     Task<Respuesta> ListarNoticiasAsync(UsuarioGeneral usuarioLogueado, FiltroCompaniaNoticia filtro);
-    Task<Respuesta> EliminarNoticiaAsync(UsuarioGeneral usuarioLogueado, int idCompaniaNoticia);
+    Task<Respuesta> EliminarNoticiaAsync(UsuarioGeneral usuarioLogueado, int idNoticia, int idIdioma);
     Task<Respuesta> ListarNoticiasBalanceAsync(UsuarioGeneral usuarioLogueado, FiltroCompaniaNoticiaBalance filtro);
     Task<Respuesta> ObtenerNoticiaBalanceAsync(UsuarioGeneral usuarioLogueado, CompaniaNoticiaBalanceObtenerRequest request);
     Task<Respuesta> ListarNoticiasDetalleAsync(UsuarioGeneral usuarioLogueado, FiltroCompaniaNoticiaDetalle filtro);
