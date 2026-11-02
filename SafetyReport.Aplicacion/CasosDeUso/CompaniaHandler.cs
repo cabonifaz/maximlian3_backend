@@ -240,7 +240,7 @@ namespace SafetyReport.Application.CasosDeUso
                 CompaniaNoticiaTraducida traduccion;
                 try
                 {
-                    traduccion = await _noticiaTranslator.TranslateAsync(noticia.Titulo, noticia.Descripcion, request.IdIdiomaDestino);
+                    traduccion = await _noticiaTranslator.TranslateAsync(noticia.Titulo, noticia.Descripcion, request.IdIdiomaOrigen, request.IdIdiomaDestino);
                 }
                 catch (Exception ex)
                 {
@@ -279,7 +279,7 @@ namespace SafetyReport.Application.CasosDeUso
             CompaniaNoticiaTraducida traduccion;
             try
             {
-                traduccion = await _noticiaTranslator.TranslateAsync(request.Titulo, request.Descripcion, IdIdiomaEspanol, request.Categoria);
+                traduccion = await _noticiaTranslator.TranslateUnknownToSpanishAsync(request.Titulo, request.Descripcion, request.Categoria);
             }
             catch (Exception ex)
             {
