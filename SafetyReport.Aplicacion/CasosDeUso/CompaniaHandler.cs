@@ -279,7 +279,7 @@ namespace SafetyReport.Application.CasosDeUso
             CompaniaNoticiaTraducida traduccion;
             try
             {
-                traduccion = await _noticiaTranslator.TranslateAsync(request.Titulo, request.Descripcion, IdIdiomaEspanol);
+                traduccion = await _noticiaTranslator.TranslateAsync(request.Titulo, request.Descripcion, IdIdiomaEspanol, request.Categoria);
             }
             catch (Exception ex)
             {
@@ -293,12 +293,29 @@ namespace SafetyReport.Application.CasosDeUso
                 };
             }
 
+            if (string.IsNullOrWhiteSpace(traduccion.Titulo) || string.IsNullOrWhiteSpace(traduccion.Descripcion))
+            {
+                _logger.LogWarning("La traducción de la noticia en otro idioma devolvió título o descripción vacíos.");
+
+                return new Respuesta
+                {
+                    IdTipoMensaje = 1,
+                    Mensaje = "La traducción de la noticia falló, intente nuevamente.",
+                    Result = new List<CompaniaNoticiaCreada>()
+                };
+            }
+
             var excedeLimite = ValidarLimiteNoticia(traduccion.Titulo, traduccion.Descripcion);
             if (excedeLimite != null)
                 return excedeLimite;
 
+            if (traduccion.Titulo == request.Titulo && traduccion.Descripcion == request.Descripcion)
+                _logger.LogWarning("La traducción al español de una noticia creada con la opción Otros devolvió el texto sin cambios.");
+
             request.Titulo = traduccion.Titulo;
             request.Descripcion = traduccion.Descripcion;
+            if (!string.IsNullOrWhiteSpace(traduccion.Categoria))
+                request.Categoria = traduccion.Categoria;
             request.IdIdioma = IdIdiomaEspanol;
 
             return null;
