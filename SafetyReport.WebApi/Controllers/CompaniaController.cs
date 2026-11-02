@@ -118,9 +118,9 @@ namespace SafetyReport.WebApi.Controllers
         }
 
         [HttpPost("noticia/eliminar")]
-        public async Task<IActionResult> EliminarNoticia([FromBody] CompaniaNoticiaIdRequest request)
+        public async Task<IActionResult> EliminarNoticia([FromBody] CompaniaNoticiaEliminarRequest request)
         {
-            var respuesta = await _companiaHandler.EliminarNoticiaAsync(UsuarioLogueado, request.IdCompaniaNoticia);
+            var respuesta = await _companiaHandler.EliminarNoticiaAsync(UsuarioLogueado, request.IdNoticia, request.IdIdioma);
             return Ok(respuesta);
         }
 
