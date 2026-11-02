@@ -15,6 +15,8 @@ namespace SafetyReport.Application.CasosDeUso
 
         private const int MaxCaracteresTituloNoticia = 200;
         private const int MaxCaracteresDescripcionNoticia = 2000;
+        private const int IdIdiomaOtros = 0;
+        private const int IdIdiomaEspanol = 1;
         private const int IdIdiomaMinimo = 1;
         private const int IdIdiomaMaximo = 3;
 
@@ -134,9 +136,20 @@ namespace SafetyReport.Application.CasosDeUso
         {
             try
             {
+                var idiomaInvalido = ValidarIdiomaNoticia(request.IdIdioma, permitirOtros: true);
+                if (idiomaInvalido != null)
+                    return idiomaInvalido;
+
                 var excedeLimite = ValidarLimiteNoticia(request.Titulo, request.Descripcion);
                 if (excedeLimite != null)
                     return excedeLimite;
+
+                if (request.IdIdioma == IdIdiomaOtros)
+                {
+                    var errorTraduccion = await TraducirNoticiaOtrosIdiomasAsync(request);
+                    if (errorTraduccion != null)
+                        return errorTraduccion;
+                }
 
                 await PrepararArchivosNoticiaAsync(usuarioLogueado, request.IdCompania, request.Archivos);
                 var respuesta = await _companiaRepository.CrearNoticiaAsync(usuarioLogueado, request);
@@ -155,6 +168,10 @@ namespace SafetyReport.Application.CasosDeUso
         {
             try
             {
+                var idiomaInvalido = ValidarIdiomaNoticia(request.IdIdioma);
+                if (idiomaInvalido != null)
+                    return idiomaInvalido;
+
                 var excedeLimite = ValidarLimiteNoticia(request.Titulo, request.Descripcion);
                 if (excedeLimite != null)
                     return excedeLimite;
@@ -190,14 +207,25 @@ namespace SafetyReport.Application.CasosDeUso
         {
             try
             {
-                if (request.IdIdiomaDestino < IdIdiomaMinimo || request.IdIdiomaDestino > IdIdiomaMaximo)
+                if (!EsIdiomaNoticiaValido(request.IdIdiomaOrigen))
+                {
+                    return new Respuesta { IdTipoMensaje = 1, Mensaje = "El idioma de origen no es válido.", Result = new CompaniaNoticiaTraducida() };
+                }
+
+                if (!EsIdiomaNoticiaValido(request.IdIdiomaDestino))
                 {
                     return new Respuesta { IdTipoMensaje = 1, Mensaje = "El idioma de destino no es válido.", Result = new CompaniaNoticiaTraducida() };
                 }
 
+                if (request.IdIdiomaOrigen == request.IdIdiomaDestino)
+                {
+                    return new Respuesta { IdTipoMensaje = 1, Mensaje = "El idioma de destino debe ser distinto al idioma de origen.", Result = new CompaniaNoticiaTraducida() };
+                }
+
                 var obtenida = await _companiaRepository.ObtenerNoticiaAsync(usuarioLogueado, new CompaniaNoticiaObtenerRequest
                 {
-                    IdCompaniaNoticia = request.IdCompaniaNoticia
+                    IdNoticia = request.IdNoticia,
+                    IdIdioma = request.IdIdiomaOrigen
                 });
 
                 if (obtenida.IdTipoMensaje != 2)
@@ -212,11 +240,11 @@ namespace SafetyReport.Application.CasosDeUso
                 CompaniaNoticiaTraducida traduccion;
                 try
                 {
-                    traduccion = await _noticiaTranslator.TranslateAsync(noticia.Titulo, noticia.Descripcion, request.IdIdiomaDestino);
+                    traduccion = await _noticiaTranslator.TranslateAsync(noticia.Titulo, noticia.Descripcion, request.IdIdiomaOrigen, request.IdIdiomaDestino);
                 }
                 catch (Exception ex)
                 {
-                    _logger.LogError(ex, "Error al traducir la noticia {IdCompaniaNoticia}.", request.IdCompaniaNoticia);
+                    _logger.LogError(ex, "Error al traducir la noticia {IdNoticia} del idioma {IdIdiomaOrigen}.", request.IdNoticia, request.IdIdiomaOrigen);
 
                     return new Respuesta { IdTipoMensaje = 1, Mensaje = "La traducción de la noticia falló, intente nuevamente.", Result = new CompaniaNoticiaTraducida() };
                 }
@@ -229,6 +257,84 @@ namespace SafetyReport.Application.CasosDeUso
 
                 return new Respuesta { IdTipoMensaje = 3, Mensaje = ex.Message, Result = new CompaniaNoticiaTraducida() };
             }
+        }
+
+        private static bool EsIdiomaNoticiaValido(int idIdioma)
+        {
+            return idIdioma >= IdIdiomaMinimo && idIdioma <= IdIdiomaMaximo;
+        }
+
+        private async Task<Respuesta?> TraducirNoticiaOtrosIdiomasAsync(CompaniaNoticiaCrear request)
+        {
+            if (request.IdNoticia.HasValue)
+            {
+                return new Respuesta
+                {
+                    IdTipoMensaje = 1,
+                    Mensaje = "La opción Otros solo aplica al crear una noticia nueva.",
+                    Result = new List<CompaniaNoticiaCreada>()
+                };
+            }
+
+            CompaniaNoticiaTraducida traduccion;
+            try
+            {
+                traduccion = await _noticiaTranslator.TranslateUnknownToSpanishAsync(request.Titulo, request.Descripcion, request.Categoria);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error al traducir al español la noticia creada en otro idioma.");
+
+                return new Respuesta
+                {
+                    IdTipoMensaje = 1,
+                    Mensaje = "La traducción de la noticia falló, intente nuevamente.",
+                    Result = new List<CompaniaNoticiaCreada>()
+                };
+            }
+
+            if (string.IsNullOrWhiteSpace(traduccion.Titulo) || string.IsNullOrWhiteSpace(traduccion.Descripcion))
+            {
+                _logger.LogWarning("La traducción de la noticia en otro idioma devolvió título o descripción vacíos.");
+
+                return new Respuesta
+                {
+                    IdTipoMensaje = 1,
+                    Mensaje = "La traducción de la noticia falló, intente nuevamente.",
+                    Result = new List<CompaniaNoticiaCreada>()
+                };
+            }
+
+            var excedeLimite = ValidarLimiteNoticia(traduccion.Titulo, traduccion.Descripcion);
+            if (excedeLimite != null)
+                return excedeLimite;
+
+            if (traduccion.Titulo == request.Titulo && traduccion.Descripcion == request.Descripcion)
+                _logger.LogWarning("La traducción al español de una noticia creada con la opción Otros devolvió el texto sin cambios.");
+
+            request.Titulo = traduccion.Titulo;
+            request.Descripcion = traduccion.Descripcion;
+            if (!string.IsNullOrWhiteSpace(traduccion.Categoria))
+                request.Categoria = traduccion.Categoria;
+            request.IdIdioma = IdIdiomaEspanol;
+
+            return null;
+        }
+
+        private static Respuesta? ValidarIdiomaNoticia(int? idIdioma, bool permitirOtros = false)
+        {
+            var esOtros = permitirOtros && idIdioma == IdIdiomaOtros;
+            if (idIdioma.HasValue && !esOtros && !EsIdiomaNoticiaValido(idIdioma.Value))
+            {
+                return new Respuesta
+                {
+                    IdTipoMensaje = 1,
+                    Mensaje = "El idioma de la noticia no es válido.",
+                    Result = new List<CompaniaNoticiaCreada>()
+                };
+            }
+
+            return null;
         }
 
         private static Respuesta? ValidarLimiteNoticia(string? titulo, string? descripcion)
@@ -322,16 +428,17 @@ namespace SafetyReport.Application.CasosDeUso
             }
         }
 
-        public async Task<Respuesta> EliminarNoticiaAsync(UsuarioGeneral usuarioLogueado, int idCompaniaNoticia)
+        public async Task<Respuesta> EliminarNoticiaAsync(UsuarioGeneral usuarioLogueado, int idNoticia, int idIdioma)
         {
             try
             {
                 var obtener = await _companiaRepository.ObtenerNoticiaAsync(usuarioLogueado, new CompaniaNoticiaObtenerRequest
                 {
-                    IdCompaniaNoticia = idCompaniaNoticia
+                    IdNoticia = idNoticia,
+                    IdIdioma = idIdioma
                 });
 
-                var respuesta = await _companiaRepository.EliminarNoticiaAsync(usuarioLogueado, idCompaniaNoticia);
+                var respuesta = await _companiaRepository.EliminarNoticiaAsync(usuarioLogueado, idNoticia, idIdioma);
 
                 if (respuesta.IdTipoMensaje == 2)
                     await EliminarArchivosS3Async(obtener);

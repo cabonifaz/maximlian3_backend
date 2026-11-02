@@ -82,6 +82,22 @@ namespace SafetyReport.Infrastructure.Persistencia
             return lista;
         }
 
+        private static async Task<List<CompaniaNoticiaCreada>> LeerNoticiasCreadasAsync(MySqlDataReader dr)
+        {
+            var lista = new List<CompaniaNoticiaCreada>();
+
+            while (await dr.ReadAsync())
+            {
+                lista.Add(new CompaniaNoticiaCreada
+                {
+                    IdNoticia = GetNullableInt(dr, "IdNoticia") ?? 0,
+                    IdIdioma = GetNullableInt(dr, "IdIdioma") ?? 0
+                });
+            }
+
+            return lista;
+        }
+
         private static CompaniaConsulta LeerCompaniaConsulta(MySqlDataReader dr)
         {
             return new CompaniaConsulta
@@ -439,6 +455,8 @@ namespace SafetyReport.Infrastructure.Persistencia
                 cmd.Parameters.Add("@p_intIdEmpresa", MySqlDbType.Int32).Value = usuarioLogueado.IdEmpresa;
                 cmd.Parameters.Add("@p_intIdRol", MySqlDbType.Int32).Value = usuarioLogueado.IdRol;
                 cmd.Parameters.Add("@p_intIdCompania", MySqlDbType.Int32).Value = request.IdCompania;
+                cmd.Parameters.Add("@p_intIdIdioma", MySqlDbType.Int32).Value = (object?)request.IdIdioma ?? DBNull.Value;
+                cmd.Parameters.Add("@p_intIdNoticia", MySqlDbType.Int32).Value = (object?)request.IdNoticia ?? DBNull.Value;
                 cmd.Parameters.Add("@p_vchTitulo", MySqlDbType.VarChar, 1024).Value = (object?)request.Titulo ?? DBNull.Value;
                 cmd.Parameters.Add("@p_vchDescripcion", MySqlDbType.VarChar, -1).Value = (object?)request.Descripcion ?? DBNull.Value;
                 cmd.Parameters.Add("@p_dtFechaNoticia", MySqlDbType.DateTime).Value = (object?)request.FechaNoticia ?? DBNull.Value;
@@ -460,7 +478,7 @@ namespace SafetyReport.Infrastructure.Persistencia
 
                 if (respuesta.IdTipoMensaje == 2 && await dr.NextResultAsync())
                 {
-                    respuesta.Result = await LeerIdsAsync(dr, "IdCompaniaNoticia", id => new CompaniaNoticiaCreada { IdCompaniaNoticia = id ?? 0 });
+                    respuesta.Result = await LeerNoticiasCreadasAsync(dr);
                 }
                 else
                 {
@@ -487,7 +505,8 @@ namespace SafetyReport.Infrastructure.Persistencia
                 cmd.Parameters.Add("@p_vchUsuario", MySqlDbType.VarChar, 32).Value = usuarioLogueado.Usuario;
                 cmd.Parameters.Add("@p_intIdEmpresa", MySqlDbType.Int32).Value = usuarioLogueado.IdEmpresa;
                 cmd.Parameters.Add("@p_intIdRol", MySqlDbType.Int32).Value = usuarioLogueado.IdRol;
-                cmd.Parameters.Add("@p_intIdCompaniaNoticia", MySqlDbType.Int32).Value = request.IdCompaniaNoticia;
+                cmd.Parameters.Add("@p_intIdNoticia", MySqlDbType.Int32).Value = request.IdNoticia;
+                cmd.Parameters.Add("@p_intIdIdioma", MySqlDbType.Int32).Value = request.IdIdioma;
                 cmd.Parameters.Add("@p_intIdCompania", MySqlDbType.Int32).Value = request.IdCompania;
                 cmd.Parameters.Add("@p_vchTitulo", MySqlDbType.VarChar, 1024).Value = (object?)request.Titulo ?? DBNull.Value;
                 cmd.Parameters.Add("@p_vchDescripcion", MySqlDbType.VarChar, -1).Value = (object?)request.Descripcion ?? DBNull.Value;
@@ -510,7 +529,7 @@ namespace SafetyReport.Infrastructure.Persistencia
 
                 if (respuesta.IdTipoMensaje == 2 && await dr.NextResultAsync())
                 {
-                    respuesta.Result = await LeerIdsAsync(dr, "IdCompaniaNoticia", id => new CompaniaNoticiaCreada { IdCompaniaNoticia = id ?? 0 });
+                    respuesta.Result = await LeerNoticiasCreadasAsync(dr);
                 }
                 else
                 {
@@ -537,8 +556,9 @@ namespace SafetyReport.Infrastructure.Persistencia
                 cmd.Parameters.Add("@p_vchUsuario", MySqlDbType.VarChar, 32).Value = usuarioLogueado.Usuario;
                 cmd.Parameters.Add("@p_intIdEmpresa", MySqlDbType.Int32).Value = usuarioLogueado.IdEmpresa;
                 cmd.Parameters.Add("@p_intIdRol", MySqlDbType.Int32).Value = usuarioLogueado.IdRol;
-                cmd.Parameters.Add("@p_intIdCompaniaNoticia", MySqlDbType.Int32).Value = (object?)request.IdCompaniaNoticia ?? DBNull.Value;
                 cmd.Parameters.Add("@p_intIdCompania", MySqlDbType.Int32).Value = (object?)request.IdCompania ?? DBNull.Value;
+                cmd.Parameters.Add("@p_intIdNoticia", MySqlDbType.Int32).Value = (object?)request.IdNoticia ?? DBNull.Value;
+                cmd.Parameters.Add("@p_intIdIdioma", MySqlDbType.Int32).Value = (object?)request.IdIdioma ?? DBNull.Value;
 
                 await cn.OpenAsync();
 
@@ -554,6 +574,8 @@ namespace SafetyReport.Infrastructure.Persistencia
                         noticias.Add(new CompaniaNoticiaConsulta
                         {
                             IdCompaniaNoticia = Convert.ToInt32(dr["IdCompaniaNoticia"]),
+                            IdNoticia = Convert.ToInt32(dr["IdNoticia"]),
+                            IdIdioma = Convert.ToInt32(dr["IdIdioma"]),
                             IdCompania = Convert.ToInt32(dr["IdCompania"]),
                             Titulo = GetNullableString(dr, "Titulo"),
                             Descripcion = GetNullableString(dr, "Descripcion"),
@@ -564,22 +586,26 @@ namespace SafetyReport.Infrastructure.Persistencia
 
                     if (await dr.NextResultAsync())
                     {
-                        var porNoticia = noticias.ToDictionary(n => n.IdCompaniaNoticia);
+                        // Los archivos se asocian por IdNoticia: lo comparten todas las variantes de idioma
+                        var porNoticia = noticias.GroupBy(n => n.IdNoticia).ToDictionary(g => g.Key, g => g.ToList());
 
                         while (await dr.ReadAsync())
                         {
                             var idNoticia = Convert.ToInt32(dr["IdCompaniaNoticia"]);
 
-                            if (porNoticia.TryGetValue(idNoticia, out var noticia))
+                            if (porNoticia.TryGetValue(idNoticia, out var variantes))
                             {
-                                noticia.Archivos.Add(new CompaniaNoticiaArchivoConsulta
+                                foreach (var variante in variantes)
                                 {
-                                    IdCompaniaNoticiaArchivo = Convert.ToInt32(dr["IdCompaniaNoticiaArchivo"]),
-                                    IdCompaniaNoticia = idNoticia,
-                                    IdTipoArchivo = Convert.ToInt32(dr["IdTipoArchivo"]),
-                                    TipoArchivo = GetNullableString(dr, "TipoArchivo"),
-                                    NombreDocumento = GetNullableString(dr, "NombreDocumento")
-                                });
+                                    variante.Archivos.Add(new CompaniaNoticiaArchivoConsulta
+                                    {
+                                        IdCompaniaNoticiaArchivo = Convert.ToInt32(dr["IdCompaniaNoticiaArchivo"]),
+                                        IdCompaniaNoticia = idNoticia,
+                                        IdTipoArchivo = Convert.ToInt32(dr["IdTipoArchivo"]),
+                                        TipoArchivo = GetNullableString(dr, "TipoArchivo"),
+                                        NombreDocumento = GetNullableString(dr, "NombreDocumento")
+                                    });
+                                }
                             }
                         }
                     }
@@ -737,6 +763,8 @@ namespace SafetyReport.Infrastructure.Persistencia
                             resultado.lstCompaniaNoticias.Add(new CompaniaNoticiaListaConsulta
                             {
                                 IdCompaniaNoticia = Convert.ToInt32(dr["IdCompaniaNoticia"]),
+                                IdNoticia = Convert.ToInt32(dr["IdNoticia"]),
+                                IdIdioma = Convert.ToInt32(dr["IdIdioma"]),
                                 IdCompania = Convert.ToInt32(dr["IdCompania"]),
                                 NombreCompleto = GetNullableString(dr, "NombreCompleto"),
                                 Titulo = GetNullableString(dr, "Titulo"),
@@ -764,7 +792,7 @@ namespace SafetyReport.Infrastructure.Persistencia
             }
         }
 
-        public async Task<Respuesta> EliminarNoticiaAsync(UsuarioGeneral usuarioLogueado, int idCompaniaNoticia)
+        public async Task<Respuesta> EliminarNoticiaAsync(UsuarioGeneral usuarioLogueado, int idNoticia, int idIdioma)
         {
             try
             {
@@ -774,7 +802,8 @@ namespace SafetyReport.Infrastructure.Persistencia
                 cmd.Parameters.Add("@p_vchUsuario", MySqlDbType.VarChar, 32).Value = usuarioLogueado.Usuario;
                 cmd.Parameters.Add("@p_intIdEmpresa", MySqlDbType.Int32).Value = usuarioLogueado.IdEmpresa;
                 cmd.Parameters.Add("@p_intIdRol", MySqlDbType.Int32).Value = usuarioLogueado.IdRol;
-                cmd.Parameters.Add("@p_intIdCompaniaNoticia", MySqlDbType.Int32).Value = idCompaniaNoticia;
+                cmd.Parameters.Add("@p_intIdNoticia", MySqlDbType.Int32).Value = idNoticia;
+                cmd.Parameters.Add("@p_intIdIdioma", MySqlDbType.Int32).Value = idIdioma;
 
                 await cn.OpenAsync();
 
@@ -783,7 +812,18 @@ namespace SafetyReport.Infrastructure.Persistencia
 
                 if (respuesta.IdTipoMensaje == 2 && await dr.NextResultAsync())
                 {
-                    respuesta.Result = await LeerIdsAsync(dr, "IdCompaniaNoticia", id => new CompaniaNoticiaEliminada { IdCompaniaNoticia = id ?? 0 });
+                    var eliminadas = new List<CompaniaNoticiaEliminada>();
+
+                    while (await dr.ReadAsync())
+                    {
+                        eliminadas.Add(new CompaniaNoticiaEliminada
+                        {
+                            IdNoticia = GetNullableInt(dr, "IdNoticia") ?? 0,
+                            IdIdioma = GetNullableInt(dr, "IdIdioma") ?? 0
+                        });
+                    }
+
+                    respuesta.Result = eliminadas;
                 }
                 else
                 {

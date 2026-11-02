@@ -1,7 +1,6 @@
 using System.Collections.Concurrent;
 using System.Security.Cryptography;
 using System.Text;
-using System.Text.Json;
 using SafetyReport.Application.Puertos.Compania;
 
 namespace SafetyReport.Infrastructure.Traduccion
@@ -9,24 +8,37 @@ namespace SafetyReport.Infrastructure.Traduccion
     public class BedrockNoticiaTranslationService : INoticiaTranslator
     {
         private const int MaxEntradasCache = 2000;
+        private const int IdIdiomaEspanol = 1;
 
         private readonly BedrockService _bedrock;
         private readonly string _modelId;
-        private readonly ConcurrentDictionary<string, CompaniaNoticiaTraducida> _cache = new();
+        private readonly ConcurrentDictionary<string, string> _cache = new();
 
-        private const string SystemPromptTemplate =
+        private const string PromptIdiomaDefinidoTemplate =
             """
-            You are a translator. You receive a JSON object with the fields "titulo" and "descripcion" of a news item (either may be null).
+            You are a professional translator. Translate the text sent by the user from {0} to {1}.
 
-            Translate both values into {0}. The source language is detected automatically.
+            The text is written in {0}.
 
             Rules:
-            - If a value is already written in {0}, return it unchanged.
-            - If a value is null or "", keep it as is.
+            - The answer must be written in {1}.
             - Keep proper names, company names, figures and dates unchanged.
             - Preserve line breaks.
-            - Respond with ONLY a valid JSON object with EXACTLY the fields "titulo" and "descripcion".
-            - Do NOT wrap in markdown, code blocks, or explanations.
+            - Respond with ONLY the translated text. Do NOT add quotes, markdown, notes or explanations.
+            """;
+
+        private const string PromptIdiomaDesconocidoTemplate =
+            """
+            You are a professional translator. Translate the text sent by the user into {0}.
+
+            The text can be written in ANY language (for example Chinese, Japanese, Korean, Russian, Arabic or Indonesian). The source language is detected automatically.
+
+            Rules:
+            - The answer must be written in {0}. Never answer in the source language.
+            - Return the text unchanged ONLY if it is already written in {0}.
+            - Keep proper names, company names, figures and dates unchanged.
+            - Preserve line breaks.
+            - Respond with ONLY the translated text. Do NOT add quotes, markdown, notes or explanations.
             """;
 
         public BedrockNoticiaTranslationService(BedrockService bedrock, string modelId)
@@ -35,9 +47,50 @@ namespace SafetyReport.Infrastructure.Traduccion
             _modelId = modelId;
         }
 
-        public async Task<CompaniaNoticiaTraducida> TranslateAsync(string? titulo, string? descripcion, int idIdiomaDestino)
+        public async Task<CompaniaNoticiaTraducida> TranslateAsync(string? titulo, string? descripcion, int idIdiomaOrigen, int idIdiomaDestino)
         {
-            var clave = $"{idIdiomaDestino}:{Hash(titulo, descripcion)}";
+            var prompt = string.Format(PromptIdiomaDefinidoTemplate, NombreIdioma(idIdiomaOrigen), NombreIdioma(idIdiomaDestino));
+            var tipo = $"definido:{idIdiomaOrigen}:{idIdiomaDestino}";
+
+            var tituloTask = TraducirTextoAsync(titulo, prompt, tipo);
+            var descripcionTask = TraducirTextoAsync(descripcion, prompt, tipo);
+
+            await Task.WhenAll(tituloTask, descripcionTask);
+
+            return new CompaniaNoticiaTraducida
+            {
+                Titulo = tituloTask.Result,
+                Descripcion = descripcionTask.Result
+            };
+        }
+
+        // Cada campo se traduce por separado: si se enviaran juntos, un campo ya en español
+        // puede llevar al modelo a devolver todo sin traducir.
+        public async Task<CompaniaNoticiaTraducida> TranslateUnknownToSpanishAsync(string? titulo, string? descripcion, string? categoria)
+        {
+            var prompt = string.Format(PromptIdiomaDesconocidoTemplate, NombreIdioma(IdIdiomaEspanol));
+            var tipo = $"desconocido:{IdIdiomaEspanol}";
+
+            var tituloTask = TraducirTextoAsync(titulo, prompt, tipo);
+            var descripcionTask = TraducirTextoAsync(descripcion, prompt, tipo);
+            var categoriaTask = TraducirTextoAsync(categoria, prompt, tipo);
+
+            await Task.WhenAll(tituloTask, descripcionTask, categoriaTask);
+
+            return new CompaniaNoticiaTraducida
+            {
+                Titulo = tituloTask.Result,
+                Descripcion = descripcionTask.Result,
+                Categoria = categoriaTask.Result
+            };
+        }
+
+        private async Task<string?> TraducirTextoAsync(string? texto, string systemPrompt, string tipo)
+        {
+            if (string.IsNullOrWhiteSpace(texto))
+                return texto;
+
+            var clave = $"{tipo}:{Hash(texto)}";
             if (_cache.TryGetValue(clave, out var enCache))
                 return enCache;
 
@@ -46,12 +99,14 @@ namespace SafetyReport.Infrastructure.Traduccion
                 ModelId = _modelId,
                 MaxTokens = 4096,
                 Temperature = 0.1F,
-                SystemPrompt = string.Format(SystemPromptTemplate, NombreIdioma(idIdiomaDestino))
+                SystemPrompt = systemPrompt
             };
 
-            var userMessage = JsonSerializer.Serialize(new { titulo, descripcion });
-            var responseText = await _bedrock.InvokeAsync(config, userMessage);
-            var traduccion = ParseResponse(responseText);
+            var traduccion = await _bedrock.InvokeAsync(config, texto);
+
+            // Un resultado idéntico al original no se cachea: si el modelo no tradujo, un reintento debe volver a consultarlo.
+            if (traduccion == texto.Trim())
+                return traduccion;
 
             if (_cache.Count >= MaxEntradasCache)
                 _cache.Clear();
@@ -67,32 +122,10 @@ namespace SafetyReport.Infrastructure.Traduccion
             _ => "Spanish"
         };
 
-        private static string Hash(string? titulo, string? descripcion)
+        private static string Hash(string texto)
         {
-            var bytes = SHA256.HashData(Encoding.UTF8.GetBytes($"{titulo}\0{descripcion}"));
+            var bytes = SHA256.HashData(Encoding.UTF8.GetBytes(texto));
             return Convert.ToHexString(bytes);
         }
-
-        private static CompaniaNoticiaTraducida ParseResponse(string text)
-        {
-            var start = text.IndexOf('{');
-            var end = text.LastIndexOf('}');
-            if (start >= 0 && end > start)
-                text = text[start..(end + 1)];
-
-            using var doc = JsonDocument.Parse(text);
-            var root = doc.RootElement;
-
-            return new CompaniaNoticiaTraducida
-            {
-                Titulo = LeerTexto(root, "titulo"),
-                Descripcion = LeerTexto(root, "descripcion")
-            };
-        }
-
-        private static string? LeerTexto(JsonElement root, string campo) =>
-            root.TryGetProperty(campo, out var valor) && valor.ValueKind == JsonValueKind.String
-                ? valor.GetString()
-                : null;
     }
 }
