@@ -954,7 +954,7 @@ public partial class DocxGeneratorService : IInformeDocxGenerator
                         new LeftMargin { Width = marginL, Type = TableWidthUnitValues.Dxa },
                         new RightMargin { Width = marginR, Type = TableWidthUnitValues.Dxa }),
                     new TableCellVerticalAlignment { Val = TableVerticalAlignmentValues.Center });
-                if (!string.IsNullOrEmpty(bgColor))
+                if (!string.IsNullOrEmpty(bgColor) && !EsFondoTransparente(bgColor))
                     tcPr.Append(new Shading { Val = ShadingPatternValues.Clear, Color = "auto", Fill = NormalizarColor(bgColor) });
                 var cell = new TableCell();
                 cell.Append(tcPr);
@@ -1339,7 +1339,7 @@ public partial class DocxGeneratorService : IInformeDocxGenerator
                 new RightMargin  { Width = padR.ToString(), Type = TableWidthUnitValues.Dxa }),
             new TableCellVerticalAlignment { Val = TableVerticalAlignmentValues.Center });
         if (colspan > 1) tcPr.Append(new GridSpan { Val = colspan });
-        if (!string.IsNullOrEmpty(pageBgColor))
+        if (!string.IsNullOrEmpty(pageBgColor) && !EsFondoTransparente(pageBgColor))
             tcPr.Append(new Shading { Val = ShadingPatternValues.Clear, Color = "auto", Fill = NormalizarColor(pageBgColor) });
 
         var tc = new TableCell();
@@ -1392,7 +1392,7 @@ public partial class DocxGeneratorService : IInformeDocxGenerator
                 new RightMargin  { Width = padR.ToString(), Type = TableWidthUnitValues.Dxa }),
             new TableCellVerticalAlignment { Val = vAlign });
         if (colspan > 1) tcPr.Append(new GridSpan { Val = colspan });
-        if (css.TryGetValue("background-color", out var bg))
+        if (css.TryGetValue("background-color", out var bg) && !EsFondoTransparente(bg))
             tcPr.Append(new Shading { Val = ShadingPatternValues.Clear, Color = "auto", Fill = NormalizarColor(bg) });
 
         var tc = new TableCell();
@@ -1531,7 +1531,7 @@ public partial class DocxGeneratorService : IInformeDocxGenerator
         var css = ParseCss(footerConfig?["containerStyle"]?.GetValue<string>());
         if (css.Count == 0) return;
 
-        if (css.TryGetValue("background-color", out var bgColor))
+        if (css.TryGetValue("background-color", out var bgColor) && !EsFondoTransparente(bgColor))
             tableProperties.Append(new Shading { Val = ShadingPatternValues.Clear, Color = "auto", Fill = NormalizarColor(bgColor) });
 
         if (css.TryGetValue("border", out var border) && EsBordeVisible(border))
@@ -1868,7 +1868,7 @@ public partial class DocxGeneratorService : IInformeDocxGenerator
                 if (spacingTwips > 0)
                     tPr.Append(new TableCellSpacing { Width = spacingTwips.ToString(), Type = TableWidthUnitValues.Dxa });
             }
-            if (css.TryGetValue("background-color", out var tblBgColor))
+            if (css.TryGetValue("background-color", out var tblBgColor) && !EsFondoTransparente(tblBgColor))
                 tPr.Append(new Shading { Val = ShadingPatternValues.Clear, Color = "auto", Fill = NormalizarColor(tblBgColor) });
         }
 
@@ -1950,7 +1950,7 @@ public partial class DocxGeneratorService : IInformeDocxGenerator
             }
         }
 
-        if (css != null && css.TryGetValue("background-color", out var bgColor))
+        if (css != null && css.TryGetValue("background-color", out var bgColor) && !EsFondoTransparente(bgColor))
             tcPr.Append(new Shading { Val = ShadingPatternValues.Clear, Color = "auto", Fill = NormalizarColor(bgColor) });
 
         var (padTop, padRight, padBottom, padLeft) = ObtenerPadding(css);
@@ -2382,6 +2382,17 @@ public partial class DocxGeneratorService : IInformeDocxGenerator
 
         border.Shadow = true;
         border.Frame = true;
+    }
+
+    // `transparent` (y equivalentes) no es un color: NormalizarColor lo convertiría en negro (000000), así que se omite el sombreado.
+    private static bool EsFondoTransparente(string? value)
+    {
+        var v = value?.Trim();
+        return string.IsNullOrEmpty(v)
+            || v.Equals("transparent", StringComparison.OrdinalIgnoreCase)
+            || v.Equals("none", StringComparison.OrdinalIgnoreCase)
+            || v.Equals("inherit", StringComparison.OrdinalIgnoreCase)
+            || v.Equals("initial", StringComparison.OrdinalIgnoreCase);
     }
 
     private static string NormalizarColor(string value)

@@ -79,6 +79,9 @@ public class PdfGeneratorService : IInformePdfGenerator
     private int _pageNumber;
     private int _totalPages;
     private readonly HashSet<string> _drawnBorderLines = [];
+    // Bordes de celda pendientes: se dibujan después de todos los rellenos de la tabla para que el fondo de la fila/celda
+    // siguiente no tape la mitad del grosor de las líneas compartidas.
+    private readonly List<(double X, double Y, double W, double H, Dictionary<string, string> Css)> _bordesCeldaPendientes = [];
 
     private double _lastMarginBottom;
     private double _lastPaddingBottom;
@@ -624,7 +627,7 @@ public class PdfGeneratorService : IInformePdfGenerator
                         Convert.ToInt32(c[..2], 16), Convert.ToInt32(c[2..4], 16), Convert.ToInt32(c[4..6], 16))),
                         new XRect(x, y, cellW, rowH));
                 }
-                else if (css.TryGetValue("background-color", out var bgHex))
+                else if (css.TryGetValue("background-color", out var bgHex) && !EsFondoTransparente(bgHex))
                 {
                     var c = NormalizarColor(bgHex);
                     _gfx.DrawRectangle(new XSolidBrush(XColor.FromArgb(
@@ -1367,6 +1370,7 @@ public class PdfGeneratorService : IInformePdfGenerator
 
             if (_y + neededH > _contentBottom && _y > _contentTop)
             {
+                DibujarBordesCeldaPendientes();
                 DibujarBordeTabla(tableX, tableStartY, visualTableWidth, _y - tableStartY, tblCss, segmentRows);
                 NuevaPagina();
                 tableStartY = _y;
@@ -1398,6 +1402,7 @@ public class PdfGeneratorService : IInformePdfGenerator
             segmentRows.Add(row);
         }
 
+        DibujarBordesCeldaPendientes();
         DibujarBordeTabla(tableX, tableStartY, visualTableWidth, _y - tableStartY, tblCss, segmentRows);
 
         _pendingTableBottomMargin = afterM;
@@ -1417,7 +1422,7 @@ public class PdfGeneratorService : IInformePdfGenerator
             var textW = Math.Max(0, cellW - padL - padR);
             var align = MapXAlign(css.GetValueOrDefault("text-align", "left"));
 
-            if (css.TryGetValue("background-color", out var bgHex))
+            if (css.TryGetValue("background-color", out var bgHex) && !EsFondoTransparente(bgHex))
             {
                 var c = NormalizarColor(bgHex);
                 var bgBrush = new XSolidBrush(XColor.FromArgb(
@@ -1534,7 +1539,7 @@ public class PdfGeneratorService : IInformePdfGenerator
             cellImg?.Dispose();
             cellImgStream?.Dispose();
 
-            DibujarBordesCelda(cellX, rowY, cellW, rowH, css);
+            _bordesCeldaPendientes.Add((cellX, rowY, cellW, rowH, css));
             cellX += cellW + borderSpacing;
         }
     }
@@ -1554,7 +1559,7 @@ public class PdfGeneratorService : IInformePdfGenerator
 
     private void DibujarFondoTabla(double x, double y, double w, double h, Dictionary<string, string> tblCss)
     {
-        if (h <= 0 || !tblCss.TryGetValue("background-color", out var bgHex)) return;
+        if (h <= 0 || !tblCss.TryGetValue("background-color", out var bgHex) || EsFondoTransparente(bgHex)) return;
 
         var c = NormalizarColor(bgHex);
         var bgBrush = new XSolidBrush(XColor.FromArgb(
@@ -1722,6 +1727,13 @@ public class PdfGeneratorService : IInformePdfGenerator
     private static bool TieneBorde(Dictionary<string, string> css, string side) =>
         css.TryGetValue("border", out var all) && EsBordeVisible(all) ||
         css.TryGetValue($"border-{side}", out var specific) && EsBordeVisible(specific);
+
+    private void DibujarBordesCeldaPendientes()
+    {
+        foreach (var (x, y, w, h, css) in _bordesCeldaPendientes)
+            DibujarBordesCelda(x, y, w, h, css);
+        _bordesCeldaPendientes.Clear();
+    }
 
     private void DibujarBordesCelda(double x, double y, double w, double h, Dictionary<string, string> css)
     {
@@ -2153,6 +2165,17 @@ public class PdfGeneratorService : IInformePdfGenerator
         var colorMatch = Regex.Match(value, @"#([0-9a-f]{3}|[0-9a-f]{6})\b", RegexOptions.IgnoreCase);
         var color = colorMatch.Success ? NormalizarColor(colorMatch.Value) : "000000";
         return (size, color);
+    }
+
+    // `transparent` (y equivalentes) no es un color: NormalizarColor lo convertiría en negro (000000), así que no se pinta relleno.
+    private static bool EsFondoTransparente(string? value)
+    {
+        var v = value?.Trim();
+        return string.IsNullOrEmpty(v)
+            || v.Equals("transparent", StringComparison.OrdinalIgnoreCase)
+            || v.Equals("none", StringComparison.OrdinalIgnoreCase)
+            || v.Equals("inherit", StringComparison.OrdinalIgnoreCase)
+            || v.Equals("initial", StringComparison.OrdinalIgnoreCase);
     }
 
     private static string NormalizarColor(string value)
