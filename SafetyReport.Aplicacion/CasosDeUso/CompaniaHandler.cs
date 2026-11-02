@@ -134,6 +134,10 @@ namespace SafetyReport.Application.CasosDeUso
         {
             try
             {
+                var idiomaInvalido = ValidarIdiomaNoticia(request.IdIdioma);
+                if (idiomaInvalido != null)
+                    return idiomaInvalido;
+
                 var excedeLimite = ValidarLimiteNoticia(request.Titulo, request.Descripcion);
                 if (excedeLimite != null)
                     return excedeLimite;
@@ -155,6 +159,10 @@ namespace SafetyReport.Application.CasosDeUso
         {
             try
             {
+                var idiomaInvalido = ValidarIdiomaNoticia(request.IdIdioma);
+                if (idiomaInvalido != null)
+                    return idiomaInvalido;
+
                 var excedeLimite = ValidarLimiteNoticia(request.Titulo, request.Descripcion);
                 if (excedeLimite != null)
                     return excedeLimite;
@@ -190,7 +198,12 @@ namespace SafetyReport.Application.CasosDeUso
         {
             try
             {
-                if (request.IdIdiomaDestino < IdIdiomaMinimo || request.IdIdiomaDestino > IdIdiomaMaximo)
+                if (!EsIdiomaNoticiaValido(request.IdIdiomaOrigen))
+                {
+                    return new Respuesta { IdTipoMensaje = 1, Mensaje = "El idioma de origen no es válido.", Result = new CompaniaNoticiaTraducida() };
+                }
+
+                if (!EsIdiomaNoticiaValido(request.IdIdiomaDestino))
                 {
                     return new Respuesta { IdTipoMensaje = 1, Mensaje = "El idioma de destino no es válido.", Result = new CompaniaNoticiaTraducida() };
                 }
@@ -235,6 +248,26 @@ namespace SafetyReport.Application.CasosDeUso
 
                 return new Respuesta { IdTipoMensaje = 3, Mensaje = ex.Message, Result = new CompaniaNoticiaTraducida() };
             }
+        }
+
+        private static bool EsIdiomaNoticiaValido(int idIdioma)
+        {
+            return idIdioma >= IdIdiomaMinimo && idIdioma <= IdIdiomaMaximo;
+        }
+
+        private static Respuesta? ValidarIdiomaNoticia(int? idIdioma)
+        {
+            if (idIdioma.HasValue && !EsIdiomaNoticiaValido(idIdioma.Value))
+            {
+                return new Respuesta
+                {
+                    IdTipoMensaje = 1,
+                    Mensaje = "El idioma de la noticia no es válido.",
+                    Result = new List<CompaniaNoticiaCreada>()
+                };
+            }
+
+            return null;
         }
 
         private static Respuesta? ValidarLimiteNoticia(string? titulo, string? descripcion)
