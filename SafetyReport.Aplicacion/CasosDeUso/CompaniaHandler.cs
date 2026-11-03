@@ -176,9 +176,25 @@ namespace SafetyReport.Application.CasosDeUso
                 if (excedeLimite != null)
                     return excedeLimite;
 
+                var (errorTraduccion, traducciones) = await TraducirVersionesRelacionadasAsync(usuarioLogueado, request);
+                if (errorTraduccion != null)
+                    return errorTraduccion;
+
                 await PrepararArchivosNoticiaAsync(usuarioLogueado, request.IdCompania, request.Archivos);
                 var respuesta = await _companiaRepository.EditarNoticiaAsync(usuarioLogueado, request);
                 AgregarArchivosPresignados(respuesta, request.Archivos);
+                if (respuesta.IdTipoMensaje != 2)
+                    return respuesta;
+
+                foreach (var traduccion in traducciones)
+                {
+                    var guardada = await _companiaRepository.ActualizarTraduccionNoticiaAsync(
+                        usuarioLogueado, request.IdNoticia, traduccion.IdIdioma, traduccion.Titulo, traduccion.Descripcion);
+
+                    if (guardada.IdTipoMensaje != 2)
+                        _logger.LogError("No se pudo actualizar la traducción de la noticia {IdNoticia} al idioma {IdIdioma}: {Mensaje}", request.IdNoticia, traduccion.IdIdioma, guardada.Mensaje);
+                }
+
                 return respuesta;
             }
             catch (Exception ex)
@@ -257,6 +273,68 @@ namespace SafetyReport.Application.CasosDeUso
 
                 return new Respuesta { IdTipoMensaje = 3, Mensaje = ex.Message, Result = new CompaniaNoticiaTraducida() };
             }
+        }
+
+        private sealed record TraduccionVersionNoticia(int IdIdioma, string? Titulo, string? Descripcion);
+
+        // Se traduce antes de guardar: si falla la traducción no se guarda nada y las versiones no quedan desfasadas.
+        private async Task<(Respuesta? Error, List<TraduccionVersionNoticia> Traducciones)> TraducirVersionesRelacionadasAsync(
+            UsuarioGeneral usuarioLogueado, CompaniaNoticiaEditar request)
+        {
+            var traducciones = new List<TraduccionVersionNoticia>();
+
+            var obtenida = await _companiaRepository.ObtenerNoticiaAsync(usuarioLogueado, new CompaniaNoticiaObtenerRequest
+            {
+                IdNoticia = request.IdNoticia
+            });
+
+            if (obtenida.IdTipoMensaje != 2)
+                return (obtenida, traducciones);
+
+            var idiomasDestino = (obtenida.Result as List<CompaniaNoticiaConsulta> ?? new())
+                .Select(version => version.IdIdioma)
+                .Where(idIdioma => idIdioma != request.IdIdioma && EsIdiomaNoticiaValido(idIdioma))
+                .Distinct()
+                .ToList();
+
+            if (idiomasDestino.Count == 0)
+                return (null, traducciones);
+
+            var errorTraduccion = new Respuesta
+            {
+                IdTipoMensaje = 1,
+                Mensaje = "La traducción de la noticia falló, intente nuevamente.",
+                Result = new List<CompaniaNoticiaCreada>()
+            };
+
+            try
+            {
+                var tareas = idiomasDestino.Select(async idIdioma =>
+                {
+                    var traduccion = await _noticiaTranslator.TranslateAsync(request.Titulo, request.Descripcion, request.IdIdioma, idIdioma);
+                    return new TraduccionVersionNoticia(idIdioma, traduccion.Titulo, traduccion.Descripcion);
+                }).ToList();
+
+                traducciones.AddRange(await Task.WhenAll(tareas));
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error al traducir las versiones de la noticia {IdNoticia} desde el idioma {IdIdioma}.", request.IdNoticia, request.IdIdioma);
+
+                return (errorTraduccion, new List<TraduccionVersionNoticia>());
+            }
+
+            foreach (var traduccion in traducciones)
+            {
+                if (string.IsNullOrWhiteSpace(traduccion.Titulo) || string.IsNullOrWhiteSpace(traduccion.Descripcion))
+                    return (errorTraduccion, new List<TraduccionVersionNoticia>());
+
+                var excedeLimite = ValidarLimiteNoticia(traduccion.Titulo, traduccion.Descripcion);
+                if (excedeLimite != null)
+                    return (excedeLimite, new List<TraduccionVersionNoticia>());
+            }
+
+            return (null, traducciones);
         }
 
         private static bool EsIdiomaNoticiaValido(int idIdioma)
@@ -428,17 +506,16 @@ namespace SafetyReport.Application.CasosDeUso
             }
         }
 
-        public async Task<Respuesta> EliminarNoticiaAsync(UsuarioGeneral usuarioLogueado, int idNoticia, int idIdioma)
+        public async Task<Respuesta> EliminarNoticiaAsync(UsuarioGeneral usuarioLogueado, int idNoticia)
         {
             try
             {
                 var obtener = await _companiaRepository.ObtenerNoticiaAsync(usuarioLogueado, new CompaniaNoticiaObtenerRequest
                 {
-                    IdNoticia = idNoticia,
-                    IdIdioma = idIdioma
+                    IdNoticia = idNoticia
                 });
 
-                var respuesta = await _companiaRepository.EliminarNoticiaAsync(usuarioLogueado, idNoticia, idIdioma);
+                var respuesta = await _companiaRepository.EliminarNoticiaAsync(usuarioLogueado, idNoticia);
 
                 if (respuesta.IdTipoMensaje == 2)
                     await EliminarArchivosS3Async(obtener);

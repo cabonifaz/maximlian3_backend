@@ -792,7 +792,46 @@ namespace SafetyReport.Infrastructure.Persistencia
             }
         }
 
-        public async Task<Respuesta> EliminarNoticiaAsync(UsuarioGeneral usuarioLogueado, int idNoticia, int idIdioma)
+        public async Task<Respuesta> ActualizarTraduccionNoticiaAsync(UsuarioGeneral usuarioLogueado, int idNoticia, int idIdioma, string? titulo, string? descripcion)
+        {
+            try
+            {
+                using MySqlConnection cn = new(_dbConfig.ConnectionString);
+                using MySqlCommand cmd = new("SP_CompaniaNoticia_ActualizarTraduccion", cn) { CommandType = CommandType.StoredProcedure };
+                cmd.Parameters.Add("@p_intIdUsuario", MySqlDbType.Int32).Value = usuarioLogueado.IdUsuario;
+                cmd.Parameters.Add("@p_vchUsuario", MySqlDbType.VarChar, 32).Value = usuarioLogueado.Usuario;
+                cmd.Parameters.Add("@p_intIdEmpresa", MySqlDbType.Int32).Value = usuarioLogueado.IdEmpresa;
+                cmd.Parameters.Add("@p_intIdRol", MySqlDbType.Int32).Value = usuarioLogueado.IdRol;
+                cmd.Parameters.Add("@p_intIdNoticia", MySqlDbType.Int32).Value = idNoticia;
+                cmd.Parameters.Add("@p_intIdIdioma", MySqlDbType.Int32).Value = idIdioma;
+                cmd.Parameters.Add("@p_vchTitulo", MySqlDbType.VarChar, 1024).Value = (object?)titulo ?? DBNull.Value;
+                cmd.Parameters.Add("@p_vchDescripcion", MySqlDbType.VarChar, -1).Value = (object?)descripcion ?? DBNull.Value;
+
+                await cn.OpenAsync();
+
+                using var dr = await cmd.ExecuteReaderAsync();
+                var respuesta = await LeerCabeceraAsync(dr, cmd.CommandText);
+
+                if (respuesta.IdTipoMensaje == 2 && await dr.NextResultAsync())
+                {
+                    respuesta.Result = await LeerNoticiasCreadasAsync(dr);
+                }
+                else
+                {
+                    respuesta.Result = new List<CompaniaNoticiaCreada>();
+                }
+
+                return respuesta;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error no controlado en la capa de datos.");
+
+                return new Respuesta { IdTipoMensaje = 3, Mensaje = ex.Message, Result = new List<CompaniaNoticiaCreada>() };
+            }
+        }
+
+        public async Task<Respuesta> EliminarNoticiaAsync(UsuarioGeneral usuarioLogueado, int idNoticia)
         {
             try
             {
@@ -803,7 +842,6 @@ namespace SafetyReport.Infrastructure.Persistencia
                 cmd.Parameters.Add("@p_intIdEmpresa", MySqlDbType.Int32).Value = usuarioLogueado.IdEmpresa;
                 cmd.Parameters.Add("@p_intIdRol", MySqlDbType.Int32).Value = usuarioLogueado.IdRol;
                 cmd.Parameters.Add("@p_intIdNoticia", MySqlDbType.Int32).Value = idNoticia;
-                cmd.Parameters.Add("@p_intIdIdioma", MySqlDbType.Int32).Value = idIdioma;
 
                 await cn.OpenAsync();
 
@@ -818,8 +856,7 @@ namespace SafetyReport.Infrastructure.Persistencia
                     {
                         eliminadas.Add(new CompaniaNoticiaEliminada
                         {
-                            IdNoticia = GetNullableInt(dr, "IdNoticia") ?? 0,
-                            IdIdioma = GetNullableInt(dr, "IdIdioma") ?? 0
+                            IdNoticia = GetNullableInt(dr, "IdNoticia") ?? 0
                         });
                     }
 
