@@ -165,13 +165,11 @@ namespace SafetyReport.Application.Puertos.Compania
     public class CompaniaNoticiaEliminada
     {
         public int IdNoticia { get; set; }
-        public int IdIdioma { get; set; }
     }
 
     public class CompaniaNoticiaEliminarRequest
     {
         public int IdNoticia { get; set; }
-        public int IdIdioma { get; set; }
     }
 
     public class CompaniaNoticiaTraducirRequest
