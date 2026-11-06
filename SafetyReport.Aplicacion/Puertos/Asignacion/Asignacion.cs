@@ -1,3 +1,5 @@
+using System.ComponentModel.DataAnnotations;
+
 namespace SafetyReport.Application.Puertos.Asignacion
 {
     public class AsignacionUsuario
@@ -78,8 +80,22 @@ namespace SafetyReport.Application.Puertos.Asignacion
         public int SinAsignacion { get; set; }
     }
 
-    public class FiltroAsignacion
+    public class FiltroAsignacion : IValidatableObject
     {
+        [Required]
+        public string timezone { get; set; } = null!;
+
+        public IEnumerable<ValidationResult> Validate(ValidationContext validationContext)
+        {
+            if (!string.IsNullOrWhiteSpace(timezone)
+                && !FechaZonaHoraria.EsValida(timezone))
+            {
+                yield return new ValidationResult(
+                    "timezone debe ser una zona horaria válida, por ejemplo America/Lima.",
+                    new[] { nameof(timezone) });
+            }
+        }
+
         public string? busqueda { get; set; }
         public int? idEstado { get; set; }
         public int? numPag { get; set; }

@@ -56,7 +56,8 @@ namespace SafetyReport.Application.CasosDeUso
         {
             try
             {
-                return await _asignacionRepository.ListarAsync(usuarioLogueado, request);
+                var utcOffset = FechaZonaHoraria.ObtenerOffset(request.timezone, DateTimeOffset.UtcNow);
+                return await _asignacionRepository.ListarAsync(usuarioLogueado, request, utcOffset);
             }
             catch (Exception ex)
             {

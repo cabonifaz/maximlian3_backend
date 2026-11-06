@@ -149,7 +149,7 @@ namespace SafetyReport.Infrastructure.Persistencia
             }
         }
 
-        public async Task<Respuesta> ListarAsync(UsuarioGeneral usuarioActual, FiltroAsignacion request)
+        public async Task<Respuesta> ListarAsync(UsuarioGeneral usuarioActual, FiltroAsignacion request, string utcOffset)
         {
             try
             {
@@ -164,6 +164,7 @@ namespace SafetyReport.Infrastructure.Persistencia
                 cmd.Parameters.Add("@p_vchBusqueda", MySqlDbType.VarChar, 255).Value = (object?)request.busqueda ?? DBNull.Value;
                 cmd.Parameters.Add("@p_intIdEstado", MySqlDbType.Int32).Value = (object?)request.idEstado ?? DBNull.Value;
                 cmd.Parameters.Add("@p_numPag", MySqlDbType.Int32).Value = (object?)request.numPag ?? DBNull.Value;
+                cmd.Parameters.Add("@p_utcOffset", MySqlDbType.VarChar, 6).Value = utcOffset;
 
                 await cn.OpenAsync();
 
