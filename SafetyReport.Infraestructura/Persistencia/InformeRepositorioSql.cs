@@ -692,13 +692,17 @@ namespace SafetyReport.Infrastructure.Persistencia
             t.Columns.Add("IdRegistro", typeof(string));
             t.Columns.Add("IdPlazo", typeof(string));
             t.Columns.Add("CapitalInicial", typeof(decimal));
+            t.Columns.Add("IdMonedaCapitalInicial", typeof(int));
             t.Columns.Add("CapitalPagado", typeof(decimal));
+            t.Columns.Add("IdMonedaCapitalPagado", typeof(int));
             t.Columns.Add("FechaUltimoIncremento", typeof(string));
             t.Columns.Add("IdTipoIncremento", typeof(int));
             t.Columns.Add("PatrimonioNeto", typeof(decimal));
+            t.Columns.Add("IdMonedaPatrimonioNeto", typeof(int));
             t.Columns.Add("ComentarioPatrimonioNeto", typeof(string));
             t.Columns.Add("TipoAcciones", typeof(string));
             t.Columns.Add("ValorAcciones", typeof(decimal));
+            t.Columns.Add("IdMonedaValorAcciones", typeof(int));
             t.Columns.Add("CotizaBolsa", typeof(bool));
             t.Columns.Add("TipoCambio", typeof(decimal));
             t.Columns.Add("IdTipoCambio", typeof(int));
@@ -714,13 +718,17 @@ namespace SafetyReport.Infrastructure.Persistencia
                 (object?)r.IdRegistro ?? DBNull.Value,
                 (object?)r.IdPlazo ?? DBNull.Value,
                 D2(r.CapitalInicial),
+                (object?)r.IdMonedaCapitalInicial ?? DBNull.Value,
                 D2(r.CapitalPagado),
+                (object?)r.IdMonedaCapitalPagado ?? DBNull.Value,
                 (object?)r.FechaUltimoIncremento ?? DBNull.Value,
                 (object?)r.IdTipoIncremento ?? DBNull.Value,
                 D2(r.PatrimonioNeto),
+                (object?)r.IdMonedaPatrimonioNeto ?? DBNull.Value,
                 (object?)r.ComentarioPatrimonioNeto ?? DBNull.Value,
                 (object?)r.TipoAcciones ?? DBNull.Value,
                 D2(r.ValorAcciones),
+                (object?)r.IdMonedaValorAcciones ?? DBNull.Value,
                 (object?)r.CotizaBolsa ?? DBNull.Value,
                 D6(r.TipoCambio),
                 (object?)r.IdTipoCambio ?? DBNull.Value,
@@ -1184,13 +1192,17 @@ namespace SafetyReport.Infrastructure.Persistencia
                             IdRegistro = GetNullableString(dr, "IdRegistro"),
                             IdPlazo = GetNullableString(dr, "IdPlazo"),
                             CapitalInicial = GetNullableDecimal(dr, "CapitalInicial"),
+                            IdMonedaCapitalInicial = GetNullableInt(dr, "IdMonedaCapitalInicial"),
                             CapitalPagado = GetNullableDecimal(dr, "CapitalPagado"),
+                            IdMonedaCapitalPagado = GetNullableInt(dr, "IdMonedaCapitalPagado"),
                             FechaUltimoIncremento = GetNullableString(dr, "FechaUltimoIncremento"),
                             IdTipoIncremento = GetNullableInt(dr, "IdTipoIncremento"),
                             PatrimonioNeto = GetNullableDecimal(dr, "PatrimonioNeto"),
+                            IdMonedaPatrimonioNeto = GetNullableInt(dr, "IdMonedaPatrimonioNeto"),
                             ComentarioPatrimonioNeto = GetNullableString(dr, "ComentarioPatrimonioNeto"),
                             TipoAcciones = GetNullableString(dr, "TipoAcciones"),
                             ValorAcciones = GetNullableDecimal(dr, "ValorAcciones"),
+                            IdMonedaValorAcciones = GetNullableInt(dr, "IdMonedaValorAcciones"),
                             CotizaBolsa = GetNullableBool(dr, "CotizaBolsa"),
                             TipoCambio = GetNullableDecimal(dr, "TipoCambio"),
                             IdTipoCambio = GetNullableInt(dr, "IdTipoCambio"),
