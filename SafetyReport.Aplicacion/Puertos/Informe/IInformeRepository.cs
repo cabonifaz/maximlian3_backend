@@ -25,7 +25,7 @@ public interface IInformeRepository : IInformeDraftRepository
     Task<Respuesta> ObtenerRutaDocumentoAsync(UsuarioGeneral usuarioLogueado, int idInforme, int idPedido);
     Task<Respuesta> ActualizarDocumentoAsync(UsuarioGeneral usuarioLogueado, int idInforme, string urlDocumento);
     Task<Respuesta> ListarAsync(UsuarioGeneral usuarioLogueado, FiltroInforme filtro);
-    Task<Respuesta> ListarIdPorCompaniaAsync(UsuarioGeneral usuarioLogueado, FiltroInformeIdPorCompania filtro);
+    Task<Respuesta> ListarIdPorCompaniaAsync(UsuarioGeneral usuarioLogueado, FiltroInformeIdPorCompania filtro, string utcOffset);
     Task<Respuesta> CalcularBalanceDesagregadoAsync(UsuarioGeneral usuarioLogueado, InformeBalanceDesagregadoCalcularRequest request);
     Task<Respuesta> CalcularBalanceSeguroAsync(UsuarioGeneral usuarioLogueado, InformeBalanceSeguroCalcularRequest request);
     Task<Respuesta> CalcularBalanceBancoAsync(UsuarioGeneral usuarioLogueado, InformeBalanceBancoCalcularRequest request);

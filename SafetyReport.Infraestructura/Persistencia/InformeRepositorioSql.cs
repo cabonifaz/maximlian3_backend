@@ -1790,7 +1790,7 @@ namespace SafetyReport.Infrastructure.Persistencia
             }
         }
 
-        public async Task<Respuesta> ListarIdPorCompaniaAsync(UsuarioGeneral u, FiltroInformeIdPorCompania filtro)
+        public async Task<Respuesta> ListarIdPorCompaniaAsync(UsuarioGeneral u, FiltroInformeIdPorCompania filtro, string utcOffset)
         {
             try
             {
@@ -1801,6 +1801,7 @@ namespace SafetyReport.Infrastructure.Persistencia
                 cmd.Parameters.Add("@p_dtmFchInicio", MySqlDbType.Date).Value = (object?)filtro.FchInicio ?? DBNull.Value;
                 cmd.Parameters.Add("@p_dtmFchFin", MySqlDbType.Date).Value = (object?)filtro.FchFin ?? DBNull.Value;
                 cmd.Parameters.Add("@p_numPag", MySqlDbType.Int32).Value = (object?)filtro.NumPag ?? DBNull.Value;
+                cmd.Parameters.Add("@p_utcOffset", MySqlDbType.VarChar, 6).Value = utcOffset;
                 await cn.OpenAsync();
 
                 using var dr = await cmd.ExecuteReaderAsync();

@@ -250,7 +250,8 @@ namespace SafetyReport.Application.CasosDeUso
         {
             try
             {
-                return await _informeRepository.ListarIdPorCompaniaAsync(usuarioLogueado, request);
+                var utcOffset = FechaZonaHoraria.ObtenerOffset(request.timezone, DateTimeOffset.UtcNow);
+                return await _informeRepository.ListarIdPorCompaniaAsync(usuarioLogueado, request, utcOffset);
             }
             catch (Exception ex)
             {
