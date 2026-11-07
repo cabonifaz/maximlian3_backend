@@ -1126,12 +1126,18 @@ namespace SafetyReport.Infrastructure.Persistencia
             return resultado;
         }
 
-        public async Task<Respuesta> ObtenerAsync(UsuarioGeneral u, int idPedido, int idInforme)
+        public Task<Respuesta> ObtenerAsync(UsuarioGeneral u, int idPedido, int idInforme) =>
+            ObtenerDetalleAsync(u, idPedido, idInforme, "SP_Informe_Obtener");
+
+        public Task<Respuesta> ObtenerPorReferenciaAsync(UsuarioGeneral u, int idPedido, int idInforme) =>
+            ObtenerDetalleAsync(u, idPedido, idInforme, "SP_Informe_ObtenerPorReferencia");
+
+        private async Task<Respuesta> ObtenerDetalleAsync(UsuarioGeneral u, int idPedido, int idInforme, string procedimiento)
         {
             try
             {
                 using MySqlConnection cn = new(_dbConfig.ConnectionString);
-                using MySqlCommand cmd = new("SP_Informe_Obtener", cn) { CommandType = CommandType.StoredProcedure };
+                using MySqlCommand cmd = new(procedimiento, cn) { CommandType = CommandType.StoredProcedure };
                 AgregarParametrosAuditoria(cmd, u);
                 cmd.Parameters.Add("@p_intIdPedido", MySqlDbType.Int32).Value = idPedido;
                 cmd.Parameters.Add("@p_intIdInforme", MySqlDbType.Int32).Value = idInforme;
@@ -1463,12 +1469,18 @@ namespace SafetyReport.Infrastructure.Persistencia
             }
         }
 
-        public async Task<(Respuesta respuesta, string? nombreInforme, bool requiereTraduccion, int cantidadEnvios, string formatosCliente)> GenerarDocumentoAsync(UsuarioGeneral u, int idInforme, int idPedido)
+        public Task<(Respuesta respuesta, string? nombreInforme, bool requiereTraduccion, int cantidadEnvios, string formatosCliente)> GenerarDocumentoAsync(UsuarioGeneral u, int idInforme, int idPedido) =>
+            GenerarDocumentoDetalleAsync(u, idInforme, idPedido, "SP_Pedido_GenerarDocumento");
+
+        public Task<(Respuesta respuesta, string? nombreInforme, bool requiereTraduccion, int cantidadEnvios, string formatosCliente)> GenerarDocumentoPorReferenciaAsync(UsuarioGeneral u, int idInforme, int idPedido) =>
+            GenerarDocumentoDetalleAsync(u, idInforme, idPedido, "SP_Pedido_GenerarDocumentoPorReferencia");
+
+        private async Task<(Respuesta respuesta, string? nombreInforme, bool requiereTraduccion, int cantidadEnvios, string formatosCliente)> GenerarDocumentoDetalleAsync(UsuarioGeneral u, int idInforme, int idPedido, string procedimiento)
         {
             try
             {
                 using MySqlConnection cn = new(_dbConfig.ConnectionString);
-                using MySqlCommand cmd = new("SP_Pedido_GenerarDocumento", cn) { CommandType = CommandType.StoredProcedure };
+                using MySqlCommand cmd = new(procedimiento, cn) { CommandType = CommandType.StoredProcedure };
                 AgregarParametrosAuditoria(cmd, u);
                 cmd.Parameters.Add("@p_intIdInforme", MySqlDbType.Int32).Value = idInforme;
                 cmd.Parameters.Add("@p_intIdPedido", MySqlDbType.Int32).Value = idPedido;

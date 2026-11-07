@@ -36,6 +36,13 @@ namespace SafetyReport.WebApi.Controllers
             return Ok(respuesta);
         }
 
+        [HttpGet("obtenerPorReferencia")]
+        public async Task<IActionResult> ObtenerPorReferencia([FromQuery] FiltroInformeObtener request)
+        {
+            var respuesta = await _informeHandler.ObtenerPorReferenciaAsync(UsuarioLogueado, request);
+            return Ok(respuesta);
+        }
+
         [HttpGet("previsualizarDocumento")]
         public async Task<IActionResult> PrevisualizarDocumento([FromQuery] FiltroGenerarDocumento request)
         {
@@ -43,6 +50,13 @@ namespace SafetyReport.WebApi.Controllers
             return Ok(respuesta);
         }
 
+
+        [HttpGet("previsualizarDocumentoPorReferencia")]
+        public async Task<IActionResult> PrevisualizarDocumentoPorReferencia([FromQuery] FiltroGenerarDocumento request)
+        {
+            var respuesta = await _informeHandler.PrevisualizarDocumentoPorReferenciaAsync(UsuarioLogueado, request);
+            return Ok(respuesta);
+        }
 
         [HttpGet("listar")]
         public async Task<IActionResult> Listar([FromQuery] FiltroInforme request)

@@ -190,7 +190,13 @@ namespace SafetyReport.Application.CasosDeUso
         }
 
 
-        public async Task<Respuesta> ObtenerAsync(UsuarioGeneral usuarioLogueado, FiltroInformeObtener request)
+        public Task<Respuesta> ObtenerAsync(UsuarioGeneral usuarioLogueado, FiltroInformeObtener request) =>
+            ObtenerDetalleAsync(usuarioLogueado, request, porReferencia: false);
+
+        public Task<Respuesta> ObtenerPorReferenciaAsync(UsuarioGeneral usuarioLogueado, FiltroInformeObtener request) =>
+            ObtenerDetalleAsync(usuarioLogueado, request, porReferencia: true);
+
+        private async Task<Respuesta> ObtenerDetalleAsync(UsuarioGeneral usuarioLogueado, FiltroInformeObtener request, bool porReferencia)
         {
             try
             {
@@ -204,7 +210,9 @@ namespace SafetyReport.Application.CasosDeUso
                     };
                 }
 
-                var respuesta = await _informeRepository.ObtenerAsync(usuarioLogueado, request.IdPedido, request.IdInforme);
+                var respuesta = porReferencia
+                    ? await _informeRepository.ObtenerPorReferenciaAsync(usuarioLogueado, request.IdPedido, request.IdInforme)
+                    : await _informeRepository.ObtenerAsync(usuarioLogueado, request.IdPedido, request.IdInforme);
 
                 if (respuesta.IdTipoMensaje == 2 && respuesta.Result is List<InformeConsulta> informes)
                 {
@@ -605,11 +613,19 @@ namespace SafetyReport.Application.CasosDeUso
             }
         }
 
-        public async Task<Respuesta> PrevisualizarDocumentoAsync(UsuarioGeneral usuarioLogueado, FiltroGenerarDocumento request)
+        public Task<Respuesta> PrevisualizarDocumentoAsync(UsuarioGeneral usuarioLogueado, FiltroGenerarDocumento request) =>
+            PrevisualizarDocumentoDetalleAsync(usuarioLogueado, request, porReferencia: false);
+
+        public Task<Respuesta> PrevisualizarDocumentoPorReferenciaAsync(UsuarioGeneral usuarioLogueado, FiltroGenerarDocumento request) =>
+            PrevisualizarDocumentoDetalleAsync(usuarioLogueado, request, porReferencia: true);
+
+        private async Task<Respuesta> PrevisualizarDocumentoDetalleAsync(UsuarioGeneral usuarioLogueado, FiltroGenerarDocumento request, bool porReferencia)
         {
             try
             {
-                var (respuesta, nombreInforme, requiereTraduccion, cantidadEnvios, formatosCliente) = await _informeRepository.GenerarDocumentoAsync(usuarioLogueado, request.IdInforme, request.IdPedido);
+                var (respuesta, nombreInforme, requiereTraduccion, cantidadEnvios, formatosCliente) = porReferencia
+                    ? await _informeRepository.GenerarDocumentoPorReferenciaAsync(usuarioLogueado, request.IdInforme, request.IdPedido)
+                    : await _informeRepository.GenerarDocumentoAsync(usuarioLogueado, request.IdInforme, request.IdPedido);
                 if (respuesta.IdTipoMensaje != 2 || respuesta.Result is not string jsonStr || string.IsNullOrWhiteSpace(jsonStr))
                     return new Respuesta { IdTipoMensaje = respuesta.IdTipoMensaje, Mensaje = respuesta.Mensaje, Result = null };
 

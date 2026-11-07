@@ -11,9 +11,13 @@ public interface IInformeRepository : IInformeDraftRepository
         UsuarioGeneral usuarioLogueado, InformeEditar request);
 
     Task<Respuesta> ObtenerAsync(UsuarioGeneral usuarioLogueado, int idPedido, int idInforme);
+    Task<Respuesta> ObtenerPorReferenciaAsync(UsuarioGeneral usuarioLogueado, int idPedido, int idInforme);
 
     Task<(Respuesta respuesta, string? nombreInforme, bool requiereTraduccion, int cantidadEnvios, string formatosCliente)>
         GenerarDocumentoAsync(UsuarioGeneral usuarioLogueado, int idInforme, int idPedido);
+
+    Task<(Respuesta respuesta, string? nombreInforme, bool requiereTraduccion, int cantidadEnvios, string formatosCliente)>
+        GenerarDocumentoPorReferenciaAsync(UsuarioGeneral usuarioLogueado, int idInforme, int idPedido);
 
     Task<(Respuesta respuesta, string? nombreInforme)> GenerarDocumentoXmlAsync(
         UsuarioGeneral usuarioLogueado, int idInforme, int idPedido);
