@@ -11,9 +11,13 @@ public interface IInformeRepository : IInformeDraftRepository
         UsuarioGeneral usuarioLogueado, InformeEditar request);
 
     Task<Respuesta> ObtenerAsync(UsuarioGeneral usuarioLogueado, int idPedido, int idInforme);
+    Task<Respuesta> ObtenerPorReferenciaAsync(UsuarioGeneral usuarioLogueado, int idPedido, int idInforme);
 
     Task<(Respuesta respuesta, string? nombreInforme, bool requiereTraduccion, int cantidadEnvios, string formatosCliente)>
         GenerarDocumentoAsync(UsuarioGeneral usuarioLogueado, int idInforme, int idPedido);
+
+    Task<(Respuesta respuesta, string? nombreInforme, bool requiereTraduccion, int cantidadEnvios, string formatosCliente)>
+        GenerarDocumentoPorReferenciaAsync(UsuarioGeneral usuarioLogueado, int idInforme, int idPedido);
 
     Task<(Respuesta respuesta, string? nombreInforme)> GenerarDocumentoXmlAsync(
         UsuarioGeneral usuarioLogueado, int idInforme, int idPedido);
@@ -25,7 +29,7 @@ public interface IInformeRepository : IInformeDraftRepository
     Task<Respuesta> ObtenerRutaDocumentoAsync(UsuarioGeneral usuarioLogueado, int idInforme, int idPedido);
     Task<Respuesta> ActualizarDocumentoAsync(UsuarioGeneral usuarioLogueado, int idInforme, string urlDocumento);
     Task<Respuesta> ListarAsync(UsuarioGeneral usuarioLogueado, FiltroInforme filtro);
-    Task<Respuesta> ListarIdPorCompaniaAsync(UsuarioGeneral usuarioLogueado, FiltroInformeIdPorCompania filtro);
+    Task<Respuesta> ListarIdPorCompaniaAsync(UsuarioGeneral usuarioLogueado, FiltroInformeIdPorCompania filtro, string utcOffset);
     Task<Respuesta> CalcularBalanceDesagregadoAsync(UsuarioGeneral usuarioLogueado, InformeBalanceDesagregadoCalcularRequest request);
     Task<Respuesta> CalcularBalanceSeguroAsync(UsuarioGeneral usuarioLogueado, InformeBalanceSeguroCalcularRequest request);
     Task<Respuesta> CalcularBalanceBancoAsync(UsuarioGeneral usuarioLogueado, InformeBalanceBancoCalcularRequest request);

@@ -1,3 +1,4 @@
+using System.ComponentModel.DataAnnotations;
 using SafetyReport.Application.Puertos.InformeArchivo;
 using SafetyReport.Application.Puertos.InformeLocalImagen;
 
@@ -50,8 +51,21 @@ namespace SafetyReport.Application.Puertos.Informe
         public int Vencido { get; set; }
     }
 
-    public class FiltroInformeIdPorCompania
+    public class FiltroInformeIdPorCompania : IValidatableObject
     {
+        [Required]
+        public string timezone { get; set; } = null!;
+
+        public IEnumerable<ValidationResult> Validate(ValidationContext validationContext)
+        {
+            if (!string.IsNullOrWhiteSpace(timezone) && !FechaZonaHoraria.EsValida(timezone))
+            {
+                yield return new ValidationResult(
+                    "timezone debe ser una zona horaria válida, por ejemplo America/Lima.",
+                    new[] { nameof(timezone) });
+            }
+        }
+
         public int IdCompania { get; set; }
         public DateTime? FchInicio { get; set; }
         public DateTime? FchFin { get; set; }
@@ -194,13 +208,17 @@ namespace SafetyReport.Application.Puertos.Informe
         public string? IdRegistro { get; set; }
         public string? IdPlazo { get; set; }
         public decimal? CapitalInicial { get; set; }
+        public int? IdMonedaCapitalInicial { get; set; }
         public decimal? CapitalPagado { get; set; }
+        public int? IdMonedaCapitalPagado { get; set; }
         public string? FechaUltimoIncremento { get; set; }
         public int? IdTipoIncremento { get; set; }
         public decimal? PatrimonioNeto { get; set; }
+        public int? IdMonedaPatrimonioNeto { get; set; }
         public string? ComentarioPatrimonioNeto { get; set; }
         public string? TipoAcciones { get; set; }
         public decimal? ValorAcciones { get; set; }
+        public int? IdMonedaValorAcciones { get; set; }
         public bool? CotizaBolsa { get; set; }
         public decimal? TipoCambio { get; set; }
         public int? IdTipoCambio { get; set; }
