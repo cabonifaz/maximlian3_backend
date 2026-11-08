@@ -159,7 +159,7 @@ namespace SafetyReport.Application.Puertos.Informe
     {
         public int IdInformeProveedor { get; set; }
         public int IdTipoProveedor { get; set; }
-        public string Nombre { get; set; } = string.Empty;
+        public int? IdCompania { get; set; }
         public int? IdPais { get; set; }
         public int? IdTipoDocumento { get; set; }
         public string? NumeroDocumento { get; set; }
@@ -183,6 +183,7 @@ namespace SafetyReport.Application.Puertos.Informe
         public int IdInforme { get; set; }
         public int IdPedido { get; set; }
         public int? IdIdioma { get; set; }
+        public int? IdCompania { get; set; }
         public int? IdTipoPersona { get; set; }
         public string? Nombre { get; set; }
         public string? NombreComercial { get; set; }
@@ -209,6 +210,7 @@ namespace SafetyReport.Application.Puertos.Informe
         public string? IdPlazo { get; set; }
         public decimal? CapitalInicial { get; set; }
         public int? IdMonedaCapitalInicial { get; set; }
+        public string? ComentarioCapitalInicial { get; set; }
         public decimal? CapitalPagado { get; set; }
         public int? IdMonedaCapitalPagado { get; set; }
         public string? FechaUltimoIncremento { get; set; }

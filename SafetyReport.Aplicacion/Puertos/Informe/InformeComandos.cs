@@ -5,6 +5,7 @@ namespace SafetyReport.Application.Puertos.Informe
     public class InformeCrear
     {
         public int? IdPedido { get; set; }
+        public int? IdCompania { get; set; }
         public int? IdTipoPersona { get; set; }
         public string? Nombre { get; set; }
         public string? NombreComercial { get; set; }
@@ -32,6 +33,7 @@ namespace SafetyReport.Application.Puertos.Informe
         public string? IdPlazo { get; set; }
         public decimal? CapitalInicial { get; set; }
         public int? IdMonedaCapitalInicial { get; set; }
+        public string? ComentarioCapitalInicial { get; set; }
         public decimal? CapitalPagado { get; set; }
         public int? IdMonedaCapitalPagado { get; set; }
         public string? FechaUltimoIncremento { get; set; }

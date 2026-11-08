@@ -42,7 +42,7 @@ namespace SafetyReport.Application.Puertos.Informe
     {
         public int? IdInformeProveedor { get; set; }
         public int IdTipoProveedor { get; set; }
-        public string Nombre { get; set; } = string.Empty;
+        public int? IdCompania { get; set; }
         public int? IdPais { get; set; }
         public int? IdTipoDocumento { get; set; }
         public string? NumeroDocumento { get; set; }

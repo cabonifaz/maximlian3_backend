@@ -101,7 +101,7 @@ namespace SafetyReport.Infrastructure.Persistencia
             t.Columns.Add("ID", typeof(int));
             t.Columns.Add("IdInformeProveedor", typeof(int));
             t.Columns.Add("IdTipoProveedor", typeof(int));
-            t.Columns.Add("Nombre", typeof(string));
+            t.Columns.Add("IdCompania", typeof(int));
             t.Columns.Add("IdPais", typeof(int));
             t.Columns.Add("IdTipoDocumento", typeof(int));
             t.Columns.Add("NumeroDocumento", typeof(string));
@@ -122,7 +122,7 @@ namespace SafetyReport.Infrastructure.Persistencia
             foreach (var x in items)
                 t.Rows.Add(i++,
                     (object?)x.IdInformeProveedor ?? DBNull.Value,
-                    x.IdTipoProveedor, x.Nombre,
+                    x.IdTipoProveedor, (object?)x.IdCompania ?? DBNull.Value,
                     (object?)x.IdPais ?? DBNull.Value, (object?)x.IdTipoDocumento ?? DBNull.Value,
                     (object?)x.NumeroDocumento ?? DBNull.Value, (object?)x.IdMoneda ?? DBNull.Value,
                     (object?)x.IdLimiteCredito ?? DBNull.Value,
@@ -642,6 +642,7 @@ namespace SafetyReport.Infrastructure.Persistencia
         private static DataTable ConstruirTablaIdentificacion(InformeCrear r)
         {
             var t = new DataTable();
+            t.Columns.Add("IdCompania", typeof(int));
             t.Columns.Add("IdTipoPersona", typeof(int));
             t.Columns.Add("Nombre", typeof(string));
             t.Columns.Add("NombreComercial", typeof(string));
@@ -660,6 +661,7 @@ namespace SafetyReport.Infrastructure.Persistencia
             t.Columns.Add("IdExperienciaPago", typeof(int));
             t.Columns.Add("ObservacionesIdentificacion", typeof(string));
             t.Rows.Add(
+                (object?)r.IdCompania ?? DBNull.Value,
                 (object?)r.IdTipoPersona ?? DBNull.Value,
                 (object?)r.Nombre ?? DBNull.Value,
                 (object?)r.NombreComercial ?? DBNull.Value,
@@ -693,6 +695,7 @@ namespace SafetyReport.Infrastructure.Persistencia
             t.Columns.Add("IdPlazo", typeof(string));
             t.Columns.Add("CapitalInicial", typeof(decimal));
             t.Columns.Add("IdMonedaCapitalInicial", typeof(int));
+            t.Columns.Add("ComentarioCapitalInicial", typeof(string));
             t.Columns.Add("CapitalPagado", typeof(decimal));
             t.Columns.Add("IdMonedaCapitalPagado", typeof(int));
             t.Columns.Add("FechaUltimoIncremento", typeof(string));
@@ -719,6 +722,7 @@ namespace SafetyReport.Infrastructure.Persistencia
                 (object?)r.IdPlazo ?? DBNull.Value,
                 D2(r.CapitalInicial),
                 (object?)r.IdMonedaCapitalInicial ?? DBNull.Value,
+                (object?)r.ComentarioCapitalInicial ?? DBNull.Value,
                 D2(r.CapitalPagado),
                 (object?)r.IdMonedaCapitalPagado ?? DBNull.Value,
                 (object?)r.FechaUltimoIncremento ?? DBNull.Value,
@@ -1166,6 +1170,7 @@ namespace SafetyReport.Infrastructure.Persistencia
                         {
                             IdInforme = Convert.ToInt32(dr["IdInforme"]),
                             IdPedido = Convert.ToInt32(dr["IdPedido"]),
+                            IdCompania = GetNullableInt(dr, "IdCompania"),
                             IdIdioma = GetNullableInt(dr, "IdIdioma"),
                             IdTipoPersona = GetNullableInt(dr, "IdTipoPersona"),
                             Nombre = GetNullableString(dr, "Nombre"),
@@ -1193,6 +1198,7 @@ namespace SafetyReport.Infrastructure.Persistencia
                             IdPlazo = GetNullableString(dr, "IdPlazo"),
                             CapitalInicial = GetNullableDecimal(dr, "CapitalInicial"),
                             IdMonedaCapitalInicial = GetNullableInt(dr, "IdMonedaCapitalInicial"),
+                            ComentarioCapitalInicial = GetNullableString(dr, "ComentarioCapitalInicial"),
                             CapitalPagado = GetNullableDecimal(dr, "CapitalPagado"),
                             IdMonedaCapitalPagado = GetNullableInt(dr, "IdMonedaCapitalPagado"),
                             FechaUltimoIncremento = GetNullableString(dr, "FechaUltimoIncremento"),
@@ -1362,7 +1368,7 @@ namespace SafetyReport.Infrastructure.Persistencia
                                 {
                                     IdInformeProveedor = Convert.ToInt32(dr["IdInformeProveedor"]),
                                     IdTipoProveedor = Convert.ToInt32(dr["IdTipoProveedor"]),
-                                    Nombre = dr["Nombre"]?.ToString() ?? string.Empty,
+                                    IdCompania = GetNullableInt(dr, "IdCompania"),
                                     IdPais = GetNullableInt(dr, "IdPais"),
                                     IdTipoDocumento = GetNullableInt(dr, "IdTipoDocumento"),
                                     NumeroDocumento = GetNullableString(dr, "NumeroDocumento"),
