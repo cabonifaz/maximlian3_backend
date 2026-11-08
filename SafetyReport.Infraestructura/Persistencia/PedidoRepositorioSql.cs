@@ -83,11 +83,8 @@ namespace SafetyReport.Infrastructure.Persistencia
                 cmd.Parameters.Add("@p_intIdCliente", MySqlDbType.Int32).Value = request.IdCliente;
                 cmd.Parameters.Add("@p_vchNumeroDocumento", MySqlDbType.VarChar, 50).Value = (object?)request.NumeroDocumento ?? DBNull.Value;
                 cmd.Parameters.Add("@p_vchNombreCliente", MySqlDbType.VarChar, 255).Value = (object?)request.NombreCliente ?? DBNull.Value;
-                cmd.Parameters.Add("@p_intIdTipoPersona", MySqlDbType.Int32).Value = request.IdTipoPersona;
                 cmd.Parameters.Add("@p_intIdEmpresaAtencion", MySqlDbType.Int32).Value = request.IdEmpresaAtencion;
-                cmd.Parameters.Add("@p_vchNumeroDocumentoInvestigado", MySqlDbType.VarChar, 50).Value = (object?)request.NumeroDocumentoInvestigado ?? DBNull.Value;
-                cmd.Parameters.Add("@p_vchInvestigarRazonSocialNombres", MySqlDbType.VarChar).Value = request.InvestigarRazonSocialNombres;
-                cmd.Parameters.Add("@p_intIdCompania", MySqlDbType.Int32).Value = request.IdCompania;
+                cmd.Parameters.Add("@p_vchInvestigado", MySqlDbType.VarChar, 255).Value = (object?)request.Investigado ?? DBNull.Value;
                 cmd.Parameters.Add("@p_intIdTarifario", MySqlDbType.Int32).Value = request.IdTarifario;
                 cmd.Parameters.Add("@p_intIdPlantilla", MySqlDbType.Int32).Value = request.IdPlantilla;
                 cmd.Parameters.Add("@p_intIdIdioma", MySqlDbType.Int32).Value = request.IdIdioma;
@@ -149,10 +146,7 @@ namespace SafetyReport.Infrastructure.Persistencia
                 cmd.Parameters.Add("@p_intIdCliente", MySqlDbType.Int32).Value = request.IdCliente;
                 cmd.Parameters.Add("@p_vchNumeroDocumento", MySqlDbType.VarChar, 50).Value = (object?)request.NumeroDocumento ?? DBNull.Value;
                 cmd.Parameters.Add("@p_vchNombreCliente", MySqlDbType.VarChar, 255).Value = (object?)request.NombreCliente ?? DBNull.Value;
-                cmd.Parameters.Add("@p_intIdTipoPersona", MySqlDbType.Int32).Value = request.IdTipoPersona;
-                cmd.Parameters.Add("@p_vchNumeroDocumentoInvestigado", MySqlDbType.VarChar, 50).Value = (object?)request.NumeroDocumentoInvestigado ?? DBNull.Value;
-                cmd.Parameters.Add("@p_vchInvestigarRazonSocialNombres", MySqlDbType.VarChar).Value = request.InvestigarRazonSocialNombres;
-                cmd.Parameters.Add("@p_intIdCompania", MySqlDbType.Int32).Value = request.IdCompania;
+                cmd.Parameters.Add("@p_vchInvestigado", MySqlDbType.VarChar, 255).Value = (object?)request.Investigado ?? DBNull.Value;
                 cmd.Parameters.Add("@p_intIdTarifario", MySqlDbType.Int32).Value = request.IdTarifario;
                 cmd.Parameters.Add("@p_intIdPlantilla", MySqlDbType.Int32).Value = request.IdPlantilla;
                 cmd.Parameters.Add("@p_intIdIdioma", MySqlDbType.Int32).Value = request.IdIdioma;
@@ -232,10 +226,7 @@ namespace SafetyReport.Infrastructure.Persistencia
                             IdCliente = Convert.ToInt32(dr["IdCliente"]),
                             NumeroDocumento = GetNullableString(dr, "NumeroDocumento"),
                             NombreCliente = GetNullableString(dr, "NombreCliente"),
-                            IdTipoPersona = Convert.ToInt32(dr["IdTipoPersona"]),
-                            IdCompania = Convert.ToInt32(dr["IdCompania"]),
-                            NumeroDocumentoInvestigado = GetNullableString(dr, "NumeroDocumentoInvestigado"),
-                            InvestigarRazonSocialNombres = GetNullableString(dr, "InvestigarRazonSocialNombres"),
+                            Investigado = GetNullableString(dr, "Investigado"),
                             IdTarifario = GetNullableInt(dr, "IdTarifario"),
                             IdPlantilla = Convert.ToInt32(dr["IdPlantilla"]),
                             IdIdioma = Convert.ToInt32(dr["IdIdioma"]),
