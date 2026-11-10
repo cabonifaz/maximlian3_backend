@@ -77,5 +77,13 @@ namespace SafetyReport.WebApi.Controllers
             var respuesta = await _flujoInformeHandler.AsignarRolAsync(UsuarioLogueado, request);
             return Ok(respuesta);
         }
+
+        // SRC-F1-065: asigna el mismo rol y persona a varios pedidos seleccionados en la bandeja
+        [HttpPost("asignarRolMasivo")]
+        public async Task<IActionResult> AsignarRolMasivo([FromBody] AsignarRolMasivoFlujoRequest request)
+        {
+            var respuesta = await _flujoInformeHandler.AsignarRolMasivoAsync(UsuarioLogueado, request);
+            return Ok(respuesta);
+        }
     }
 }

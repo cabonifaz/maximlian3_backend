@@ -115,6 +115,31 @@ namespace SafetyReport.Application.Puertos.FlujoInforme
         public int IdAsignacion { get; set; }
     }
 
+    // Asignación masiva: el mismo rol y la misma persona para varios pedidos (cada uno valida su flujo).
+    public class AsignarRolMasivoFlujoRequest
+    {
+        [MinLength(1)]
+        public List<int> IdsPedido { get; set; } = new();
+
+        [Required]
+        public string Rol { get; set; } = string.Empty;
+
+        [Range(1, int.MaxValue)]
+        public int IdUsuarioAsignado { get; set; }
+    }
+
+    public class PedidoNoAsignadoFlujo
+    {
+        public int IdPedido { get; set; }
+        public string Mensaje { get; set; } = string.Empty;
+    }
+
+    public class ResultadoAsignacionMasivaFlujo
+    {
+        public int TotalAsignados { get; set; }
+        public List<PedidoNoAsignadoFlujo> lstNoAsignado { get; set; } = new();
+    }
+
     // ── Repositorio de informes ────────────────────────────────────────────────
 
     public class FiltroRepositorioInformes

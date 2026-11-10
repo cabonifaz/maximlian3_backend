@@ -36,6 +36,49 @@ namespace SafetyReport.Application.CasosDeUso
                 new AsignacionFlujoCreada());
         }
 
+        public async Task<Respuesta> AsignarRolMasivoAsync(UsuarioGeneral usuarioLogueado, AsignarRolMasivoFlujoRequest request)
+        {
+            var resultado = new ResultadoAsignacionMasivaFlujo();
+            var idsPedido = request.IdsPedido.Where(id => id > 0).Distinct().ToList();
+
+            foreach (var idPedido in idsPedido)
+            {
+                var respuesta = await AsignarRolAsync(usuarioLogueado, new AsignarRolFlujoRequest
+                {
+                    IdPedido = idPedido,
+                    Rol = request.Rol,
+                    IdUsuarioAsignado = request.IdUsuarioAsignado
+                });
+
+                if (respuesta.IdTipoMensaje == 2)
+                {
+                    resultado.TotalAsignados++;
+                    continue;
+                }
+
+                resultado.lstNoAsignado.Add(new PedidoNoAsignadoFlujo { IdPedido = idPedido, Mensaje = respuesta.Mensaje });
+            }
+
+            if (resultado.lstNoAsignado.Count == 0)
+            {
+                return new Respuesta
+                {
+                    IdTipoMensaje = 2,
+                    Mensaje = $"Se asignaron {resultado.TotalAsignados} pedido(s).",
+                    Result = resultado
+                };
+            }
+
+            var primerError = resultado.lstNoAsignado[0];
+            return new Respuesta
+            {
+                IdTipoMensaje = 1,
+                Mensaje = $"Se asignaron {resultado.TotalAsignados} de {idsPedido.Count} pedido(s). "
+                    + $"Pedido {primerError.IdPedido}: {primerError.Mensaje}",
+                Result = resultado
+            };
+        }
+
         public Task<Respuesta> ListarRepositorioAsync(UsuarioGeneral usuarioLogueado, FiltroRepositorioInformes filtro) =>
             EjecutarAsync(() => _flujoInformeRepository.ListarRepositorioAsync(usuarioLogueado, filtro), new ListaRepositorioInformes());
 
