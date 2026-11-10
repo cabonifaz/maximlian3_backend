@@ -213,4 +213,15 @@ namespace SafetyReport.Application.Puertos.FlujoInforme
     {
         public int IdInforme { get; set; }
     }
+
+    public class ClienteDestinoComplemento
+    {
+        public int IdCliente { get; set; }
+        public string? Nombre { get; set; }
+    }
+
+    public class ListaClientesDestinoComplemento
+    {
+        public List<ClienteDestinoComplemento> lstCliente { get; set; } = new();
+    }
 }

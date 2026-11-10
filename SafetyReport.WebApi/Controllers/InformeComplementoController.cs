@@ -34,5 +34,12 @@ namespace SafetyReport.WebApi.Controllers
             var respuesta = await _flujoInformeHandler.EnviarAprobacionComplementoAsync(UsuarioLogueado, request);
             return Ok(respuesta);
         }
+
+        [HttpGet("listarClientesDestino")]
+        public async Task<IActionResult> ListarClientesDestino()
+        {
+            var respuesta = await _flujoInformeHandler.ListarClientesDestinoComplementoAsync(UsuarioLogueado);
+            return Ok(respuesta);
+        }
     }
 }

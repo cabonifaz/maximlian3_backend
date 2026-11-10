@@ -48,6 +48,9 @@ namespace SafetyReport.Application.CasosDeUso
         public Task<Respuesta> EnviarAprobacionComplementoAsync(UsuarioGeneral usuarioLogueado, EnviarAprobacionComplementoRequest request) =>
             EjecutarAsync(() => _flujoInformeRepository.EnviarAprobacionComplementoAsync(usuarioLogueado, request.IdComplemento), new ComplementoEnviado());
 
+        public Task<Respuesta> ListarClientesDestinoComplementoAsync(UsuarioGeneral usuarioLogueado) =>
+            EjecutarAsync(() => _flujoInformeRepository.ListarClientesDestinoComplementoAsync(usuarioLogueado), new ListaClientesDestinoComplemento());
+
         private async Task<Respuesta> EjecutarAsync(Func<Task<Respuesta>> accion, object resultadoVacio)
         {
             try

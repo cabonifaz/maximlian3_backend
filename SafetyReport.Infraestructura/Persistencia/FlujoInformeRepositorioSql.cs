@@ -228,6 +228,27 @@ namespace SafetyReport.Infrastructure.Persistencia
                 },
                 new ComplementoEnviado());
 
+        public Task<Respuesta> ListarClientesDestinoComplementoAsync(UsuarioGeneral u) =>
+            EjecutarAsync("SP_InformeComplemento_ListarClientesDestino", u,
+                _ => { },
+                async dr =>
+                {
+                    var resultado = new ListaClientesDestinoComplemento();
+                    if (!await dr.NextResultAsync()) return resultado;
+
+                    while (await dr.ReadAsync())
+                    {
+                        resultado.lstCliente.Add(new ClienteDestinoComplemento
+                        {
+                            IdCliente = Entero(dr, "IdCliente"),
+                            Nombre = Texto(dr, "Nombre")
+                        });
+                    }
+
+                    return resultado;
+                },
+                new ListaClientesDestinoComplemento());
+
         // ── Infraestructura común ──────────────────────────────────────────────
 
         private async Task<Respuesta> EjecutarAsync<T>(
