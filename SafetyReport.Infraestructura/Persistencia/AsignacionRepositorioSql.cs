@@ -35,6 +35,17 @@ namespace SafetyReport.Infrastructure.Persistencia
         private static string? GetNullableString(MySqlDataReader dr, string columna) =>
             dr[columna] == DBNull.Value ? null : dr[columna].ToString();
 
+        // SRC-F1-065: columnas nuevas de SP_Asignacion_Bandeja; tolera la versión anterior del SP.
+        private static bool? GetNullableBoolSiExiste(MySqlDataReader dr, string columna)
+        {
+            for (var i = 0; i < dr.FieldCount; i++)
+            {
+                if (!string.Equals(dr.GetName(i), columna, StringComparison.OrdinalIgnoreCase)) continue;
+                return dr.IsDBNull(i) ? null : Convert.ToInt32(dr.GetValue(i)) != 0;
+            }
+            return null;
+        }
+
         // Lee el result set 1 (siempre presente): IdTipoMensaje, Mensaje.
         private async Task<Respuesta> LeerCabeceraAsync(MySqlDataReader dr, string procedimiento)
         {
@@ -337,7 +348,9 @@ namespace SafetyReport.Infrastructure.Persistencia
                                 IdEstado = GetNullableInt(dr, "IdEstado"),
                                 Estado = GetNullableString(dr, "Estado"),
                                 ColorLetra = GetNullableString(dr, "ColorLetra"),
-                                ColorFondo = GetNullableString(dr, "ColorFondo")
+                                ColorFondo = GetNullableString(dr, "ColorFondo"),
+                                RequiereTraduccion = GetNullableBoolSiExiste(dr, "RequiereTraduccion"),
+                                EsComplemento = GetNullableBoolSiExiste(dr, "EsComplemento")
                             });
                         }
                     }

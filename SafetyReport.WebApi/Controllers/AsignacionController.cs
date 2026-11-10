@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using SafetyReport.Application.CasosDeUso;
 using SafetyReport.Application.Puertos.Asignacion;
+using SafetyReport.Application.Puertos.FlujoInforme;
 
 namespace SafetyReport.WebApi.Controllers
 {
@@ -11,10 +12,12 @@ namespace SafetyReport.WebApi.Controllers
     public class AsignacionController : BaseController
     {
         private readonly AsignacionHandler _asignacionHandler;
+        private readonly FlujoInformeHandler _flujoInformeHandler;
 
-        public AsignacionController(AsignacionHandler asignacionHandler)
+        public AsignacionController(AsignacionHandler asignacionHandler, FlujoInformeHandler flujoInformeHandler)
         {
             _asignacionHandler = asignacionHandler;
+            _flujoInformeHandler = flujoInformeHandler;
         }
 
         [HttpPost("crear")]
@@ -56,6 +59,22 @@ namespace SafetyReport.WebApi.Controllers
         public async Task<IActionResult> Eliminar([FromBody] EliminarAsignacion request)
         {
             var respuesta = await _asignacionHandler.EliminarAsync(UsuarioLogueado, request);
+            return Ok(respuesta);
+        }
+
+        // SRC-F1-065: tabs por etapa del flujo analista → traductor (prioridad + vencimiento)
+        [HttpGet("listarPorEtapa")]
+        public async Task<IActionResult> ListarPorEtapa([FromQuery] FiltroFlujoAsignacion filtro)
+        {
+            var respuesta = await _flujoInformeHandler.ListarPorEtapaAsync(UsuarioLogueado, filtro);
+            return Ok(respuesta);
+        }
+
+        // SRC-F1-065: asigna o reasigna un rol (analista / traductor) de un pedido
+        [HttpPost("asignarRol")]
+        public async Task<IActionResult> AsignarRol([FromBody] AsignarRolFlujoRequest request)
+        {
+            var respuesta = await _flujoInformeHandler.AsignarRolAsync(UsuarioLogueado, request);
             return Ok(respuesta);
         }
     }
