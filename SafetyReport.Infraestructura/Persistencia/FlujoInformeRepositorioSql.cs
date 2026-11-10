@@ -186,7 +186,10 @@ namespace SafetyReport.Infrastructure.Persistencia
                             Traductor = Texto(dr, "Traductor"),
                             Estado = Texto(dr, "Estado") ?? "borrador",
                             FechaCreacion = FechaUtc(dr, "FechaCreacion"),
-                            FechaModificacion = FechaUtc(dr, "FechaModificacion")
+                            FechaModificacion = FechaUtc(dr, "FechaModificacion"),
+                            IdInforme = EnteroNulo(dr, "IdInforme"),
+                            Codigo = Texto(dr, "Codigo"),
+                            IdPlantilla = EnteroNulo(dr, "IdPlantilla")
                         });
                     }
 
