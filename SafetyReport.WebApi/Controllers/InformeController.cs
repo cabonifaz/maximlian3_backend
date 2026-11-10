@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Http.Timeouts;
 using Microsoft.AspNetCore.Mvc;
 using SafetyReport.Application.CasosDeUso;
 using SafetyReport.Application.Comun;
+using SafetyReport.Application.Puertos.FlujoInforme;
 using SafetyReport.Application.Puertos.Informe;
 
 namespace SafetyReport.WebApi.Controllers
@@ -10,10 +11,11 @@ namespace SafetyReport.WebApi.Controllers
     [Authorize]
     [Route("api/[controller]")]
     [ApiController]
-    public class InformeController(InformeHandler informeHandler, InformeTranslationHandler translationHandler) : BaseController
+    public class InformeController(InformeHandler informeHandler, InformeTranslationHandler translationHandler, FlujoInformeHandler flujoInformeHandler) : BaseController
     {
         private readonly InformeHandler _informeHandler = informeHandler;
         private readonly InformeTranslationHandler _translationHandler = translationHandler;
+        private readonly FlujoInformeHandler _flujoInformeHandler = flujoInformeHandler;
 
         [HttpPost("crear")]
         public async Task<IActionResult> Crear([FromBody] InformeCrear request)
@@ -62,6 +64,14 @@ namespace SafetyReport.WebApi.Controllers
         public async Task<IActionResult> Listar([FromQuery] FiltroInforme request)
         {
             var respuesta = await _informeHandler.ListarAsync(UsuarioLogueado, request);
+            return Ok(respuesta);
+        }
+
+        // SRC-F1-065: informes aprobados del traductor y complementos (módulo Informes del traductor)
+        [HttpGet("listarRepositorio")]
+        public async Task<IActionResult> ListarRepositorio([FromQuery] FiltroRepositorioInformes request)
+        {
+            var respuesta = await _flujoInformeHandler.ListarRepositorioAsync(UsuarioLogueado, request);
             return Ok(respuesta);
         }
 

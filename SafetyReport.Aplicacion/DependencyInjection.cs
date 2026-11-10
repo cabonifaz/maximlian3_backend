@@ -20,6 +20,7 @@ public static class DependencyInjection
         services.AddScoped<ClienteHandler>();
         services.AddScoped<CompaniaHandler>();
         services.AddScoped<DirectorioEjecutivoHandler>();
+        services.AddScoped<FlujoInformeHandler>();
         services.AddScoped<FormatoDocumentoResolver>();
         services.AddScoped<InformeAprobacionHandler>();
         services.AddScoped<InformeArchivoHandler>();

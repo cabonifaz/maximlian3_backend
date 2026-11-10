@@ -121,6 +121,10 @@ namespace SafetyReport.Application.Puertos.Asignacion
         public string? Estado { get; set; }
         public string? ColorLetra { get; set; }
         public string? ColorFondo { get; set; }
+        // SRC-F1-065: true = el traductor traduce; false = pedido en español, el traductor edita/mejora.
+        public bool? RequiereTraduccion { get; set; }
+        // SRC-F1-065: pedido interno creado como complemento (su original es PEDIDO.IdInformeBase).
+        public bool? EsComplemento { get; set; }
     }
 
     public class AsignacionBandejaResumen
