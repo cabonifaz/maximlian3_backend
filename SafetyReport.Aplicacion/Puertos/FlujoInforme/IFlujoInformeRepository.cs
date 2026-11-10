@@ -8,4 +8,5 @@ public interface IFlujoInformeRepository
     Task<Respuesta> ListarComplementosAsync(UsuarioGeneral usuarioLogueado, FiltroComplementos filtro);
     Task<Respuesta> CrearComplementoAsync(UsuarioGeneral usuarioLogueado, CrearComplementoRequest request);
     Task<Respuesta> EnviarAprobacionComplementoAsync(UsuarioGeneral usuarioLogueado, int idComplemento);
+    Task<Respuesta> ListarClientesDestinoComplementoAsync(UsuarioGeneral usuarioLogueado);
 }
