@@ -172,6 +172,10 @@ namespace SafetyReport.Application.Puertos.FlujoInforme
         public string Estado { get; set; } = "borrador";
         public DateTime? FechaCreacion { get; set; }
         public DateTime? FechaModificacion { get; set; }
+        // Informe del traductor del complemento (null mientras no lo guarde por primera vez)
+        public int? IdInforme { get; set; }
+        public string? Codigo { get; set; }
+        public int? IdPlantilla { get; set; }
     }
 
     public class ListaComplementos
